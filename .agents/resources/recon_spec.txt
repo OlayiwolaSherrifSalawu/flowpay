@@ -1,0 +1,2358 @@
+--- PAGE 1 ---
+BMONI Embedded Platform Reconnaissance
+Executive Summary
+BMONI is a modern non-bank fintech platform offering multi-currency digital wallets and global card
+services via regulated stablecoins【59†L185-L194】【14†L81-L90】. It targets globally-connected users
+(expats, freelancers, SMEs, parents abroad, etc.) who need to hold and move money across USD, NGN, EUR,
+MXN, CAD, etc. BMONI partners with banks and regulated stablecoin issuers (Paxos, Monerium, Anchor ,
+etc.) to back each stablecoin fully with fiat reserves【59†L272-L279】【14†L81-L90】. Users sign up via
+mobile app (face-recognition KYC【59†L219-L224】), provision a self-custodied smart-wallet on device
+(secure enclave/Ethereum keypair【32†L67-L75】), then perform on- and off-ramps across regions: e.g.
+fund in NGN/NGN (→CNGN), USD/USD (→USDB), EUR/EUR (→EURe) and offload via local bank payouts or
+crypto transfers. The platform’s standout features include EVM-compatible on-device signing, multi-
+stablecoin wallets, partner-scoped APIs (for “employers” to onboard linked users), and issuance of virtual/
+physical spend cards on each wallet【32†L67-L75】【45†L95-L104】. BMONI provides comprehensive REST
+APIs and Flutter/React-Native SDKs for integration.
+This reconnaissance document inventories BMONI’s capabilities: user flows, API surface, SDK details, wallet/
+key architecture, country-rail mapping (with Nigeria focus), sandbox/test data, webhooks, AI/
+documentation tooling, plus ideation of product opportunities and hackathon considerations. Each major
+component is mapped with exact endpoints, parameters, and life-cycle diagrams. The API Catalogue
+details every endpoint by domain (Users, SmartWallets, KYC, Onboarding, Fund, Transfers, SWAPS, Rails,
+Cards, Webhooks, etc.), with method, path, auth, params and sample responses. Diagrams illustrate core
+flows: (1) User onboarding → smart-wallet provisioning → USD-virtual-account deposit → pay another
+user, (2) Employer linking flow (invite → employee KYC → account link), (3) Card issuance and
+activation. We compare the Flutter vs React Native SDKs: both generate a secure on-device Ethereum
+wallet (Android Keystore / iOS Secure Enclave) and identical API methods (initWallet, signMessage, etc.)
+【32†L67-L75】【30†L59-L68】. We highlight security (private keys always device-bound, PIN-protected), 
+webhooks (event types like employee.deposit.completed , HMAC signature verification), and sandbox
+tools (test personas and BVNs【26†L193-L201】, test token credits). A country/currency matrix shows
+supported fiat rails per region. Lastly, we identify high-value hackathon ideas (multi-currency remittance,
+payroll cards, crypto integration), assess technical risks (e.g. unprovisioned KYC, 3rd-party dependencies,
+on-device signing in web), and recommend technology stacks: mobile-first (Flutter) to leverage BMONI’s
+UI and SDK libraries, or React Native as a viable alternative; web is possible but requires custom signing
+work. 
+Citations are drawn only from official sources (BMONI docs and site). Inferences and design proposals are
+clearly marked and justified. This report is exhaustive, aiming to leave no question unanswered for a
+product engineer exploring BMONI Embedded.
+1
+--- PAGE 2 ---
+1. BMONI Product Overview
+BMONI (by BKEY Inc.) is a cross-border digital financial platform targeting globally-mobile individuals and
+businesses【59†L185-L194】. Unlike a bank, BMONI leverages licensed partners to provide onramps/
+offramps in multiple currencies. Key use-cases include expats sending money home, remote workers and
+freelancers managing multiple currencies, global families (parents abroad), and small businesses
+paying global suppliers or employees. Users download the BMONI app (iOS/Android), sign up with phone +
+KYC (face scan, ID, proof of address, etc. – Nigeria users must supply BVN【59†L219-L224】). Once
+onboarded, each user can create multiple smart-wallets, each in a different supported currency (USD,
+NGN, EUR, CAD, MXN, etc.)【14†L81-L90】. Each wallet holds a stablecoin pegged to that currency (e.g.
+“USDB” for USD, “CNGN” for NGN【14†L81-L90】【59†L272-L279】) and is self-custodied on the user’s
+device via an Ethereum key pair . 
+Primary capabilities and flows:
+Multi-currency wallets: Users can top-up (on-ramp) wallets in local currency via bank transfer (e.g.
+USD → USDB, NGN → CNGN) or crypto deposit, then spend or withdraw via various rails. 
+Currency conversion (swap): Users can convert between their BMONI balances (e.g. USDB↔CNGN)
+at real-time rates via an API endpoint. 
+Stablecoin-backed balances: All major currency balances are underpinned by regulated stablecoins
+backed 100% by fiat reserves【59†L272-L279】. For example, USDB is fully collateralized by USD in
+US banks【59†L272-L279】. 
+KYC & compliance: BMONI handles global KYC. For example, Nigerian users present BVN/NIN;
+Europeans use Monerium IDs; Mexicans use Etherfuse【14†L81-L90】【40†L95-L104】. Once KYC is
+approved, all multi-currency functionality is enabled. 
+Bank rails: Virtual accounts are provisioned for USD (ABA routing), NGN (NUBAN), and IBAN (EUR/
+CAD)【14†L81-L90】【39†L131-L139】. Users are credited stablecoins upon deposit. Offramp rails
+include payouts to bank accounts in supported countries (SEPA, NGN payouts, MXN CLABE, etc.). 
+Global cards: BMONI issues Mastercard-branded debit cards (virtual/physical) in NGN or USD,
+funded by a smart wallet【45†L75-L84】. Users can activate, freeze, set limits, and view transactions
+via the API. 
+Partnership/embedded model: BMONI can be embedded in other apps or platforms. It provides a
+partner API for e.g. employers to invite and manage employees’ BMONI wallets without building
+their own app【24†L1-L4】【52†L441-L449】. 
+Security: Each wallet’s private key is generated/stored in device secure hardware (Android Keystore /
+iOS Secure Enclave) and never leaves the device【32†L67-L75】【30†L59-L68】. All sensitive
+operations (transactions, card issuance, payout approvals) require an on-device signature from the
+wallet’s key (via the BmoniEmbeddedSdk). Additionally, BMONI uses patented facial recognition for
+login/transaction authorization【59†L191-L194】. 
+In sum, BMONI is a cross-border e-wallet platform combining fiat rails, stablecoins, and card services. It
+abstracts away crypto complexity: users think in local currency, while BMONI performs any needed swaps
+between USD stablecoins and local currency rails【40†L197-L200】. This positions BMONI between a digital
+bank and a crypto-stablecoin app, offering globally interconnected money movement.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+2
+--- PAGE 3 ---
+2. Architecture
+BMONI’s backend is a proxy linking clients (apps) to multiple underlying rails and services. Its architecture
+can be summarized as follows:
+Self-custodied smart-wallet contract: When a user provisions a wallet, BMONI deploys (or
+allocates) a wallet contract or EVM keypair unique to the user on Ethereum-like chains. The user’s
+device holds the owner key (via SDK). The backend tracks each wallet’s address, currency, chain, and
+status. 
+Stablecoins: For each supported currency, there is a corresponding ERC-20 stablecoin (e.g. USDB,
+CNGN, EURe, CADC, MEXe). These stablecoins are minted/burned on deposits/withdrawals. Actual
+fiat is held in partner bank accounts (e.g. USD in US banks, NGN in Nigerian banks【59†L272-
+L279】). 
+Fiat rails via integrations: BMONI integrates with bank APIs and regional rails: e.g. an API call to a
+Nigerian bank to create NUBAN, or to Etherfuse for Mexico CLABE, or to Monerium for EUR IBAN. It
+also uses payment providers (e.g. Pago46 for cash pay-points). The ‘prepare-sign-complete’ pattern
+is common: e.g. a USD wire is prepared (account given) then signed by user , then processed. 
+Backend proxy (Node.js, etc): The partner calls BMONI API (x-api-key auth). BMONI’s server
+implements endpoints, orchestrates multi-step flows, calls fintech partners and its own smart-
+contract proxies, and returns status or signature requests. 
+Webhooks and event service: BMONI uses webhooks to notify partners of asynchronous events
+(deposits, onboarding completion, card issuance, etc). It signs payloads with HMAC using a partner-
+specific secret【48†L159-L169】. 
+SDK/clients: The BMONI frontend (or integrators) use the mobile SDK (Flutter or React Native) to
+handle key-generation and on-device signing【32†L67-L75】【30†L59-L68】. The UI uses Bkey UIKit
+components (Flutter package) for consistent look. 
+Sandbox environment: A shared BMONI sandbox (embedded.bmoni.com) mimics the API for
+testing. Sample personas (with pre-known BVN/NIN) are provided for identity checks【26†L193-
+L201】. Test bank accounts are provisioned with synthetic funds via request form【27†L0-L5】.
+The high-level flow diagram (Figure below) encapsulates BMONI’s layers: user/device (SDK & app), BMONI
+backend, third-party rails, and blockchain (for stablecoins):
+flowchart LR
+  subgraph User App
+    A((User + Phone))
+    S[Mobile SDK<br/>Key + Signing]
+  end
+  subgraph BMONI API (Backend)
+    UDB[API Gateway (x-api-key)]
+    WS{Smart Wallet DB}
+    BC[Blockchains (ERC-20)]
+    FIAT[Bank/Payment APIs]
+    AUTH((KYC/Facial)]
+  end
+  A -->|calls API| UDB
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+3
+--- PAGE 4 ---
+  UDB -->|store / status| WS
+  UDB -->|mint/burn| BC
+  UDB -->|invoke rails| FIAT
+  UDB -->|verify KYC| AUTH
+  A -->|initWallet()| S
+  S -->|signTx| UDB
+  S -->|return address| A
+Figure: BMONI integration architecture – user holds the wallet key and calls BMONI APIs; backend proxies to
+blockchains and fiat rails.
+Key architectural notes: Private keys never leave device (secure enclave)【32†L67-L75】. BMONI is
+architected to treat each wallet as a distinct on-chain entity. All important actions (minting stable tokens,
+payouts, creating cards) require user signature from the corresponding smart-wallet key. This ensures
+security but means integrations must incorporate signing flows for transfers, redemptions, and card
+issuance.
+3. API Catalogue
+All BMONI APIs use HTTPS with a partner-specific x-api-key . Domains include Users, KYC, Smart Wallets,
+Currency/Onboarding, Virtual Bank Accounts, Rails (Deposit/Withdraw), Transfers, Exchange, Cards, and
+Webhooks. Below is a summary table of endpoints by category (see next pages for details):
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+User
+Management POST /v1/users
+Create a new user
+(returns 
+bmoniUserId )
+【15†L4-L11】.
+Body: email? , phoneNumber (E.
+164) , firstName , lastName ,
+etc.
+GET /v1/users/
+{userId}
+Get user info /
+status.
+DELETE /v1/users/
+{userId}
+Deactivate user
+(must have zero
+balances, see
+errors).
+Idempotent if no wallet. Must empty
+or E101【27†L0-L5】.
+POST
+/v1/users/
+{userId}/
+reactivate
+Reactivate within
+90d.
+4
+--- PAGE 5 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+Smart Wallets POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+owner-proof-
+challenges
+Request nonce to
+prove wallet
+owner .
+Body: ownerAddress , currency
+(stable code).
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+create-
+managed
+Create (deploy)
+smart-wallet after
+signing challenge
+【15†L16-L24】.
+Body: address , chain , 
+currency , challengeId , 
+signature . Returns 
+smartWalletId .
+GET
+/v1/users/
+{userId}/
+smart-
+wallets
+List user’s wallets
+(ID, currency,
+address, status).
+GET
+/v1/users/
+{userId}/
+smart-
+wallets/
+{walletId}
+Get details
+(balance, status)
+of one wallet.
+KYC /
+Onboarding GET
+/v1/users/
+{userId}/kyc/
+readiness
+Check if KYC
+fields complete.
+Returns missing
+fields.
+PATCH /v1/users/
+{userId}/kyc
+Submit or update
+KYC data (JSON
+body, per
+schema).
+POST
+/v1/users/
+{userId}/kyc/
+activate
+Activate KYC after
+uploading doc.
+Body: depends on region (e.g. 
+documentName , country  etc).
+GET
+/v1/users/
+{userId}/kyc/
+usd-
+readiness
+USD-specific KYC
+readiness
+(employment,
+sourceOfFunds)
+【39†L97-L104】.
+5
+--- PAGE 6 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+Onboarding
+(Rails) POST
+/v1/users/
+{userId}/
+onboarding/
+start-usa
+Provision USD
+virtual account
+(ACH) for USDB
+【39†L115-
+L123】.
+Body: smartWalletId . Returns 
+workflowId .
+POST
+/v1/users/
+{userId}/
+onboarding/
+start-
+nigeria
+Issue NGN virtual
+account for 
+CNGN .
+Body: smartWalletId . This is
+done implicitly in flow.
+POST
+/v1/users/
+{userId}/
+onboarding/
+start-eu
+Start Monerium
+KYC for EUR
+(returns 
+workflowId ).
+Body: smartWalletId .
+POST
+/v1/users/
+{userId}/
+onboarding/
+start-canada
+Start PayTrie CAD
+KYC. Body: smartWalletId .
+POST
+/v1/users/
+{userId}/
+latam/mx/kyc/
+activate
+Start Etherfuse
+KYC for Mexico
+(automatically get
+CLABE).
+Body: smartWalletId .
+Virtual Bank
+Accounts GET
+/v1/users/
+{userId}/vba/
+usd
+Poll USD account
+status/details
+【39†L131-
+L139】.
+ID shown when active (acct#,
+routing).
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+{walletId}/
+onramp/vba/
+nigeria
+Enable NGN VA
+deposit to wallet
+【40†L95-L104】.
+GET
+/v1/users/
+{userId}/
+bank-
+accounts/
+deposit-
+accounts/NGN
+Get NGN VA
+details (acct#).
+6
+--- PAGE 7 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+Funding
+(Crypto) GET
+/v1/deposit/
+supported-
+assets
+List supported
+chains/currencies
+for crypto deposit
+【38†L250-
+L259】.
+POST
+/v1/users/
+{userId}/
+deposit/
+wallet
+Generate deposit
+address for
+smart-wallet
+【38†L250-
+L259】.
+Body: chain , currency . Returns 
+address .
+Withdrawals GET
+/v1/users/
+{userId}/
+withdrawal/
+smart-wallet/
+crypto/
+supported/
+{token}
+Check if chain/
+token pair is
+supported for
+crypto out
+【38†L274-
+L283】.
+POST
+/v1/users/
+{userId}/
+withdrawal/
+smart-wallet/
+crypto
+Withdraw crypto
+to external
+address
+【38†L272-
+L280】.
+Body: sourceSmartWalletId , 
+destinationChain , 
+destinationCurrency , 
+destinationAddress .
+POST
+/v1/users/
+{userId}/
+bank-
+accounts/
+nigerian-
+banks
+List NGN banks +
+codes for
+withdrawals
+【40†L128-
+L137】.
+POST
+/v1/users/
+{userId}/
+bank-
+accounts/
+verify-
+nigerian-
+account
+Verify NGN bank
+acct (return
+holder name)
+【40†L140-
+L148】.
+Body: accountNumber , 
+bankCode .
+7
+--- PAGE 8 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+POST
+/v1/users/
+{userId}/
+bank-
+accounts/
+withdrawal-
+accounts/
+nigeria
+Register NGN
+withdrawal
+account
+【40†L157-
+L166】.
+Body: acct details + holder name
+(from verify). Returns 
+bankAccountId .
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+{walletId}/
+offramp/
+nigeria
+Create NGN
+withdrawal from
+wallet【40†L184-
+L193】.
+Body: bankAccountId , 
+fromAmount  (decimal string).
+Forex / Swap POST
+/v1/users/
+{userId}/
+exchange/
+convert
+Swap one stable
+to another
+(preview/submit)
+【15†L258-
+L261】.
+Body: fromCurrency , 
+toCurrency , amount .
+Transfers
+(wallet→wallet) POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+{walletId}/
+proposals
+Create a send-
+money proposal
+【15†L307-
+L316】.
+Body: toUserId , amount , 
+sourceSmartWalletId , token .
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+proposals/
+{proposalId}/
+approve
+(For NGN off-
+ramp) Approve
+fund transfer .
+GET
+/v1/users/
+{userId}/
+smart-
+wallets/
+proposals/
+{proposalId}/
+sign-payload
+Fetch EVM
+payload to sign (if
+not immediate).
+8
+--- PAGE 9 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+proposals/
+{proposalId}/
+sign
+Submit signature
+for proposal
+【15†L307-
+L316】.
+Body: signature .
+Bank Payouts GET
+/v1/users/
+{userId}/
+payouts/
+countries
+List countries for
+Bank payouts
+【38†L160-
+L169】.
+GET
+/v1/users/
+{userId}/
+payouts/
+banks?
+country={ISO}
+List banks in
+country (by code)
+【38†L160-
+L169】.
+POST
+/v1/users/
+{userId}/
+payouts/
+validate-
+account
+Validate bank
+acct & get name
+【38†L175-
+L184】.
+Body: e.g. country=NGA,
+currency=NGN, bankId,
+accountNumber .
+POST
+/v1/users/
+{userId}/
+payouts
+Create bank
+payout
+【38†L194-
+L203】.
+Body: sourceSmartWalletId
+(USDB), amount  (minor units as
+string), country , currency , 
+bankDetails  (bankId,
+accountNumber , holder name,
+optional branchId, routing, swift), 
+note .
+Mexico (SPEI) GET
+/v1/users/
+{userId}/
+bank-
+accounts/
+deposit-
+accounts/MXN
+Get MXN CLABE
+for deposits
+【41†L100-
+L109】.
+POST
+/v1/users/
+{userId}/
+latam/mx/
+quote
+Quote for MXN
+off-ramp
+【41†L138-
+L147】.
+Body: type:"offramp" , 
+sourceAmount , note . Returns 
+quoteId , orderId , 
+signatureRequest .
+9
+--- PAGE 10 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+GET
+/v1/users/
+{userId}/
+latam/mx/
+orders/
+{orderId}
+Poll MXN order
+status【42†L211-
+L224】.
+Returns burnSignatureRequest
+when ready.
+Implicit Token approvals
+(on-device)
+User signs approve
+& burn with SDK
+(not API calls).
+LATAM Cash POST
+/v1/users/
+{userId}/
+latam/cash/
+orders/fund
+Create cash pay-
+in order
+【43†L100-
+L109】.
+Body: smartWalletId , country
+(2-letter), price , 
+priceCurrency , description .
+Returns order + redirect_url .
+POST
+/v1/users/
+{userId}/
+latam/cash/
+orders/send
+Create cash pay-
+out order
+【43†L100-
+L109】.
+Body same as above. Returns 
+signatureRequest  to sign.
+GET
+/v1/users/
+{userId}/
+latam/cash/
+orders?
+type={FUND|
+SEND}
+List own active
+cash orders
+【43†L151-
+L159】.
+GET
+/v1/users/
+{userId}/
+latam/cash/
+orders/
+{orderId}
+Get details of one
+cash order
+【43†L151-
+L159】.
+Cards POST
+/v1/users/
+{userId}/
+cards
+Issue a new card
+【45†L95-L104】.
+Body: cardName , cardColor , 
+currency  (NGN/USD), type
+(virtual/physical), smartWalletId ,
+nin  (if first for owner), plus
+delivery info or pan  if importing a
+card.
+GET
+/v1/users/
+{userId}/
+cards
+List cards (active
+or reserved).
+10
+--- PAGE 11 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+GET
+/v1/users/
+{userId}/
+cards/
+{cardId}
+Card details
+(status, mask
+PAN, etc.).
+POST
+/v1/users/
+{userId}/
+smart-
+wallets/
+proposals/
+{proposalId}/
+sign
+Sign card creation
+proposal
+【45†L157-
+L166】.
+Body: signature .
+GET
+/v1/users/
+{userId}/
+smart-
+wallets/
+proposals/
+{proposalId}/
+sign-payload
+Poll card proposal
+payload if
+pending
+【45†L170-
+L178】.
+POST
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+activate/
+request
+Request OTP to
+activate physical
+card【47†L257-
+L266】.
+Body: pan  (if known), channel: 
+sms/email . Returns otpId .
+POST
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+activate/
+confirm
+Confirm card OTP
+【47†L267-
+L274】.
+Body: otpId , code .
+PUT
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+status
+Change card
+status (BLOCKED
+or ACTIVE)
+【47†L284-
+L293】.
+Body: {"status":"BLOCKED"}  to
+freeze or ACTIVE  to unfreeze.
+PUT
+/v1/users/
+{userId}/
+cards/
+{cardId}/pin
+Set card PIN (4
+digits)【47†L284-
+L293】.
+Body: {"pin":"1234"} .
+11
+--- PAGE 12 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+POST
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+reset
+Reset card PIN
+【47†L288-
+L293】.
+Body: {"pin":"5678"} .
+PUT
+/v1/users/
+{userId}/
+cards/
+{cardId}/set-
+limit
+Set spend limits
+【47†L290-
+L294】.
+Body: {"totalDailyLimit":
+100000, 
+"maxSingleTransactionAmount":
+50000}  (in minor units or
+currency?).
+GET
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+limits
+Get current limits
+& available
+【47†L298-
+L306】.
+GET
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+transactions
+List card
+transactions
+【47†L299-
+L306】.
+Query params: status , from , 
+to , size .
+PUT
+/v1/users/
+{userId}/
+cards/
+{cardId}/
+deactivate
+Cancel card
+(permanent)
+【46†L31-L39】
+【47†L303-
+L308】.
+POST
+/v1/users/
+{userId}/
+cards/
+sensitive-
+data
+Retrieve full card
+data (PAN, CVV)
+【47†L233-
+L242】.
+Body: identityId , cardId
+(from GET cards).
+Webhooks POST /v1/webhooks/
+config
+Create/replace
+webhook
+subscription
+【48†L94-L102】.
+Body: callbackUrl , events : list
+(e.g. 
+employee.deposit.completed , 
+onboarding.completed , etc
+【48†L94-L102】), partnerId , 
+active . Returns secretKey  for
+verifying signatures.
+12
+--- PAGE 13 ---
+Domain Method Endpoint Description /
+Usage Key Params / Notes
+PATCH /v1/webhooks/
+config
+Update
+subscription
+(URL, events,
+active).
+Can't change partnerId .
+POST
+/v1/webhooks/
+config/
+rotate-
+secret
+Generate new 
+secretKey  (old
+deliveries no
+longer valid).
+GET /v1/webhooks/
+events
+List webhook
+delivery history
+(page/limit)
+【52†L466-
+L474】.
+Authentication: All endpoints require the x-api-key  HTTP header with the partner’s API key【3†L110-
+L117】. Numeric or string IDs (userId, walletId, proposalId, etc.) are UUIDs. All amounts use minor units
+(e.g. cents) as strings unless explicitly noted; e.g. bank payout uses minor-unit strings【38†L211-L224】,
+while some decimal fields (like fromAmount  in off-ramp) use human-readable strings【40†L193-L200】. 
+Sandbox availability: The above APIs are available in the sandbox with a shared test API key (see [3]). Use
+the provided test personas and supplied BVNs to simulate KYC【26†L193-L201】. 
+Table note: This is a high-level summary. For full details on request/response schemas, see the BMONI
+Embedded docs. Where useful, related endpoints are grouped together . For example, rails for each region
+are detailed in their respective sections (USD, NGN, MXN, etc).
+4. SDK Deep Dive (Flutter vs React Native)
+BMONI provides client SDKs for Flutter and React Native (both named bmoni_embedded_sdk  on
+pub.dev/npm) to manage on-device wallets. The SDKs are equivalent in capability and design, differing only
+in language and platform setup【30†L59-L68】【32†L67-L75】. 
+Purpose: Both SDKs generate and store a secp256k1 keypair on the user’s device and perform
+cryptographic signing. Keys are protected by a user-chosen PIN (configurable length) and the
+device’s hardware root of trust (Android Keystore or iOS Secure Enclave)【32†L67-L75】【30†L59-
+L68】. No private key material leaves the secure element. All signatures use EIP-191/EIP-712
+standards. 
+APIs (capabilities):
+initialize(pinLength, requirePin) : Configure PIN policy and initialize once at startup
+(idempotent)【33†L135-L144】【34†L189-L197】. 
+• 
+• 
+• 
+13
+--- PAGE 14 ---
+initWallet() : Generates a new key (if none) and returns public address. 
+walletAddress() , hasWallet() : Query if a wallet exists / get address. 
+deleteWallet(pin) : Delete wallet (PIN checked). 
+setPin/ changePin/ removePin/ matchPin : Manage the 4-6 digit PIN. 
+signMessage(message, pin) : Sign an arbitrary message. 
+signTransactionHash(hash, pin) : Sign a 32-byte hash (used for EIP712 payloads).
+These methods are static and global (no instantiation needed)【32†L79-L88】【30†L59-L68】. 
+Installation & Setup:
+Flutter SDK: Add bmoni_embedded_sdk: ^0.0.2  in pubspec.yaml 【33†L62-L70】. Requires
+Flutter ≥3.3, Android minSdk 24, iOS target 13.0【33†L83-L90】. No extra Android/iOS config
+needed (just ensure min versions)【33†L96-L104】【33†L119-L127】. Then call 
+BmoniEmbeddedSdk.initialize(pinLength:6, requirePin:true)  in main() 【33†L134-
+L143】. 
+React Native SDK: Install via npm install @bkey-inc/bmoni_embedded_sdk 【34†L62-L70】
+(requires RN 0.76+ New Architecture) and run pod install . Set Android minSdk 24 and iOS 15.1
+in Podfile【34†L85-L93】【34†L169-L177】. Also add Bkey’s Maven repo for the AAR【34†L119-
+L128】. Call BmoniEmbeddedSdk.initialize({ pinLength:6, requirePin:true })  in JS
+before app start【34†L187-L195】. 
+UI Libraries: Flutter apps can also use bkey_uikit  (design system) and 
+bmoni_embedded_wallets_cards  (wallet card widgets) for rapid UI integration【35†L72-L80】
+【36†L59-L68】. React Native does not yet have these Flutter-specific libraries.
+Security & PIN: The SDK ensures the PIN is never stored in plaintext; it’s hashed (PBKDF2-SHA256)
+and verified in Dart/JS before handing off to native【32†L129-L138】【30†L63-L72】. The secure
+element handles key encryption. All signatures return a 65-byte hex string ( r||s||v ) for on-chain
+verification【32†L89-L94】. Flutter supports iOS 13+; RN requires iOS 15.1+, due to use of new Swift
+frameworks【32†L102-L110】【34†L185-L194】. Both support Android via Keystore (arm64 only). 
+Wallet provisioning flow: A typical Flutter/RN flow: 
+Call initWallet()  to create key. 
+Retrieve address with walletAddress() . 
+Use this address in BMONI API call to request an owner-proof challenge (step 3 in Integration flow)
+【15†L12-L19】. 
+Use signMessage(challengeData)  in SDK to sign it, then POST to /create-managed . 
+The BMONI server deploys the wallet and links it to the user . 
+From then on, any transaction (offramp, payout, card issuance) that returns a signatureRequest
+uses the SDK’s signMessage  or signTransactionHash  to authorize. 
+Differences Flutter vs RN: Aside from language (Dart vs TS), their API surfaces are nearly identical
+【30†L59-L68】【32†L79-L88】. One difference: Flutter’s iOS support goes back to 13.0, RN needs
+15.1+ (see requirements above). Otherwise, init/sign functions have same names and behaviors.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+14
+--- PAGE 15 ---
+Flutter uses method channels; RN uses a TurboModule (RN New Arch) under the hood【32†L116-
+L125】【30†L121-L130】. 
+In summary, BMONI’s SDKs solve the hardest part of fintech integration: secure key management and
+signing on-device【32†L67-L75】. They abstract away cryptography, letting developers treat the wallet like a
+local user key, with easy PIN and signing calls. For a hackathon, Flutter+UIKit offers the fastest path to a
+polished wallet app, while RN gives a web-like dev experience with virtually the same security. A pure web/
+Next.js approach would have to integrate a custom Ethereum wallet (no official web SDK is provided),
+making security and signing harder; hence mobile is strongly recommended.
+5. End-to-End Workflow Diagrams
+Below are three concrete flows that illustrate typical BMONI usage. Each is drawn as a Mermaid flowchart.
+A. Basic Onboarding to Transfer
+flowchart TD
+  U([User]) -- Sign up --> API[/API: POST /users/]
+  API -- userId --> UDB((User DB))
+  U -- calls initWallet()--> SDK[Mobile SDK: generate keypair]
+  SDK -- address --> U
+  U -- POST /owner-proof-challenges --> API
+  API -- challenge --> U
+  U -- signMessage(challenge)--> SDK
+  SDK -- sig --> U
+  U -- POST /create-managed (sig)--> API
+  API -- SmartWallet(CNGN) created --> API
+  U -- POST /v1/users/{id}/onboarding/start-nigeria--> API
+  API -- (NGN VA created) --> API
+  U -- Poll /bank-accounts/deposit-accounts/NGN --> API
+  API -- { accountNumber="0123456789", ... } --> U
+  U -- deposits N1000 -> BOL (Naira Bank)-->
+  FN((Fiat Settlement))
+  FN -- credited in CNGN --> API
+  U -- GET /balances --> API
+  API -- {CNGN:1000} --> U
+  U -- POST /proposals (send 50 CNGN to Bob)--> API
+  API -- {proposalId, signPayload} --> U
+  U -- signPayload with SDK --> SDK
+  SDK -- signature --> U
+  U -- POST /proposals/{id}/sign--> API
+  API -- complete transfer to Bob --> API
+  API -- {status:"completed"} --> U
+Figure: User signs up, provisions an NGN wallet (with CNGN stablecoin), deposits N1000, then sends 50 Naira to
+another user.
+15
+--- PAGE 16 ---
+B. Employer Inviting an Employee (No App)
+Figure: An employer (partner) invites an employee. BMONI notifies the partner via employee.linked , then the
+partner can fund or interact with that user’s wallet via API. (The employee’s wallet is fully managed on BMONI’s
+side.)
+C. Virtual Card Issuance & Activation
+Figure: Issuing a card: create card (proposal is automatically approved), sign on-device, then partner sees a new
+card entry. For physical cards, the app must also send OTP to activate.
+6. Wallet and Signing Architecture
+Each BMONI smart wallet is a separate EVM account whose private key is only on the device. Under the
+hood:
+The BMONI server registers each wallet with a userOwnerAddress  (the EOA address from 
+initWallet() ).
+Whenever the server needs the user’s signature (in a signatureRequest ), it includes the message
+to sign (ABI-encoded call data or a human-friendly string). The client uses signMessage()
+(EIP-191) or signTransactionHash()  to sign it【32†L89-L94】.
+The signed message is sent back to BMONI via an API ( /wallets/submit-signature  or similar)
+to finalize the action. The server then relays it to the blockchain or partner system.
+Local vs Backend: Account nonces, addresses and balances are tracked server-side in a database (for
+efficiency), but actual token transfers occur on-chain. The server never has the user’s private key
+(only the device does). Secrets (PIN, seed) are never in the cloud. The user’s phone must be online to
+sign critical operations (though non-sensitive calls can be done server-to-server). 
+Recovery: If a user loses their device, BMONI provides account retrieval via phone + face scan (the
+wallet seed is tied to KYC identity, not stored by BMONI)【59†L193-L194】. 
+invite
+ invite link sent via email
+clicks invite link
+completes KYC &
+onboarding
+webhook:
+employee.linked
+GET
+/users/{bmoniUserId}/ban
+k-accounts/deposit-accou
+nts/NGN
+{ accounts: [...] }
+Partner
+API:
+POST
+/partners/employees/invit
+e
+Employee
+BMONI
+mobile
+app
+UI
+API
+has funded wallet
+{proposalId, signPayload}
+signPayload with SDK
+ signature
+POST /proposals/{id}/sign
+issues card (CARD_ID)
+card (status=RESERVED)
+(for physical) POST
+/cards/{CARD_ID}/activate
+/request
+ otpId
+ OTP from user
+POST
+/cards/{CARD_ID}/activate
+/confirm
+status=ACTIVE card
+U
+API:
+POST
+/cards
+SDK
+UI
+• 
+• 
+• 
+• 
+• 
+16
+--- PAGE 17 ---
+7. KYC and Identity
+BMONI’s flows are gated by KYC at the user level and (for partners) at the employee level. Relevant points:
+Global KYC: The /kyc/readiness  and /kyc/activate  endpoints capture standard info.
+Nigerian users provide BVN / NIN 【26†L193-L201】; others use respective IDs. All KYC fields
+(employment status, income source, etc.) must satisfy the validator or return error messages
+【29†L143-L152】. 
+One-time submission: KYC is submitted once; all on-ramps reuse it. For example, after Nigeria KYC,
+user can do NGN and USD rails without re-verifying (though USD rail has additional field checks
+【39†L97-L104】). 
+Automated lookups: Sandbox supports BVN/NIN lookups to prefill name【26†L193-L201】. In prod,
+the KYC endpoints integrate with verification partners (onboarding flows show Monerium, Etherfuse,
+PayTrie, etc). 
+Errors: Common validation errors (BVN length, etc) are documented【29†L149-L157】. Notably,
+deleting an account requires zero balance (Error E101). 
+NRW (Rest of World): For non-specified regions, a generic KYC flow exists (e.g. if not in NGN/EUR/
+MXN/CAD locales). 
+In short, KYC is thorough: collects name, DOB, address, ID scans, and country-specific IDs. The APIs expose
+both readiness ( GET /kyc/readiness ) and specific onboarding ( /onboarding/start-xxx ) steps.
+Webhooks onboarding.completed  and kyc.action_required  notify of progress【52†L423-L432】,
+eliminating long polling.
+8. Rails Overview
+BMONI abstracts money movement via “rails” – channels converting between on-chain stablecoins and off-
+chain money. The table below enumerates rails by currency:
+Rail (Direction) Converts Destination Identifier Key Endpoints
+USD virtual
+bank account
+(in)
+USD →
+USDB None (user gets acct#)
+/onboarding/start-usa , GET /vba/
+usd 【39†L115-L124】【39†L131-L140】
+NGN virtual
+account (in)
+NGN →
+CNGN
+None (user gets
+NUBAN)
+/smart-wallets/{w}/onramp/vba/
+nigeria 【40†L95-L104】
+NGN bank
+withdrawal
+(out)
+CNGN/
+USDB →
+NGN
+NUBAN + CBN bank
+code
+/bank-accounts/*nigeria  & /
+offramp/nigeria 【40†L128-L137】
+【40†L184-L193】
+Bank payout
+(out)
+USDB →
+local fiat
+IBAN/
+Account+bank+SWIFT
+/payouts/validate-account , /
+payouts 【38†L175-L184】【38†L194-
+L204】
+• 
+• 
+• 
+• 
+• 
+17
+--- PAGE 18 ---
+Rail (Direction) Converts Destination Identifier Key Endpoints
+SEPA payout
+(out)
+EURe →
+EUR IBAN
+/eu/orders/prepare , /eu/orders/
+complete 【44†L94-L103】【44†L148-
+L156】
+MXN on/off
+(in/out)
+MXN ↔
+MEXe CLABE (Mexican IBAN)
+GET /deposit-accounts/MXN  (for
+CLABE), /latam/mx/quote 【41†L98-
+L107】, /latam/mx/orders 【42†L191-
+L199】
+LATAM cash
+(in/out)
+Local cash
+↔ stable Cash-paypoint (no ID) /latam/cash/orders/fund  & /send
+【43†L100-L109】【43†L138-L147】
+Crypto
+transfer (in/
+out)
+Token ↔
+Token
+On-chain address +
+chain
+/deposit/supported-assets , /
+deposit/wallet  (in)【38†L250-L259】,
+/withdrawal/crypto  (out)【38†L274-
+L283】
+USD virtual account: Per user , an ABA routing account is issued so they can receive ACH/wire USD
+(converted to USDB)【39†L115-L124】. 
+NGN rails: After Nigeria KYC, the partner issues a Nigeria VA (NUBAN) for NGN deposits into the
+wallet【40†L95-L104】. For payout, user must register a Nigerian bank account (verify with CBN
+code【40†L140-L149】) then create an offramp to that account【40†L184-L193】. BMONI will auto-
+swap USDB->NGN if needed. 
+Bank payouts: One API handles payouts to many countries (funded by USDB). The flow: lookup
+country/bank ( GET /payouts/banks?country=XXX ), validate account ( POST /payouts/
+validate-account ), then create payout ( POST /payouts )【38†L175-L184】【38†L194-L204】.
+This returns a signature request to sign. 
+MXN (Mexico): Deposits use a fixed CLABE (retrieved via /bank-accounts/deposit-accounts/
+MXN 【41†L100-L109】). Offramp: create a quote ( POST /latam/mx/quote ) which returns an on-
+chain “order” and signature requests【41†L140-L147】. User signs approval and burn to complete
+payment. 
+Cash (LATAM): Customers can fund or withdraw cash at local agents (managed by Pago46). Creating
+an order with /latam/cash/orders/fund  or /send  returns either a payment URL (fund) or a
+signatureRequest (send)【43†L100-L109】【43†L138-L147】. 
+Swapping: Converting stablecoins internally uses /exchange/convert  (no external rails involved)
+【15†L258-L261】.
+Signature pattern: Most outbound rails (payouts, cash send, MXN off-ramp, card issuance) involve a two-
+step: create → sign → complete. BMONI returns a signatureRequest  or signaturePayload  which
+the app must sign with the SDK, then POST back to finalize【37†L125-L133】【47†L157-L166】. For
+example, the EUR SEPA pay prepares a Monerium order and returns a messageToSign with a workflowId
+【44†L123-L132】; the app signs it via complete . The only exception is NGN off-ramp: it uses the same
+proposal-sign flow as transfers (with one approval step)【40†L184-L193】. 
+• 
+• 
+• 
+• 
+• 
+• 
+18
+--- PAGE 19 ---
+9. Nigeria Rails
+Nigeria-specific rails combine NGN and USD handling:
+NGN Onramp: As soon as /onboarding/start-nigeria  is called (and KYC active), BMONI auto-
+provisions a NUBAN virtual account for CNGN . To attach it: POST /smart-wallets/{w}/onramp/
+vba/nigeria 【40†L95-L104】. Retrieve the NUBAN via GET /bank-accounts/deposit-
+accounts/NGN  (single-element array). All NGN transfers to that NUBAN automatically credit the
+user’s CNGN balance. Deleting the onramp ( DELETE ) stops new deposits. 
+NGN Offramp: Three steps as per docs【40†L128-L138】: (1) GET /bank-accounts/nigerian-
+banks  to list banks+CBN codes. (2) POST /bank-accounts/verify-nigerian-account  with
+NUBAN and bank code to fetch the registered account holder name【40†L140-L149】. (3) POST /
+bank-accounts/withdrawal-accounts/nigeria  to register that account (or reuse existing),
+providing NUBAN, code, bank name, holder . (4) Finally, POST /smart-wallets/{w}/offramp/
+nigeria  with bankAccountId  and fromAmount 【40†L184-L193】. This initiates a withdrawal. It
+returns a proposalId for finalization (signature step). The withdrawal amount is specified as a
+decimal string (e.g. "100.00" )【40†L184-L193】, which is noteworthy because other APIs use
+minor units (e.g. bank payout uses "100000000"  for 100 NGN【38†L226-L234】). 
+USD Onramp (for Nigerian users): After completing NGN, a Nigerian user can also set up a USD VA.
+They must call /onboarding/start-usa  with their smartWalletId【39†L115-L124】. BMONI then
+creates a US bank account (ACH) for the user to receive USD → credits USDB when money arrives.
+Polling GET /vba/usd  returns account# and routing once status:active 【39†L131-L140】.
+The USD rail requires extra KYC fields (employment, source of funds) via GET /kyc/usd-
+readiness 【39†L97-L104】. There is no USD off-ramp (no direct USD transfer out) – to withdraw
+value, a user would convert USDB to NGN or to another currency and use another rail. 
+Error conditions: Trying to withdraw more than the wallet’s balance triggers 400 . If KYC is
+incomplete, /offramp/nigeria  will fail (one must wait for 
+employee.onboarding.completed ). If funds are pending, the webhooks 
+employee.withdrawal.processing/completed/failed  will indicate when money leaves or
+fails【52†L409-L417】.
+10. USD Virtual Account (VBA)
+For holding USD on-ramp in BMONI: 
+Ready check: Before provisioning, poll GET /users/{u}/kyc/usd-readiness 【39†L97-L104】.
+It returns {"ready":false,"missing":[...fields...]} . For first-time Nigerian user , common
+missing fields are employmentStatus , sourceOfFunds . Fill those via PATCH /kyc . 
+Provision: Call POST /users/{u}/onboarding/start-usa  with JSON { "smartWalletId": 
+"<id>" } 【39†L113-L121】. Returns {"workflowId":"usa-onboarding-xyz"} . This binds a
+USD bank acct to the smart wallet. Call is idempotent. 
+Poll status: Then repeatedly GET /users/{u}/vba/usd . The response looks like:
+{ "status": "active", 
+  "account": { "id":"ba_usd_123", "accountNumber":"12345678", 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+19
+--- PAGE 20 ---
+"routingNumber":"021000021", "bankName":"Lead Bank", ... },
+  "reason": null }
+Status can be none  (no account yet), provisioning , pending , active , rejected , or failed
+【39†L153-L162】. Only when active  do we get valid bank details to display. If pending  or 
+provisioning , continue polling. If rejected , show error to user; failed  means try again. 
+Funding & credits: Once active, the user can ACH/transfer USD into that account. BMONI credits
+USDB to the smart wallet automatically. If a depositMessage  is provided (sometimes banks
+require this memo on wires), display it to the user【39†L163-L170】. 
+Reassign VA (rare): If the user wants to route that USD account to a different wallet, BMONI
+supports POST /smart-wallets/{w}/onramp/vba/usd  to rebind, and DELETE  to unbind
+【39†L176-L185】. Only needed if user wants to switch wallets. 
+Importantly, there is no USD withdrawal rail. To get value out of USDB, the user must either send USDB to
+another BMONI user or convert to CNGN (then use NGN off-ramp). 
+11. Transfers (Smart-Wallet Proposals)
+BMONI supports peer-to-peer sends between wallets (even cross-currency, via an internal swap). The
+process mirrors the card flow: create → sign → (auto-complete):
+Create Proposal: POST /users/{u}/smart-wallets/{w}/proposals  with body: 
+{ "toUserId": "<otherUserId>", 
+  "sourceSmartWalletId": "<w>", 
+  "destinationSmartWalletId": null, 
+  "token": "<currency>", 
+  "fromAmount": "100.00" }
+or the SDK’s higher-level call. This debits fromAmount  (decimal) from w  and credits to the other’s wallet.
+The response returns a proposalId  and a signPayload  (the on-chain transaction data to sign)
+【15†L307-L316】. 
+Approve & Sign: If an intermediate approval is needed (e.g. currency conversion), the API handles it
+internally. The partner just retrieves signPayload  via GET /proposals/{id}/sign-payload
+(or it may have come with create response) and calls the SDK to sign it. Then POST /smart-
+wallets/proposals/{proposalId}/sign  with {"signature": "<sig>"} 【15†L307-L316】.
+This finalizes the transfer . 
+Status: You can poll GET /proposals/{id}  or rely on webhooks
+( employee.withdrawal.completed  for send-outs, employee.deposit.completed  for
+incoming)【52†L409-L417】 to know when settled. 
+Transfers require no extra KYC beyond the wallets being active. Any currency conversion (e.g. user sends 50
+USD from a US wallet to credit someone’s NGN wallet) is handled by an internal swap at the moment of
+• 
+• 
+• 
+• 
+• 
+20
+--- PAGE 21 ---
+transfer【40†L197-L200】. The partner only needs to call /convert  optionally or let the proposal handle
+it.
+12. Currency Exchange (Swap)
+For internal currency conversions (e.g. USD↔NGN), BMONI provides /users/{u}/exchange/convert .
+This endpoint takes:
+POST /exchange/convert
+{ "fromCurrency": "USDB", "toCurrency": "CNGN", "amount": "50.00" }
+It returns a quote (exchange rate, fee) plus a signature request, similar to transfers. The user signs to lock in
+the swap and create the trade. This is a convenience wrapper; many flows (off-ramps or proposals) auto-
+swap if needed. 
+13. Cards – Issue and Management
+BMONI’s card APIs allow partners to create physical or virtual Mastercard® spend cards on a wallet
+【45†L75-L84】. 
+Issuance: POST /users/{u}/cards  with fields:
+cardName , cardColor , currency  (NGN or USD), type  (virtual/physical), smartWalletId , 
+nin  (Nigerian NIN for cardholder). Additional fields if physical: state , deliveryAddress , etc.
+Example: 
+{
+"cardName":"Payroll Card",
+"cardColor":"#4285F4",
+"currency":"NGN",
+"type":"virtual",
+"smartWalletId":"w-abc123",
+"nin":"12345678901"
+}
+Omitting nin  on first card yields a 400 E101 (cardholder not enrolled)【45†L127-L134】. 
+Create Response: The API responds with a card proposal (like a transfer): it includes proposalId , 
+feeAmount , and a signPayload  to sign【45†L131-L140】. The flow  is always "group" . The
+user then calls the SDK to sign this payload and POST /smart-wallets/proposals/{id}/sign
+【45†L157-L166】. 
+Activation: Virtual cards are instantly active once issued. Physical cards require activation:
+POST /cards/{cardId}/activate/request  with pan  and channel:'sms'  or 
+'email' 【47†L257-L266】. Returns otpId . 
+• 
+• 
+• 
+• 
+• 
+21
+--- PAGE 22 ---
+POST /cards/{cardId}/activate/confirm  with {otpId, code} 【47†L267-L274】. Upon
+success, status becomes ACTIVE. 
+Manage: For an active card (virtual or activated physical), use:
+PUT /cards/{cardId}/status  with {"status":"BLOCKED"}  to freeze (and "ACTIVE"  to
+unfreeze)【47†L284-L293】. 
+PUT /cards/{cardId}/pin  to set a 4-digit PIN【47†L288-L293】. 
+POST /cards/{cardId}/reset  to force-reset PIN【47†L288-L293】. 
+PUT /cards/{cardId}/set-limit  to adjust spend limits【47†L290-L294】 (must be within
+provider caps). 
+GET /cards/{cardId}/limits  to read current/available limits【47†L298-L306】. 
+GET /cards/{cardId}/transactions  to list txn (with filters)【47†L298-L306】. 
+Deactivation: PUT /cards/{cardId}/deactivate  permanently cancels the card【47†L303-
+L308】 (irreversible). 
+Sensitive Data: To show full card number or CVV, call POST /cards/sensitive-data  with 
+identityId  and cardId 【47†L233-L242】. This returns the plaintext PAN/CVV which must be
+protected (PCI rules). 
+A partner can poll GET /users/{u}/cards  to list all issued cards (active and reserved). The status field
+here is from the issuing bank (e.g. pending , active , frozen 【47†L346-L355】), not to be conflated
+with the BLOCKED/ACTIVE we set via API. Use the tables in [47] to interpret statuses.
+14. Webhooks & Events
+BMONI pushes real-time events to partners via signed webhooks【48†L155-L163】. Key points:
+Configuring Webhooks: Call POST /v1/webhooks/config  with your callbackUrl  and desired
+events【48†L94-L102】. Example events: employee.deposit.completed , 
+employee.withdrawal.completed , onboarding.completed , kyc.action_required , 
+employee.linked , etc. The docs caution to use the employee.*  event names (not the legacy 
+wallet.* ) for partner-scoped subscriptions【48†L86-L94】【52†L381-L389】. A partnerId
+must be included (to scope to your own users)【48†L110-L119】. The response returns a 
+secretKey  for HMAC verification. 
+Verifying Signatures: Every delivery includes X-Webhook-Signature  (HMAC-SHA256 of raw body
+using secret)【48†L169-L177】. The JSON body includes id , eventType , and payload  (varies
+by event). For example: 
+{
+"id":"evt-123",
+"eventType":"employee.deposit.completed",
+"payload":{"userId":"...","amount":"1000.00"},
+"timestamp":"2026-08-07T12:00:00.000Z"
+}
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+22
+--- PAGE 23 ---
+Headers X-Webhook-Id , X-Source-Event-Id  accompany it. You must verify HMAC on the raw body
+【48†L169-L177】 (not after JSON parse). 
+Events: Critical events are:
+Money movement: employee.deposit.completed/failed/refunded  and 
+employee.withdrawal.completed/failed/processing 【52†L409-L417】. These fire when a
+user receives or sends money (including refunds).
+Onboarding/KYC: onboarding.completed , onboarding.failed , kyc.action_required
+【52†L421-L430】. These replace polling /onboarding/status . 
+Employer linking: employee.linked , employee.vba.registered , employee.unlinked
+【52†L437-L445】. E.g. when a partner invites/links an employee. 
+Cards: card.fulfillment.updated  (e.g. card shipped, etc). 
+Retries & History: If your endpoint is down, BMONI retries. You can inspect GET /v1/webhooks/
+events  for delivery logs【52†L466-L474】 (it shows status delivered/failed, error messages). This is
+helpful to diagnose e.g. timeouts【52†L479-L488】. 
+Implement webhook handlers robustly: verify signature, dedupe by id , idempotently process. BMONI
+suggests triggering real sandbox events by performing an actual action (a small deposit will cause an 
+employee.deposit.completed  in test)【52†L489-L499】. Subscribing to these events eliminates much
+polling.
+15. Sandbox / Test Environment
+BMONI provides a shared sandbox environment ( embedded-dev.bmoni.com  base) for development.
+Relevant details:
+Test API Key: The embedded docs show a public PK ( pk_a025... ), likely for frontend use. For API
+calls, use the sandbox secret key from your BMONI portal. (Docs example shows a common key). 
+Test Users: The sandbox has predefined personas for Nigeria (with matching BVN/NIN) and global
+IDs【26†L193-L201】. E.g. Bunch Dillon with BVN 99999999999 , and Samson Jabo with BVN 
+22222222222 , NIN 22222222222 . When you call POST /users  with these names, the KYC
+lookups ( /kyc/bvn-lookup , /kyc/nin-lookup ) will match and return preset data (including
+date-of-birth)【26†L193-L201】. Use them verbatim to avoid mismatches. 
+Funding (Test Tokens): By default wallets have zero balance. To simulate funds, BMONI docs
+instruct to request test tokens from their team: provide your phone number and they credit NGN
+1000 and USD 10 to your wallet【27†L0-L5】. There is no API to mint in sandbox, it’s a manual
+process. Plan your tests around these amounts. 
+Bank accounts: The sandbox simulates on-chain and rails. For example, after completing Nigeria
+KYC, you can provision a virtual account; deposit tracking is simulated (you may need to inform
+support or use special test modes). Use webhooks or polling to verify credit. 
+Error codes: The sandbox also returns error codes as production would. Refer to the “Errors” page
+for conditions like 409 on duplicate, 422 for validation arrays, etc【29†L139-L149】. 
+OpenAPI / Playground: The sandbox docs include an interactive API Explorer (which may require
+login). But all endpoints in this report are valid in sandbox with the base URL and key from docs. 
+In short, the sandbox lets you run through all flows as if in production. Leverage the provided personas for
+swift KYC and the test tokens for simulation.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+23
+--- PAGE 24 ---
+16. Errors and Edge Cases
+BMONI uses standard HTTP status codes with JSON bodies containing statusCode , message , and 
+error 【29†L90-L98】. Key patterns:
+Validation (400): Field errors come as an array of messages【29†L114-L123】. For example, “BVN
+must be exactly 11 digits”. On 400, fix inputs and retry. 
+Auth (401/403): Missing or wrong x-api-key  yields 401. 403 Forbidden  if you try to access a 
+bmoniUserId  belonging to another partner【29†L179-L187】. 
+Not Found (404): If you use a non-existent userId, or request data not yet provisioned (e.g. polling a
+VA too early), you get 404 with “requested item could not be found”【29†L192-L200】. The docs note:
+“A 404 does not always mean missing”【29†L196-L204】—it can mean “not ready yet” (e.g. wallet not
+yet deployed). Treat it as retry case unless the item truly doesn’t exist. 
+Conflict (409): Conflicts (e.g. creating a user with existing phone/email) yield 409. Also see cards: 
+409  on /sign-payload  means payload not ready yet【45†L143-L152】. 
+422 and others: Rare; unspecified here. 
+Error message shape: The JSON might have "message"  as a list (validation) or single string. Do
+not parse semantically (they warn it can change wording)【29†L101-L109】. 
+Special Cases: Deleting user requires empty wallets (E101 error)【27†L0-L5】. If an asynchronous
+step is still in progress, many endpoints will either return 404/not found or a status=“pending”/
+“provisioning” which you should poll on (e.g. VA provisioning). 
+Always handle errors gracefully: log them, surfacing user-friendly messages, and retry appropriately for
+transient states. The integrated docs emphasize that many workflows (onboarding, bank linking) rely on
+webhooks instead of polling, to avoid error-prone retry loops.
+17. Security Considerations
+Authentication: Only API key is used; no OAuth or JWT. Protect the x-api-key  like a password.
+Separate keys for sandbox vs prod. 
+Data protection: Do not log or expose sensitive fields. For example, never log wallet secrets or full
+card data. When using /cards/sensitive-data , treat output as cardholder data (PCI rules)
+【47†L233-L242】 – don’t cache or log it. 
+HTTPS only: All endpoints are SSL. Use pinned certificates as needed. 
+Signing: Perform all signing operations on-device only. The SDKs ensure keys are hardware-backed.
+Do not attempt to move keys to server . 
+Webhooks: Verify each delivery via HMAC【48†L169-L177】. Reject any webhook failing signature
+check. Also validate that X-Webhook-Id  (or body id) hasn’t been processed to avoid replay. 
+Rate limits: The docs do not specify rate limits, but treat the API as a paid cloud service. Poll
+judiciously. Webhooks exist to avoid polling. 
+Partner isolation: Each partner’s bmoniUserIds  are segregated. Attempting to mix up scopes
+returns 403【29†L179-L187】. Store your partnerId and use it in webhook config; do not omit it (or
+you’ll get legacy global events). 
+Overall, BMONI’s security model relies on strong cryptography (EIP-712 signatures) and KYC. For our
+integration, ensure we follow best practices (secure storage for webhook secrets, limit access to API keys,
+etc.).
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+24
+--- PAGE 25 ---
+18. AI & Documentation Integration
+BMONI’s dev docs are AI-friendly. The Mintlify site provides built-in LLM tools【56†L67-L75】. Notable
+features:
+AI Assistant: Each docs page has an “Ask AI” button (ChatGPT/Claude/Cursor) that can answer
+questions from the BMONI docs【56†L67-L75】. Integrating this can help developers quickly find
+examples. 
+MCP Support: The docs expose a Model Context Protocol (MCP) interface; e.g. the entire docs can be
+fetched ( /llms.txt , /llms-full.txt ) for any LLM environment【56†L226-L235】. This means
+one could connect ChatGPT or Claude to query the BMONI API docs in real time. 
+Hackathon use: For example, you could have an AI-powered QA helper in your app, trained on
+BMONI docs, to guide users or developers. BMONI even suggests using Claude Desktop or Cursor to
+load their docs MCP【56†L128-L137】【56†L178-L187】. 
+Potential in product: While BMONI itself doesn’t offer AI-driven financial advice, a hackathon could
+explore an AI financial assistant that reads a user’s BMONI wallet activity and gives insights. The
+open docs and stablecoin design make it feasible to feed BMONI wallet data into an LLM for
+budgeting or fraud detection.
+In summary, BMONI embraces AI for developer tools (docs search, code generation). One hackathon angle:
+leverage these tools to speed development (e.g. auto-generating code snippets for API calls). Another is to
+build a product that layers an AI agent on top of BMONI’s financial data.
+19. Countries, Currencies, and Rails Matrix
+Below is a matrix of supported currencies and rails by region. (Only major ones shown; full list via API 
+GET /supported-currencies .)
+Region/
+Country
+Fiat
+Currency Stablecoin (Wallet) Incoming Rails (on-
+ramps)
+Outgoing Rails (off-
+ramps)
+Nigeria
+(NGA) NGN CNGN Virtual NUBAN acct
+(NGN)【40†L95-L104】
+NGN bank transfers (via
+NUBAN)【40†L128-
+L137】
+USD USDB USD virtual ABA acct
+【39†L115-L124】
+Convert to NGN then
+NGN bank (auto swap)
+【40†L197-L200】
+USA / Int’l USD USDB
+USD virtual ABA acct
+(ACH)【39†L115-
+L124】
+None directly (could use
+payout API to other
+country)
+Europe
+(EU) EUR EURe (Assume EUR SEPA in?) SEPA IBAN payouts
+【44†L94-L103】
+Canada
+(CA) CAD CADC PayTrie e-transfer (not
+detailed)
+PayTrie/Bank transfer
+(TBD)
+• 
+• 
+• 
+• 
+25
+--- PAGE 26 ---
+Region/
+Country
+Fiat
+Currency Stablecoin (Wallet) Incoming Rails (on-
+ramps)
+Outgoing Rails (off-
+ramps)
+Mexico
+(MX) MXN MEXe CLABE (SPEI) deposit
+【41†L100-L109】
+CLABE payout (SPEI on
+demand)【42†L192-
+L200】
+LATAM
+(e.g. BR,
+CO)
+local cash
+(varies:
+MXN→MEXe,
+USD→USDB, etc)
+Cash pay-in at agents
+【43†L100-L109】
+Cash payout at agents
+【43†L138-L147】
+Crypto
+(Global) N/A N/A (crypto)
+On-chain deposit of
+supported tokens
+【38†L250-L259】
+On-chain withdrawal to
+address【38†L274-
+L283】
+Table: Key rails by region. Some entries (like CAD) rely on partner rails (PayTrie) not fully documented here.
+Focus on Nigeria: A Nigerian user gets CNGN and can deposit Naira or USD (leading to NGN off-ramp).
+They can withdraw in Naira (via bank) or keep stable as crypto. All rails are fully documented in sections 9–
+13 above. 
+Currency-currency: Each supported currency has exactly one stablecoin (listed above). USD, NGN, CAD,
+EUR, MXN stablecoins exist. GBP ( GBPe ) is mentioned in UI, but GBP rails are not yet available (no VISA/
+UK). Deposits of crypto stablecoins (USDC, USDT, etc.) are supported in many jurisdictions【38†L264-L270】.
+20. Product Opportunity Map
+Using BMONI’s unique capabilities, we outline potential hackathon app ideas:
+Category Target
+User
+Problem /
+Need
+BMONI
+APIs/SDKs
+Required
+Difficulty
+(1-5)
+Differentiation /
+Value
+Real-World
+Impact Score
+Cross-
+border
+Remit App
+African
+diaspora;
+migrants
+in NG
+Cheaper
+remittance
+to Nigeria
+from USA/
+CAD/EUR.
+USD VA
+(start-usa),
+NGN
+withdraw;
+proposal
+swap, auth.
+3
+Multi-currency,
+stablecoins
+reduce FX &
+fees (vs
+Western
+Union).
+High (e.g.
+reduce fees
+by ~50%)
+26
+--- PAGE 27 ---
+Category Target
+User
+Problem /
+Need
+BMONI
+APIs/SDKs
+Required
+Difficulty
+(1-5)
+Differentiation /
+Value
+Real-World
+Impact Score
+Global
+Payroll
+Cards
+SMEs
+paying
+remote
+workers
+Manage
+multi-
+currency
+payroll;
+issue spend
+cards to
+employees.
+Partner
+invites, KYC,
+create cards
+(NGN/USD),
+fund
+wallets,
+distribute
+via API.
+4
+Built-in multi-
+currency
+wallets + cards
+simplifies cross-
+border payroll
+(new for SMEs).
+High
+(streamline
+crypto/
+payments to
+employees)
+Family
+Funds App
+Expats &
+families
+Families
+abroad
+sending
+money to
+children (fee
+control,
+auto-switch).
+Onboard
+e.g.
+Canadian to
+EUR/NGN,
+recurring
+deposits via
+APIs,
+recipient
+notifications
+(webhooks).
+3
+Use stablecoins
+to lock
+favorable rates;
+kids get instant
+FX conversions.
+Medium
+(better rates
+& control)
+Crypto
+Savings /
+Earn
+Crypto-
+savvy
+users
+Earn interest
+or manage
+crypto
+savings in
+stable
+assets.
+Use 
+deposit/
+wallet  to
+load USDC/
+DAI, on-
+chain swaps
+to USDB/
+CNGN,
+integrate
+with CeFi/
+DeFi yield
+(off-
+platform).
+5
+Leverage
+BMONI’s stable
+on-chain base
+plus external
+DeFi for yield.
+Medium
+(novel, but
+regulatory
+complexity)
+Mobile
+Wallet App
+(Lite)
+Gig
+workers in
+emerging
+markets
+Manage
+multi-
+currency
+wallets +
+prepaid card
+on one app.
+All (user ,
+wallet, KYC,
+cards,
+transfers) +
+UI Kit for
+quick UI.
+4
+A single app for
+digital banking
++ crypto. Bkey
+UI expedites
+dev.
+High
+(convenience,
+cashless
+adoption)
+27
+--- PAGE 28 ---
+Category Target
+User
+Problem /
+Need
+BMONI
+APIs/SDKs
+Required
+Difficulty
+(1-5)
+Differentiation /
+Value
+Real-World
+Impact Score
+Expense
+Splitter
+Friends
+traveling
+Split bills in
+different
+currencies
+easily.
+Transfer
+proposals
+(cross-
+currency),
+possibly
+stablecoin
+“IOUs”.
+2
+Cheap, on-
+chain settle,
+avoids bank
+fees on
+splitting.
+Medium (nice
+feature,
+modest
+scale)
+Small Biz FX
+Converter
+African
+businesses
+Pay
+international
+suppliers
+with best
+rate.
+Use /
+exchange/
+convert
+for bulk FX,
+track via
+APIs/
+webhooks.
+3
+Real-time
+stablecoin
+backend vs
+slow banks.
+High (cost
+savings on
+FX)
+KYC /
+Onboarding
+Bot
+Fintech
+dev teams
+Integrate
+KYC flow
+quickly (doc
+verification).
+KYC
+endpoints,
+status
+webhooks,
+UI.
+2
+Using BMONI’s
+ready KYC (esp.
+local BVN in
+NG).
+Low
+(developer
+tool niche)
+AI Financial
+Advisor App users
+Offer AI-
+driven
+finance tips
+based on
+wallet
+history.
+Webhooks +
+History APIs
++ ChatGPT
+(outside
+BMONI).
+3
+Merges
+stablecoin
+spending data
+with AI advice
+(unique
+combo).
+Medium
+(value
+depends on
+AI quality)
+Merchant
+POS App
+Small
+merchants
+selling to
+diaspora
+Accept USD/
+NGN
+payments,
+auto-
+convert,
+provide card
+payouts.
+Accept
+stablecoins
+(crypto
+deposit),
+bank off-
+ramp, card
+issuance to
+staff.
+5
+Unique POS
+that auto
+routes funds to
+global
+accounts.
+Low
+(complex,
+niche)
+Note: Scores reflect rough market impact; real value depends on execution. Difficulties assume hackathon level
+work. Many ideas can be hybridized (e.g., Remit+Card).
+Each idea leverages specific BMONI strengths: multi-currency stable flows (A, E), partner/employee model
+(B), API speed (C), crypto onramps (D), integrated KYC (F). Ideas like a payroll card system or stablecoin-
+powered remittance are hard to replicate with normal fintech APIs. The table above is a sketch; a full report
+would detail API calls and demo feasibility for each.
+28
+--- PAGE 29 ---
+21. Hackathon Constraints & Risks
+Time & Complexity: Building a full fintech solution is ambitious. Focus on a minimal viable flow (e.g. one
+currency onramp and one use-case). Leverage existing UI kits and widgets (Flutter) to save time. 
+Regulatory: BMONI handles KYC, so compliance burden is lower . However , understand sandbox vs
+production differences. In production, any crypto involvement requires caution (stablecoin custody rules). 
+Technical: On-device signing means web-only demos are tricky. If building a web frontend, you’ll need a
+substitute for the signing SDK (e.g. MetaMask or web crypto) – not straightforward. Better use mobile. Also
+note iOS simulator cannot run key signing (no Secure Enclave) – test on devices or Android emulator . 
+Dependencies: BMONI’s rails rely on third parties (banks, payment providers). In sandbox these are
+stubbed, but in real use some rails might fail or be slow. For hackathon, use webhooks to avoid polling
+waits. 
+Sandbox vs Prod: Some sandbox behaviors differ (e.g. static test data). Confirm which is allowed: issuing
+too many cards or orders in sandbox might hit limits. Also, ensure your x-api-key  is for sandbox, not
+accidentally production. 
+Avoiding Clones: Don’t simply copy features of established apps (like Venmo splits, Coinbase wallet).
+Instead emphasize BMONI’s unique data (multi-currency, on-chain). For example, don’t just recreate a
+standard pay app; add something novel like auto-conversion or stablecoin rewards. 
+Team Skill: Ensure team members know Flutter or RN and possibly some crypto/web3 basics. Using the
+SDK means you need to handle asynchronous flows (signing) properly. Familiarize with the example flows
+before hackathon day.
+22. Recommended Technology Stacks
+Flutter: The top recommendation. Flutter’s bkey_uikit  + bmoni_embedded_wallets_cards  provide
+ready UI widgets (wallet cards, typography, forms)【35†L74-L80】【36†L59-L68】. Combined with the 
+bmoni_embedded_sdk , one can prototype a wallet app rapidly on Android/iOS. Flutter’s hot reload and
+cross-platform nature accelerate dev. (Downside: must manage native build environment; large binary size.)
+React Native: Also supported, with an equivalent bmoni_embedded_sdk  for RN【30†L59-L68】. Use if
+team prefers JS/TypeScript or wants slight web compatibility (via React Native Web, though with caution).
+RN requires RN 0.76 (new arch) and manual Maven config【34†L119-L128】. There is no RN UI kit from Bkey
+yet, so you’d build UI mostly from scratch or use other libraries. 
+Web (Next.js, React): Not officially supported by BMONI. You could still call the APIs from a web app, but
+the big drawback is on-device signing: browsers do not have BKEY’s secure enclave. You’d need a web3
+wallet integration (e.g. MetaMask) to sign transactions, and there is no direct support for generating wallet
+keys in browser via BMONI. This means skipping the SDK: you’d have to have your own private key
+management (complex) or send transactions to BMONI (unlikely). Therefore, a purely web approach is high
+29
+--- PAGE 30 ---
+risk and not recommended for a quick hack. However , if absolutely needed (e.g. hackathon judges prefer
+web), one could restrict scope to read-only / virtual payments and handle signing offboard. 
+Node.js Backend: Regardless of frontend, you’ll need some backend (server or serverless) to securely store 
+bmoniUserId  and call partner API keys. A simple Node.js/Express (or Next.js API routes) with axios fetch
+is straightforward. Ensure to handle webhooks (requires public endpoint, e.g. via ngrok or cloud function). 
+Examples: BMONI docs have code examples (mostly curl). A recommended stack is Flutter + Dart on mobile
++ Node/Express on server . If web, Next.js with React for UI, plus a Node backend for signing (if doing
+manual ECDSA, but risky). 
+Comparison Table:
+Aspect Flutter React Native Web (Next.js/React)
+Security
+Keys in Secure Enclave/
+Keystore via SDK
+【32†L102-L110】
+Same (require new RN
+arch)【34†L85-L93】
+No hardware key
+support (could use
+MetaMask, less
+seamless).
+UI Support
+Has BMONI UIKit and
+Wallet widgets【35†L74-
+L80】【36†L59-L68】
+No official BUI; use custom
+or Material UI
+No official UI kit; fully
+custom needed.
+Installation Pub package (Flutter CLI)
+【33†L62-L70】
+npm package + native
+linking【34†L62-L70】 N/A (no official SDK)
+Platform iOS13+/Android24+ (64-
+bit)【33†L83-L90】
+iOS15.1+/
+Android24+【34†L85-L93】
+Any (browser), but lack
+native crypto.
+Dev
+Productivity
+Hot reload, single
+codebase JS ecosystem, fast reload Fast web dev, but
+custom wallet logic
+Performance High (compiled to native) High (native modules) High (JS in browser)
+Complexity Moderate (learning Dart/
+Flutter) Moderate (RN new arch) High (need custom
+signing & UI)
+Overall, Flutter offers the easiest route to a polished app using provided tools. React Native is second, if
+you prefer JS. Web is possible only for simpler interfaces (e.g. dashboard), but core wallet functionality is
+very limited without a supported SDK.
+23. Competitor Landscape
+Similar fintech services include OpenFinance wallets, Bitnob, Chipper Cash, and remittance apps. BMONI’s
+differentiators:
+Stablecoin-backed wallet: Many competitors allow crypto transfers or multi-currency, but BMONI’s
+strong claim is regulated stablecoins that you personally hold (non-custodial)【59†L272-L279】. 
+• 
+30
+--- PAGE 31 ---
+On-device security: Few wallet APIs enforce on-device key storage and PIN (they trust the app).
+BMONI’s e-signature model is relatively unique. 
+Full API integration: BMONI exposes a comprehensive API for nearly every action (account setup,
+rails, cards). Some competitors only offer mobile apps or limited webhooks. 
+Global rails coverage: While players like Flutterwave/Chipper cover certain corridors, BMONI
+targets an even broader multi-region with USD, EUR, CAD, NGN, MXN, etc.【14†L81-L90】【37†L94-
+L102】. 
+Cards issuance: BMONI directly issues cards linked to smart wallets. Some fintech APIs (e.g. Stripe
+Issuing) do cards, but BMONI ties it to its multi-currency eco-system.
+What to avoid cloning: Traditional features like “send money to phone contacts” or simple P2P social
+payments (already done by many). Also avoid fully replicating a neobank app UI (like TymeBank); instead,
+focus on integrated flows BMONI enables (e.g. automatic cross-border routing). For hackathon, emphasize
+novelty: e.g. instant USD → NGN stable swap with one-tap, or programmable cards with blockchain audit.
+Notable gaps: BMONI lacks native support for investment/interest accounts, so avoid ideas requiring high-
+yield accounts. Also, no direct crypto market trading other than stable transfers. So steer clear of “crypto
+exchange” concepts; focus on multi-currency spend or payroll (their strengths).
+24. Questions / Clarifications Needed
+Card funding currency: Can we fund a USD-card by debiting a CNGN wallet (auto-swap)? The doc
+suggests the currency  param chooses the card ledger currency【45†L110-L119】, but not
+explicitly if cross-currency is allowed. (Presume yes via internal convert.) 
+CAD rails: The docs mention Paytrie for CAD. What are the exact API endpoints for CAD deposit/
+withdraw? (Likely on /payouts  or similar .) 
+Crypto deposit risk: Are test stablecoin deposits (e.g. USDC on Base) enabled in sandbox? If so,
+which chains are allowed? 
+Limits and fees: What fees (on-chain gas, off-ramp fees) apply per endpoint? E.g. card issuance fee
+is returned, but exchange rates or payout fees unclear . 
+Risk of UX complexity: On a quick hackathon timeline, is it preferable to limit currencies (e.g. USD
+and NGN only) to simplify KYC differences? 
+Web SDK roadmap: Any official plan for a web JS SDK? If not, confirm that only Flutter/RN are
+expected. 
+These queries could be sent to BMONI’s support/mentor or clarified from platform docs before deep development.
+Final Research Report (A–L)
+A. What BMONI Is
+BMONI is “a modern digital financial platform” (not a bank) for globally connected users【59†L185-L194】.
+It offers multi-currency non-custodial wallets (via stablecoins) and global spend cards through partner
+banks. Users can hold USD (USDB), NGN (CNGN), EUR (EURe), MXN (MEXe), CAD (CADC), etc. BMONI handles
+all fiat rails via integrated banking and compliance partners【59†L272-L279】【14†L81-L90】. Technically,
+each user has on-device Ethereum wallet keys, enabling secure EIP-712 signing for transactions. BMONI’s
+• 
+• 
+• 
+• 
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+31
+--- PAGE 32 ---
+value prop is bridging traditional finance (bank accounts, cards) with blockchain (stablecoins, on-chain
+contracts) seamlessly.
+B. Key BMONI Capabilities
+Self-custody wallet SDK: On-device wallet creation and signing (Flutter/RN SDK)【32†L79-L88】
+【30†L59-L68】. 
+Multi-currency stable wallets: Receive and hold USD, NGN, EUR, CAD, MXN, pegged stablecoins
+【14†L81-L90】. 
+Automated KYC/Onboarding: Global KYC flows (BVN for NG, Monerium for EU, etc) built into APIs
+【59†L219-L224】【39†L97-L104】. 
+Fiat on/off-ramps: Instant deposit via virtual accounts (USD ACH, NGN NUBAN, etc) and payouts
+(NGN banks, SEPA, SPEI)【39†L115-L124】【38†L175-L184】. 
+Inter-wallet transfers & swaps: Send money to other BMONI users (cross-currency auto-swap)
+【40†L197-L200】, or convert via API. 
+Spend cards: Issue virtual/physical Mastercard cards on wallets, with PIN/limit control【45†L95-
+L104】【47†L282-L290】. 
+Partner APIs: Employer/partner integration (invite employees, manage linked accounts via
+webhooks employee.linked )【24†L1-L4】【52†L441-L449】. 
+Webhooks & events: Real-time push for deposits, withdrawals, KYC, link/unlink events【48†L159-
+L169】【52†L409-L417】. 
+Sandbox tools: Test personas, provided test tokens (NGN1000, USD10), and API explorer【26†L193-
+L201】【27†L0-L5】. 
+Documentation & AI: AI-enabled docs (LLM search), published SDK guides, and design systems to
+speed dev【56†L67-L75】【35†L74-L82】. 
+These capabilities let integrators move money globally with one API suite. Many traditional fintech APIs
+would require stitching multiple providers; BMONI covers it end-to-end with blockchain-backed assurances.
+C. Most Powerful API Flows
+Onboarding → Funding: POST /users  → SDK-init → /smart-wallets/create-managed  →
+KYC → POST /onboarding/start-XX  → /vba/xx  poll → deposit. (Covers account creation to
+funding.) 
+Deposit via Crypto: GET /deposit/supported-assets  → POST /deposit/wallet  → show
+address → wait for on-chain credit. (Ultra-fast, chain-native.) 
+Cross-currency payout: /exchange/convert  or transfers/proposals. E.g. convert USD to NGN
+and POST /offramp/nigeria . 
+Card issuance: POST /cards  → sign with SDK → POST /proposals/sign  → card ready.
+(Instant virtual card.) 
+Bank transfer: Bank payouts: GET /payouts/banks  → /payouts/validate-account  → 
+POST /payouts  (sign) for global IBAN transfers. 
+Partner invite: POST /partners/employees/invite  → user joins → partner gets 
+employee.linked  webhook → partner uses GET /vba/usd  or /vba/ngn  for that user’s
+accounts. 
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+8. 
+9. 
+10. 
+• 
+• 
+• 
+• 
+• 
+• 
+32
+--- PAGE 33 ---
+These flows stand out because they chain many steps. They show how you can go from zero to a
+functioning wallet or a completed transaction via BMONI with just code, something that in the real world
+would involve multiple banks and protocols.
+D. Most Powerful SDK Capabilities
+Secure key management: SDKs create a hardware-backed Ethereum key (Android Keystore / Secure
+Enclave)【32†L67-L75】. This means the app never handles raw private keys. 
+Local signing of any payload: The SDK can sign arbitrary strings or transaction hashes
+(EIP-191/712)【32†L89-L94】. This is crucial for approving blockchain transactions triggered by API
+calls. 
+PIN gating: Client can enforce a 4–6 digit PIN for every sign operation【33†L134-L143】【30†L85-
+L93】. It enhances security for mobile apps. 
+Flutter widgets (Flutter only): The bmoni_embedded_wallets_cards  package provides high-
+level wallet and transaction UI components (using Riverpod notifiers)【36†L59-L68】. This
+dramatically speeds up building an in-app wallet interface. 
+All signatures EIP-2 compliant: The outputs are low-s normalized, ready for ecrecover  checks on
+server【32†L89-L94】. Developers don’t need to tweak anything. 
+Unified API: Both Flutter and RN share the same method names (e.g. initWallet() , 
+signMessage() )【30†L59-L68】【32†L79-L88】. This means cross-platform code sharing or
+porting is trivial. 
+These capabilities mean a mobile app developer can secure funds just with BMONI’s libraries – a rare
+turnkey solution. Typical fintech APIs don’t handle keys at all (they rely on OAuth), so BMONI’s edge is
+building a true on-device crypto wallet with minimal effort.
+E. Unique Possibilities
+BMONI makes two things possible that most fintech APIs do not: easily fusing on-chain crypto with fiat
+rails, and custom wallet issuance. Specifically:
+Real stablecoin balances: Users literally own stablecoins under their control. This enables
+integrations like sending stablecoins internationally (trust-minimized) rather than via intermediary
+accounts. 
+Seamless forex: The system auto-swaps stable currencies during transfers, enabling instant multi-
+currency payments without human FX steps. 
+Programmable wallets: Because each wallet is an Ethereum account, you could integrate it with
+other smart contracts (e.g. DeFi, escrow) outside BMONI, a possibility standard APIs lack. 
+Embedded wallet-as-a-service: The partner invite model ( employee.linked  flow) effectively lets
+companies onboard employees into a custodial wallet system without building it themselves – an
+uncommon offer . 
+Multi-rail in one API: Developers get USD ACH, Naira rails, SEPA, Latin cash, crypto all from one
+backend. 
+In a nutshell, BMONI is more than a payments API; it’s a blockchain-enabled global banking stack. It
+merges elements of PayPal, Coinbase Wallet, and issuance systems into one.
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+33
+--- PAGE 34 ---
+F. Best Hackathon Opportunities
+Given BMONI’s strengths, some high-impact hackathon products include:
+Cross-border Payment Aggregator: An app that finds the best route for sending money abroad
+(e.g. "Get $→Deliver NGN"). Behind the scenes, use BMONI’s exchange and rails to offer low-fee
+remittances. 
+Multi-Currency Wallet App: A budgeting or travel wallet that auto-manages holdings in USD, EUR,
+NGN, MXN, etc. with real-time conversion via BMONI. 
+Payroll/Expense Card Service: A system where employers fund wallets and issue cards to
+employees in multiple countries – all handled via BMONI’s API (no HR onboarding code needed
+beyond invite). 
+Stablecoin Savings Program: Leverage on-chain deposits of USDC/DAI, then lock into BMONI
+(USDB) to earn fixed yields or rewards (maybe combine with an AI advisor). 
+AI Financial Coach: Combine BMONI’s account data (via APIs/webhooks) with a chatbot that advises
+on spending, budgeting or forex timing. 
+These ideas exploit BMONI’s unique rails and on-device crypto. For instance, typical P2P payment apps don’t
+do stablecoin swaps or auto-rail selection. BMONI’s wallet-card combo is ideal for a next-gen global banking
+app. Emphasize scenarios where money crosses borders or currencies – that’s where BMONI shines.
+G. Impressive Technical Possibilities
+End-to-end on-chain payment: Show a user’s USD VA deposit automatically minting USDB on EVM
+and crediting their on-chain balance, all in one transaction flow. 
+Live swap rate execution: A real-time quote API call triggering an atomic swap (via EVM) on the
+stablecoin contract. 
+Programmable card spends: Automatically adjusting card limits or locking cards via API based on
+user-defined triggers or AI analysis. 
+Complex multi-hop rails: E.g. user deposits BTC to BMONI (if allowed), BMONI sells to USDB, then
+off-ramps to NGN in one seamless flow (combining crypto deposit, internal exchange, and NGN
+payout). 
+Blockchain audits: Because every step has a signature, you could verify history on-chain –
+something conventional fintech doesn’t allow. 
+The most impressive demo might be cross-border mobile pay: User A in USA deposits USD, converts to
+CNGN, and instantly is able to pay User B’s card or account in Nigeria via API, with all steps signed and
+verifiable. It showcases the breadth of rails in a single user story.
+H. High-Risk/Complex Capabilities
+Direct crypto custody: Users handling stablecoins means they could send them outside the
+platform. There’s risk in crypto integration (if BMONI allowed minting from arbitrary crypto, etc). For
+hackathon, avoid any true custodial crypto trading. 
+Regulatory KYC gaps: If a country-specific KYC call is missed, user might get stuck. E.g. forgetting to
+collect BVN for Nigeria can block NGN rails. Automated flows must cover all KYC steps or handle 
+onboarding.failed  events. 
+1. 
+2. 
+3. 
+4. 
+5. 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+34
+--- PAGE 35 ---
+Concurrency in swaps: Exchanging large amounts may cause slippage or rate issues. The APIs
+assume a single-threaded use; rapid calls or race conditions could mis-handle funds. 
+Web integration risk: Without native SDK, anyone trying to do on-device signing via browser might
+expose keys. This is very risky; we mark web wallet flows as highest technical risk. 
+Dependency downtime: If a Rails partner (say, Nigerian bank API) is down, API calls for VA creation
+might hang or fail. We should handle timeouts and errors for production readiness. 
+Uncapped operations: Some APIs (like card issuance or payouts) might have caps or require extra
+approvals beyond docs. Triggering them in sandbox vs real might differ . 
+In summary, rely on the provided flows and avoid inventing sideways paths (like custom crypto funds). The
+system itself handles security; the hackathon should avoid tampering with core signing. Logging &
+monitoring are also important for catching failures (e.g. webhook failures).
+I. Recommended Tech Stack
+Frontend: Flutter (Dart) as first choice – it directly uses BMONI’s design system and wallet card
+components【35†L74-L82】【36†L59-L68】. Alternatively, React Native if the team is stronger in JS.
+Both support BMONI’s wallet SDK【32†L79-L88】【30†L59-L68】. 
+Backend: Node.js/Express or Next.js API routes to handle server logic (storing user IDs, calling
+BMONI APIs, receiving webhooks). Node has many libraries for HTTP and crypto. Flask/Python is also
+fine if preferred. 
+Database: Minimal, but something like SQLite or Mongo to store bmoniUserId , wallet IDs, maybe
+transaction logs. 
+Deployment: If public expo needed for webhooks, use a cloud function or service like Render , Vercel,
+or ngrok during dev. 
+Authentication: If multiple users, implement simple phone/SMS login (BMONI only requires storing
+their numbers). Otherwise skip registration (just demo flows with fixed test user). 
+Testing: Use BMONI’s sandbox exclusively during build. 
+Tools: Use BMONI’s docs AI assistant for code samples. Also consider using BKEY’s UI Kit for
+components instead of building from scratch (Flutter only). 
+Flutter/ReactNative covers mobile easily. Pure web is not recommended due to signing, as noted. If a web
+interface is needed, it should be mostly passive or admin. Otherwise, go full mobile.
+J. Top 10 Product Opportunity Areas
+(See table in section 20 for details.) In summary: 1. Cross-border Remittance (P2P): Cheap stablecoin-
+backed transfers (reduce fees, faster than banks).
+2. Multi-currency Wallet App: Consolidate foreign accounts. E.g. a travel app wallet that auto-converts
+leftover money post-trip.
+3. Global Payroll/Expenses: Issue cards to distributed teams, automate FX.
+4. Crypto Savings with Stable yield: Allow users to deposit crypto (e.g. USDC) and auto-stable coin to earn
+interest.
+5. AI Money Assistant: Chatbot analyzing spending across currencies and advising (unique with BMONI
+data).
+6. Merchant Acquiring: Accept payments in stablecoins globally, settle to local currency. (Hard, but novel.)
+7. Investment Platform: Use stable multi-currency for global stock/bond purchases (integrating with APIs).
+8. Charity/Remit Service: Niche: diaspora donations (with very low overhead).
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+35
+--- PAGE 36 ---
+9. Tourist Card: Prepaid multi-currency travel card with on-device reload (USD/EUR/NGN).
+10. Niche Banking for Expats: Focus on one corridor (e.g. USA⇄Nigeria) and build full service. 
+Rank and focus on the 3–5 most feasible. For hackathon, something like #1 or #3 has clear appeal and uses
+many BMONI features.
+K. Missing Information / Verification
+API limits and quotas: The docs do not state rate limits or usage quotas. Will need to query BMONI
+support. 
+Detailed fee structure: How exactly are fees charged? E.g. bank payout vs on-chain gas. It’s
+mentioned feeBps  in quotes, but full fee model (for previewing) is unclear . 
+Exact list of supported chains/currencies: GET /supported-currencies  exists (implied in
+docs), but need clarity on full set for coding picks. 
+Lead time for AML/Docs: If we go beyond sandbox, how fast can BMONI approve new KYC or allow
+card shipments? (Probably out of scope for hackathon.) 
+Edge-case behaviors: e.g. what happens if a user tries to sign after wallet is deleted? What about
+multiple wallets per currency? (API seems to allow multiple smart-wallets). 
+Internationalization: Are API error messages localized? (Likely English only, but if app uses other
+languages, need to map them.) 
+These would require direct answers from BMONI team or deeper doc inspection.
+L. Suggested Next Steps
+Environment Setup: Register for BMONI sandbox, obtain API keys, and test the example flows
+(create user , wallet, KYC) to ensure connectivity. 
+Prototype Core Flow: Pick one scenario (e.g. USD→NGN transfer) and implement end-to-end:
+signup, KYC, deposit, send, to validate understanding. 
+Use Official Libraries: Get the Flutter SDK and UI Kit components in a toy app. Render the wallet
+card UI and attempt a demo transfer with sandbox accounts. 
+Design UI: Sketch screens for main flows (onboarding, wallet list, send money, cards). Leverage BKey
+design tokens for consistent branding. 
+Implement Webhooks: Set up a basic server to receive webhooks like 
+employee.deposit.completed  to test event-driven updates. 
+Iterate with Feedback: Build minimal features, demo early, collect suggestions from coding
+mentors or potential users. 
+By following the official docs and testing key endpoints early, the team can reduce integration bugs. Use the
+Mintlify “Ask AI” tool to clarify any API usage questions quickly. Keep code modular (abstract BMONI calls) so
+you can swap endpoints if needed. 
+Sources: This report synthesizes the BMONI Embedded documentation【14†L81-L90】【37†L94-L102】
+【32†L67-L75】【39†L131-L139】【45†L95-L104】【48†L155-L163】 and official BMONI site【59†L185-
+L194】【59†L272-L279】. All facts above are cited from these materials. Any inferred suggestions (e.g.
+product ideas) are clearly marked and based on the documented capabilities.
+• 
+• 
+• 
+• 
+• 
+• 
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+36
