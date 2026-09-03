@@ -57,6 +57,34 @@ class AccountCapabilities {
         cachedAt: DateTime.now(),
       );
 
+  /// Personal-only account capabilities
+  factory AccountCapabilities.personalOnly({
+    required String bmoniUserId,
+  }) =>
+      AccountCapabilities(
+        hasPersonalWallet: true,
+        hasBusinessAccess: false,
+        companyName: null,
+        companyRole: null,
+        bmoniUserId: bmoniUserId,
+        cachedAt: DateTime.now(),
+      );
+
+  /// Business-only account capabilities
+  factory AccountCapabilities.businessOnly({
+    required String bmoniUserId,
+    required String companyName,
+    String companyRole = 'ADMIN',
+  }) =>
+      AccountCapabilities(
+        hasPersonalWallet: false,
+        hasBusinessAccess: true,
+        companyName: companyName,
+        companyRole: companyRole,
+        bmoniUserId: bmoniUserId,
+        cachedAt: DateTime.now(),
+      );
+
   bool get hasBothModes => hasPersonalWallet && hasBusinessAccess;
 
   Map<String, dynamic> toJson() => {
@@ -87,4 +115,131 @@ class AccountCapabilities {
 
   factory AccountCapabilities.fromJsonString(String source) =>
       AccountCapabilities.fromJson(jsonDecode(source) as Map<String, dynamic>);
+}
+
+/// Registration Account Type
+enum AccountType {
+  personal,
+  business,
+}
+
+/// KYC Verification Status
+enum KycStatus {
+  unverified,
+  pending,
+  verified,
+}
+
+/// FlowPay User Profile
+class UserProfile {
+  final String userId;
+  final String fullName;
+  final String email;
+  final AccountType accountType;
+  final String country;
+  final String phone;
+  final KycStatus kycStatus;
+  final String? nationalId;
+  final String? nationalIdType;
+  final String? companyName;
+  final String? companyRole;
+  final String? companyRegNumber;
+  final DateTime createdAt;
+
+  const UserProfile({
+    required this.userId,
+    required this.fullName,
+    required this.email,
+    required this.accountType,
+    required this.country,
+    required this.phone,
+    this.kycStatus = KycStatus.unverified,
+    this.nationalId,
+    this.nationalIdType,
+    this.companyName,
+    this.companyRole,
+    this.companyRegNumber,
+    required this.createdAt,
+  });
+
+  bool get isVerified => kycStatus == KycStatus.verified;
+  bool get isBusiness => accountType == AccountType.business;
+  bool get isPersonal => accountType == AccountType.personal;
+
+  UserProfile copyWith({
+    String? userId,
+    String? fullName,
+    String? email,
+    AccountType? accountType,
+    String? country,
+    String? phone,
+    KycStatus? kycStatus,
+    String? nationalId,
+    String? nationalIdType,
+    String? companyName,
+    String? companyRole,
+    String? companyRegNumber,
+    DateTime? createdAt,
+  }) {
+    return UserProfile(
+      userId: userId ?? this.userId,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      accountType: accountType ?? this.accountType,
+      country: country ?? this.country,
+      phone: phone ?? this.phone,
+      kycStatus: kycStatus ?? this.kycStatus,
+      nationalId: nationalId ?? this.nationalId,
+      nationalIdType: nationalIdType ?? this.nationalIdType,
+      companyName: companyName ?? this.companyName,
+      companyRole: companyRole ?? this.companyRole,
+      companyRegNumber: companyRegNumber ?? this.companyRegNumber,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'userId': userId,
+        'fullName': fullName,
+        'email': email,
+        'accountType': accountType.name,
+        'country': country,
+        'phone': phone,
+        'kycStatus': kycStatus.name,
+        if (nationalId != null) 'nationalId': nationalId,
+        if (nationalIdType != null) 'nationalIdType': nationalIdType,
+        if (companyName != null) 'companyName': companyName,
+        if (companyRole != null) 'companyRole': companyRole,
+        if (companyRegNumber != null) 'companyRegNumber': companyRegNumber,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      userId: json['userId'] as String? ?? 'usr_flowpay_${DateTime.now().millisecondsSinceEpoch}',
+      fullName: json['fullName'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      accountType: (json['accountType'] == 'business') ? AccountType.business : AccountType.personal,
+      country: json['country'] as String? ?? 'NG',
+      phone: json['phone'] as String? ?? '',
+      kycStatus: switch (json['kycStatus']) {
+        'verified' => KycStatus.verified,
+        'pending' => KycStatus.pending,
+        _ => KycStatus.unverified,
+      },
+      nationalId: json['nationalId'] as String?,
+      nationalIdType: json['nationalIdType'] as String?,
+      companyName: json['companyName'] as String?,
+      companyRole: json['companyRole'] as String?,
+      companyRegNumber: json['companyRegNumber'] as String?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
+
+  String toJsonString() => jsonEncode(toJson());
+
+  factory UserProfile.fromJsonString(String source) =>
+      UserProfile.fromJson(jsonDecode(source) as Map<String, dynamic>);
 }

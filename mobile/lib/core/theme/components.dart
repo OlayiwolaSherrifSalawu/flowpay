@@ -8,31 +8,31 @@ export '../design_system/cards.dart';
 export '../design_system/states.dart';
 export '../design_system/status_badges.dart';
 
-/// Demo Mode Indicator Pill
-/// Conforms to design.md §4.6: FlowPay Amber fill, 12dp caption, pill radius.
-class DemoPill extends StatelessWidget {
-  const DemoPill({super.key});
+/// Powered By BMoni Indicator Badge
+class PoweredByBmoniBadge extends StatelessWidget {
+  const PoweredByBmoniBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: const BoxDecoration(
-        color: FlowPayColors.amber,
-        borderRadius: FlowPayRadii.chip,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: FlowPayColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: FlowPayColors.hairline),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt, size: 12, color: FlowPayColors.ink),
+          Icon(Icons.bolt, size: 12, color: FlowPayColors.primary),
           SizedBox(width: 4),
           Text(
-            'DEMO',
+            'Powered by BMoni',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: FlowPayColors.ink,
-              letterSpacing: 0.5,
+              letterSpacing: 0.3,
             ),
           ),
         ],

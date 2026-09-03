@@ -5,7 +5,7 @@ import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/core/theme/components.dart';
 
 Future<void> unlockApp(WidgetTester tester) async {
-  await tester.tap(find.text('Demo Quick Unlock (Passcode: 123456)'));
+  await tester.tap(find.text('Quick Unlock (Passcode: 123456)'));
   await tester.pumpAndSettle();
 
   if (find.text('Select Account Mode').evaluate().isNotEmpty) {
@@ -24,7 +24,7 @@ void main() {
 
       // App starts locked behind AppAuthGate
       expect(find.text('FlowPay is Locked'), findsOneWidget);
-      expect(find.text('Demo Quick Unlock (Passcode: 123456)'), findsOneWidget);
+      expect(find.text('Quick Unlock (Passcode: 123456)'), findsOneWidget);
 
       // Perform Demo Quick Unlock
       await unlockApp(tester);

@@ -3,6 +3,10 @@ class AppRoutes {
   // Shell
   static const String root = '/';
 
+  // Auth & Onboarding Routes
+  static const String signup = '/auth/signup';
+  static const String kyc = '/auth/kyc';
+
   // Personal Module Routes
   static const String personalDashboard = '/personal/dashboard';
   static const String personalWallets = '/personal/wallets';
