@@ -11,6 +11,7 @@
     "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "better-sqlite3": "^9.6.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

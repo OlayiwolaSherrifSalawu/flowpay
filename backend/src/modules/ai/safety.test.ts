@@ -4,9 +4,9 @@ import { FinancialIntentInterpreter } from './interpreter.js';
 import { FinancialSafetyValidator } from './validator.js';
 import { FinancialSafetyError } from '../../core/errors.js';
 
-test('Financial Safety - interprets natural language to structured intent', () => {
+test('Financial Safety - interprets natural language to structured intent', async () => {
   const prompt = 'Send $500 to bunch.dillon@example.ng';
-  const intent = FinancialIntentInterpreter.interpret(prompt);
+  const intent = await FinancialIntentInterpreter.interpret(prompt);
 
   assert.strictEqual(intent.operationType, 'TRANSFER');
   assert.strictEqual(intent.parameters.sourceCurrency, 'USD');
@@ -15,8 +15,8 @@ test('Financial Safety - interprets natural language to structured intent', () =
   assert.strictEqual(intent.requiresExplicitApproval, true);
 });
 
-test('Financial Safety - validates and generates preview for valid intent', () => {
-  const intent = FinancialIntentInterpreter.interpret('Send $100 to Samson Jabo');
+test('Financial Safety - validates and generates preview for valid intent', async () => {
+  const intent = await FinancialIntentInterpreter.interpret('Send $100 to Samson Jabo');
   const availableBalance = 100000n; // $1,000 available
   const preview = FinancialSafetyValidator.validateAndPreview(intent, availableBalance);
 
@@ -24,8 +24,8 @@ test('Financial Safety - validates and generates preview for valid intent', () =
   assert.strictEqual(preview.requiresOnDeviceSigning, true);
 });
 
-test('Financial Safety - rejects intent when amount exceeds available balance', () => {
-  const intent = FinancialIntentInterpreter.interpret('Send $5000 to Samson Jabo');
+test('Financial Safety - rejects intent when amount exceeds available balance', async () => {
+  const intent = await FinancialIntentInterpreter.interpret('Send $5000 to Samson Jabo');
   const availableBalance = 100000n; // Only $1,000 available
 
   assert.throws(() => {
@@ -33,8 +33,8 @@ test('Financial Safety - rejects intent when amount exceeds available balance', 
   }, (err: any) => err instanceof FinancialSafetyError && /Insufficient funds/.test(err.message));
 });
 
-test('Financial Safety - rejects zero or negative amounts', () => {
-  const intent = FinancialIntentInterpreter.interpret('Send $0 to Bunch Dillon');
+test('Financial Safety - rejects zero or negative amounts', async () => {
+  const intent = await FinancialIntentInterpreter.interpret('Send $0 to Bunch Dillon');
   const availableBalance = 100000n;
 
   assert.throws(() => {

@@ -16,7 +16,7 @@ const envSchema = z.object({
   BMONI_API_KEY: z.string().default('sandbox_bmoni_api_key_placeholder'),
   BMONI_WEBHOOK_SECRET: z.string().default('87f88be98b96faf6d6ece5b26bf4a9fe20739ae9634fb7b530a24aac4f71ed32'),
   BMONI_PARTNER_ID: z.string().default('b7e6a1d0-4f3c-4c2a-9e8b-1a2b3c4d5e6f'),
-  OPENAI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

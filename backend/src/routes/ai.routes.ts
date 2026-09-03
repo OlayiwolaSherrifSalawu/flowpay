@@ -5,14 +5,14 @@ import { FinancialSafetyValidator } from '../modules/ai/validator.js';
 export const aiRouter = Router();
 
 // POST /api/ai/interpret
-// Step 1: Natural Language Interpretation -> Structured Intent
-aiRouter.post('/interpret', (req, res, next) => {
+// Step 1: Natural Language Interpretation -> Structured Intent (Gemini 2.5 Flash / fallback)
+aiRouter.post('/interpret', async (req, res, next) => {
   try {
     const { prompt } = req.body;
     if (!prompt || typeof prompt !== 'string') {
       return res.status(400).json({ success: false, message: 'Prompt is required' });
     }
-    const structuredIntent = FinancialIntentInterpreter.interpret(prompt);
+    const structuredIntent = await FinancialIntentInterpreter.interpret(prompt);
     res.json({ success: true, data: structuredIntent });
   } catch (err) {
     next(err);
