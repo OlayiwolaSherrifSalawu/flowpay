@@ -4,9 +4,12 @@ import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
+import '../../core/theme/radii.dart';
 import '../../core/theme/typography.dart';
 import 'employee_detail_screen.dart';
 
+/// Global Team Screen
+/// Conforms to design.md §3.1, §3.4 & §4.4
 class EmployeesScreen extends StatefulWidget {
   final AppState appState;
 
@@ -44,48 +47,50 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: FlowPayColors.surfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Invite Employee to FlowPay', style: FlowPayTypography.headingSm),
+        backgroundColor: FlowPayColors.surface,
+        shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.card),
+        title: Text(
+          'Invite Employee to FlowPay',
+          style: FlowPayTypography.title(color: FlowPayColors.ink),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: firstCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: FlowPayColors.ink),
               decoration: const InputDecoration(
                 labelText: 'First Name',
-                labelStyle: TextStyle(color: FlowPayColors.textSecondary),
               ),
             ),
+            const SizedBox(height: 10),
             TextField(
               controller: lastCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: FlowPayColors.ink),
               decoration: const InputDecoration(
                 labelText: 'Last Name',
-                labelStyle: TextStyle(color: FlowPayColors.textSecondary),
               ),
             ),
+            const SizedBox(height: 10),
             TextField(
               controller: emailCtrl,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: FlowPayColors.ink),
               decoration: const InputDecoration(
                 labelText: 'Work Email',
-                labelStyle: TextStyle(color: FlowPayColors.textSecondary),
               ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: country,
-              dropdownColor: FlowPayColors.surfaceElevated,
+              dropdownColor: FlowPayColors.surface,
               items: const [
-                DropdownMenuItem(value: 'NG', child: Text('Nigeria (NGN / CNGN)')),
-                DropdownMenuItem(value: 'MX', child: Text('Mexico (MXN / MEXe)')),
+                DropdownMenuItem(value: 'NG', child: Text('🇳🇬 Nigeria (NGN / CNGN)')),
+                DropdownMenuItem(value: 'MX', child: Text('🇲🇽 Mexico (MXN / MEXe)')),
+                DropdownMenuItem(value: 'CA', child: Text('🇨🇦 Canada (CAD / CADC)')),
               ],
               onChanged: (val) => country = val ?? 'NG',
               decoration: const InputDecoration(
                 labelText: 'Country & Rail',
-                labelStyle: TextStyle(color: FlowPayColors.textSecondary),
               ),
             ),
           ],
@@ -93,18 +98,26 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: FlowPayColors.textTertiary)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: FlowPayColors.textSecondary),
+            ),
           ),
           FlowPayButton(
             text: 'Send Invite',
             onPressed: () async {
               Navigator.pop(ctx);
+              final curr = country == 'NG'
+                  ? Currency.ngn
+                  : country == 'MX'
+                      ? Currency.mxn
+                      : Currency.cad;
               await widget.appState.employeeRepo.inviteEmployee(
                 firstName: firstCtrl.text.trim(),
                 lastName: lastCtrl.text.trim(),
                 email: emailCtrl.text.trim(),
                 country: country,
-                targetCurrency: country == 'NG' ? Currency.ngn : Currency.mxn,
+                targetCurrency: curr,
               );
               _load();
             },
@@ -117,20 +130,24 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: FlowPayColors.background,
+      backgroundColor: FlowPayColors.canvas,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.background,
+        backgroundColor: FlowPayColors.canvas,
         elevation: 0,
-        title: const Text('Global Team', style: FlowPayTypography.headingSm),
+        scrolledUnderElevation: 0,
+        title: Text(
+          'Global Team',
+          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w700),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_alt_1_outlined, color: FlowPayColors.primaryLight),
+            icon: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink),
             onPressed: _showInviteDialog,
           ),
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: FlowPayColors.primary))
+          ? const Center(child: CircularProgressIndicator(color: FlowPayColors.ink))
           : ListView.builder(
               padding: const EdgeInsets.all(20),
               itemCount: employees.length,
@@ -153,10 +170,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: FlowPayColors.surfaceElevated,
+                          backgroundColor: FlowPayColors.surfaceAlt,
                           child: Text(
-                            emp.country,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                            emp.flagEmoji,
+                            style: const TextStyle(fontSize: 18),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -164,11 +181,22 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(emp.fullName, style: FlowPayTypography.bodyLg),
+                              Text(
+                                emp.fullName,
+                                style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text(emp.email, style: FlowPayTypography.caption),
+                              Text(
+                                emp.email,
+                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                              ),
                               const SizedBox(height: 2),
-                              Text('Disbursement: ${emp.targetCurrency.code}', style: FlowPayTypography.caption.copyWith(color: FlowPayColors.textTertiary)),
+                              Text(
+                                'Rail: ${emp.targetCurrency.code} • ${emp.resolvedCountryName}',
+                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                              ),
                             ],
                           ),
                         ),

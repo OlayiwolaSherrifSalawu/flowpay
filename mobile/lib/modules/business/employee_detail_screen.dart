@@ -3,8 +3,13 @@ import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
+import '../../core/theme/radii.dart';
 import '../../core/theme/typography.dart';
 
+/// Employee Detail Screen
+/// Conforms strictly to design.md §3.1, §3.4, §3.5 & §4.5:
+/// Displays employee attributes, BMONI infrastructure details, and the physical
+/// VirtualCardObject (1.586 aspect ratio, FlowPay Amber fill, soft physical shadow).
 class EmployeeDetailScreen extends StatelessWidget {
   final AppState appState;
   final EmployeeModel employee;
@@ -18,16 +23,29 @@ class EmployeeDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: FlowPayColors.background,
+      backgroundColor: FlowPayColors.canvas,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.background,
+        backgroundColor: FlowPayColors.canvas,
         elevation: 0,
-        title: Text(employee.fullName, style: FlowPayTypography.headingSm),
+        scrolledUnderElevation: 0,
+        title: Text(
+          employee.fullName,
+          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Header Card
+          // 1. Employee Virtual Card Face (Physical Card Object)
+          VirtualCardObject(
+            cardLast4: employee.cardLast4 ?? '4289',
+            countryFlag: employee.flagEmoji,
+            cardHolderName: employee.fullName,
+            isFrozen: employee.cardStatus.toUpperCase() == 'FROZEN',
+          ),
+          const SizedBox(height: 24),
+
+          // 2. Profile Overview Card
           FlowPayCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,95 +53,162 @@ class EmployeeDetailScreen extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 26,
-                      backgroundColor: FlowPayColors.surfaceElevated,
+                      radius: 24,
+                      backgroundColor: FlowPayColors.surfaceAlt,
                       child: Text(
-                        employee.country,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        employee.flagEmoji,
+                        style: const TextStyle(fontSize: 22),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(employee.fullName, style: FlowPayTypography.headingSm),
-                          const SizedBox(height: 4),
-                          Text(employee.email, style: FlowPayTypography.bodyMd),
+                          Text(
+                            employee.fullName,
+                            style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            employee.email,
+                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                          ),
                         ],
                       ),
                     ),
-                    StatusBadge(status: employee.status),
+                    StatusBadge(status: employee.onboardingStatus),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Divider(color: FlowPayColors.border),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text('Country / Region', style: FlowPayTypography.bodyMd),
-                    const Spacer(),
-                    Text(
-                      employee.country == 'NG' ? 'Nigeria (NGN Rail)' : 'Mexico (MXN SPEI Rail)',
-                      style: FlowPayTypography.bodyLg,
-                    ),
-                  ],
+                const Divider(color: FlowPayColors.hairline, height: 1),
+                const SizedBox(height: 14),
+
+                _DetailRow(
+                  label: 'Country / Jurisdiction',
+                  value: '${employee.flagEmoji} ${employee.resolvedCountryName}',
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text('Disbursement Currency', style: FlowPayTypography.bodyMd),
-                    const Spacer(),
-                    Text(employee.targetCurrency.code, style: FlowPayTypography.headingSm),
-                  ],
+                const SizedBox(height: 10),
+                _DetailRow(
+                  label: 'Disbursement Currency',
+                  value: '${employee.targetCurrency.code} (${employee.targetCurrency.stablecoinToken})',
+                ),
+                const SizedBox(height: 10),
+                _DetailRow(
+                  label: 'Monthly Net Salary',
+                  value: employee.payrollAmount?.formatFormatted() ?? '${employee.targetCurrency.symbol}2,000.00',
+                  isAccent: true,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // Smart Wallet & Virtual Card Section
-          Text('Infrastructure & Spend Cards', style: FlowPayTypography.headingSm),
+          // 3. Smart Wallet & Virtual Card Infrastructure Card
+          Text(
+            'INFRASTRUCTURE & CARD CONTROLS',
+            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+              letterSpacing: 0.8,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 12),
           FlowPayCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  children: const [
-                    Icon(Icons.credit_card, color: FlowPayColors.primaryLight),
-                    SizedBox(width: 10),
-                    Text('Linked BMONI Virtual Card', style: FlowPayTypography.headingSm),
-                    Spacer(),
-                    StatusBadge(status: 'ACTIVE'),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Automated payroll dispatches are instantly spendable by the employee through their localized virtual card.',
-                  style: FlowPayTypography.bodyMd,
-                ),
-                const SizedBox(height: 16),
-                Row(
                   children: [
-                    Text('Card Number', style: FlowPayTypography.caption),
+                    const Icon(Icons.account_balance_wallet_outlined, color: FlowPayColors.ink, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      'BMONI Smart Wallet',
+                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 15),
+                    ),
                     const Spacer(),
-                    Text('•••• •••• •••• 4289', style: FlowPayTypography.financialSmall),
+                    StatusBadge(status: employee.walletStatus),
                   ],
                 ),
                 const SizedBox(height: 8),
+                Text(
+                  'Address: ${employee.walletAddress ?? "0x...Provisioned"}',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(color: FlowPayColors.hairline, height: 1),
+                const SizedBox(height: 14),
+
                 Row(
                   children: [
-                    Text('Monthly Spend Ceiling', style: FlowPayTypography.caption),
+                    const Icon(Icons.credit_card_rounded, color: FlowPayColors.amber, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Virtual Mastercard',
+                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 15),
+                    ),
                     const Spacer(),
-                    Text('\$5,000 / month', style: FlowPayTypography.financialSmall),
+                    StatusBadge(status: employee.cardStatus),
                   ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Automated payroll disbursements are instantly available on the employee\'s localized virtual card.',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(height: 1.4),
+                ),
+                const SizedBox(height: 14),
+                _DetailRow(
+                  label: 'Card Number',
+                  value: '•••• •••• •••• ${employee.cardLast4 ?? "4289"}',
+                ),
+                const SizedBox(height: 10),
+                _DetailRow(
+                  label: 'Monthly Spend Ceiling',
+                  value: '${employee.targetCurrency.symbol}5,000 / month',
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool isAccent;
+
+  const _DetailRow({
+    Key? key,
+    required this.label,
+    required this.value,
+    this.isAccent = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: isAccent
+              ? FlowPayTypography.amount(color: FlowPayColors.signal).copyWith(
+                  fontWeight: FontWeight.w700,
+                )
+              : FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+        ),
+      ],
     );
   }
 }

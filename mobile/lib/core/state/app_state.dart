@@ -15,6 +15,7 @@ import '../repositories/employee_repository.dart';
 import '../repositories/payroll_repository.dart';
 import '../repositories/transfer_repository.dart';
 import '../repositories/wallet_repository.dart';
+import 'business_provider.dart';
 
 enum AppRole { personal, business }
 enum ProviderMode { demo, bmoniSandbox }
@@ -39,6 +40,21 @@ class AppState extends ChangeNotifier {
   late final BmoniEmployeeRepository _bmoniEmployee = BmoniEmployeeRepository(apiClient: _apiClient);
   late final BmoniPayrollRepository _bmoniPayroll = BmoniPayrollRepository(apiClient: _apiClient);
 
+  // Business Providers
+  late final BusinessProvider _demoBusinessProvider = BusinessProvider(
+    employeeRepo: _demoEmployee,
+    payrollRepo: _demoPayroll,
+    walletRepo: _demoWallet,
+    cardRepo: _demoCard,
+  );
+
+  late final BusinessProvider _bmoniBusinessProvider = BusinessProvider(
+    employeeRepo: _bmoniEmployee,
+    payrollRepo: _bmoniPayroll,
+    walletRepo: _bmoniWallet,
+    cardRepo: _bmoniCard,
+  );
+
   AppRole get activeRole => _activeRole;
   ProviderMode get providerMode => _providerMode;
   bool get isDemo => _providerMode == ProviderMode.demo;
@@ -49,6 +65,9 @@ class AppState extends ChangeNotifier {
   CardRepository get cardRepo => isDemo ? _demoCard : _bmoniCard;
   EmployeeRepository get employeeRepo => isDemo ? _demoEmployee : _bmoniEmployee;
   PayrollRepository get payrollRepo => isDemo ? _demoPayroll : _bmoniPayroll;
+
+  // Active Business Provider
+  BusinessProvider get businessProvider => isDemo ? _demoBusinessProvider : _bmoniBusinessProvider;
 
   void setRole(AppRole role) {
     if (_activeRole != role) {
