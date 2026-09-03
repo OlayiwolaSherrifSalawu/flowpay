@@ -24,8 +24,16 @@ description: >-
 - `lib/core/repositories/`: Unified repository contracts (`WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`).
 - `lib/core/providers/`: Concrete implementations for `demo/` (deterministic sandbox test data) and `bmoni/` (talking through backend proxy).
 - `lib/modules/personal/`: Personal Dashboard, Wallets, Money Missions, Send Money, Activity, Security.
-- `lib/modules/business/`: Business Dashboard, Global Team, Employee Detail, Multi-country Payroll ("One Employer, Many Countries, One Bill"), Audit.
-- `lib/app.dart`: Application shell with prominent header `FlowPayRoleSwitcher` (`[ 👤 Personal | 💼 Business ]`), dual theme support, and contextual bottom navigation.
+- `lib/core/auth/`: App-lock biometrics & mode routing architecture:
+  - `account_capabilities.dart`: Capabilities model (`hasPersonalWallet`, `hasBusinessAccess`) and `AccountMode` enum.
+  - `secure_storage_service.dart`: Encrypted storage wrapper with 15-minute TTL caching.
+  - `app_lock_service.dart`: `local_auth` wrapper with biometric & passcode fallbacks, handling `LocalAuthException` error cases without custom lockout duplication.
+  - `auth_providers.dart`: Riverpod providers (`currentAccountModeProvider`, `accountCapabilitiesProvider`, `appLockStateProvider`).
+  - `account_mode_picker_modal.dart`: Segmented mode selection bottom sheet conforming to `design.md` §4.4.
+  - `app_auth_gate.dart`: Biometric gate with lifecycle observer re-locking on app resume after 45s.
+- `lib/modules/personal/personal_shell.dart`: Independent Personal mode navigation shell (5 destinations) with its own app bar, role switcher, and isolated navigation stack.
+- `lib/modules/business/business_shell.dart`: Independent Business mode navigation shell (4 destinations) with its own app bar, role switcher, and isolated navigation stack.
+- `lib/app.dart`: Clean root application wrapped in `ProviderScope` routing between `PersonalShell` and `BusinessShell` via `AppAuthGate`.
 
 ---
 

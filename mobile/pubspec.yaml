@@ -25,6 +25,11 @@ dependencies:
   # Secure Storage (Never stores private keys — stores session & bmoniUserId)
   flutter_secure_storage: ^10.0.0
 
+  # Authentication & App-Level Lock
+  local_auth: ^2.3.0
+  local_auth_android: ^1.0.46
+  local_auth_darwin: ^1.4.3
+
   # Typography & Design
   google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
