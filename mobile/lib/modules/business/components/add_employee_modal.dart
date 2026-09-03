@@ -129,9 +129,11 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
             ),
             ..._countries.map((c) => ListTile(
                   leading: Text(c.flag, style: const TextStyle(fontSize: 22)),
-                  title: Text(c.name, style: const TextStyle(color: FlowPayColors.ink)),
+                  title: Text(c.name,
+                      style: const TextStyle(color: FlowPayColors.ink)),
                   trailing: c.code == _selectedCountry.code
-                      ? const Icon(Icons.check_circle_rounded, color: FlowPayColors.primary)
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: FlowPayColors.primary)
                       : null,
                   onTap: () {
                     Navigator.pop(ctx);
@@ -155,13 +157,13 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
     final first = _firstCtrl.text.trim();
     final last = _lastCtrl.text.trim();
     final email = _emailCtrl.text.trim().toLowerCase();
-    final phone = _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null;
     final salaryStr = _salaryCtrl.text.trim();
 
     setState(() => _isSubmitting = true);
 
     try {
-      final salaryMoney = Money.fromMajorString(salaryStr, _selectedCountry.currency);
+      final salaryMoney =
+          Money.fromMajorString(salaryStr, _selectedCountry.currency);
       final usdSalary = Money.fromMajorString('2000.00', Currency.usd);
 
       await widget.businessProvider.addEmployee(
@@ -181,7 +183,8 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
           BMoniToastOverlay.showSuccess(
             context: context,
             title: 'Employee Onboarded',
-            message: '$first $last added with BMONI on-chain identity and smart wallet!',
+            message:
+                '$first $last added with BMONI on-chain identity and smart wallet!',
           );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -245,7 +248,8 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       color: FlowPayColors.surfaceAlt,
                       borderRadius: FlowPayRadii.avatar,
                     ),
-                    child: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink, size: 20),
+                    child: const Icon(Icons.person_add_rounded,
+                        color: FlowPayColors.ink, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -254,17 +258,21 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       children: [
                         Text(
                           'Add Remote Employee',
-                          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                          style:
+                              FlowPayTypography.title(color: FlowPayColors.ink)
+                                  .copyWith(fontSize: 17),
                         ),
                         Text(
                           'Stages: Created → Wallet → KYC → Ready',
-                          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                          style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textSecondary),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: FlowPayColors.textSecondary),
+                    icon: const Icon(Icons.close_rounded,
+                        color: FlowPayColors.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -274,7 +282,9 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
               // Country & Currency Selector using SelectorBottomSheet
               Text(
                 'DESTINATION COUNTRY & SETTLEMENT RAIL',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary)
+                    .copyWith(
                   fontSize: 11,
                   letterSpacing: 0.5,
                   fontWeight: FontWeight.w700,
@@ -285,7 +295,8 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                 onTap: _pickCountry,
                 borderRadius: FlowPayRadii.input,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: FlowPayColors.surfaceAlt,
                     borderRadius: FlowPayRadii.input,
@@ -293,7 +304,8 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                   ),
                   child: Row(
                     children: [
-                      Text(_selectedCountry.flag, style: const TextStyle(fontSize: 22)),
+                      Text(_selectedCountry.flag,
+                          style: const TextStyle(fontSize: 22)),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -301,18 +313,22 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                           children: [
                             Text(
                               _selectedCountry.name,
-                              style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                              style: FlowPayTypography.body(
+                                      color: FlowPayColors.ink)
+                                  .copyWith(
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
                               'Disbursement currency: ${_selectedCountry.currency.code}',
-                              style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                              style: FlowPayTypography.captionStyle(
+                                  color: FlowPayColors.textSecondary),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.keyboard_arrow_down_rounded, color: FlowPayColors.textSecondary),
+                      const Icon(Icons.keyboard_arrow_down_rounded,
+                          color: FlowPayColors.textSecondary),
                     ],
                   ),
                 ),
@@ -328,8 +344,10 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       hintText: 'e.g. Bunch / Samson',
                       controller: _firstCtrl,
                       size: BMoniTextFieldSize.medium,
-                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      prefixIcon:
+                          const Icon(Icons.person_outline_rounded, size: 18),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -339,8 +357,10 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       hintText: 'e.g. Dillon / Jabo',
                       controller: _lastCtrl,
                       size: BMoniTextFieldSize.medium,
-                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      prefixIcon:
+                          const Icon(Icons.person_outline_rounded, size: 18),
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                   ),
                 ],
@@ -356,9 +376,13 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                 size: BMoniTextFieldSize.medium,
                 prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Email is required';
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Email is required';
+                  }
                   final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-                  if (!emailRegex.hasMatch(v.trim())) return 'Enter a valid email';
+                  if (!emailRegex.hasMatch(v.trim())) {
+                    return 'Enter a valid email';
+                  }
                   return null;
                 },
               ),
@@ -367,7 +391,9 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
               // Phone Number (Optional E.164)
               BMoniTextFormField.filled(
                 label: 'Phone Number (E.164 format)',
-                hintText: _selectedCountry.code == 'NG' ? '+2348011112222' : '+525512345678',
+                hintText: _selectedCountry.code == 'NG'
+                    ? '+2348011112222'
+                    : '+525512345678',
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
                 size: BMoniTextFieldSize.medium,
@@ -380,19 +406,26 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                 label: 'Monthly Net Salary (${_selectedCountry.currency.code})',
                 hintText: '0.00',
                 controller: _salaryCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 size: BMoniTextFieldSize.medium,
                 prefixIcon: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                   child: Text(
                     _selectedCountry.currency.symbol,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Salary is required';
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Salary is required';
+                  }
                   final numVal = double.tryParse(v.trim());
-                  if (numVal == null || numVal <= 0) return 'Must be a positive amount';
+                  if (numVal == null || numVal <= 0) {
+                    return 'Must be a positive amount';
+                  }
                   return null;
                 },
               ),

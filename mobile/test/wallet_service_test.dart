@@ -49,7 +49,8 @@ class MockWalletService implements WalletService {
   Future<bool> matchPin(String pin) async => _pin == pin;
 
   @override
-  Future<void> changePin({required String currentPin, required String newPin}) async {
+  Future<void> changePin(
+      {required String currentPin, required String newPin}) async {
     if (_pin != currentPin) {
       throw const BmoniSignerException(
         errorCode: BmoniSignerErrorCode.pinMismatch,
@@ -283,7 +284,9 @@ void main() {
     setUp(() async {
       // Reset static state between tests
       await BmoniSdkService.deleteWallet();
-      try { await BmoniSdkService.removePin('000000'); } catch (_) {}
+      try {
+        await BmoniSdkService.removePin('000000');
+      } catch (_) {}
     });
 
     test('initialize() sets pinLength and requirePin', () {
@@ -384,7 +387,9 @@ void main() {
 
     tearDown(() async {
       await BmoniSdkService.deleteWallet();
-      try { await BmoniSdkService.removePin('123456'); } catch (_) {}
+      try {
+        await BmoniSdkService.removePin('123456');
+      } catch (_) {}
     });
 
     test('signMessage() returns hex signature on correct PIN', () async {
@@ -404,8 +409,9 @@ void main() {
       );
     });
 
-    test('signTransactionHash() returns hex signature on correct PIN', () async {
-      final hash = '0x' + ('ab' * 32); // 32-byte hash
+    test('signTransactionHash() returns hex signature on correct PIN',
+        () async {
+      final hash = '0x${'ab' * 32}'; // 32-byte hash
       final sig = await BmoniSdkService.signTransactionHash(
         hash,
         pin: '123456',
@@ -416,7 +422,7 @@ void main() {
     });
 
     test('signTransactionHash() rejects incorrect PIN', () async {
-      final hash = '0x' + ('cd' * 32);
+      final hash = '0x${'cd' * 32}';
       expect(
         () => BmoniSdkService.signTransactionHash(hash, pin: '000000'),
         throwsA(isA<BmoniSignerException>()),
@@ -430,8 +436,10 @@ void main() {
     });
 
     test('Different messages → different signatures', () async {
-      final sig1 = await BmoniSdkService.signMessage('Message A', pin: '123456');
-      final sig2 = await BmoniSdkService.signMessage('Message B', pin: '123456');
+      final sig1 =
+          await BmoniSdkService.signMessage('Message A', pin: '123456');
+      final sig2 =
+          await BmoniSdkService.signMessage('Message B', pin: '123456');
       expect(sig1, isNot(sig2));
     });
   });

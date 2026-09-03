@@ -167,6 +167,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * `EmployeesScreen`: Built with `bkey_uikit` `EmptyState` for zero-employee states, per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges, and wallet/card status indicators.
       * `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
     * **Automated Unit Tests**: Added `backend/src/modules/employees/employee.test.ts` verifying all validation, countries, and currency rules. 18/18 tests passing (100%).
+  * **Post-Merge Mobile Compatibility Repair**: Replaced missing business-screen error color aliases with the BMoni-backed `FlowPayColors.error` token, switched the employee empty state to the shared asset-free `FlowPayEmptyState`, and corrected form/style diagnostics. `flutter analyze` is clean and all 79 Flutter tests pass.
 
 
   * **FlowPay Personal Financial Dashboard ("Your money. Your rules. AI executes.")**:

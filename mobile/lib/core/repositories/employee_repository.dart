@@ -27,9 +27,11 @@ class EmployeeModel {
   final String country; // "NG", "MX", "CA"
   final String countryName; // "Nigeria", "Mexico", "Canada"
   final Currency targetCurrency;
-  final String status; // CREATED, WALLET_PENDING, KYC_PENDING, ONBOARDING, READY, FAILED
+  final String
+      status; // CREATED, WALLET_PENDING, KYC_PENDING, ONBOARDING, READY, FAILED
   final String? failedStage;
-  final String onboardingStatus; // CREATED, WALLET_PENDING, KYC_PENDING, ONBOARDING, READY, FAILED
+  final String
+      onboardingStatus; // CREATED, WALLET_PENDING, KYC_PENDING, ONBOARDING, READY, FAILED
   final String walletStatus; // ACTIVE, PROVISIONED, PENDING, NONE
   final String cardStatus; // ACTIVE, ISSUED, FROZEN, PENDING
   final Money? payrollAmount;
@@ -94,12 +96,14 @@ class EmployeeModel {
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
     final countryCode = (json['country'] ?? 'NG').toString().toUpperCase();
-    final targetCurr = Currency.fromCode(json['target_currency'] ?? json['targetCurrency'] ?? 'USD');
+    final targetCurr = Currency.fromCode(
+        json['target_currency'] ?? json['targetCurrency'] ?? 'USD');
 
     // Parse payroll amount
     Money? payroll;
     if (json['payroll_amount_minor'] != null) {
-      payroll = Money.fromMinor(json['payroll_amount_minor'] as int, targetCurr);
+      payroll =
+          Money.fromMinor(json['payroll_amount_minor'] as int, targetCurr);
     } else if (json['payroll_amount'] != null) {
       payroll = Money.fromMinor(json['payroll_amount'] as int, targetCurr);
     } else if (json['payrollAmount'] != null) {
@@ -108,9 +112,11 @@ class EmployeeModel {
 
     Money? usdPayroll;
     if (json['usd_payroll_amount'] != null) {
-      usdPayroll = Money.fromMinor(json['usd_payroll_amount'] as int, Currency.usd);
+      usdPayroll =
+          Money.fromMinor(json['usd_payroll_amount'] as int, Currency.usd);
     } else if (json['usdPayrollAmount'] != null) {
-      usdPayroll = Money.fromMinor(json['usdPayrollAmount'] as int, Currency.usd);
+      usdPayroll =
+          Money.fromMinor(json['usdPayrollAmount'] as int, Currency.usd);
     }
 
     final rawStatus = (json['status'] ?? 'CREATED').toString().toUpperCase();
@@ -127,7 +133,8 @@ class EmployeeModel {
       targetCurrency: targetCurr,
       status: rawStatus,
       failedStage: json['failed_stage'] ?? json['failedStage'],
-      onboardingStatus: json['onboarding_status'] ?? json['onboardingStatus'] ?? rawStatus,
+      onboardingStatus:
+          json['onboarding_status'] ?? json['onboardingStatus'] ?? rawStatus,
       walletStatus: json['wallet_status'] ?? json['walletStatus'] ?? 'ACTIVE',
       cardStatus: json['card_status'] ?? json['cardStatus'] ?? 'ACTIVE',
       payrollAmount: payroll,
@@ -181,7 +188,7 @@ abstract class EmployeeRepository {
   });
 
   /// Backward compatible legacy wrapper
-  @deprecated
+  @Deprecated('Use createEmployee instead.')
   Future<String> inviteEmployee({
     required String firstName,
     required String lastName,
