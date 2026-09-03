@@ -1,0 +1,28 @@
+{
+  "name": "flowpay-backend",
+  "version": "1.0.0",
+  "description": "FlowPay Intelligent Financial Operating Layer Backend for BMONI Infrastructure",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc && cp src/db/schema.sql dist/db/schema.sql",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.5"
+  }
+}
