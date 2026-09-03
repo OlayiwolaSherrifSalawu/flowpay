@@ -56,6 +56,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Automated unit tests passing for Money arithmetic, HMAC verification, and AI safety guards.
 * [x] **Mobile Flutter Foundation (`mobile/`)**:
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`).
+  * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
   * BMONI SDK on-device signing service wrapper (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`).
