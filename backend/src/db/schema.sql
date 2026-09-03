@@ -1,4 +1,4 @@
--- FlowPay SQLite Schema: Relational persistence for FlowPay metadata, business orchestration, and audit logs
+-- FlowPay Postgres Schema: Relational persistence for FlowPay metadata, business orchestration, and audit logs
 
 CREATE TABLE IF NOT EXISTS employees (
   id TEXT PRIMARY KEY,
@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS employees (
   wallet_address TEXT,
   card_id TEXT,
   status TEXT NOT NULL DEFAULT 'INVITED', -- 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS payroll_runs (
@@ -26,24 +26,23 @@ CREATE TABLE IF NOT EXISTS payroll_runs (
   employee_count INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'COMPLETED', -- 'DRAFT', 'PREVIEW', 'COMPLETED', 'FAILED'
   reference TEXT UNIQUE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  executed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  executed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS payroll_items (
   id TEXT PRIMARY KEY,
-  payroll_run_id TEXT NOT NULL,
+  payroll_run_id TEXT NOT NULL REFERENCES payroll_runs(id) ON DELETE CASCADE,
   employee_id TEXT NOT NULL,
   employee_name TEXT NOT NULL,
   country TEXT NOT NULL,
   target_currency TEXT NOT NULL,
   target_amount_minor INTEGER NOT NULL,
   usd_amount_minor INTEGER NOT NULL,
-  exchange_rate REAL NOT NULL,
+  exchange_rate NUMERIC(18,8) NOT NULL,
   status TEXT NOT NULL DEFAULT 'SUCCESS', -- 'SUCCESS', 'FAILED', 'PENDING'
   proposal_id TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY(payroll_run_id) REFERENCES payroll_runs(id) ON DELETE CASCADE
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS money_missions (
@@ -51,11 +50,11 @@ CREATE TABLE IF NOT EXISTS money_missions (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   rule_type TEXT NOT NULL, -- 'AUTO_SWEEP', 'SPEND_CAP', 'EMERGENCY_RESERVE', 'FX_TARGET'
-  condition_json TEXT NOT NULL,
-  action_json TEXT NOT NULL,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  condition_json JSONB NOT NULL,
+  action_json JSONB NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS audit_activity (
@@ -63,16 +62,16 @@ CREATE TABLE IF NOT EXISTS audit_activity (
   category TEXT NOT NULL, -- 'PERSONAL', 'BUSINESS', 'SYSTEM', 'AI'
   action TEXT NOT NULL,
   actor TEXT NOT NULL,
-  details_json TEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  details_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS webhook_events (
   id TEXT PRIMARY KEY,
   bmoni_event_id TEXT UNIQUE,
   event_type TEXT NOT NULL,
-  payload_json TEXT NOT NULL,
-  processed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  payload_json JSONB NOT NULL,
+  processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- Indices for performance
