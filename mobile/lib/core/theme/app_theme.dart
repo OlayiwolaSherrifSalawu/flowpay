@@ -104,8 +104,6 @@ class FlowPayTheme {
         onSecondary: Colors.white,
         surface: FlowPayColors.surface,
         onSurface: FlowPayColors.textPrimary,
-        background: FlowPayColors.canvas,
-        onBackground: FlowPayColors.textPrimary,
         error: FlowPayColors.stateError,
         onError: Colors.white,
       ),
@@ -127,21 +125,21 @@ class FlowPayTheme {
           textStyle: FlowPayTypography.label(color: Colors.white),
         ),
       ),
-      inputDecorationTheme: InputDecorationTheme(
+      inputDecorationTheme: const InputDecorationTheme(
         filled: true,
         fillColor: FlowPayColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: FlowPayRadii.input,
-          borderSide: const BorderSide(color: FlowPayColors.hairline, width: 1),
+          borderSide: BorderSide(color: FlowPayColors.hairline, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: FlowPayRadii.input,
-          borderSide: const BorderSide(color: FlowPayColors.hairline, width: 1),
+          borderSide: BorderSide(color: FlowPayColors.hairline, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: FlowPayRadii.input,
-          borderSide: const BorderSide(color: FlowPayColors.ink, width: 1.5),
+          borderSide: BorderSide(color: FlowPayColors.ink, width: 1.5),
         ),
       ),
       extensions: const [FlowPayTokens.light],

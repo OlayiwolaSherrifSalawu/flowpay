@@ -14,10 +14,10 @@ class EmployeePreviewCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const EmployeePreviewCard({
-    Key? key,
+    super.key,
     required this.employee,
     this.onTap,
-  }) : super(key: key);
+  });
 
   Color _getCurrencyBg(String code) {
     switch (code.toUpperCase()) {

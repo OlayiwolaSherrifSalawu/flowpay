@@ -16,7 +16,7 @@ import '../../../core/theme/typography.dart';
 class AddEmployeeModal extends StatefulWidget {
   final BusinessProvider businessProvider;
 
-  const AddEmployeeModal({Key? key, required this.businessProvider}) : super(key: key);
+  const AddEmployeeModal({super.key, required this.businessProvider});
 
   static Future<void> show(BuildContext context, BusinessProvider provider) {
     return showModalBottomSheet(
@@ -281,13 +281,12 @@ class _InputField extends StatelessWidget {
   final TextInputType keyboardType;
 
   const _InputField({
-    Key? key,
     required this.label,
     required this.controller,
     required this.hint,
     this.prefixText,
     this.keyboardType = TextInputType.text,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -311,13 +310,13 @@ class _InputField extends StatelessWidget {
             filled: true,
             fillColor: FlowPayColors.surfaceAlt,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            enabledBorder: OutlineInputBorder(
+            enabledBorder: const OutlineInputBorder(
               borderRadius: FlowPayRadii.input,
-              borderSide: const BorderSide(color: FlowPayColors.hairline),
+              borderSide: BorderSide(color: FlowPayColors.hairline),
             ),
-            focusedBorder: OutlineInputBorder(
+            focusedBorder: const OutlineInputBorder(
               borderRadius: FlowPayRadii.input,
-              borderSide: const BorderSide(color: FlowPayColors.ink, width: 1.5),
+              borderSide: BorderSide(color: FlowPayColors.ink, width: 1.5),
             ),
           ),
         ),

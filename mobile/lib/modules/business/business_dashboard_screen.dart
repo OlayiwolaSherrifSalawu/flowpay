@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/state/app_state.dart';
-import '../../core/state/business_provider.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
 import '../../core/theme/radii.dart';
@@ -23,7 +22,7 @@ class BusinessDashboardScreen extends StatefulWidget {
   static const String routeName = '/business-dashboard';
   final AppState appState;
 
-  const BusinessDashboardScreen({Key? key, required this.appState}) : super(key: key);
+  const BusinessDashboardScreen({super.key, required this.appState});
 
   @override
   State<BusinessDashboardScreen> createState() => _BusinessDashboardScreenState();
@@ -228,19 +227,19 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                             _FilterChip(
                               label: '🇳🇬 Nigeria (NGN)',
                               isSelected: _selectedCountryFilter == 'NG',
-                              onSelected: () => setState(() => _selectedCountryFilter = 'NG'),
+                              onSelected: () => setState(() => _selectedCountryFilter == 'NG'),
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇲🇽 Mexico (MXN)',
                               isSelected: _selectedCountryFilter == 'MX',
-                              onSelected: () => setState(() => _selectedCountryFilter = 'MX'),
+                              onSelected: () => setState(() => _selectedCountryFilter == 'MX'),
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇨🇦 Canada (CAD)',
                               isSelected: _selectedCountryFilter == 'CA',
-                              onSelected: () => setState(() => _selectedCountryFilter = 'CA'),
+                              onSelected: () => setState(() => _selectedCountryFilter == 'CA'),
                             ),
                           ],
                         ),
@@ -251,10 +250,12 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                       if (filteredEmployees.isEmpty) ...[
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 32),
-                          child: EmptyStateWidget(
-                            icon: Icons.person_off_outlined,
-                            title: 'No Employees in Selected Filter',
-                            description: 'Add an employee to this jurisdiction or switch filter to All.',
+                          child: Center(
+                            child: Text(
+                              'No Employees in Selected Filter\nAdd an employee to this jurisdiction or switch filter to All.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: FlowPayColors.textSecondary),
+                            ),
                           ),
                         ),
                       ] else ...[
@@ -273,7 +274,7 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                               );
                             },
                           );
-                        }).toList(),
+                        }),
                       ],
 
                       const SizedBox(height: 24),
@@ -292,11 +293,10 @@ class _FilterChip extends StatelessWidget {
   final VoidCallback onSelected;
 
   const _FilterChip({
-    Key? key,
     required this.label,
     required this.isSelected,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

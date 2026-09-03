@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
-import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
-import '../../core/theme/radii.dart';
-import '../../core/theme/typography.dart';
 
 /// Employee Detail Screen
 /// Conforms strictly to design.md §3.1, §3.4, §3.5 & §4.5:
@@ -15,10 +13,10 @@ class EmployeeDetailScreen extends StatelessWidget {
   final EmployeeModel employee;
 
   const EmployeeDetailScreen({
-    Key? key,
+    super.key,
     required this.appState,
     required this.employee,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +32,7 @@ class EmployeeDetailScreen extends StatelessWidget {
         ),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: FlowPaySpacing.insetXl,
         children: [
           // 1. Employee Virtual Card Face (Physical Card Object)
           VirtualCardObject(
@@ -102,7 +100,7 @@ class EmployeeDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: FlowPaySpacing.xl),
 
           // 3. Smart Wallet & Virtual Card Infrastructure Card
           Text(
@@ -182,11 +180,10 @@ class _DetailRow extends StatelessWidget {
   final bool isAccent;
 
   const _DetailRow({
-    Key? key,
     required this.label,
     required this.value,
     this.isAccent = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

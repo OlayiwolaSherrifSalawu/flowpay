@@ -1,87 +1,125 @@
 import 'package:flutter/material.dart';
+import '../../core/design_system/design_system.dart';
 import '../../core/state/app_state.dart';
-import '../../core/theme/colors.dart';
-import '../../core/theme/components.dart';
-import '../../core/theme/typography.dart';
 
 class BusinessActivityScreen extends StatelessWidget {
   final AppState appState;
 
-  const BusinessActivityScreen({Key? key, required this.appState}) : super(key: key);
+  const BusinessActivityScreen({super.key, required this.appState});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canPop = Navigator.canPop(context);
+
     final businessActivities = [
       {
         'title': 'Global Payroll Fan-Out',
         'desc': 'Disbursed \$4,000 USD to 2 employees in Nigeria & Mexico',
         'time': 'Today, 10:45 AM',
-        'status': 'SETTLED',
+        'status': FlowPayAppStatus.completed,
       },
       {
         'title': 'Employee Onboarding Verified',
         'desc': 'Samson Jabo completed KYC via Mexico SPEI rail',
         'time': 'Yesterday',
-        'status': 'LINKED',
+        'status': FlowPayAppStatus.success,
       },
       {
         'title': 'Virtual Card Issued',
         'desc': 'Issued virtual NGN spend card for Bunch Dillon',
         'time': '3 days ago',
-        'status': 'ACTIVE',
+        'status': FlowPayAppStatus.completed,
+      },
+      {
+        'title': 'Compliance Tax Filing',
+        'desc': 'Submitted aggregate FX compliance ledger',
+        'time': '1 week ago',
+        'status': FlowPayAppStatus.pending,
       },
     ];
 
-    return Scaffold(
-      backgroundColor: FlowPayColors.background,
-      appBar: AppBar(
-        backgroundColor: FlowPayColors.background,
-        elevation: 0,
-        title: const Text('Corporate Audit Log', style: FlowPayTypography.headingSm),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: businessActivities.length,
-        itemBuilder: (ctx, i) {
-          final item = businessActivities[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: FlowPayCard(
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: FlowPayColors.surfaceElevated,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.corporate_fare, color: FlowPayColors.accentLight, size: 20),
+    Widget content = ListView.builder(
+      padding: FlowPaySpacing.insetXl,
+      itemCount: businessActivities.length,
+      itemBuilder: (ctx, i) {
+        final item = businessActivities[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: FlowPaySpacing.md),
+          child: FlowPayCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.lightSurfaceElevated,
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item['title']!, style: FlowPayTypography.bodyLg),
-                        const SizedBox(height: 4),
-                        Text(item['desc']!, style: FlowPayTypography.caption),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: const Icon(Icons.corporate_fare, color: FlowPayColors.accentLight, size: 20),
+                ),
+                const SizedBox(width: FlowPaySpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      StatusBadge(status: item['status']!),
-                      const SizedBox(height: 4),
-                      Text(item['time']!, style: FlowPayTypography.caption),
+                      Text(
+                        item['title'] as String,
+                        style: FlowPayTypography.bodyMd.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? FlowPayColors.darkTextPrimary
+                              : FlowPayColors.lightTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item['desc'] as String,
+                        style: FlowPayTypography.caption.copyWith(
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.lightTextSecondary,
+                        ),
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: FlowPaySpacing.sm),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FlowPayStatusBadge(
+                      appStatus: item['status'] as FlowPayAppStatus,
+                      showDot: true,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item['time'] as String,
+                      style: FlowPayTypography.caption.copyWith(
+                        color: isDark
+                            ? FlowPayColors.darkTextTertiary
+                            : FlowPayColors.lightTextTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+
+    if (canPop) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Corporate Audit Log'),
+        ),
+        body: content,
+      );
+    }
+
+    return content;
   }
 }
