@@ -10,67 +10,54 @@ class BmoniEmployeeRepository implements EmployeeRepository {
 
   @override
   Future<List<EmployeeModel>> getEmployees() async {
-    final res = await apiClient.get('/api/employees');
-    if (res is List) {
-      return res.map((e) {
-        final targetCurr = Currency.fromCode(e['target_currency'] ?? 'USD');
-        return EmployeeModel(
-          id: e['id'] ?? '',
-          bmoniUserId: e['bmoni_user_id'],
-          firstName: e['first_name'] ?? '',
-          lastName: e['last_name'] ?? '',
-          email: e['email'] ?? '',
-          phoneNumber: e['phone_number'],
-          country: e['country'] ?? 'NG',
-          countryName: e['country_name'] ?? '',
-          targetCurrency: targetCurr,
-          status: e['status'] ?? 'ACTIVE',
-          onboardingStatus: e['onboarding_status'] ?? 'ONBOARDED',
-          walletStatus: e['wallet_status'] ?? 'PROVISIONED',
-          cardStatus: e['card_status'] ?? 'ACTIVE',
-          payrollAmount: e['payroll_amount'] != null
-              ? Money.fromMinor(e['payroll_amount'] as int, targetCurr)
-              : null,
-          usdPayrollAmount: e['usd_payroll_amount'] != null
-              ? Money.fromMinor(e['usd_payroll_amount'] as int, Currency.usd)
-              : null,
-          walletAddress: e['wallet_address'],
-          cardId: e['card_id'],
-          cardLast4: e['card_last4'] ?? '4289',
-        );
-      }).toList();
+    try {
+      final res = await apiClient.get('/api/employees');
+      final list = (res is Map && res['data'] is List)
+          ? res['data'] as List
+          : (res is List ? res : []);
+
+      return list.map((e) => EmployeeModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
     }
-    return [];
   }
 
   @override
   Future<EmployeeModel> getEmployeeById(String id) async {
     final res = await apiClient.get('/api/employees/$id');
-    final targetCurr = Currency.fromCode(res['target_currency'] ?? 'USD');
-    return EmployeeModel(
-      id: res['id'] ?? id,
-      bmoniUserId: res['bmoni_user_id'],
-      firstName: res['first_name'] ?? '',
-      lastName: res['last_name'] ?? '',
-      email: res['email'] ?? '',
-      phoneNumber: res['phone_number'],
-      country: res['country'] ?? 'NG',
-      countryName: res['country_name'] ?? '',
-      targetCurrency: targetCurr,
-      status: res['status'] ?? 'ACTIVE',
-      onboardingStatus: res['onboarding_status'] ?? 'ONBOARDED',
-      walletStatus: res['wallet_status'] ?? 'PROVISIONED',
-      cardStatus: res['card_status'] ?? 'ACTIVE',
-      payrollAmount: res['payroll_amount'] != null
-          ? Money.fromMinor(res['payroll_amount'] as int, targetCurr)
-          : null,
-      usdPayrollAmount: res['usd_payroll_amount'] != null
-          ? Money.fromMinor(res['usd_payroll_amount'] as int, Currency.usd)
-          : null,
-      walletAddress: res['wallet_address'],
-      cardId: res['card_id'],
-      cardLast4: res['card_last4'] ?? '4289',
-    );
+    final data = (res is Map && res['data'] is Map)
+        ? res['data'] as Map<String, dynamic>
+        : (res as Map<String, dynamic>);
+    return EmployeeModel.fromJson(data);
+  }
+
+  @override
+  Future<String> createEmployee({
+    required String firstName,
+    required String lastName,
+    required String email,
+    String? phoneNumber,
+    required String country,
+    String? countryName,
+    required Currency targetCurrency,
+    required Money payrollAmount,
+    Money? usdPayrollAmount,
+  }) async {
+    final res = await apiClient.post('/api/employees', body: {
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      if (phoneNumber != null) 'phoneNumber': phoneNumber,
+      'country': country,
+      if (countryName != null) 'countryName': countryName,
+      'targetCurrency': targetCurrency.code,
+      'payrollAmountMinor': payrollAmount.minorUnits,
+      if (usdPayrollAmount != null) 'usdPayrollAmountMinor': usdPayrollAmount.minorUnits,
+    });
+
+    return res['inviteUrl'] ??
+        res['data']?['employee']?['id'] ??
+        'https://bmoni.com/invite';
   }
 
   @override
@@ -83,17 +70,16 @@ class BmoniEmployeeRepository implements EmployeeRepository {
     required Currency targetCurrency,
     Money? payrollAmount,
     Money? usdPayrollAmount,
-  }) async {
-    final res = await apiClient.post('/api/employees/invite', body: {
-      'firstName': firstName,
-      'lastName': lastName,
-      'email': email,
-      'country': country,
-      'countryName': countryName,
-      'targetCurrency': targetCurrency.code,
-      if (payrollAmount != null) 'payrollAmount': payrollAmount.minorUnits,
-      if (usdPayrollAmount != null) 'usdPayrollAmount': usdPayrollAmount.minorUnits,
-    });
-    return res['inviteUrl'] ?? 'https://bmoni.com/invite';
+  }) {
+    return createEmployee(
+      firstName: firstName,
+      lastName: lastName,
+      email: email,
+      country: country,
+      countryName: countryName,
+      targetCurrency: targetCurrency,
+      payrollAmount: payrollAmount ?? Money.fromMajorString('2000.00', targetCurrency),
+      usdPayrollAmount: usdPayrollAmount,
+    );
   }
 }

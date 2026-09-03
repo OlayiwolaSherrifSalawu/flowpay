@@ -18,10 +18,11 @@ description: >-
 
 ## 2. Key Files & Architecture
 - `src/config/env.ts`: Typed environment validation. Enforces origin-only BMONI base URL (`https://embedded-dev.bmoni.com`) by stripping any trailing `/v1`.
-- `src/db/`: SQLite connection (`index.ts`) and relational schema (`schema.sql`). Automatically seeds default sandbox personas (Bunch Dillon & Samson Jabo).
+- `src/db/`: PostgreSQL pool connection (`index.ts`) and relational schema (`schema.sql`). Automatically runs idempotent migrations and seeds default sandbox personas (Bunch Dillon & Samson Jabo).
 - `src/core/money.ts`: Central `Money` abstraction. Guarantees integer minor-unit calculations with zero floating-point arithmetic.
-- `src/bmoni/client.ts`: Safe BMONI REST client handling timeouts, safe logging, and structured error responses.
-- `src/bmoni/webhooks.ts`: Constant-time HMAC-SHA256 verification using raw Buffer request bodies.
+- `src/bmoni/client.ts`: Safe BMONI REST client handling timeouts, safe logging, structured error responses, `createEmployeeUser` (`POST /v1/users`), and `subscribeWebhook` (`POST /v1/webhooks/config`).
+- `src/bmoni/webhooks.ts`: Constant-time HMAC-SHA256 verification using raw Buffer request bodies, dispatching 6-stage lifecycle transitions (`onboarding.completed`, `onboarding.failed`, `kyc.action_required`, `employee.linked`, `employee.vba.registered`).
+- `src/modules/employees/`: Server-side validated employee creation (`POST /api/employees`) with 6-stage lifecycle, regex email validation, and country allowlisting.
 - `src/modules/payroll/service.ts`: "One Employer, Many Countries, One Bill" aggregate payroll orchestrator.
 - `src/modules/ai/`: Natural language intent interpreter powered by Google Gemini (`@google/genai` with `gemini-2.5-flash`) using strict JSON Schema structured outputs, with deterministic fallback and financial safety validation.
 
@@ -29,16 +30,18 @@ description: >-
 
 ## 3. What Has Been Done
 - [x] Node.js + Express + TypeScript scaffolding with strict ESM mode.
-- [x] Complete BMONI API client with endpoints for users, smart wallets, cards, transfers, and partner employees.
-- [x] Raw Buffer HMAC webhook receiver mounted before JSON body parser.
-- [x] Multi-country payroll fanout service and SQLite persistence.
-- [x] 11 unit tests passing across Money math, HMAC verification, and AI safety checks.
+- [x] Complete BMONI API client with endpoints for users (`POST /v1/users`), smart wallets, cards, transfers, and partner-scoped webhooks.
+- [x] Raw Buffer HMAC webhook receiver mounted before JSON body parser with 6-stage lifecycle transitions.
+- [x] PostgreSQL database migration with connection pooling and automated DDL schema migrations.
+- [x] Multi-country payroll fanout service and relational persistence.
+- [x] Employee management engine with server-side validation and lifecycle status filtering.
+- [x] 18 unit tests passing across Money math, HMAC verification, AI safety checks, and employee validation.
 
 ---
 
 ## 4. What Needs to Be Done
 - [ ] Connect live BMONI partner key when issued.
-- [ ] Subscribe live webhook URL via `POST /v1/webhooks/config`.
+- [x] Subscribe live webhook URL via `POST /api/webhooks/subscribe` (`POST /v1/webhooks/config` with explicit `partnerId`).
 - [ ] Add PDF payslip generation endpoint for completed payroll runs.
 
 ---

@@ -157,6 +157,16 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * Migrated files: `db/index.ts` (singleton client + seeding), `modules/employees/service.ts`, `modules/missions/service.ts`, `modules/payroll/service.ts`, `routes/activity.routes.ts`, `routes/payroll.routes.ts`, `bmoni/webhooks.ts`.
     * Added `db:push`, `db:migrate`, `db:studio` npm scripts.
     * Build: `npm run build` runs `prisma generate && tsc`. Zero TypeScript errors.
+  * **FlowPay Business — Employee Management & 6-Stage BMONI Lifecycle**:
+    * **6-Stage Lifecycle Architecture**: Implemented full deterministic transitions (`CREATED` → `WALLET_PENDING` → `KYC_PENDING` → `ONBOARDING` → `READY` → `FAILED`) with `failedStage` tracking.
+    * **Corrected BMONI Endpoint Integration**: Switched user creation to official `POST /v1/users` with `{ firstName, lastName, email, phoneNumber }` returning `bmoniUserId` per BMONI documentation, eliminating legacy invite endpoints.
+    * **Partner-Scoped Webhook Engine**: Implemented `POST /api/webhooks/subscribe` calling `POST /v1/webhooks/config` with explicit `partnerId`. Enhanced webhook dispatcher in `webhooks.ts` to process `onboarding.completed` (→ `READY`), `onboarding.failed` (→ `FAILED`), `kyc.action_required` (→ `KYC_PENDING`), `employee.linked`, and `employee.vba.registered`.
+    * **Server-Side Validation**: Enforced strict validation on `POST /api/employees`: regex email formatting, non-empty names, ISO country allowlist (`NG`, `MX`, `CA`), and positive integer minor-unit payroll checks.
+    * **bkey_uikit Form & Component Rebuild**:
+      * `AddEmployeeModal`: Rebuilt using `BMoniTextFormField.filled()`, `SelectorBottomSheet<CountryOption>` via `BMoniBottomSheet.show()`, auto-resolved currency, `BMoniButton(variant: primary)`, and `BMoniToastOverlay`.
+      * `EmployeesScreen`: Built with `bkey_uikit` `EmptyState` for zero-employee states, per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges, and wallet/card status indicators.
+      * `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
+    * **Automated Unit Tests**: Added `backend/src/modules/employees/employee.test.ts` verifying all validation, countries, and currency rules. 18/18 tests passing (100%).
 
 
   * **FlowPay Personal Financial Dashboard ("Your money. Your rules. AI executes.")**:

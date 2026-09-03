@@ -4,6 +4,8 @@ import type {
   BmoniCard,
   BmoniUser,
   CardTransaction,
+  CreateUserRequest,
+  CreateUserResponse,
   EmployeeInviteRequest,
   EmployeeInviteResponse,
   OwnerProofChallenge,
@@ -11,6 +13,8 @@ import type {
   SignPayloadResponse,
   SmartWallet,
   WalletBalance,
+  WebhookSubscribeRequest,
+  WebhookSubscribeResponse,
 } from './types.js';
 
 export class BmoniClient {
@@ -97,6 +101,18 @@ export class BmoniClient {
 
   async createUser(input: { email?: string; phoneNumber?: string }): Promise<BmoniUser> {
     return this.request<BmoniUser>('/v1/users', {
+      method: 'POST',
+      body: input,
+    });
+  }
+
+  /**
+   * Stage 1 of Employee Lifecycle: Create user on BMONI rails
+   * Official BMONI spec: POST /v1/users
+   * Returns bmoniUserId needed for all user-scoped operations
+   */
+  async createEmployeeUser(input: CreateUserRequest): Promise<CreateUserResponse> {
+    return this.request<CreateUserResponse>('/v1/users', {
       method: 'POST',
       body: input,
     });
@@ -309,10 +325,24 @@ export class BmoniClient {
     );
   }
 
-  // --- Partner Employees (Payroll Infrastructure) ---
+  // --- Partner Employees & Webhooks (Payroll Infrastructure) ---
 
+  /**
+   * @deprecated Use createEmployeeUser() with POST /v1/users per corrected BMONI spec
+   */
   async inviteEmployee(payload: EmployeeInviteRequest): Promise<EmployeeInviteResponse> {
     return this.request<EmployeeInviteResponse>('/v1/partners/employees/invite', {
+      method: 'POST',
+      body: payload,
+    });
+  }
+
+  /**
+   * Subscribe to partner-scoped webhook deliveries
+   * Official BMONI spec: POST /v1/webhooks/config with explicit partnerId
+   */
+  async subscribeWebhook(payload: WebhookSubscribeRequest): Promise<WebhookSubscribeResponse> {
+    return this.request<WebhookSubscribeResponse>('/v1/webhooks/config', {
       method: 'POST',
       body: payload,
     });

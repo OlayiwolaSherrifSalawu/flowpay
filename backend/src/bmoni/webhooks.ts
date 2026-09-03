@@ -63,14 +63,21 @@ export class BmoniWebhookService {
         },
       });
 
-      // 3. Handle specific event families
+      // 3. Handle specific event families with 6-stage employee lifecycle
       switch (event.eventType) {
         case 'employee.linked': {
-          const { userId, email } = event.payload as { userId?: string; email?: string };
+          const payload = event.payload as {
+            userId?: string;
+            bmoniUserId?: string;
+            email?: string;
+            companyEmail?: string;
+          };
+          const userId = payload.bmoniUserId || payload.userId;
+          const email = payload.companyEmail || payload.email;
           if (userId && email) {
             await prisma.employee.updateMany({
-              where: { email },
-              data: { bmoniUserId: userId, status: 'LINKED' },
+              where: { OR: [{ email: email.toLowerCase() }, { bmoniUserId: userId }] },
+              data: { bmoniUserId: userId, status: 'WALLET_PENDING' },
             });
             await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', { email, userId });
           }
@@ -78,13 +85,44 @@ export class BmoniWebhookService {
         }
 
         case 'onboarding.completed': {
-          const { userId } = event.payload as { userId?: string };
+          const payload = event.payload as { userId?: string; bmoniUserId?: string };
+          const userId = payload.bmoniUserId || payload.userId;
           if (userId) {
             await prisma.employee.updateMany({
               where: { bmoniUserId: userId },
-              data: { status: 'ACTIVE' },
+              data: { status: 'READY', failedStage: null },
             });
             await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId });
+          }
+          break;
+        }
+
+        case 'onboarding.failed': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; reason?: string };
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'FAILED', failedStage: 'ONBOARDING' } });
+            await this.logAudit('BUSINESS', 'ONBOARDING_FAILED', 'BMONI_WEBHOOK', { userId, reason: payload.reason });
+          }
+          break;
+        }
+
+        case 'kyc.action_required': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; action?: string };
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'KYC_PENDING' } });
+            await this.logAudit('BUSINESS', 'KYC_ACTION_REQUIRED', 'BMONI_WEBHOOK', { userId, action: payload.action });
+          }
+          break;
+        }
+
+        case 'employee.vba.registered': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; currency?: string };
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'READY' } });
+            await this.logAudit('BUSINESS', 'VBA_REGISTERED', 'BMONI_WEBHOOK', { userId, currency: payload.currency });
           }
           break;
         }

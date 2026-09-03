@@ -20,10 +20,13 @@ model Employee {
   phoneNumber    String?  @map("phone_number")
   country        String   // 'NG', 'MX', 'CA', 'US', etc.
   targetCurrency String   @map("target_currency") // 'NGN', 'MXN', 'USD', 'EUR', etc.
+  payrollAmountMinor Int  @default(0) @map("payroll_amount_minor")
+  payrollCurrency    String? @map("payroll_currency")
   walletId       String?  @map("wallet_id")
   walletAddress  String?  @map("wallet_address")
   cardId         String?  @map("card_id")
   status         String   @default("INVITED") // 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
+  failedStage    String?  @map("failed_stage")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -102,4 +105,17 @@ model WebhookEvent {
   processedAt  DateTime @default(now()) @map("processed_at") @db.Timestamptz
 
   @@map("webhook_events")
+}
+
+model WebhookSubscription {
+  id          String   @id
+  partnerId   String   @map("partner_id")
+  callbackUrl String   @map("callback_url")
+  secretKey   String   @map("secret_key")
+  active      Boolean  @default(true)
+  events      Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("webhook_subscriptions")
 }
