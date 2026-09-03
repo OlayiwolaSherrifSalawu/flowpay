@@ -1,34 +1,48 @@
-# dependencies
-/node_modules
+# Dependencies
+node_modules/
 /.pnp
 .pnp.js
 
-# testing
-/coverage
+# Build & compiled outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.next/
+out/
 
-# next.js
-/.next/
-/out/
+# Database & runtime files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
 
-# production
-/build
+# Environment files
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
 
-# misc
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+ios/Pods/
+ios/.symlinks/
+
+# Misc & OS
 .DS_Store
 *.pem
-
-# debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-./agents/skills/flowpay-core/ANTIGRAVITY_BRIEF.md

@@ -1,0 +1,241 @@
+--- PAGE 1 ---
+BMONI Hackathon Build Spec
+Global Payroll Cards — Agent-Ready Project Brief
+Purpose: this document is written to be loaded directly into an LLM coding agent (e.g. Claude Code, Cursor, or a similar
+agent harness) as the source-of-truth spec for building the project. It defines the product, the exact BMONI API sequence,
+the build phases, the screens required, and explicit cut lines for a time-boxed hackathon (deadline: Friday).
+Platform
+BMONI Embedded (sandbox)
+Idea
+Global Payroll Cards
+Hook
+One Employer, Many Countries, One Bill
+Difficulty
+4 / 5
+Deadline
+Friday — demo day
+
+--- PAGE 2 ---
+1. Product Specification
+One-sentence pitch
+A payroll platform that lets a company pay remote workers across multiple countries — in their local currency,
+with instant spending cards — through one dashboard and one click, without ever touching foreign banking or
+KYC paperwork.
+Why this idea
+
+Every step maps to a documented BMONI endpoint — no improvisation, no undocumented risk.
+
+Judges have likely already seen several cross-border remittance apps built from the same docs; payroll for
+distributed teams is a less obvious synthesis of two separate BMONI capabilities (the partner/employee
+invite model + card issuance/limits).
+
+It is visually demonstrable at every step (invite → fund → card → purchase), not just "a number changed."
+
+The 10x hook below directly proves BMONI's core differentiator: multiple countries' banking infrastructure
+hidden behind one simple action.
+The 10x hook: "One Employer, Many Countries, One Bill"
+The employer adds employees in two different countries (Nigeria + Mexico). They see one aggregate USD
+total, click one button, and BMONI fans the payment out across two different currencies, banking rails, and card
+systems — invisibly. This is the clearest possible way to show, not just claim, why BMONI's multi-rail
+infrastructure is valuable.
+2. Personas & Test Data
+Use BMONI's pre-verified sandbox personas to avoid live KYC delays during build and demo. Do not invent
+new identities for the two demo employees — use the documented ones.
+
+Employee 1 (Nigeria) — persona "Bunch Dillon", preset BVN 99999999999.
+
+Employee 2 (Nigeria/alt or Mexico) — persona "Samson Jabo", preset BVN/NIN 22222222222.
+
+Test funding — sandbox wallets start at zero balance; request test tokens (NGN 1000, USD 10) from the
+BMONI team ahead of time by providing a phone number. This is a manual process, not an API call —
+request it well before Friday, not the morning of.
+3. System Architecture
+Actors
+
+Employer (partner) — uses a web/mobile dashboard to invite employees, fund wallets, issue cards, and run
+aggregate payroll.
+
+--- PAGE 3 ---
+
+Employee — receives an invite link, completes onboarding/KYC (pre-run for demo), and views their wallet +
+card + local-currency payslip.
+
+Your backend — a thin server that holds your partner API key, calls BMONI's REST API, stores your own
+payroll-run metadata (BMONI has no native "payroll run" concept — this is your own abstraction layer on
+top), and receives BMONI webhooks.
+Data flow (high level)
+ Employer App  --calls-->  Your Backend  --x-api-key-->  BMONI API
+                                         <--webhooks----  BMONI API
+Employee App  --calls-->  Your Backend  --x-api-key-->  BMONI API
+                                         <--SDK signing--  On-device wallet (Flutter/RN)
+Private keys are generated and stored on the employee's device (Android Keystore / iOS Secure Enclave) via
+the BMONI mobile SDK. Your backend never holds a private key — it only relays signature requests to the
+device and signed payloads back to BMONI.
+4. Exact API Call Sequence
+4.1 Invite & link an employee
+ POST /v1/partners/employees/invite
+  body: { email, country }
+  -> employee receives invite link, completes KYC/onboarding on their own
+webhook: employee.linked   (fires when employee is verified + wallet exists)
+4.2 Fund the employee's wallet
+ POST /v1/users/{userId}/smart-wallets/{walletId}/proposals
+  body: { toUserId, sourceSmartWalletId, token, fromAmount }
+  -> returns { proposalId, signPayload }
+[sign signPayload on-device via SDK]
+POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/sign
+  body: { signature }
+4.3 Issue a virtual card (do NOT use physical cards for the demo)
+ POST /v1/users/{userId}/cards
+  body: { cardName, cardColor, currency, type: "virtual", smartWalletId, nin }
+  -> returns { proposalId, feeAmount, signPayload }
+[sign on-device]
+POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/sign
+  body: { signature }
+4.4 Show spending / audit trail
+ GET /v1/users/{userId}/cards/{cardId}/transactions
+  query: status, from, to, size
+4.5 Nigeria-specific onboarding (Employee 1)
+ POST /v1/users/{userId}/onboarding/start-nigeria
+
+--- PAGE 4 ---
+  body: { smartWalletId }
+4.6 Mexico-specific onboarding (Employee 2, for the multi-country hook)
+ POST /v1/users/{userId}/latam/mx/kyc/activate
+  body: { smartWalletId }
+4.7 The aggregate payroll click (your own orchestration, not a single BMONI endpoint)
+BMONI has no native "pay N employees across N countries" endpoint. Build this yourself: your backend loops
+over the funding + notification steps (4.2) for every linked employee in a payroll run, in parallel, and reports back
+one aggregate success/failure summary to the employer UI.
+
+--- PAGE 5 ---
+5. Build Phases (in order — each phase is independently demoable)
+Phase 0 — Setup (30–60 min)
+
+Obtain sandbox API key.
+
+Request test token funding from BMONI team (manual, do this first — it has lead time).
+
+Confirm second demo country: Mexico is the best-documented second rail (CLABE deposit/payout fully
+specified in docs).
+
+Sketch the 5 core screens (section 6) before writing code.
+Phase 1 — Core single-country loop (Checkpoint: minimum demoable product)
+
+Employer dashboard: invite one employee (Nigeria).
+
+Employee onboarding using a pre-verified test persona — run this once ahead of time, never live.
+
+Employer funds the employee's wallet.
+
+Issue employee a virtual card.
+
+Show a transaction on the card via the transactions endpoint.
+Stop here and confirm this works end-to-end before building anything else. This alone is a demoable
+product if time runs out.
+Phase 2 — The 10x hook (Checkpoint: the differentiating moment)
+
+Add a second employee, in Mexico.
+
+Build the aggregate payroll summary screen: employer sees one USD total across both countries before
+clicking run.
+
+Click "Run Payroll" once → fans out into an NGN payout for employee 1 and an MXN payout for employee 2,
+in parallel, behind the scenes.
+
+Show both employees' results side by side in their own local currency after the single click.
+Phase 3 — Polish (ONLY if Phase 1 + 2 are solid and stable — pick 2–3, not all)
+
+Payroll cost calculator on the landing screen (fees saved vs. a typical wire transfer).
+
+Multi-currency payslip view: "$2,000 sent → ■3,100,000 received, rate 1,550/$, fee $12."
+
+Per-employee spend-limit presets (Contractor / Junior / Senior dropdown, using the set-limit endpoint).
+
+Employee self-serve card freeze toggle (card status endpoint).
+
+Simple audit log screen — just displaying transaction data you already have.
+Phase 4 — Explicit cut list (do not attempt unless everything above is done early)
+
+Physical card OTP activation flow.
+
+--- PAGE 6 ---
+
+Any live KYC during the actual demo slot — always pre-run this.
+
+Real recurring/scheduled payroll automation — fake it with a "Run Now" button.
+
+A third country.
+6. Required Screens
+Screen
+Who sees it
+What it shows
+Employer Dashboard
+Employer
+List of employees, statuses, "Invite" button
+Add Employee
+Employer
+Country picker, name, invite trigger
+Payroll Summary
+Employer
+Aggregate USD total across all countries, "Run Payroll" button
+Employee Wallet
+Employee
+Balance, card, local-currency payslip view
+Transactions / Audit
+Both
+Card spending history
+7. Demo Script (target: 3 minutes)
+
+(0:00–0:15) Problem statement: paying remote teams across countries is slow and expensive with banks.
+
+(0:15–0:45) Show employer dashboard with employee already linked in Nigeria (pre-run) — invite is instant,
+no paperwork.
+
+(0:45–1:30) Add second employee in Mexico (live or pre-added).
+
+(1:30–2:00) Payroll Summary screen: "$4,000 total" → click "Run Payroll" once.
+
+(2:00–2:45) Switch to both employee views: show ■ and MXN amounts landed, cards instantly active.
+
+(2:45–3:00) Close on the cost-comparison stat (e.g. "vs. $340/month in wire fees").
+8. Stage-Day Risk Checklist
+
+Pre-run KYC/invite for both demo employees before your slot — never do it live.
+
+Use only virtual cards — no OTP dependency.
+
+Have a screen-recorded backup of the full flow in case the sandbox is slow or down during your demo.
+
+Confirm sandbox test tokens are funded ahead of time (manual request process — do not leave this to the
+morning of).
+
+Treat any 404 from BMONI as possibly "not ready yet" rather than "missing" — poll or retry before treating it
+as an error, per BMONI's own documented error semantics.
+
+--- PAGE 7 ---
+9. Instructions for the Coding Agent
+If you are an LLM agent building this project from this spec, follow these constraints:
+
+Build strictly in the phase order defined in Section 5. Do not begin Phase 2 work until Phase 1's full loop
+(invite → fund → card → transaction) is verified working against the BMONI sandbox.
+
+All amounts sent to BMONI endpoints must respect the units documented per-endpoint: some use minor
+units (e.g. cents, as strings), others use human-readable decimal strings — do not assume consistency
+across endpoints; check the specific endpoint's documented format before sending a request.
+
+Every BMONI request must include the x-api-key header. Store it as an environment variable, never
+hard-code it or expose it to client-side code.
+
+Any BMONI action that returns a signPayload or signatureRequest requires an on-device signature via the
+mobile SDK before the flow can complete — do not attempt to fabricate or bypass this step.
+
+Treat webhook payload verification (HMAC-SHA256 over the raw request body) as mandatory for any
+webhook handler you write, even in the sandbox.
+
+Do not build a real recurring-payroll scheduler; simulate it with a manually-triggered batch action per Phase
+4's cut list.
+
+Prefer completing Phase 1 and Phase 2 fully over partially completing Phase 3 polish items — the polish
+items are additive and independently droppable.
+Source: derived from the BMONI Embedded Platform Reconnaissance document and a planning conversation. Verify
+current endpoint details against BMONI's live sandbox docs before building, as APIs may change.
