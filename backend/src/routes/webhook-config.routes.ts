@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { bmoniClient } from '../bmoni/client.js';
 import { env } from '../config/env.js';
-import { pool } from '../db/index.js';
+import { prisma } from '../db/index.js';
 
 export const webhookConfigRouter = Router();
 
@@ -50,20 +50,23 @@ webhookConfigRouter.post('/subscribe', async (req, res, next) => {
 
     // 2. Persist subscription record in Postgres
     try {
-      await pool.query(
-        `INSERT INTO webhook_subscriptions (id, partner_id, callback_url, secret_key, active, events)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         ON CONFLICT (id) DO UPDATE 
-         SET callback_url = $3, secret_key = $4, active = $5, events = $6, updated_at = now()`,
-        [
-          bmoniResult.id,
+      await prisma.webhookSubscription.upsert({
+        where: { id: bmoniResult.id },
+        create: {
+          id: bmoniResult.id,
           partnerId,
           callbackUrl,
-          bmoniResult.secretKey || env.BMONI_WEBHOOK_SECRET,
-          bmoniResult.active !== false,
+          secretKey: bmoniResult.secretKey || env.BMONI_WEBHOOK_SECRET,
+          active: bmoniResult.active !== false,
           events,
-        ]
-      );
+        },
+        update: {
+          callbackUrl,
+          secretKey: bmoniResult.secretKey || env.BMONI_WEBHOOK_SECRET,
+          active: bmoniResult.active !== false,
+          events,
+        },
+      });
     } catch (dbErr) {
       console.warn('[WebhookConfig] Subscription DB persistence note:', dbErr);
     }
@@ -81,10 +84,10 @@ webhookConfigRouter.post('/subscribe', async (req, res, next) => {
 // GET /api/webhooks/subscription - Get active subscription
 webhookConfigRouter.get('/subscription', async (req, res, next) => {
   try {
-    const { rows } = await pool.query(
-      'SELECT id, partner_id, callback_url, active, events, created_at, updated_at FROM webhook_subscriptions ORDER BY created_at DESC LIMIT 1'
-    );
-    res.json({ success: true, data: rows[0] || null });
+    const subscription = await prisma.webhookSubscription.findFirst({
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, data: subscription });
   } catch (err) {
     next(err);
   }

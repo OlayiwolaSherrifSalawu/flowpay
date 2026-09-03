@@ -141,4 +141,3 @@ export interface WebhookDeliveryPayload {
   payload: Record<string, unknown>;
   timestamp: string;
 }
-

@@ -3,6 +3,7 @@ import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/wallet_repository.dart';
 import '../../core/state/app_state.dart';
+import 'wallet_provisioning_screen.dart';
 
 class WalletsScreen extends StatefulWidget {
   final AppState appState;
@@ -45,45 +46,54 @@ class _WalletsScreenState extends State<WalletsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             children: [
               // Security info banner
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF38103A), Color(0xFF1E0720)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.shield_outlined, color: BMoniColors.brand400, size: 28),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Secure Hardware Isolation',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: BMoniColors.grey50,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Private keys never leave your phone. Created and protected on-device via BMONI B-Key SDK.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: BMoniColors.grey400,
-                            ),
-                          ),
-                        ],
-                      ),
+              InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const WalletProvisioningScreen()),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF38103A), Color(0xFF1E0720)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.shield_outlined, color: BMoniColors.brand400, size: 28),
+                      SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Secure Hardware Isolation',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: BMoniColors.grey50,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Your FlowPay wallet is secured on this device. Tap to manage.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: BMoniColors.grey400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, color: BMoniColors.brand400),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

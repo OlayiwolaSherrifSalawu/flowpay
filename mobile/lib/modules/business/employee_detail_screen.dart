@@ -29,7 +29,6 @@ class EmployeeDetailScreen extends StatefulWidget {
 class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   late EmployeeModel _emp;
   bool _isCardFrozen = false;
-  bool _isUpdating = false;
 
   @override
   void initState() {
@@ -52,7 +51,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isCardFrozen ? 'Card has been frozen.' : 'Card is now active.'),
+          content: Text(
+              _isCardFrozen ? 'Card has been frozen.' : 'Card is now active.'),
         ),
       );
     }
@@ -67,7 +67,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       );
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Onboarding retry queued for ${_emp.fullName}.')),
+        SnackBar(
+            content: Text('Onboarding retry queued for ${_emp.fullName}.')),
       );
     }
   }
@@ -86,7 +87,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           _emp.fullName,
-          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w700),
+          style: FlowPayTypography.title(color: FlowPayColors.ink)
+              .copyWith(fontWeight: FontWeight.w700),
         ),
       ),
       body: ListView(
@@ -123,18 +125,22 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                         children: [
                           Text(
                             _emp.fullName,
-                            style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                            style: FlowPayTypography.title(
+                                    color: FlowPayColors.ink)
+                                .copyWith(fontSize: 17),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             _emp.email,
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                            style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.textSecondary),
                           ),
                           if (_emp.phoneNumber != null) ...[
                             const SizedBox(height: 2),
                             Text(
                               _emp.phoneNumber!,
-                              style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                              style: FlowPayTypography.captionStyle(
+                                  color: FlowPayColors.textTertiary),
                             ),
                           ],
                         ],
@@ -146,7 +152,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 const SizedBox(height: 16),
                 const Divider(color: FlowPayColors.hairline, height: 1),
                 const SizedBox(height: 14),
-
                 _DetailRow(
                   label: 'Jurisdiction',
                   value: '${_emp.flagEmoji} ${_emp.resolvedCountryName}',
@@ -154,7 +159,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 const SizedBox(height: 10),
                 _DetailRow(
                   label: 'Disbursement Rail',
-                  value: '${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
+                  value:
+                      '${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
                 ),
                 const SizedBox(height: 10),
                 _DetailRow(
@@ -170,7 +176,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           // 3. BMONI On-Chain Linkage Section
           Text(
             'BMONI ON-CHAIN LINKAGE',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
+                .copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
             ),
@@ -209,7 +217,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           // 4. KYC Compliance Section (Strictly indicators - NEVER raw documents)
           Text(
             'KYC & COMPLIANCE VERIFICATION',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
+                .copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
             ),
@@ -221,16 +231,20 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
               children: [
                 _KycIndicatorRow(
                   title: 'National Identity Verification',
-                  subtitle: _emp.country == 'NG' ? 'BVN / NIN verification' : 'CURP / RFC verification',
+                  subtitle: _emp.country == 'NG'
+                      ? 'BVN / NIN verification'
+                      : 'CURP / RFC verification',
                   isPassed: _emp.isReady || _emp.status == 'ACTIVE',
-                  isPending: _emp.status == 'KYC_PENDING' || _emp.status == 'ONBOARDING',
+                  isPending: _emp.status == 'KYC_PENDING' ||
+                      _emp.status == 'ONBOARDING',
                 ),
                 const Divider(color: FlowPayColors.hairline, height: 16),
                 _KycIndicatorRow(
                   title: 'Proof of Address',
                   subtitle: 'Utility or jurisdictional document',
                   isPassed: _emp.isReady || _emp.status == 'ACTIVE',
-                  isPending: _emp.status == 'KYC_PENDING' || _emp.status == 'ONBOARDING',
+                  isPending: _emp.status == 'KYC_PENDING' ||
+                      _emp.status == 'ONBOARDING',
                 ),
                 const Divider(color: FlowPayColors.hairline, height: 16),
                 _KycIndicatorRow(
@@ -247,7 +261,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           // 5. Quick Actions
           Text(
             'ACTIONS',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
+                .copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
             ),
@@ -259,9 +275,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                 child: BMoniButton(
                   onPressed: _toggleCardFreeze,
                   text: _isCardFrozen ? 'Unfreeze Card' : 'Freeze Card',
-                  variant: _isCardFrozen ? BMoniButtonVariant.primary : BMoniButtonVariant.outline,
+                  variant: _isCardFrozen
+                      ? BMoniButtonVariant.primary
+                      : BMoniButtonVariant.outline,
                   size: BMoniButtonSize.medium,
-                  icon: _isCardFrozen ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                  icon: _isCardFrozen
+                      ? Icons.lock_open_rounded
+                      : Icons.lock_outline_rounded,
                 ),
               ),
               if (_emp.isFailed) ...[
@@ -299,29 +319,34 @@ class _StatusPill extends StatelessWidget {
     switch (upper) {
       case 'READY':
       case 'ACTIVE':
-        bg = FlowPayColors.signal.withOpacity(0.15);
+        bg = FlowPayColors.signal.withValues(alpha: 0.15);
         fg = FlowPayColors.signal;
         break;
       case 'FAILED':
-        bg = FlowPayColors.crimson.withOpacity(0.15);
-        fg = FlowPayColors.crimson;
+        bg = FlowPayColors.error.withValues(alpha: 0.15);
+        fg = FlowPayColors.error;
         break;
       case 'KYC_PENDING':
       case 'ONBOARDING':
-        bg = Colors.amber.withOpacity(0.15);
+        bg = Colors.amber.withValues(alpha: 0.15);
         fg = Colors.amber[700] ?? Colors.amber;
         break;
       default:
-        bg = Colors.blue.withOpacity(0.15);
+        bg = Colors.blue.withValues(alpha: 0.15);
         fg = Colors.blueAccent;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
         upper,
-        style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+        style: TextStyle(
+            color: fg,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5),
       ),
     );
   }
@@ -359,9 +384,9 @@ class _KycIndicatorRow extends StatelessWidget {
       textColor = Colors.amber[700] ?? Colors.amber;
     } else {
       icon = Icons.cancel_rounded;
-      iconColor = FlowPayColors.crimson;
+      iconColor = FlowPayColors.error;
       statusText = 'NOT SUBMITTED';
-      textColor = FlowPayColors.crimson;
+      textColor = FlowPayColors.error;
     }
 
     return Row(
@@ -374,14 +399,16 @@ class _KycIndicatorRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                style:
+                    FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
               ),
               Text(
                 subtitle,
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary),
               ),
             ],
           ),
@@ -419,7 +446,8 @@ class _DetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+          style: FlowPayTypography.captionStyle(
+              color: FlowPayColors.textSecondary),
         ),
         const Spacer(),
         Text(

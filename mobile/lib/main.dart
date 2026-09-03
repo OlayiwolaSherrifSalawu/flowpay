@@ -6,7 +6,11 @@ import 'core/bmoni_sdk/bmoni_sdk_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize BMONI Embedded SDK on-device (On-Device Transaction Signing PIN)
+  // Initialize BMONI Embedded SDK on-device with 6-digit PIN policy
+  BmoniEmbeddedSdk.initialize(
+    pinLength: 6,
+    requirePin: true,
+  );
   await BmoniSdkService.initialize(
     pinLength: 6,
     requirePin: true,
@@ -18,4 +22,3 @@ void main() async {
     ),
   );
 }
-
