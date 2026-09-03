@@ -1,5 +1,5 @@
 import { bmoniClient } from '../../bmoni/client.js';
-import { db } from '../../db/index.js';
+import { pool } from '../../db/index.js';
 import { env } from '../../config/env.js';
 
 export interface EmployeeRecord {
@@ -21,12 +21,24 @@ export interface EmployeeRecord {
 }
 
 export class EmployeeService {
-  static listEmployees(): EmployeeRecord[] {
-    return db.prepare('SELECT * FROM employees ORDER BY created_at DESC').all() as EmployeeRecord[];
+  static async listEmployees(): Promise<EmployeeRecord[]> {
+    try {
+      const { rows } = await pool.query('SELECT * FROM employees ORDER BY created_at DESC');
+      return rows as EmployeeRecord[];
+    } catch (err) {
+      console.warn('[EmployeeService] listEmployees error:', err);
+      return [];
+    }
   }
 
-  static getEmployeeById(id: string): EmployeeRecord | undefined {
-    return db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as EmployeeRecord | undefined;
+  static async getEmployeeById(id: string): Promise<EmployeeRecord | undefined> {
+    try {
+      const { rows } = await pool.query('SELECT * FROM employees WHERE id = $1', [id]);
+      return rows[0] as EmployeeRecord | undefined;
+    } catch (err) {
+      console.warn('[EmployeeService] getEmployeeById error:', err);
+      return undefined;
+    }
   }
 
   static async inviteEmployee(data: {
@@ -54,23 +66,25 @@ export class EmployeeService {
       console.warn('[EmployeeService] BMONI invite fallback (offline/sandbox):', err);
     }
 
-    // 2. Insert into SQLite
-    db.prepare(`
-      INSERT INTO employees (id, partner_id, first_name, last_name, email, phone_number, country, target_currency, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      env.BMONI_PARTNER_ID,
-      data.firstName,
-      data.lastName,
-      data.email,
-      data.phoneNumber ?? null,
-      data.country,
-      data.targetCurrency,
-      'INVITED'
+    // 2. Insert into Postgres
+    await pool.query(
+      `INSERT INTO employees 
+         (id, partner_id, first_name, last_name, email, phone_number, country, target_currency, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        id,
+        env.BMONI_PARTNER_ID,
+        data.firstName,
+        data.lastName,
+        data.email,
+        data.phoneNumber ?? null,
+        data.country,
+        data.targetCurrency,
+        'INVITED',
+      ]
     );
 
-    const employee = this.getEmployeeById(id)!;
+    const employee = (await this.getEmployeeById(id))!;
     return { employee, inviteUrl };
   }
 }
