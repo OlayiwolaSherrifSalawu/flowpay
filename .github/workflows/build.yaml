@@ -1,0 +1,43 @@
+name: Cloud Flutter Build
+
+on:
+  push:
+    branches:
+      - main  # Triggers the cloud build every time you push code to the 'main' branch
+
+jobs:
+  build:
+    name: Build Apps in Cloud
+    runs-on: macos-latest # Uses Apple's cloud server to handle iOS compilation
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java Environment
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install Project Dependencies
+        run: flutter pub get
+
+      - name: Build Android Release APK
+        run: flutter build apk --release
+
+      - name: Build iOS Release IPA
+        run: flutter build ipa --no-codesign
+
+      - name: Save the Compiled Apps
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-mobile-apps
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/ios/ipa/*.ipa
