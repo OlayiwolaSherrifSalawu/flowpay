@@ -4,9 +4,9 @@ import { EmployeeService } from '../modules/employees/service.js';
 export const employeesRouter = Router();
 
 // GET /api/employees
-employeesRouter.get('/', (req, res, next) => {
+employeesRouter.get('/', async (req, res, next) => {
   try {
-    const list = EmployeeService.listEmployees();
+    const list = await EmployeeService.listEmployees();
     res.json({ success: true, data: list });
   } catch (err) {
     next(err);
@@ -14,9 +14,9 @@ employeesRouter.get('/', (req, res, next) => {
 });
 
 // GET /api/employees/:id
-employeesRouter.get('/:id', (req, res, next) => {
+employeesRouter.get('/:id', async (req, res, next) => {
   try {
-    const employee = EmployeeService.getEmployeeById(req.params.id);
+    const employee = await EmployeeService.getEmployeeById(req.params.id);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }

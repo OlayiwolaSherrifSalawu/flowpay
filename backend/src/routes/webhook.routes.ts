@@ -11,7 +11,7 @@ export const webhookRouter = Router();
 webhookRouter.post(
   '/bmoni',
   express.raw({ type: 'application/json' }),
-  (req, res) => {
+  async (req, res) => {
     const rawBody = req.body as Buffer;
     const signature = req.get('X-Webhook-Signature') || req.get('x-webhook-signature');
 
@@ -39,7 +39,7 @@ webhookRouter.post(
     }
 
     // 3. Process event
-    const result = BmoniWebhookService.processEvent(eventPayload);
+    const result = await BmoniWebhookService.processEvent(eventPayload);
     return res.status(200).json({ received: true, ...result });
   }
 );

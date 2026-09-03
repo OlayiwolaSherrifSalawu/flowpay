@@ -4,9 +4,9 @@ import { MoneyMissionService } from '../modules/missions/service.js';
 export const missionsRouter = Router();
 
 // GET /api/missions
-missionsRouter.get('/', (req, res, next) => {
+missionsRouter.get('/', async (req, res, next) => {
   try {
-    const list = MoneyMissionService.listMissions();
+    const list = await MoneyMissionService.listMissions();
     res.json({ success: true, data: list });
   } catch (err) {
     next(err);
@@ -14,9 +14,9 @@ missionsRouter.get('/', (req, res, next) => {
 });
 
 // POST /api/missions
-missionsRouter.post('/', (req, res, next) => {
+missionsRouter.post('/', async (req, res, next) => {
   try {
-    const mission = MoneyMissionService.createMission(req.body);
+    const mission = await MoneyMissionService.createMission(req.body);
     res.json({ success: true, data: mission });
   } catch (err) {
     next(err);
@@ -24,9 +24,9 @@ missionsRouter.post('/', (req, res, next) => {
 });
 
 // PATCH /api/missions/:id/toggle
-missionsRouter.patch('/:id/toggle', (req, res, next) => {
+missionsRouter.patch('/:id/toggle', async (req, res, next) => {
   try {
-    const result = MoneyMissionService.toggleMission(req.params.id);
+    const result = await MoneyMissionService.toggleMission(req.params.id);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);

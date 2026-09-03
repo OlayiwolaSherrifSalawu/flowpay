@@ -133,6 +133,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **App Lock & PIN Entry (`mobile/lib/core/auth/app_auth_gate.dart`)**: When locked, displays 6-digit PIN entry box directly on screen alongside Face ID / Fingerprint / Device Biometrics. Entering 6-digit PIN immediately unlocks into the session.
     * **Session Expiration & Re-Authentication (`mobile/lib/core/auth/app_auth_gate.dart` & `login_screen.dart`)**: Automatically detects expired session tokens; displays an amber `[ ⚠️ Authentication Expired ]` indicator allowing users to renew via 6-digit PIN, verify with biometrics, or log in anew via `LoginScreen`.
     * **Verification**: 18/18 mobile unit & widget tests passing (100%), 11/11 backend tests passing (100%), 0 analyzer issues. Tested live on Android emulator with screenshot proofs.
+  * **Relational Database Migration to PostgreSQL**:
+    * **Database Engine & Driver**: Installed `pg` and `@types/pg`; migrated from SQLite (`better-sqlite3`) to PostgreSQL connection pooling (`pg.Pool`).
+    * **DDL Schema & Seeding (`backend/src/db/schema.sql` & `index.ts`)**: Automated DDL migration for `employees`, `payroll_runs`, `payroll_items`, `money_missions`, `audit_activity`, and `webhook_events`. Fixed syntax typo in schema file and seeded pre-verified BMONI sandbox personas.
+    * **Async Route & Service Migration**: Converted all synchronous database queries across `employees`, `missions`, `payroll`, `activity`, and `webhooks` to asynchronous parameterized queries (`$1, $2, ...`), preventing SQL injection and float drift.
+    * **Resilience & Config**: Configured `backend/.env` with local container on port 5435 (`flowpay-postgres`) and added SSL support for remote Supabase pooler URIs (`rejectUnauthorized: false`), alongside a non-crashing fallback for test runners.
+    * **Live Endpoint Verification**: Verified `GET /api/employees`, `GET /api/missions`, `POST /api/payroll/execute`, `GET /api/payroll/runs`, and `GET /api/activity` against PostgreSQL. 11/11 backend tests passing (100%).
 
 
 ---
