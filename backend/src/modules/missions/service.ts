@@ -1,22 +1,14 @@
-import { pool } from '../../db/index.js';
+import { prisma } from '../../db/index.js';
+import type { MoneyMission, Prisma } from '@prisma/client';
 
-export interface MoneyMission {
-  id: string;
-  title: string;
-  description: string;
-  rule_type: string;
-  condition_json: string | Record<string, unknown>;
-  action_json: string | Record<string, unknown>;
-  is_active: boolean | number;
-  created_at: string;
-  updated_at: string;
-}
+export type { MoneyMission };
 
 export class MoneyMissionService {
   static async listMissions(): Promise<MoneyMission[]> {
     try {
-      const { rows } = await pool.query('SELECT * FROM money_missions ORDER BY created_at DESC');
-      return rows as MoneyMission[];
+      return await prisma.moneyMission.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
     } catch (err) {
       console.warn('[MoneyMissionService] listMissions error:', err);
       return [];
@@ -31,33 +23,32 @@ export class MoneyMissionService {
     action: Record<string, unknown>;
   }): Promise<MoneyMission> {
     const id = `mission_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    
-    await pool.query(
-      `INSERT INTO money_missions (id, title, description, rule_type, condition_json, action_json, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, true)`,
-      [
-        id,
-        data.title,
-        data.description,
-        data.ruleType,
-        JSON.stringify(data.condition),
-        JSON.stringify(data.action),
-      ]
-    );
 
-    const { rows } = await pool.query('SELECT * FROM money_missions WHERE id = $1', [id]);
-    return rows[0] as MoneyMission;
+    return await prisma.moneyMission.create({
+      data: {
+        id,
+        title: data.title,
+        description: data.description,
+        ruleType: data.ruleType,
+        conditionJson: data.condition as Prisma.InputJsonValue,
+        actionJson: data.action as Prisma.InputJsonValue,
+        isActive: true,
+      },
+    });
   }
 
   static async toggleMission(id: string): Promise<{ is_active: boolean }> {
-    const { rows } = await pool.query('SELECT is_active FROM money_missions WHERE id = $1', [id]);
-    const current = rows[0]?.is_active;
-    const nextState = !(current === true || current === 1);
+    const mission = await prisma.moneyMission.findUnique({
+      where: { id },
+      select: { isActive: true },
+    });
 
-    await pool.query(
-      'UPDATE money_missions SET is_active = $1, updated_at = now() WHERE id = $2',
-      [nextState, id]
-    );
+    const nextState = !mission?.isActive;
+
+    await prisma.moneyMission.update({
+      where: { id },
+      data: { isActive: nextState },
+    });
 
     return { is_active: nextState };
   }

@@ -33,7 +33,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 | :--- | :--- | :--- |
 | **Frontend (Mobile)** | Flutter (Dart), `bmoni_embedded_sdk: ^0.0.2`, `bkey_uikit: ^0.0.1`, `bmoni_embedded_wallets_cards: ^0.0.1`, Riverpod | Shared Foundation complete in `mobile/` |
 | **Backend / API** | Node.js (v20+), Express, TypeScript (ESM) | Complete modular backend in `backend/` |
-| **Database** | SQLite (`better-sqlite3`), WAL mode, relational schema | Active in `backend/flowpay.db` |
+| **Database** | PostgreSQL via **Prisma ORM** (v6.19.3, `@prisma/client`) | Schema in `backend/prisma/schema.prisma`; client generated to `node_modules/@prisma/client` |
 | **Infrastructure** | BMONI Embedded REST Sandbox (`https://embedded-dev.bmoni.com`), Origin-only base URL | Integrated with client & raw HMAC webhooks |
 | **BMONI Docs & Specs** | [bkey.mintlify.app](https://bkey.mintlify.app/) (LLM Index: [/llms.txt](https://bkey.mintlify.app/llms.txt)) | Official docs & API specs; prompt user for any required keys |
 | **Provider Layer** | `DemoProvider` & `BMONIProvider` conforming to shared interfaces | Active with instant sandbox test personas |
@@ -60,7 +60,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
-  * BMONI SDK on-device signing service wrapper (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`).
+  * **BMONI Embedded SDK facade** (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`) — wraps `bmoni_embedded_sdk: 0.0.2` with test-env fallback, salted PBKDF2 PIN digest, and 200ms native-platform timeout guards.
   * Provider abstraction interfaces: `WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`.
   * Deterministic `DemoProvider` implementations loaded with BMONI sandbox personas (Bunch Dillon BVN 99999999999, Samson Jabo BVN 22222222222).
   * Live `BMONIProvider` implementations communicating via backend proxy.
@@ -93,6 +93,17 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **Personal**: Dashboard, Wallets, Money Missions ("Your money. Your rules. AI executes."), Send Money with PIN approval, Personal Activity, Personal Security.
     * **Business**: Business Dashboard, Global Team Roster, Employee Detail, Multi-country Payroll Orchestrator ("One Employer, Many Countries, One Bill"), Corporate Audit.
   * Automated widget and shell tests passing with 100% success and 0 analyzer lints.
+* [x] **B-Key / BMONI On-Device Wallet Integration** (Personal Feature — `lib/core/wallet/`, `lib/modules/personal/wallet_provisioning_screen.dart`):
+  * **`bmoni_embedded_sdk: 0.0.2`** added to `pubspec.yaml`; SDK initialized at app startup in `main.dart` with 6-digit PIN policy.
+  * **`WalletService` abstraction** (`lib/core/wallet/wallet_service.dart`) — clean interface with `initialize`, `hasWallet`, `createWallet`, `getWalletAddress`, `deleteWallet`, `hasPin`, `setPin`, `matchPin`, `changePin`, `removePin`. `BmoniWalletService` production implementation delegates to `BmoniSdkService`.
+  * **`WalletState` model** — immutable, 4 named constructors (`noWallet`, `creating`, `ready`, `error`), `copyWith`, and computed bool getters.
+  * **`WalletStateNotifier`** — Riverpod `StateNotifier` coordinating full provisioning lifecycle: load, create (with optional PIN), delete, graceful `walletAlreadyExists` recovery.
+  * **Riverpod providers**: `walletServiceProvider` + `walletStateProvider` (overridable in tests).
+  * **`WalletSigner` abstraction** (`lib/core/wallet/wallet_signer.dart`) — `signMessage` (EIP-191) and `signTransactionHash` (EIP-712 / ERC-4337). `BmoniWalletSigner` delegates to SDK; `SigningCancelledException` for user cancellations.
+  * **`WalletPinAuthSheet`** (`lib/core/wallet/components/wallet_pin_auth_sheet.dart`) — secure modal bottom sheet with 6-dot PIN pad, animated fill, trust reassurance banner, error feedback, `onAuthorize` signing callback, and cancel without state leakage. Keys: `wallet_pin_cancel_button`, `pin_key_<digit>`, `pin_key_backspace`.
+  * **`WalletProvisioningScreen`** (`lib/modules/personal/wallet_provisioning_screen.dart`) — 4-state `AnimatedSwitcher` (noWallet → creating → ready → error): benefit cards, hardware enclave specs, EIP-55 address display with clipboard copy, test-signing via PIN sheet, PIN-gated delete with confirmation dialog. Linked from `WalletsScreen` and `PersonalSecurityScreen`.
+  * **Security invariants**: private keys never logged/transmitted; PIN only verified in-memory and via SDK; signing info excluded from logs.
+  * **Test coverage** (`test/wallet_service_test.dart`, `test/wallet_provisioning_ui_test.dart`): 56 new tests (unit + widget). All 79 total Flutter tests passing (100%), 0 analyzer issues.
 * [x] **Live Environment & Emulator Runtime Verification**:
   * **Backend Daemon**: Actively running on `http://localhost:4000` with BMONI sandbox integration and health checks passing.
   * **Toolchain Alignment**: Synchronized Gradle 8.14, Android Gradle Plugin 8.13.2, and Kotlin 2.2.20 for Flutter 3.47 compilation.
@@ -139,6 +150,13 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **Async Route & Service Migration**: Converted all synchronous database queries across `employees`, `missions`, `payroll`, `activity`, and `webhooks` to asynchronous parameterized queries (`$1, $2, ...`), preventing SQL injection and float drift.
     * **Resilience & Config**: Configured `backend/.env` with local container on port 5435 (`flowpay-postgres`) and added SSL support for remote Supabase pooler URIs (`rejectUnauthorized: false`), alongside a non-crashing fallback for test runners.
     * **Live Endpoint Verification**: Verified `GET /api/employees`, `GET /api/missions`, `POST /api/payroll/execute`, `GET /api/payroll/runs`, and `GET /api/activity` against PostgreSQL. 11/11 backend tests passing (100%).
+  * **Prisma ORM Integration (`backend/prisma/`)**:
+    * Installed `prisma@6.19.3` + `@prisma/client@6.19.3`.
+    * Created `backend/prisma/schema.prisma` mirroring all 6 PostgreSQL tables (`employees`, `payroll_runs`, `payroll_items`, `money_missions`, `audit_activity`, `webhook_events`) with proper `@map`/`@@map` decorators, `@db.Timestamptz`, relations, and indexes.
+    * Replaced all raw `pg.Pool.query(...)` calls across 6 files with fully type-safe Prisma client methods (`findMany`, `findUnique`, `create`, `createMany`, `update`, `updateMany`, `count`).
+    * Migrated files: `db/index.ts` (singleton client + seeding), `modules/employees/service.ts`, `modules/missions/service.ts`, `modules/payroll/service.ts`, `routes/activity.routes.ts`, `routes/payroll.routes.ts`, `bmoni/webhooks.ts`.
+    * Added `db:push`, `db:migrate`, `db:studio` npm scripts.
+    * Build: `npm run build` runs `prisma generate && tsc`. Zero TypeScript errors.
   * **FlowPay Business — Employee Management & 6-Stage BMONI Lifecycle**:
     * **6-Stage Lifecycle Architecture**: Implemented full deterministic transitions (`CREATED` → `WALLET_PENDING` → `KYC_PENDING` → `ONBOARDING` → `READY` → `FAILED`) with `failedStage` tracking.
     * **Corrected BMONI Endpoint Integration**: Switched user creation to official `POST /v1/users` with `{ firstName, lastName, email, phoneNumber }` returning `bmoniUserId` per BMONI documentation, eliminating legacy invite endpoints.
@@ -151,15 +169,30 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **Automated Unit Tests**: Added `backend/src/modules/employees/employee.test.ts` verifying all validation, countries, and currency rules. 18/18 tests passing (100%).
 
 
+  * **FlowPay Personal Financial Dashboard ("Your money. Your rules. AI executes.")**:
+    * **Portfolio & Balance Section**: Displays real-time multi-currency portfolio valuation ($37,671.00 USD primary), minor-unit integer precision (no float truncation/fake precision), secondary NGN rail valuation, available balance ($24,500.00), sandbox mode badge, and interactive privacy hide/reveal toggle.
+    * **Primary AI Interaction ("What should your money do?")**: `AiCommandBar` built as an entry point into task-specific financial workflows (NOT a chatbot). Features interactive suggestion chips:
+      * "Allocate my $2,000" -> Opens `AiAllocationModal` with autonomous split across emergency reserve, contractor pool, and savings.
+      * "Send $500 to my designer" -> Pre-populates `SendMoneyScreen` with recipient and amounts.
+      * "Convert $1,000 to Naira" -> Opens `AiFxConversionModal` with zero-spread BMONI quote (1:1,550), fee breakdown, and PIN signing.
+    * **Pending Approvals Queue**: Prominently surfaces actions awaiting explicit B-Key signature (auto-sweep triggers, multi-currency transfers, FX conversions) with 6-digit PIN confirmation dialog.
+    * **Quick Actions Row**: 3 primary actions: "Create Mission", "Send Money", and "View Wallets".
+    * **Money Missions Feature Card & Live Toggles**: Prominent "Your money. Your rules. AI executes." card with active mission toggles directly on the dashboard.
+    * **Multi-Currency Smart Wallets Breakdown**: Renders verified balances and addresses for USD (USDB), NGN (CNGN), MXN (MEXe), and CAD (CADC) using shared wallet cards with one-tap clipboard copy.
+    * **Recent Financial Activity Feed**: Shows real-time history across missions, transfers, card payments, and conversions with category badges.
+    * **Repository Pattern Architecture**: Abstracted clean contracts (`ActivityRepository`, `MissionRepository`, `ApprovalRepository`) with deterministic `Demo*` implementations and live `Bmoni*` implementations behind `PersonalProvider`.
+    * **Verification**: 79/79 Flutter mobile tests passing (100%), 0 analyzer issues, 11/11 backend tests passing.
+
 ---
 
 ## 🎯 4. What Needs to Be Done (Parallel Roadmap)
 
 ### Personal Track Owner
-- [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling.
+- [x] Build Personal Financial Dashboard with portfolio balance, AI command bar, pending approvals, multi-currency wallets, and money missions.
+- [x] Implement on-device B-Key / BMONI wallet layer: `WalletService`, `WalletSigner`, `WalletPinAuthSheet`, `WalletProvisioningScreen`, 56 tests.
 - [ ] Implement Money Missions builder UI to allow adding custom percentage rules and triggers.
 - [ ] Polish Send Money modal animations and transaction status receipt states.
-- [ ] Integrate full BMONI biometric PIN lock prompt with device biometrics.
+- [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 
 ### Business Track Owner
 - [ ] Expand Employee Onboarding: connect deep-link generation and KYC verification status tracker.

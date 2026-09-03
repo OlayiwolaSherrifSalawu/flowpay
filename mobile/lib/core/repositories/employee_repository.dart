@@ -95,7 +95,7 @@ class EmployeeModel {
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
     final countryCode = (json['country'] ?? 'NG').toString().toUpperCase();
     final targetCurr = Currency.fromCode(json['target_currency'] ?? json['targetCurrency'] ?? 'USD');
-    
+
     // Parse payroll amount
     Money? payroll;
     if (json['payroll_amount_minor'] != null) {
@@ -166,7 +166,7 @@ class EmployeeModel {
 abstract class EmployeeRepository {
   Future<List<EmployeeModel>> getEmployees();
   Future<EmployeeModel> getEmployeeById(String id);
-  
+
   /// Primary employee creation method calling POST /api/employees
   Future<String> createEmployee({
     required String firstName,

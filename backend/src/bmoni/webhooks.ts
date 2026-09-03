@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
-import { pool } from '../db/index.js';
+import { prisma } from '../db/index.js';
+import type { Prisma } from '@prisma/client';
 import type { WebhookDeliveryPayload } from './types.js';
 
 export class BmoniWebhookService {
@@ -43,26 +44,24 @@ export class BmoniWebhookService {
   static async processEvent(event: WebhookDeliveryPayload): Promise<{ handled: boolean; message: string }> {
     try {
       // 1. Deduplication check
-      const { rows } = await pool.query(
-        'SELECT id FROM webhook_events WHERE bmoni_event_id = $1',
-        [event.id]
-      );
+      const existing = await prisma.webhookEvent.findUnique({
+        where: { bmoniEventId: event.id },
+        select: { id: true },
+      });
 
-      if (rows.length > 0) {
+      if (existing) {
         return { handled: true, message: `Event ${event.id} already processed (idempotent skip)` };
       }
 
       // 2. Persist raw event
-      await pool.query(
-        `INSERT INTO webhook_events (id, bmoni_event_id, event_type, payload_json)
-         VALUES ($1, $2, $3, $4)`,
-        [
-          `whk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          event.id,
-          event.eventType,
-          JSON.stringify(event.payload),
-        ]
-      );
+      await prisma.webhookEvent.create({
+        data: {
+          id: `whk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          bmoniEventId: event.id,
+          eventType: event.eventType,
+          payloadJson: event.payload as object,
+        },
+      });
 
       // 3. Handle specific event families with 6-stage employee lifecycle
       switch (event.eventType) {
@@ -73,89 +72,57 @@ export class BmoniWebhookService {
             email?: string;
             companyEmail?: string;
           };
-          const resolvedUserId = payload.bmoniUserId || payload.userId;
-          const resolvedEmail = payload.companyEmail || payload.email;
-
-          if (resolvedUserId && resolvedEmail) {
-            await pool.query(
-              `UPDATE employees 
-               SET bmoni_user_id = $1, status = 'WALLET_PENDING', updated_at = now()
-               WHERE email = $2 OR bmoni_user_id = $1`,
-              [resolvedUserId, resolvedEmail.toLowerCase()]
-            );
-            await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', {
-              email: resolvedEmail,
-              userId: resolvedUserId,
+          const userId = payload.bmoniUserId || payload.userId;
+          const email = payload.companyEmail || payload.email;
+          if (userId && email) {
+            await prisma.employee.updateMany({
+              where: { OR: [{ email: email.toLowerCase() }, { bmoniUserId: userId }] },
+              data: { bmoniUserId: userId, status: 'WALLET_PENDING' },
             });
+            await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', { email, userId });
           }
           break;
         }
 
         case 'onboarding.completed': {
           const payload = event.payload as { userId?: string; bmoniUserId?: string };
-          const resolvedUserId = payload.bmoniUserId || payload.userId;
-          if (resolvedUserId) {
-            await pool.query(
-              `UPDATE employees 
-               SET status = 'READY', failed_stage = NULL, updated_at = now()
-               WHERE bmoni_user_id = $1`,
-              [resolvedUserId]
-            );
-            await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId: resolvedUserId });
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({
+              where: { bmoniUserId: userId },
+              data: { status: 'READY', failedStage: null },
+            });
+            await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId });
           }
           break;
         }
 
         case 'onboarding.failed': {
           const payload = event.payload as { userId?: string; bmoniUserId?: string; reason?: string };
-          const resolvedUserId = payload.bmoniUserId || payload.userId;
-          if (resolvedUserId) {
-            await pool.query(
-              `UPDATE employees 
-               SET status = 'FAILED', failed_stage = 'ONBOARDING', updated_at = now()
-               WHERE bmoni_user_id = $1`,
-              [resolvedUserId]
-            );
-            await this.logAudit('BUSINESS', 'ONBOARDING_FAILED', 'BMONI_WEBHOOK', {
-              userId: resolvedUserId,
-              reason: payload.reason,
-            });
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'FAILED', failedStage: 'ONBOARDING' } });
+            await this.logAudit('BUSINESS', 'ONBOARDING_FAILED', 'BMONI_WEBHOOK', { userId, reason: payload.reason });
           }
           break;
         }
 
         case 'kyc.action_required': {
           const payload = event.payload as { userId?: string; bmoniUserId?: string; action?: string };
-          const resolvedUserId = payload.bmoniUserId || payload.userId;
-          if (resolvedUserId) {
-            await pool.query(
-              `UPDATE employees 
-               SET status = 'KYC_PENDING', updated_at = now()
-               WHERE bmoni_user_id = $1`,
-              [resolvedUserId]
-            );
-            await this.logAudit('BUSINESS', 'KYC_ACTION_REQUIRED', 'BMONI_WEBHOOK', {
-              userId: resolvedUserId,
-              action: payload.action,
-            });
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'KYC_PENDING' } });
+            await this.logAudit('BUSINESS', 'KYC_ACTION_REQUIRED', 'BMONI_WEBHOOK', { userId, action: payload.action });
           }
           break;
         }
 
         case 'employee.vba.registered': {
           const payload = event.payload as { userId?: string; bmoniUserId?: string; currency?: string };
-          const resolvedUserId = payload.bmoniUserId || payload.userId;
-          if (resolvedUserId) {
-            await pool.query(
-              `UPDATE employees 
-               SET status = 'READY', updated_at = now()
-               WHERE bmoni_user_id = $1`,
-              [resolvedUserId]
-            );
-            await this.logAudit('BUSINESS', 'VBA_REGISTERED', 'BMONI_WEBHOOK', {
-              userId: resolvedUserId,
-              currency: payload.currency,
-            });
+          const userId = payload.bmoniUserId || payload.userId;
+          if (userId) {
+            await prisma.employee.updateMany({ where: { bmoniUserId: userId }, data: { status: 'READY' } });
+            await this.logAudit('BUSINESS', 'VBA_REGISTERED', 'BMONI_WEBHOOK', { userId, currency: payload.currency });
           }
           break;
         }
@@ -182,19 +149,22 @@ export class BmoniWebhookService {
     return { handled: true, message: `Successfully processed ${event.eventType}` };
   }
 
-  private static async logAudit(category: string, action: string, actor: string, details: Record<string, unknown>): Promise<void> {
+  private static async logAudit(
+    category: string,
+    action: string,
+    actor: string,
+    details: Record<string, unknown>
+  ): Promise<void> {
     try {
-      await pool.query(
-        `INSERT INTO audit_activity (id, category, action, actor, details_json)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      await prisma.auditActivity.create({
+        data: {
+          id: `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           category,
           action,
           actor,
-          JSON.stringify(details),
-        ]
-      );
+          detailsJson: details as Prisma.InputJsonValue,
+        },
+      });
     } catch (err) {
       console.error('[Audit] Failed to log audit event:', err);
     }

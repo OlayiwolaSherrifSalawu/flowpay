@@ -1,0 +1,121 @@
+// FlowPay Prisma Schema
+// Mirrors the existing PostgreSQL DDL in src/db/schema.sql
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id             String   @id
+  bmoniUserId    String?  @map("bmoni_user_id")
+  partnerId      String   @map("partner_id")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  email          String   @unique
+  phoneNumber    String?  @map("phone_number")
+  country        String   // 'NG', 'MX', 'CA', 'US', etc.
+  targetCurrency String   @map("target_currency") // 'NGN', 'MXN', 'USD', 'EUR', etc.
+  payrollAmountMinor Int  @default(0) @map("payroll_amount_minor")
+  payrollCurrency    String? @map("payroll_currency")
+  walletId       String?  @map("wallet_id")
+  walletAddress  String?  @map("wallet_address")
+  cardId         String?  @map("card_id")
+  status         String   @default("INVITED") // 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
+  failedStage    String?  @map("failed_stage")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([email], name: "idx_employees_email")
+  @@index([bmoniUserId], name: "idx_employees_bmoni_user_id")
+  @@map("employees")
+}
+
+model PayrollRun {
+  id            String   @id
+  title         String
+  totalUsdMinor Int      @map("total_usd_minor") // integer minor units ($100.00 -> 10000)
+  feeUsdMinor   Int      @default(0) @map("fee_usd_minor")
+  employeeCount Int      @map("employee_count")
+  status        String   @default("COMPLETED") // 'DRAFT', 'PREVIEW', 'COMPLETED', 'FAILED'
+  reference     String?  @unique
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  executedAt    DateTime @default(now()) @map("executed_at") @db.Timestamptz
+
+  items         PayrollItem[]
+
+  @@map("payroll_runs")
+}
+
+model PayrollItem {
+  id                String   @id
+  payrollRunId      String   @map("payroll_run_id")
+  employeeId        String   @map("employee_id")
+  employeeName      String   @map("employee_name")
+  country           String
+  targetCurrency    String   @map("target_currency")
+  targetAmountMinor Int      @map("target_amount_minor")
+  usdAmountMinor    Int      @map("usd_amount_minor")
+  exchangeRate      Decimal  @map("exchange_rate") @db.Decimal(18, 8)
+  status            String   @default("SUCCESS") // 'SUCCESS', 'FAILED', 'PENDING'
+  proposalId        String?  @map("proposal_id")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  payrollRun        PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+
+  @@index([payrollRunId], name: "idx_payroll_items_run")
+  @@map("payroll_items")
+}
+
+model MoneyMission {
+  id            String   @id
+  title         String
+  description   String
+  ruleType      String   @map("rule_type") // 'AUTO_SWEEP', 'SPEND_CAP', 'EMERGENCY_RESERVE', 'FX_TARGET'
+  conditionJson Json     @map("condition_json")
+  actionJson    Json     @map("action_json")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("money_missions")
+}
+
+model AuditActivity {
+  id          String   @id
+  category    String   // 'PERSONAL', 'BUSINESS', 'SYSTEM', 'AI'
+  action      String
+  actor       String
+  detailsJson Json     @map("details_json")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([createdAt], name: "idx_audit_created")
+  @@map("audit_activity")
+}
+
+model WebhookEvent {
+  id           String   @id
+  bmoniEventId String?  @unique @map("bmoni_event_id")
+  eventType    String   @map("event_type")
+  payloadJson  Json     @map("payload_json")
+  processedAt  DateTime @default(now()) @map("processed_at") @db.Timestamptz
+
+  @@map("webhook_events")
+}
+
+model WebhookSubscription {
+  id          String   @id
+  partnerId   String   @map("partner_id")
+  callbackUrl String   @map("callback_url")
+  secretKey   String   @map("secret_key")
+  active      Boolean  @default(true)
+  events      Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("webhook_subscriptions")
+}
