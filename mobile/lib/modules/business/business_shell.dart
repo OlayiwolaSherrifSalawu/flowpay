@@ -30,34 +30,34 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
 
   @override
   Widget build(BuildContext context) {
+    final capabilitiesAsync = ref.watch(accountCapabilitiesProvider);
+    final capabilities = capabilitiesAsync.asData?.value;
+    final hasBothModes = capabilities?.hasBothModes ?? true;
+
     return Scaffold(
       backgroundColor: FlowPayColors.canvas,
       appBar: AppBar(
         backgroundColor: FlowPayColors.canvas,
         scrolledUnderElevation: 0,
         elevation: 0,
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu, color: FlowPayColors.ink),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Revolut-style Segmented Role Switch
-            SegmentedRoleSwitch(
-              isPersonal: false,
-              onRoleChanged: (isPersonal) {
-                ref.read(appLockStateProvider.notifier).setAccountMode(
-                      isPersonal ? AccountMode.personal : AccountMode.business,
-                    );
-              },
-            ),
-            const SizedBox(width: 8),
-            const DemoPill(),
-          ],
-        ),
+        title: hasBothModes
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Revolut-style Segmented Role Switch
+                  SegmentedRoleSwitch(
+                    isPersonal: false,
+                    onRoleChanged: (isPersonal) {
+                      ref.read(appLockStateProvider.notifier).setAccountMode(
+                            isPersonal ? AccountMode.personal : AccountMode.business,
+                          );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  const PoweredByBmoniBadge(),
+                ],
+              )
+            : const PoweredByBmoniBadge(),
         centerTitle: true,
         actions: [
           IconButton(
@@ -70,7 +70,6 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
           const SizedBox(width: 4),
         ],
       ),
-      drawer: _buildDrawer(context),
       body: BusinessRoutes.buildScreen(_currentIndex, _appState),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
@@ -105,75 +104,6 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
               icon: Icon(Icons.receipt_long_outlined),
               selectedIcon: Icon(Icons.receipt_long, color: FlowPayColors.ink),
               label: 'Audit',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer(BuildContext context) {
-    return Drawer(
-      backgroundColor: FlowPayColors.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: FlowPayColors.surfaceAlt),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: FlowPayColors.ink,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.business_center, color: FlowPayColors.amber, size: 28),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'FLOWPAY BUSINESS',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: FlowPayColors.ink,
-                      ),
-                    ),
-                    const Text(
-                      'FlowPay Technologies Ltd • Admin',
-                      style: TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.swap_horiz, color: FlowPayColors.ink),
-              title: const Text('Switch to Personal Mode'),
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(appLockStateProvider.notifier).setAccountMode(AccountMode.personal);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.lock_outline, color: FlowPayColors.ink),
-              title: const Text('Lock App Now'),
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(appLockStateProvider.notifier).lockApp();
-              },
-            ),
-            const Spacer(),
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'One Employer. Many Countries. One Bill.',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: FlowPayColors.textTertiary),
-              ),
             ),
           ],
         ),

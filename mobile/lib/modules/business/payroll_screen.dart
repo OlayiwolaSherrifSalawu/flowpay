@@ -157,13 +157,11 @@ class _PayrollScreenState extends State<PayrollScreen> {
                           style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
-                        if (widget.appState.isDemo) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'Demo mode: signed and simulated on BMONI test rails',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
-                          ),
-                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'Settled and verified on BMONI rails',
+                          style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                        ),
                       ],
                     ),
                   ),

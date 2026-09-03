@@ -102,6 +102,52 @@ export class BmoniClient {
     });
   }
 
+  // --- BMONI Global KYC & Onboarding ---
+
+  async submitKycProfile(args: {
+    userId: string;
+    personalInfo: {
+      firstName: string;
+      lastName: string;
+      dateOfBirth: string;
+      gender?: string;
+    };
+    addressDetails: {
+      street: string;
+      city: string;
+      state: string;
+      countryCode: string;
+    };
+    identificationNumbers?: Record<string, string>;
+  }): Promise<any> {
+    return this.request(`/v1/users/${args.userId}/kyc`, {
+      method: 'PATCH',
+      body: {
+        personalInfo: args.personalInfo,
+        addressDetails: args.addressDetails,
+        identificationNumbers: args.identificationNumbers,
+      },
+    });
+  }
+
+  async activateKyc(args: {
+    userId: string;
+    sumsubLevelName?: 'id-only' | 'id-and-liveness' | 'idv-and-phone-verification';
+  }): Promise<any> {
+    return this.request(`/v1/users/${args.userId}/kyc/activate`, {
+      method: 'POST',
+      body: args.sumsubLevelName ? { sumsubLevelName: args.sumsubLevelName } : {},
+    });
+  }
+
+  async getKycReadiness(userId: string): Promise<{ ready: boolean; missing?: string[] }> {
+    return this.request<{ ready: boolean; missing?: string[] }>(`/v1/users/${userId}/kyc/readiness`);
+  }
+
+  async getOnboardingStatus(userId: string): Promise<any> {
+    return this.request(`/v1/users/${userId}/onboarding/status`);
+  }
+
   // --- Smart Wallets & On-Device Handshake ---
 
   async createOwnerProofChallenge(args: {
