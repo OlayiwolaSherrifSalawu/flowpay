@@ -47,12 +47,10 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
           children: [
             // Revolut-style Segmented Role Switch
             SegmentedRoleSwitch(
-              activeRole: AppRole.personal,
-              onRoleChanged: (newRole) {
+              isPersonal: true,
+              onRoleChanged: (isPersonal) {
                 ref.read(appLockStateProvider.notifier).setAccountMode(
-                      newRole == AppRole.business
-                          ? AccountMode.business
-                          : AccountMode.personal,
+                      isPersonal ? AccountMode.personal : AccountMode.business,
                     );
               },
             ),

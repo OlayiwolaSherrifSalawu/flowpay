@@ -59,7 +59,7 @@ class AppLockService {
       final canCheckBiometrics = await _auth.canCheckBiometrics;
       final isDeviceSupported = await _auth.isDeviceSupported();
       return canCheckBiometrics || isDeviceSupported;
-    } on PlatformException {
+    } catch (_) {
       return false;
     }
   }
@@ -68,7 +68,7 @@ class AppLockService {
   Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _auth.getAvailableBiometrics();
-    } on PlatformException {
+    } catch (_) {
       return [];
     }
   }

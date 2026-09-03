@@ -6,7 +6,6 @@ import '../theme/radii.dart';
 import '../theme/typography.dart';
 import 'account_capabilities.dart';
 import 'account_mode_picker_modal.dart';
-import 'app_lock_service.dart';
 import 'auth_providers.dart';
 
 /// App-Auth Gate: Controls biometric unlock, account mode resolution,
@@ -115,12 +114,10 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
   Widget _renderActiveShell() {
     final activeMode = ref.watch(currentAccountModeProvider);
-    switch (activeMode) {
-      case AccountMode.personal:
-        return widget.personalShell;
-      case AccountMode.business:
-        return widget.businessShell;
-    }
+    return switch (activeMode) {
+      AccountMode.personal => widget.personalShell,
+      AccountMode.business => widget.businessShell,
+    };
   }
 
   Widget _buildLockScreen(BuildContext context, AppLockState lockState) {
@@ -137,9 +134,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               Container(
                 width: 76,
                 height: 76,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: FlowPayColors.ink,
-                  borderRadius: BorderRadius.circular(FlowPayRadii.card),
+                  borderRadius: FlowPayRadii.card,
                 ),
                 child: Icon(
                   lockState.hasFaceId
@@ -154,9 +151,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               const SizedBox(height: 20),
 
               // Title & Subtitle
-              const Text(
+              Text(
                 'FlowPay is Locked',
-                style: FlowPayTypography.headline,
+                style: FlowPayTypography.headline(),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -177,7 +174,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: FlowPayColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(FlowPayRadii.chip),
+                    borderRadius: FlowPayRadii.chip,
                     border: Border.all(color: FlowPayColors.hairline),
                   ),
                   child: Row(
@@ -214,7 +211,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: FlowPayColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(FlowPayRadii.input),
+                    borderRadius: FlowPayRadii.input,
                     border: Border.all(color: FlowPayColors.hairline),
                   ),
                   child: Row(
@@ -271,8 +268,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                   ),
                   onPressed: () {
                     // Show in-app PIN entry
-                    ref.read(appLockStateProvider.notifier).state =
-                        lockState.copyWith(showFallbackPin: true);
+                    ref.read(appLockStateProvider.notifier).setShowFallbackPin(true);
                   },
                 ),
 
@@ -324,7 +320,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
           width: 220,
           decoration: BoxDecoration(
             color: FlowPayColors.surface,
-            borderRadius: BorderRadius.circular(FlowPayRadii.input),
+            borderRadius: FlowPayRadii.input,
             border: Border.all(
               color: _pinError ? FlowPayColors.stateError : FlowPayColors.hairline,
             ),

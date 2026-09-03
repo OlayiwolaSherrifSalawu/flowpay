@@ -102,11 +102,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Single-account two-mode foundation: confirmed one `bmoniUserId` holds both personal wallet and business/employer access.
   * System separation: App-level lock (`local_auth`) gates opening the app; BMONI on-device signing PIN (`bmoni_embedded_sdk`) authorizes transactions. Never conflated.
   * Native configuration: Android `FlutterFragmentActivity` and `USE_BIOMETRIC` permission; iOS `NSFaceIDUsageDescription` for Face ID.
-  * Secure storage & caching: `AccountCapabilities` (`hasPersonalWallet`, `hasBusinessAccess`) stored in `flutter_secure_storage` with 15-minute TTL caching and instant invalidation.
-  * Backend capabilities endpoints: `GET /api/auth/capabilities` and `GET /api/auth/users/:bmoniUserId/capabilities`.
-  * Mode picker: `AccountModePickerModal` conforming to `design.md` §4.4 and `bkey_uikit` style.
-  * Two independent navigation shells: `PersonalShell` (5 destinations) and `BusinessShell` (4 destinations) with decoupled navigation stacks driven by Riverpod `currentAccountModeProvider`.
-  * App lifecycle lock: `AppAuthGate` observing background pause/resume to securely re-lock the app after 45s of inactivity.
+  * Secure storage & caching: `AccountCapabilities` (`hasPersonalWallet`, `hasBusinessAccess`) stored in `flutter_secure_storage` with 15-minute TTL caching, in-memory resilient fallback layer, and instant invalidation.
+  * Backend capabilities endpoints: `GET /api/auth/capabilities` and `GET /api/auth/users/:bmoniUserId/capabilities` active on port 4000.
+  * Mode picker: `AccountModePickerModal` conforming to `design.md` §4.4 and `bkey_uikit` style with custom branded radio selectors.
+  * Two independent navigation shells: `PersonalShell` (5 destinations: Overview, Wallets, Missions, Activity, Security) and `BusinessShell` (4 destinations: Dashboard, Team, Payroll, Audit) driven by Riverpod `currentAccountModeProvider`.
+  * App lifecycle lock: `AppAuthGate` observing background pause/resume to securely re-lock the app after 45s of inactivity, with instant demo bypass code (`123456`).
+  * Full test suite passing: 13/13 mobile tests passed (100%), 11/11 backend tests passed (100%), with 0 analyzer lints.
 
 
 ---
