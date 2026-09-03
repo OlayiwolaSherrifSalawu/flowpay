@@ -408,6 +408,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  local_auth:
+    dependency: "direct main"
+    description:
+      name: local_auth
+      sha256: "97ebfe6fca55490f2095f32bb45e3ea1e22026131ba51f50a8bc01d161d2d0b6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.3.0"
+  local_auth_android:
+    dependency: transitive
+    description:
+      name: local_auth_android
+      sha256: "0c7f0f62ec3b6e828a2a514d3a04a62ef4f16a908a8a4f8d6ea0f3bb2cf60759"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.46"
+  local_auth_darwin:
+    dependency: transitive
+    description:
+      name: local_auth_darwin
+      sha256: "34ce715be0b15b3c5885febe4162e873a388f8d672ef6d9f7a77e5e31faefc80"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.3"
+  local_auth_platform_interface:
+    dependency: transitive
+    description:
+      name: local_auth_platform_interface
+      sha256: "47f7d73c52a5b6f3a74b1e42eb4dc33e2133f99066f15779cbe8b23f2ec52e70"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.10"
+  local_auth_windows:
+    dependency: transitive
+    description:
+      name: local_auth_windows
+      sha256: "4ec5418b76c8e3124446342e057cb0dfa902ee4f826317bc2d04a62c9497d5a5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.10"
   listen:
     dependency: transitive
     description:

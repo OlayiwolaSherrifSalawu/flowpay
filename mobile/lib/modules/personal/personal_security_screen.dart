@@ -4,9 +4,9 @@ import '../../core/design_system/design_system.dart';
 import '../../core/state/app_state.dart';
 
 class PersonalSecurityScreen extends StatefulWidget {
-  final AppState appState;
+  final AppState? appState;
 
-  const PersonalSecurityScreen({super.key, required this.appState});
+  const PersonalSecurityScreen({super.key, this.appState});
 
   @override
   State<PersonalSecurityScreen> createState() => _PersonalSecurityScreenState();
