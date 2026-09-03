@@ -1,9 +1,9 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { prisma } from '../../db/index.js';
 import { env } from '../../config/env.js';
-import type { Employee } from '@prisma/client';
 
-export type EmployeeRecord = Employee;
+
+export type EmployeeRecord = NonNullable<Awaited<ReturnType<typeof prisma.employee.findFirst>>>;
 
 export class EmployeeService {
   static async listEmployees(): Promise<EmployeeRecord[]> {
