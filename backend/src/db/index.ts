@@ -52,6 +52,12 @@ export async function initDatabase(): Promise<void> {
 
     if (schemaSql) {
       await pool.query(schemaSql);
+      // Ensure new columns exist on preexisting tables
+      await pool.query(`
+        ALTER TABLE employees ADD COLUMN IF NOT EXISTS payroll_amount_minor INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE employees ADD COLUMN IF NOT EXISTS payroll_currency TEXT;
+        ALTER TABLE employees ADD COLUMN IF NOT EXISTS failed_stage TEXT;
+      `);
       console.log('[DB] PostgreSQL schema initialized successfully.');
     }
     await seedDemoDataIfNeeded();

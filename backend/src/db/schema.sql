@@ -10,10 +10,13 @@ CREATE TABLE IF NOT EXISTS employees (
   phone_number TEXT,
   country TEXT NOT NULL,          -- 'NG', 'MX', 'CA', 'US', etc.
   target_currency TEXT NOT NULL,  -- 'NGN', 'MXN', 'USD', 'EUR', etc.
+  payroll_amount_minor INTEGER NOT NULL DEFAULT 0,
+  payroll_currency TEXT,
   wallet_id TEXT,
   wallet_address TEXT,
   card_id TEXT,
-  status TEXT NOT NULL DEFAULT 'INVITED', -- 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
+  status TEXT NOT NULL DEFAULT 'CREATED', -- 6 stages: 'CREATED', 'WALLET_PENDING', 'KYC_PENDING', 'ONBOARDING', 'READY', 'FAILED'
+  failed_stage TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -74,8 +77,20 @@ CREATE TABLE IF NOT EXISTS webhook_events (
   processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+  id TEXT PRIMARY KEY,
+  partner_id TEXT NOT NULL,
+  callback_url TEXT NOT NULL,
+  secret_key TEXT,
+  active BOOLEAN NOT NULL DEFAULT true,
+  events TEXT[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Indices for performance
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
 CREATE INDEX IF NOT EXISTS idx_employees_bmoni_user_id ON employees(bmoni_user_id);
+CREATE INDEX IF NOT EXISTS idx_employees_status ON employees(status);
 CREATE INDEX IF NOT EXISTS idx_payroll_items_run ON payroll_items(payroll_run_id);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_activity(created_at);

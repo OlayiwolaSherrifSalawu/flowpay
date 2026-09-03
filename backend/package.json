@@ -11,7 +11,7 @@
     "build": "tsc && cp src/db/schema.sql dist/db/schema.sql",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js"
+    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

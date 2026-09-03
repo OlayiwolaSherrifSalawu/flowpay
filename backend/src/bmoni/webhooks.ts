@@ -64,32 +64,98 @@ export class BmoniWebhookService {
         ]
       );
 
-      // 3. Handle specific event families
+      // 3. Handle specific event families with 6-stage employee lifecycle
       switch (event.eventType) {
         case 'employee.linked': {
-          const { userId, email } = event.payload as { userId?: string; email?: string };
-          if (userId && email) {
+          const payload = event.payload as {
+            userId?: string;
+            bmoniUserId?: string;
+            email?: string;
+            companyEmail?: string;
+          };
+          const resolvedUserId = payload.bmoniUserId || payload.userId;
+          const resolvedEmail = payload.companyEmail || payload.email;
+
+          if (resolvedUserId && resolvedEmail) {
             await pool.query(
               `UPDATE employees 
-               SET bmoni_user_id = $1, status = 'LINKED', updated_at = now()
-               WHERE email = $2`,
-              [userId, email]
+               SET bmoni_user_id = $1, status = 'WALLET_PENDING', updated_at = now()
+               WHERE email = $2 OR bmoni_user_id = $1`,
+              [resolvedUserId, resolvedEmail.toLowerCase()]
             );
-            await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', { email, userId });
+            await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', {
+              email: resolvedEmail,
+              userId: resolvedUserId,
+            });
           }
           break;
         }
 
         case 'onboarding.completed': {
-          const { userId } = event.payload as { userId?: string };
-          if (userId) {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string };
+          const resolvedUserId = payload.bmoniUserId || payload.userId;
+          if (resolvedUserId) {
             await pool.query(
               `UPDATE employees 
-               SET status = 'ACTIVE', updated_at = now()
+               SET status = 'READY', failed_stage = NULL, updated_at = now()
                WHERE bmoni_user_id = $1`,
-              [userId]
+              [resolvedUserId]
             );
-            await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId });
+            await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId: resolvedUserId });
+          }
+          break;
+        }
+
+        case 'onboarding.failed': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; reason?: string };
+          const resolvedUserId = payload.bmoniUserId || payload.userId;
+          if (resolvedUserId) {
+            await pool.query(
+              `UPDATE employees 
+               SET status = 'FAILED', failed_stage = 'ONBOARDING', updated_at = now()
+               WHERE bmoni_user_id = $1`,
+              [resolvedUserId]
+            );
+            await this.logAudit('BUSINESS', 'ONBOARDING_FAILED', 'BMONI_WEBHOOK', {
+              userId: resolvedUserId,
+              reason: payload.reason,
+            });
+          }
+          break;
+        }
+
+        case 'kyc.action_required': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; action?: string };
+          const resolvedUserId = payload.bmoniUserId || payload.userId;
+          if (resolvedUserId) {
+            await pool.query(
+              `UPDATE employees 
+               SET status = 'KYC_PENDING', updated_at = now()
+               WHERE bmoni_user_id = $1`,
+              [resolvedUserId]
+            );
+            await this.logAudit('BUSINESS', 'KYC_ACTION_REQUIRED', 'BMONI_WEBHOOK', {
+              userId: resolvedUserId,
+              action: payload.action,
+            });
+          }
+          break;
+        }
+
+        case 'employee.vba.registered': {
+          const payload = event.payload as { userId?: string; bmoniUserId?: string; currency?: string };
+          const resolvedUserId = payload.bmoniUserId || payload.userId;
+          if (resolvedUserId) {
+            await pool.query(
+              `UPDATE employees 
+               SET status = 'READY', updated_at = now()
+               WHERE bmoni_user_id = $1`,
+              [resolvedUserId]
+            );
+            await this.logAudit('BUSINESS', 'VBA_REGISTERED', 'BMONI_WEBHOOK', {
+              userId: resolvedUserId,
+              currency: payload.currency,
+            });
           }
           break;
         }

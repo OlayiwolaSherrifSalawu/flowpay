@@ -13,6 +13,7 @@ import { payrollRouter } from './routes/payroll.routes.js';
 import { transfersRouter } from './routes/transfers.routes.js';
 import { walletsRouter } from './routes/wallets.routes.js';
 import { webhookRouter } from './routes/webhook.routes.js';
+import { webhookConfigRouter } from './routes/webhook-config.routes.js';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/payroll', payrollRouter);
 app.use('/api/missions', missionsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/activity', activityRouter);
+app.use('/api/webhooks', webhookConfigRouter);
 
 // 6. Global Error Handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

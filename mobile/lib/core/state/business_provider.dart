@@ -157,14 +157,14 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final inviteUrl = await employeeRepo.inviteEmployee(
+      final inviteUrl = await employeeRepo.createEmployee(
         firstName: firstName,
         lastName: lastName,
         email: email,
         country: country,
         countryName: countryName,
         targetCurrency: targetCurrency,
-        payrollAmount: payrollAmount,
+        payrollAmount: payrollAmount ?? Money.fromMajorString('2000.00', targetCurrency),
         usdPayrollAmount: usdPayrollAmount,
       );
 

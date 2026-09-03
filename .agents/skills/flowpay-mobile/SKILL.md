@@ -48,6 +48,10 @@ description: >-
 - [x] Dual Theme engine (`FlowPayTheme.dark()`, `FlowPayTheme.light()`) with accessible contrast and runtime toggling.
 - [x] Modular navigation architecture with unconfusing animated role switcher.
 - [x] Foundation screens for all 11 required screens across Personal and Business modules.
+- [x] FlowPay Business Employee Management:
+  - `AddEmployeeModal`: Rebuilt using `bkey_uikit` primitives: `BMoniTextFormField.filled`, `SelectorBottomSheet<CountryOption>` via `BMoniBottomSheet.show`, auto-resolving currency and default salary, `BMoniButton(variant: primary)`, and `BMoniToastOverlay`.
+  - `EmployeesScreen`: Built with `bkey_uikit` `EmptyState` for zero-employee states, per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges (`CREATED`, `WALLET_PENDING`, `KYC_PENDING`, `ONBOARDING`, `READY`, `FAILED`), and wallet/card status indicators.
+  - `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
 - [x] Automated widget and shell tests passing in `test/app_shell_test.dart` and `test/design_system_test.dart`.
 - [x] 0 static analysis errors/warnings via `flutter analyze`.
 
