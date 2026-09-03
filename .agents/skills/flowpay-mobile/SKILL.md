@@ -10,7 +10,7 @@ description: >-
 ## 1. Overview & Purpose
 - **What it does**: Provides a mobile-first, consumer-grade fintech product experience for Personal and Business users.
 - **Why it exists**: Interfaces with BMONI on-device embedded wallet SDK (`bmoni_embedded_sdk`), guarantees zero private key leakage, and provides linear-grade polish and AI product clarity.
-- **Key dependencies**: `bmoni_embedded_sdk: ^0.0.2`, `bkey_uikit: ^0.0.1`, `bmoni_embedded_wallets_cards: ^0.0.1`, `flutter_riverpod: ^2.5.1`, `flutter_secure_storage: ^9.2.2`.
+- **Key dependencies**: `bmoni_embedded_sdk: ^0.0.2`, `bkey_uikit: ^0.0.1`, `bmoni_embedded_wallets_cards: ^0.0.1`, `flutter_riverpod: ^3.2.1`, `flutter_secure_storage: ^10.0.0`.
 
 ---
 
