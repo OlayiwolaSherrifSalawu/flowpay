@@ -7,6 +7,8 @@ import '../theme/typography.dart';
 import 'account_capabilities.dart';
 import 'account_mode_picker_modal.dart';
 import 'auth_providers.dart';
+import '../../modules/auth/signup_screen.dart';
+import '../../modules/auth/login_screen.dart';
 
 /// App-Auth Gate: Controls biometric unlock, account mode resolution,
 /// and lifecycle background re-lock.
@@ -121,55 +123,85 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
   }
 
   Widget _buildLockScreen(BuildContext context, AppLockState lockState) {
+    final isExpired = lockState.isAuthExpired;
+
     return Scaffold(
       backgroundColor: FlowPayColors.canvas,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             children: [
-              const Spacer(),
+              const SizedBox(height: 20),
 
               // Brand Icon & Badge
               Container(
-                width: 76,
-                height: 76,
+                width: 72,
+                height: 72,
                 decoration: const BoxDecoration(
                   color: FlowPayColors.ink,
                   borderRadius: FlowPayRadii.card,
                 ),
                 child: Icon(
-                  lockState.hasFaceId
-                      ? Icons.face_unlock_outlined
-                      : (lockState.hasFingerprint
-                          ? Icons.fingerprint
-                          : Icons.shield_outlined),
-                  size: 40,
-                  color: Colors.white,
+                  isExpired
+                      ? Icons.timer_outlined
+                      : (lockState.hasFaceId
+                          ? Icons.face_unlock_outlined
+                          : (lockState.hasFingerprint
+                              ? Icons.fingerprint
+                              : Icons.shield_outlined)),
+                  size: 38,
+                  color: isExpired ? FlowPayColors.amber : Colors.white,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
               // Title & Subtitle
               Text(
-                'FlowPay is Locked',
+                isExpired ? 'Session Expired' : 'FlowPay is Locked',
                 style: FlowPayTypography.headline(),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Authenticate via ${lockState.biometricLabel} to access your multi-currency accounts and payroll engine.',
+                isExpired
+                    ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
+                    : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: FlowPayColors.textSecondary,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Biometric hardware badge
-              if (lockState.hasFaceId || lockState.hasFingerprint)
+              // Status Badge
+              if (isExpired)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.amber.withAlpha(30),
+                    borderRadius: FlowPayRadii.chip,
+                    border: Border.all(color: FlowPayColors.amber.withAlpha(120)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 14, color: FlowPayColors.amber),
+                      SizedBox(width: 6),
+                      Text(
+                        'Authentication Expired',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: FlowPayColors.amber,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (lockState.hasFaceId || lockState.hasFingerprint)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -199,11 +231,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 ),
               const SizedBox(height: 24),
 
-              // Fallback In-App PIN Entry
-              if (lockState.showFallbackPin) ...[
-                _buildPinEntry(),
-                const SizedBox(height: 20),
-              ],
+              // Direct In-App PIN Entry (Always accessible)
+              _buildPinEntry(),
+              const SizedBox(height: 16),
 
               // Error or Status message
               if (lockState.lastResult?.errorMessage != null) ...[
@@ -234,12 +264,10 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
               ],
 
-              const Spacer(),
-
-              // Primary Unlock Button (Face ID / Fingerprint / Passcode)
+              // Primary Biometric Unlock Button
               FlowPayButton(
                 text: lockState.isAuthenticating
                     ? 'Verifying...'
@@ -254,28 +282,70 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
               const SizedBox(height: 12),
 
-              // Manual PIN Fallback Toggle Button
-              if (!lockState.showFallbackPin)
-                TextButton.icon(
-                  icon: const Icon(Icons.pin_outlined, size: 16, color: FlowPayColors.ink),
-                  label: const Text(
-                    'Use 6-Digit In-App PIN',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: FlowPayColors.ink,
-                    ),
+              // Log In Button
+              OutlinedButton.icon(
+                icon: const Icon(Icons.login, size: 16, color: FlowPayColors.ink),
+                label: const Text(
+                  'Log In to Existing Account',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: FlowPayColors.ink,
                   ),
-                  onPressed: () {
-                    // Show in-app PIN entry
-                    ref.read(appLockStateProvider.notifier).setShowFallbackPin(true);
-                  },
                 ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: FlowPayColors.hairline),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  minimumSize: const Size(double.infinity, 46),
+                  shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.button),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+              ),
 
-              // Demo Unlock Bypass / Fallback Toggle
+              const SizedBox(height: 8),
+
+              // Create New Account (Sign Up & KYC)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.person_add_outlined, size: 16, color: FlowPayColors.ink),
+                label: const Text(
+                  'Create New Account / Sign Up',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: FlowPayColors.ink,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: FlowPayColors.hairline),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  minimumSize: const Size(double.infinity, 46),
+                  shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.button),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SignupScreen(
+                        onBypassToDemo: () {
+                          Navigator.pop(context);
+                          ref.read(appLockStateProvider.notifier).verifyFallbackPin('123456');
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Quick Unlock Bypass
               GestureDetector(
                 onTap: () {
-                  // Direct bypass for demo & review convenience
                   ref.read(appLockStateProvider.notifier).verifyFallbackPin('123456');
                 },
                 child: const Padding(
@@ -286,7 +356,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                       Icon(Icons.bolt, size: 14, color: FlowPayColors.amber),
                       SizedBox(width: 4),
                       Text(
-                        'Demo Quick Unlock (Passcode: 123456)',
+                        'Quick Unlock (Passcode: 123456)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -308,14 +378,14 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
     return Column(
       children: [
         const Text(
-          'Enter 6-Digit App Lock PIN',
+          'Enter 6-Digit PIN',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: FlowPayColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Container(
           width: 220,
           decoration: BoxDecoration(
@@ -353,6 +423,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                     .verifyFallbackPin(val);
                 if (!success) {
                   setState(() => _pinError = true);
+                } else {
+                  _pinController.clear();
+                  if (_pinError) setState(() => _pinError = false);
                 }
               } else {
                 if (_pinError) setState(() => _pinError = false);
@@ -360,6 +433,18 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
             },
           ),
         ),
+        if (_pinError)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text(
+              'Incorrect 6-digit PIN. Try again.',
+              style: TextStyle(
+                fontSize: 11,
+                color: FlowPayColors.stateError,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
       ],
     );
   }

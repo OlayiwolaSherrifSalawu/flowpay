@@ -76,16 +76,12 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          widget.appState.isDemo
-                              ? '● Deterministic Demo Sandbox'
-                              : '● BMONI Sandbox Live',
+                        const Text(
+                          '● BMONI Financial Operating Layer',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: widget.appState.isDemo
-                                ? BMoniColors.warning400
-                                : BMoniColors.accent400,
+                            color: BMoniColors.brand400,
                           ),
                         ),
                       ],

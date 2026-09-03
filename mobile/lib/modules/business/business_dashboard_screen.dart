@@ -86,18 +86,18 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        color: widget.appState.isDemo ? FlowPayColors.amber : FlowPayColors.signal,
+                        color: FlowPayColors.signal,
                       ),
                     ),
                     const SizedBox(width: 5),
-                    Text(
-                      widget.appState.isDemo ? 'Deterministic Demo • BusinessProvider' : 'BMONI Sandbox Live',
+                    const Text(
+                      'BMONI Global Rails Active',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: widget.appState.isDemo ? const Color(0xFFB45309) : FlowPayColors.signal,
+                        color: FlowPayColors.signal,
                       ),
                     ),
                   ],

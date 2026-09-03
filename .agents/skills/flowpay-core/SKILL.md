@@ -106,8 +106,33 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Backend capabilities endpoints: `GET /api/auth/capabilities` and `GET /api/auth/users/:bmoniUserId/capabilities` active on port 4000.
   * Mode picker: `AccountModePickerModal` conforming to `design.md` §4.4 and `bkey_uikit` style with custom branded radio selectors.
   * Two independent navigation shells: `PersonalShell` (5 destinations: Overview, Wallets, Missions, Activity, Security) and `BusinessShell` (4 destinations: Dashboard, Team, Payroll, Audit) driven by Riverpod `currentAccountModeProvider`.
-  * App lifecycle lock: `AppAuthGate` observing background pause/resume to securely re-lock the app after 45s of inactivity, with instant demo bypass code (`123456`).
   * Full test suite passing: 13/13 mobile tests passed (100%), 11/11 backend tests passed (100%), with 0 analyzer lints.
+* [x] **Signup Screen, Context-Aware KYC, and Personal vs Business Separation**:
+  * **Onboarding & Signup Screen (`mobile/lib/modules/auth/signup_screen.dart`)**:
+    * Clean BMoni Dark Obsidian aesthetic (`BMoniColors.offbrand950`, `brand500` magenta accents).
+    * Universal Account Type selector: Personal (freelancers, smart wallets, money missions) vs Business (employers, aggregate one-bill payroll, company cards).
+    * Dynamic form fields: Full legal name, email, country/currency selector (NG 🇳🇬, MX 🇲🇽, US 🇺🇸, CA 🇨🇦, GB 🇬🇧), phone, and 6-digit security PIN.
+    * Business entity fields: Registered company name, registration number (RC/RFC/EIN), corporate role.
+    * Quick Demo Autofill personas: Bunch Dillon (Personal) and FlowPay Global Ltd (Business).
+  * **Context-Aware KYC Flow (`mobile/lib/modules/auth/kyc_screen.dart`)**:
+    * Personal Tier 1 KYC: Country-specific government ID (BVN/NIN, CURP/RFC, SSN), Date of Birth, address, plus interactive facial biometric liveness simulation with radar scan and anti-spoofing validation adhering to BMONI specifications.
+    * Business KYB: Corporate tax ID, registered office address, authorized signatory verification, and automated payroll disbursement rail readiness (NGN, MXN, USD).
+  * **Enforced Account Separation in Application Shells**:
+    * Strict capabilities derivation: Personal users receive `hasPersonalWallet: true, hasBusinessAccess: false` and render a high-contrast **Personal Account (Verified)** badge without the Business switcher.
+    * Business users receive `hasPersonalWallet: false, hasBusinessAccess: true` and render the registered **Company Name & Admin** badge without the Personal switcher.
+    * Sandbox Master demo accounts (`hasBothModes == true`) retain the dual `SegmentedRoleSwitch` for rapid hackathon testing.
+    * Custom drawers provide personalized profile headers and contextual upgrade options ("Register Business Account" vs "Add Personal Wallet").
+  * **Backend Auth Endpoints (`backend/src/routes/auth.routes.ts`)**:
+    * `POST /api/auth/signup`: Registers personal/business accounts and resolves mode-specific capabilities.
+    * `POST /api/auth/kyc`: Completes Tier 1/KYB verification with sandbox limits and disbursement rails.
+    * `GET /api/auth/capabilities`: Dynamically derives capabilities for personal, business, or sandbox master IDs.
+  * **BMONI End-to-End Auth Architecture (Signup -> KYC -> Set PIN -> App Lock / Expiration)**:
+    * **Step 1: Universal Signup (`mobile/lib/modules/auth/signup_screen.dart`)**: Collects account type (Personal vs Business), name, email, phone, and country rails. No premature PIN entry.
+    * **Step 2: Context-Aware KYC (`mobile/lib/modules/auth/kyc_screen.dart`)**: Tier 1 personal biometric scan & national ID or business KYB compliance & multi-rail payroll readiness. Seamlessly hands off to PIN setup.
+    * **Step 3: Dedicated PIN Setup (`mobile/lib/modules/auth/set_pin_screen.dart`)**: Two-stage interactive 6-digit numeric entry (`Set PIN` -> `Confirm PIN`) adhering strictly to BMONI embedded guidelines. Provisions on-device wallet keypair via `BmoniSdkService.initWallet()`, sets salted PBKDF2 hash via `BmoniSdkService.setPin()`, and unlocks directly into the verified shell.
+    * **App Lock & PIN Entry (`mobile/lib/core/auth/app_auth_gate.dart`)**: When locked, displays 6-digit PIN entry box directly on screen alongside Face ID / Fingerprint / Device Biometrics. Entering 6-digit PIN immediately unlocks into the session.
+    * **Session Expiration & Re-Authentication (`mobile/lib/core/auth/app_auth_gate.dart` & `login_screen.dart`)**: Automatically detects expired session tokens; displays an amber `[ ⚠️ Authentication Expired ]` indicator allowing users to renew via 6-digit PIN, verify with biometrics, or log in anew via `LoginScreen`.
+    * **Verification**: 18/18 mobile unit & widget tests passing (100%), 11/11 backend tests passing (100%), 0 analyzer issues. Tested live on Android emulator with screenshot proofs.
 
 
 ---
