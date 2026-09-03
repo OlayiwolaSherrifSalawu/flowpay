@@ -37,12 +37,6 @@ class PersonalRoutes {
       selectedIcon: Icons.account_balance_wallet,
     ),
     PersonalDestination(
-      route: AppRoutes.personalSendMoney,
-      label: 'Send',
-      icon: Icons.arrow_outward,
-      selectedIcon: Icons.arrow_outward,
-    ),
-    PersonalDestination(
       route: AppRoutes.personalMissions,
       label: 'Missions',
       icon: Icons.bolt_outlined,
@@ -69,12 +63,10 @@ class PersonalRoutes {
       case 1:
         return WalletsScreen(appState: appState);
       case 2:
-        return SendMoneyScreen(appState: appState);
-      case 3:
         return MoneyMissionsScreen(appState: appState);
-      case 4:
+      case 3:
         return PersonalActivityScreen(appState: appState);
-      case 5:
+      case 4:
         return PersonalSecurityScreen(appState: appState);
       default:
         return PersonalDashboardScreen(appState: appState);

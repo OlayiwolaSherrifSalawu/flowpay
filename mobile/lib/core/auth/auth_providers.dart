@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import 'account_capabilities.dart';
 import 'app_lock_service.dart';
@@ -33,7 +35,8 @@ final accountCapabilitiesProvider = FutureProvider<AccountCapabilities>((ref) as
   // 2. Fetch fresh capabilities from FlowPay backend
   try {
     final bmoniUserId = await storage.getBmoniUserId() ?? 'usr_flowpay_sandbox_master';
-    final uri = Uri.parse('http://localhost:3000/api/auth/capabilities?bmoniUserId=$bmoniUserId');
+    final host = Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
+    final uri = Uri.parse('$host/api/auth/capabilities?bmoniUserId=$bmoniUserId');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 4));
     if (response.statusCode == 200) {
@@ -143,7 +146,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     }
 
     state = state.copyWith(
-      isLocked: true,
+      isLocked: state.isLocked,
       isSupported: canAuth,
       showFallbackPin: !canAuth, // If no biometrics on device, show fallback PIN immediately
       activeMode: storedMode ?? AccountMode.personal,
@@ -152,8 +155,8 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
       hasFingerprint: hasFinger,
     );
 
-    // Auto-prompt on launch if supported
-    if (canAuth) {
+    // Auto-prompt on launch if supported and currently locked
+    if (canAuth && state.isLocked) {
       await authenticate();
     }
   }
@@ -202,6 +205,11 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
       return true;
     }
     return false;
+  }
+
+  /// Show or hide manual fallback PIN
+  void setShowFallbackPin(bool show) {
+    state = state.copyWith(showFallbackPin: show);
   }
 
   /// Lock app on background pause

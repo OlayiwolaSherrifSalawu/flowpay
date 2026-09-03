@@ -55,9 +55,7 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
     return Container(
       decoration: const BoxDecoration(
         color: FlowPayColors.surface,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(FlowPayRadii.sheet),
-        ),
+        borderRadius: FlowPayRadii.sheet,
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: SafeArea(
@@ -80,9 +78,9 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
             const SizedBox(height: 20),
 
             // Header
-            const Text(
+            Text(
               'Select Account Mode',
-              style: FlowPayTypography.title,
+              style: FlowPayTypography.title(),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -150,7 +148,7 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected ? FlowPayColors.surfaceAlt : FlowPayColors.surface,
-          borderRadius: BorderRadius.circular(FlowPayRadii.card),
+          borderRadius: FlowPayRadii.card,
           border: Border.all(
             color: isSelected ? FlowPayColors.ink : FlowPayColors.hairline,
             width: isSelected ? 1.5 : 1.0,
@@ -165,7 +163,7 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
               height: 44,
               decoration: BoxDecoration(
                 color: isSelected ? FlowPayColors.ink : FlowPayColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(FlowPayRadii.avatar),
+                borderRadius: FlowPayRadii.avatar,
               ),
               child: Icon(
                 icon,
@@ -193,7 +191,6 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
                       const SizedBox(width: 8),
                       StatusBadge(
                         status: badgeText,
-                        type: isSelected ? StatusBadgeType.success : StatusBadgeType.pending,
                       ),
                     ],
                   ),
@@ -221,12 +218,29 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
               ),
             ),
 
-            // Radio Indicator
-            Radio<AccountMode>(
-              value: mode,
-              groupValue: _selectedMode,
-              activeColor: FlowPayColors.ink,
-              onChanged: isEnabled ? (val) => setState(() => _selectedMode = val!) : null,
+            // Custom Radio Indicator
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? FlowPayColors.ink : FlowPayColors.textTertiary,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: FlowPayColors.ink,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ],
         ),
