@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
-/**
- * BMONI SDK Wrapper Service
- * 
- * Interacts with `bmoni_embedded_sdk` on-device.
- * Guarantees that:
- * 1. Private keys remain strictly within the device's Keystore / Secure Enclave.
- * 2. Private keys are never logged, never sent to FlowPay backend, and never exposed to AI.
- * 3. Handles initialization, PIN verification, challenge signing, and proposal signing.
- * 4. Includes a secure fallback engine for non-native test environments.
- */
+/// BMONI SDK Wrapper Service
+///
+/// Interacts with `bmoni_embedded_sdk` on-device.
+/// Guarantees that:
+/// 1. Private keys remain strictly within the device's Keystore / Secure Enclave.
+/// 2. Private keys are never logged, never sent to FlowPay backend, and never exposed to AI.
+/// 3. Handles initialization, PIN verification, challenge signing, and proposal signing.
+/// 4. Includes a secure fallback engine for non-native test environments.
 class BmoniSdkService {
   static bool _isInitialized = false;
+  static bool get isInitialized => _isInitialized;
   static String? _cachedAddress;
   static String? _simulatedPin;
 

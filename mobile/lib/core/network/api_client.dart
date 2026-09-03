@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 
 class FlowPayApiClient {
@@ -6,9 +7,10 @@ class FlowPayApiClient {
   final http.Client _client;
 
   FlowPayApiClient({
-    this.baseUrl = 'http://localhost:4000',
+    String? baseUrl,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+  })  : baseUrl = baseUrl ?? (Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000'),
+        _client = client ?? http.Client();
 
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);

@@ -4,13 +4,11 @@ import 'financial_intent.dart';
 import 'operation_preview.dart';
 
 class SigningCoordinator {
-  /**
-   * Complete Financial Safety Pipeline:
-   * 1. Validate intent deterministically against available balance
-   * 2. Build explicit Preview
-   * 3. Prompt user PIN & sign on-device
-   * 4. Return signed execution payload
-   */
+  /// Complete Financial Safety Pipeline:
+  /// 1. Validate intent deterministically against available balance
+  /// 2. Build explicit Preview
+  /// 3. Prompt user PIN & sign on-device
+  /// 4. Return signed execution payload
   static Future<OperationPreview> prepareTransfer({
     required FinancialIntent intent,
     required Money availableBalance,

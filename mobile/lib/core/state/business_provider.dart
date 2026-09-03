@@ -7,12 +7,10 @@ import '../repositories/employee_repository.dart';
 import '../repositories/payroll_repository.dart';
 import '../repositories/wallet_repository.dart';
 
-/**
- * BusinessProvider
- * Central domain state coordinator for FlowPay Business.
- * Adheres strictly to the architectural directive:
- * "Use deterministic data through BusinessProvider. Do not put fake BMONI calls inside widgets."
- */
+/// BusinessProvider
+/// Central domain state coordinator for FlowPay Business.
+/// Adheres strictly to the architectural directive:
+/// "Use deterministic data through BusinessProvider. Do not put fake BMONI calls inside widgets."
 class BusinessProvider extends ChangeNotifier {
   final EmployeeRepository employeeRepo;
   final PayrollRepository payrollRepo;

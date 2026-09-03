@@ -5,13 +5,11 @@ import '../../repositories/employee_repository.dart';
 import '../../repositories/payroll_repository.dart';
 import '../../repositories/wallet_repository.dart';
 
-/**
- * Deterministic Demo Data
- * Incorporates official BMONI Sandbox personas & multi-country rails:
- * 1. Bunch Dillon (Nigeria, BVN 99999999999, NGN / CNGN)
- * 2. Samson Jabo (Mexico, BVN/NIN 22222222222, MXN / MEXe)
- * 3. Liam Tremblay (Canada, CAD / CADC)
- */
+/// Deterministic Demo Data
+/// Incorporates official BMONI Sandbox personas & multi-country rails:
+/// 1. Bunch Dillon (Nigeria, BVN 99999999999, NGN / CNGN)
+/// 2. Samson Jabo (Mexico, BVN/NIN 22222222222, MXN / MEXe)
+/// 3. Liam Tremblay (Canada, CAD / CADC)
 class DemoData {
   static final List<WalletAccount> wallets = [
     WalletAccount(

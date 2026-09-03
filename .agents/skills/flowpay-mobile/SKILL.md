@@ -18,22 +18,14 @@ description: >-
 - `lib/core/money/money.dart`: Central integer minor-unit Money class and currency mappings (`lib/core/money/currency.dart`).
 - `lib/core/safety/`: Financial safety state machine (`financial_intent.dart`, `operation_preview.dart`, `signing_coordinator.dart`).
 - `lib/core/bmoni_sdk/bmoni_sdk_service.dart`: On-device hardware enclave wrapper for wallet provisioning (`initWallet`) and signing (`signMessage`, `signTransactionHash`).
-- `lib/core/repositories/`: Unified repository contracts:
-  - `WalletRepository`
-  - `TransferRepository`
-  - `CardRepository`
-  - `EmployeeRepository`
-  - `PayrollRepository`
+- `lib/core/theme/`: Dual theme engine (`theme.dart`, `app_theme.dart`), BMoni Obsidian/Plum palette (`colors.dart`), 8-point grid tokens (`spacing.dart`), tabular monospaced typography (`typography.dart`), aligned with official `bkey_uikit`.
+- `lib/core/design_system/`: 13 shared primitives powered by `bkey_uikit` (`buttons.dart`, `cards.dart`, `input_fields.dart`, `status_badges.dart`, `amount_display.dart`, `currency_display.dart`, `bottom_sheets.dart`, `dialogs.dart`, `states.dart`). For styling guidelines, consult `.agents/skills/flowpay-design/SKILL.md`.
+- `lib/core/navigation/`: Modular navigation architecture (`app_routes.dart`, `personal_routes.dart`, `business_routes.dart`, `role_switcher.dart`, `app_router.dart`).
+- `lib/core/repositories/`: Unified repository contracts (`WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`).
 - `lib/core/providers/`: Concrete implementations for `demo/` (deterministic sandbox test data) and `bmoni/` (talking through backend proxy).
-- `lib/core/theme/`: Design tokens conforming to `design.md`:
-  - `colors.dart`: Palette (`ink`, `signal`, `amber`, `canvas`, `surface`, `hairline`).
-  - `radii.dart`: Locked radii (`button: 9999`, `card: 20`, `sheet: 24`, `input: 12`, `chip: 9999`).
-  - `typography.dart`: Inter hierarchy with `FontFeature.tabularFigures()` for all monetary balances.
-  - `app_theme.dart`: `FlowPayTheme.lightTheme` with `FlowPayTokens` extension.
-  - `components.dart`: `FlowPayCard`, `FlowPayButton`, `VirtualCardObject`, `DemoPill`, `SegmentedRoleSwitch`, `StatusBadge`.
 - `lib/modules/personal/`: Personal Dashboard, Wallets, Money Missions, Send Money, Activity, Security.
 - `lib/modules/business/`: Business Dashboard, Global Team, Employee Detail, Multi-country Payroll ("One Employer, Many Countries, One Bill"), Audit.
-- `lib/app.dart`: Application shell with instant role switcher (Personal vs Business) and provider mode toggle (Demo vs BMONI).
+- `lib/app.dart`: Application shell with prominent header `FlowPayRoleSwitcher` (`[ 👤 Personal | 💼 Business ]`), dual theme support, and contextual bottom navigation.
 
 ---
 
@@ -44,8 +36,12 @@ description: >-
 - [x] Pre-loaded sandbox personas (Bunch Dillon [NGN], Samson Jabo [MXN], Liam Tremblay [CAD]).
 - [x] Dedicated `BusinessProvider` (`lib/core/state/business_provider.dart`) state coordinator managing dashboard metrics and payroll execution.
 - [x] FlowPay Business Employer Dashboard with "One Employer. Many Countries. One Bill." hero card, metrics grid, employee preview with 7 attributes, and primary (Run Payroll) & secondary (Add Employee) actions.
-- [x] Design System Polish conforming to `design.md`: light canvas (`#FAFAF7`), FlowPay Ink (`#0D2E2A`), Signal Green (`#00C48A`), FlowPay Amber (`#F4B740`), universal pill buttons (`9999`), 20dp card radius, zero drop shadows, and tabular monetary figures.
-- [x] Scaffolding for all 11 required screens across Personal and Business modules.
+- [x] Complete 13 shared design primitives and 9 shared app states (`FlowPayAppStatus`, `FlowPayStateView`).
+- [x] Dual Theme engine (`FlowPayTheme.dark()`, `FlowPayTheme.light()`) with accessible contrast and runtime toggling.
+- [x] Modular navigation architecture with unconfusing animated role switcher.
+- [x] Foundation screens for all 11 required screens across Personal and Business modules.
+- [x] Automated widget and shell tests passing in `test/app_shell_test.dart` and `test/design_system_test.dart`.
+- [x] 0 static analysis errors/warnings via `flutter analyze`.
 
 ---
 

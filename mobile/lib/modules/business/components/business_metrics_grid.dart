@@ -11,7 +11,7 @@ import '../../../core/theme/typography.dart';
 class BusinessMetricsGrid extends StatelessWidget {
   final BusinessProvider businessProvider;
 
-  const BusinessMetricsGrid({Key? key, required this.businessProvider}) : super(key: key);
+  const BusinessMetricsGrid({super.key, required this.businessProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +48,7 @@ class BusinessMetricsGrid extends StatelessWidget {
                 value: pendingUsd.formatFormatted(),
                 subtitle: 'Ready to disburse',
                 badgeText: 'SCHEDULED',
-                badgeBg: FlowPayColors.amber.withOpacity(0.16),
+                badgeBg: FlowPayColors.amber.withValues(alpha: 0.16),
                 badgeFg: const Color(0xFFB45309),
               ),
             ),
@@ -80,7 +80,7 @@ class BusinessMetricsGrid extends StatelessWidget {
                 value: '$onboardedCount / $employeeCount Onboarded',
                 subtitle: '100% KYC verified',
                 badgeText: 'ACTIVE',
-                badgeBg: FlowPayColors.signal.withOpacity(0.12),
+                badgeBg: FlowPayColors.signal.withValues(alpha: 0.12),
                 badgeFg: FlowPayColors.signal,
               ),
             ),
@@ -91,7 +91,7 @@ class BusinessMetricsGrid extends StatelessWidget {
         // Metric Row 3: Countries & Wallet/Card Status
         Row(
           children: [
-            Expanded(
+            const Expanded(
               child: _MetricCard(
                 icon: Icons.public_rounded,
                 iconColor: FlowPayColors.ink,
@@ -112,7 +112,7 @@ class BusinessMetricsGrid extends StatelessWidget {
                 value: '$walletsCount Wallets • $cardsCount Cards',
                 subtitle: 'Hardware-secured & active',
                 badgeText: 'LIVE',
-                badgeBg: FlowPayColors.signal.withOpacity(0.12),
+                badgeBg: FlowPayColors.signal.withValues(alpha: 0.12),
                 badgeFg: FlowPayColors.signal,
               ),
             ),
@@ -134,7 +134,6 @@ class _MetricCard extends StatelessWidget {
   final Color badgeFg;
 
   const _MetricCard({
-    Key? key,
     required this.icon,
     required this.iconColor,
     required this.label,
@@ -143,7 +142,7 @@ class _MetricCard extends StatelessWidget {
     required this.badgeText,
     required this.badgeBg,
     required this.badgeFg,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

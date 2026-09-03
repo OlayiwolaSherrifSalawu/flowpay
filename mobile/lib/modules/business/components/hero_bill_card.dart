@@ -16,10 +16,10 @@ class HeroBillCard extends StatelessWidget {
   final VoidCallback onRunPayroll;
 
   const HeroBillCard({
-    Key? key,
+    super.key,
     required this.businessProvider,
     required this.onRunPayroll,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +111,7 @@ class HeroBillCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.signal.withOpacity(0.12),
+                  color: FlowPayColors.signal.withValues(alpha: 0.12),
                   borderRadius: FlowPayRadii.chip,
                 ),
                 child: Row(

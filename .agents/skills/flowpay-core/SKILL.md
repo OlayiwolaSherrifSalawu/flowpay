@@ -55,8 +55,8 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Multi-country aggregate payroll engine (`modules/payroll/service.ts`, `routes/payroll.routes.ts`).
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
   * Automated unit tests passing for Money arithmetic, HMAC verification, and AI safety guards.
-* [x] **Mobile Flutter Foundation (`mobile/`)**:
-  * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`).
+* [x] **Mobile Flutter Foundation & Application Shell (`mobile/`)**:
+  * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
@@ -64,25 +64,41 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Provider abstraction interfaces: `WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`.
   * Deterministic `DemoProvider` implementations loaded with BMONI sandbox personas (Bunch Dillon BVN 99999999999, Samson Jabo BVN 22222222222).
   * Live `BMONIProvider` implementations communicating via backend proxy.
-  * Premium fintech design system (`lib/core/theme/`): dark surface palette, tabular numeric typography, cards, badges, buttons.
-  * Application shell (`lib/app.dart`) supporting on-the-fly toggling between Personal & Business roles and Demo & BMONI modes.
-* [x] **Scaffolded Module Boundaries**:
-  * **Personal**: Dashboard, Wallets, Money Missions ("Your money. Your rules. AI executes."), Send Money with PIN approval, Personal Activity, Personal Security.
-  * **Business**: Business Dashboard, Global Team Roster, Employee Detail, Multi-country Payroll Orchestrator ("One Employer, Many Countries, One Bill"), Corporate Audit.
-* [x] **FlowPay Business Employer Dashboard**:
-  * Core value message: *"One Employer. Many Countries. One Bill."*
-  * Domain state coordinator: `BusinessProvider` (`mobile/lib/core/state/business_provider.dart`) decoupling widgets from direct API calls with deterministic demo data.
-  * 6 Employer metrics grid: Total payroll, employee count, countries, pending payroll, employee status, wallet/card status.
-  * Employee Preview with rich model: Name, Country, Currency, Payroll amount, Onboarding status, Wallet status, Card status across Nigeria 🇳🇬 (NGN), Mexico 🇲🇽 (MXN), and Canada 🇨🇦 (CAD).
-  * Primary action: Run Payroll (triggers on-device B-Key signing and multi-rail fan-out).
-  * Secondary action: Add Employee (`AddEmployeeModal` with instant local wallet & card provisioning).
-* [x] **Design System Polish & design.md Alignment**:
-  * Complete light-canvas fintech aesthetic matching Wise & Mercury guidelines in [design.md](file:///design.md).
-  * Exact tokens in `colors.dart`: `ink` (`#0D2E2A`), `signal` (`#00C48A`), `amber` (`#F4B740`), `canvas` (`#FAFAF7`), `surface` (`#FFFFFF`), `hairline` (`#E6E4DE`).
-  * Locked corner radii in `radii.dart`: Universal pill (`9999`) on all buttons & chips, `20` on cards, `24` on sheets, `12` on inputs.
-  * Inter typography with `FontFeature.tabularFigures()` on all monetary figures in `typography.dart` to prevent balance jitter.
-  * Physical `VirtualCardObject` with 1.586 aspect ratio, amber fill, Mastercard logo, and soft physical shadow (`0x1A0D2E2A`, blur 24, offset (0, 8)).
-  * Revolut-style `[ Personal | Business ]` pill segmented control and amber `Demo` pill indicator in `app.dart`.
+  * **13 FlowPay Design System Primitives (`lib/core/design_system/`)**:
+    * `FlowPayTypography` with tabular monospaced numbers.
+    * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
+    * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
+    * `FlowPayButton`, `FlowPayIconButton`.
+    * `FlowPayTextField`, `FlowPayAmountField`.
+    * `FlowPayBadge`, `FlowPayStatusBadge`.
+    * `FlowPayAmountDisplay` (tabular numerals, integer/decimal split, sign, secondary FX label).
+    * `FlowPayCurrencyDisplay` (flag/symbol, code, BMONI stablecoin token badge).
+    * `FlowPayBottomSheet` & `showFlowPayBottomSheet()`.
+    * `FlowPayDialog` & `showFlowPayConfirmDialog()`.
+    * `FlowPayLoadingState`, `FlowPayErrorState`, `FlowPayEmptyState`.
+  * **9 Shared App States (`FlowPayAppStatus` & `FlowPayStateView`)**: Loading, Success, Error, Empty, Pending, AwaitingApproval, Processing, Completed, Failed with zero duplicated styling.
+  * **Dual Theme Engine (`lib/core/theme/`)**: `FlowPayTheme.dark()` and `FlowPayTheme.light()` with accessible WCAG contrast, context color resolvers, and dynamic `ThemeMode` toggling.
+  * **Modular Navigation Architecture (`lib/core/navigation/`)**:
+    * Prominent, unconfusing animated **Role Switcher** (`FlowPayRoleSwitcher`) in header (`[ 👤 Personal | 💼 Business ]`).
+    * Decoupled `PersonalRoutes`, `BusinessRoutes`, `AppRoutes`, and `FlowPayRouter`.
+    * Contextual bottom navigation bars reflecting mode-specific tabs and brand accents.
+  * **FlowPay Business Employer Dashboard**:
+    * Core value message: *"One Employer. Many Countries. One Bill."*
+    * Domain state coordinator: `BusinessProvider` (`mobile/lib/core/state/business_provider.dart`) decoupling widgets from direct API calls with deterministic demo data.
+    * 6 Employer metrics grid: Total payroll, employee count, countries, pending payroll, employee status, wallet/card status.
+    * Employee Preview with rich model: Name, Country, Currency, Payroll amount, Onboarding status, Wallet status, Card status across Nigeria 🇳🇬 (NGN), Mexico 🇲🇽 (MXN), and Canada 🇨🇦 (CAD).
+    * Primary action: Run Payroll (triggers on-device B-Key signing and multi-rail fan-out).
+    * Secondary action: Add Employee (`AddEmployeeModal` with instant local wallet & card provisioning).
+  * **Complete Screen Foundations**:
+    * **Personal**: Dashboard, Wallets, Money Missions ("Your money. Your rules. AI executes."), Send Money with PIN approval, Personal Activity, Personal Security.
+    * **Business**: Business Dashboard, Global Team Roster, Employee Detail, Multi-country Payroll Orchestrator ("One Employer, Many Countries, One Bill"), Corporate Audit.
+  * Automated widget and shell tests passing with 100% success and 0 analyzer lints.
+* [x] **Live Environment & Emulator Runtime Verification**:
+  * **Backend Daemon**: Actively running on `http://localhost:4000` with BMONI sandbox integration and health checks passing.
+  * **Toolchain Alignment**: Synchronized Gradle 8.14, Android Gradle Plugin 8.13.2, and Kotlin 2.2.20 for Flutter 3.47 compilation.
+  * **Android Emulator**: Verified on `Pixel_3a_API_33_x86_64` (Android 13 / API 33) with Impeller OpenGLES backend.
+  * **Pixel-Perfect UI & BMoni UI Kit**: Adopted official `bkey_uikit` tokens, `BMoniWalletCard`, `BMoniButton`, and `SectionHeader`. Documented UI standards in `.agents/skills/flowpay-design/SKILL.md`.
+  * **Live Flow Verified**: App boots directly into self-custody BMONI mode with interactive Personal/Business role switching and Money missions.
 
 ---
 
