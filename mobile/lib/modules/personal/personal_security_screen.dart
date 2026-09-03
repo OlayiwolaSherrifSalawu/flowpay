@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/state/app_state.dart';
+import 'wallet_provisioning_screen.dart';
 
 class PersonalSecurityScreen extends StatefulWidget {
   final AppState? appState;
@@ -134,6 +135,18 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                           showDot: true,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: FlowPaySpacing.lg),
+                    FlowPayButton(
+                      text: 'Manage On-Device B-Key Wallet',
+                      icon: Icons.phonelink_lock,
+                      isFullWidth: true,
+                      variant: FlowPayButtonVariant.secondary,
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const WalletProvisioningScreen()),
+                        ).then((_) => _checkHardware());
+                      },
                     ),
                   ],
                 ),

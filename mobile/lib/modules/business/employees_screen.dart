@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
@@ -9,7 +8,7 @@ import 'employee_detail_screen.dart';
 /// Global Team Screen
 /// Conforms to FlowPay Design System & bkey_uikit specifications:
 /// - Full employee rows with: Name, Flag, Payroll Currency & Amount, Onboarding Stage, Wallet & Card badges
-/// - EmptyState widget from bkey_uikit when 0 employees
+/// - Shared FlowPay empty state when there are no employees
 /// - Pull-to-refresh & instant detail navigation
 class EmployeesScreen extends StatefulWidget {
   final AppState appState;
@@ -56,11 +55,13 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         scrolledUnderElevation: 0,
         title: Text(
           'Global Team',
-          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w700),
+          style: FlowPayTypography.title(color: FlowPayColors.ink)
+              .copyWith(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink),
+            icon:
+                const Icon(Icons.person_add_rounded, color: FlowPayColors.ink),
             tooltip: 'Add Employee',
             onPressed: _showAddEmployeeDialog,
           ),
@@ -68,25 +69,24 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: FlowPayColors.ink))
+          ? const Center(
+              child: CircularProgressIndicator(color: FlowPayColors.ink))
           : employees.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: EmptyState(
-                      message: 'No employees yet',
-                      subtitle: 'Add remote team members across Nigeria and Mexico to automate multi-rail payroll and virtual cards.',
-                      buttonText: 'Add Employee',
-                      onButtonPressed: _showAddEmployeeDialog,
-                    ),
-                  ),
+              ? FlowPayEmptyState(
+                  icon: Icons.groups_outlined,
+                  title: 'No employees yet',
+                  description:
+                      'Add remote team members across Nigeria and Mexico to automate multi-rail payroll and virtual cards.',
+                  actionText: 'Add Employee',
+                  onAction: _showAddEmployeeDialog,
                 )
               : RefreshIndicator(
                   onRefresh: _load,
                   color: FlowPayColors.ink,
                   backgroundColor: FlowPayColors.surface,
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     itemCount: employees.length,
                     itemBuilder: (ctx, i) {
                       final emp = employees[i];
@@ -152,7 +152,8 @@ class _EmployeeRowCard extends StatelessWidget {
                   children: [
                     Text(
                       employee.fullName,
-                      style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                      style: FlowPayTypography.body(color: FlowPayColors.ink)
+                          .copyWith(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -160,7 +161,8 @@ class _EmployeeRowCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       employee.email,
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.textSecondary),
                     ),
                   ],
                 ),
@@ -182,7 +184,9 @@ class _EmployeeRowCard extends StatelessWidget {
                 children: [
                   Text(
                     'PAYROLL (${employee.targetCurrency.code})',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                    style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.textTertiary)
+                        .copyWith(
                       fontSize: 10,
                       letterSpacing: 0.5,
                       fontWeight: FontWeight.w700,
@@ -191,7 +195,8 @@ class _EmployeeRowCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     formattedPayroll,
-                    style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                    style: FlowPayTypography.body(color: FlowPayColors.ink)
+                        .copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
@@ -240,35 +245,35 @@ class _LifecycleBadge extends StatelessWidget {
 
     switch (upper) {
       case 'CREATED':
-        bg = Colors.blue.withOpacity(0.15);
+        bg = Colors.blue.withValues(alpha: 0.15);
         fg = Colors.blueAccent;
         label = 'CREATED';
         break;
       case 'WALLET_PENDING':
-        bg = Colors.purple.withOpacity(0.15);
+        bg = Colors.purple.withValues(alpha: 0.15);
         fg = Colors.purpleAccent;
         label = 'WALLET PENDING';
         break;
       case 'KYC_PENDING':
-        bg = Colors.amber.withOpacity(0.15);
+        bg = Colors.amber.withValues(alpha: 0.15);
         fg = Colors.amber[700] ?? Colors.amber;
         label = 'KYC PENDING';
         break;
       case 'ONBOARDING':
-        bg = Colors.orange.withOpacity(0.15);
+        bg = Colors.orange.withValues(alpha: 0.15);
         fg = Colors.orangeAccent;
         label = 'ONBOARDING';
         break;
       case 'READY':
       case 'ACTIVE':
       case 'LINKED':
-        bg = FlowPayColors.signal.withOpacity(0.15);
+        bg = FlowPayColors.signal.withValues(alpha: 0.15);
         fg = FlowPayColors.signal;
         label = 'READY';
         break;
       case 'FAILED':
-        bg = FlowPayColors.crimson.withOpacity(0.15);
-        fg = FlowPayColors.crimson;
+        bg = FlowPayColors.error.withValues(alpha: 0.15);
+        fg = FlowPayColors.error;
         label = 'FAILED';
         break;
       default:

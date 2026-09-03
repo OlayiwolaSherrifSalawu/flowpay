@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
 import '../../core/theme/radii.dart';
