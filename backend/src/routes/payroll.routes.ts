@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { db } from '../db/index.js';
+import { pool } from '../db/index.js';
 import { PayrollOrchestrationService } from '../modules/payroll/service.js';
 
 export const payrollRouter = Router();
@@ -31,10 +31,10 @@ payrollRouter.post('/execute', async (req, res, next) => {
 });
 
 // GET /api/payroll/runs
-payrollRouter.get('/runs', (req, res, next) => {
+payrollRouter.get('/runs', async (req, res, next) => {
   try {
-    const runs = db.prepare('SELECT * FROM payroll_runs ORDER BY created_at DESC LIMIT 20').all();
-    res.json({ success: true, data: runs });
+    const { rows } = await pool.query('SELECT * FROM payroll_runs ORDER BY created_at DESC LIMIT 20');
+    res.json({ success: true, data: rows });
   } catch (err) {
     next(err);
   }

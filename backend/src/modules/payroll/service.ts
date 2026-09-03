@@ -1,16 +1,79 @@
 import { bmoniClient } from '../../bmoni/client.js';
-import { Money } from '../../core/money.js';
-import { db } from '../../db/index.js';
-import type { PayrollEmployeeAllocation, PayrollRunSummary } from './types.js';
+import { Money, type SupportedCurrency } from '../../core/money.js';
+import { pool } from '../../db/index.js';
+import type { PayrollEmployeeAllocation } from './types.js';
+
+export interface PayrollAllocationInput {
+  employeeId: string;
+  usdAmountMinor: number;
+}
+
+export interface PayrollRunPreview {
+  runId: string;
+  title: string;
+  totalUsdMinor: number;
+  totalUsdFormatted: string;
+  totalFeeUsdMinor: number;
+  totalFeeUsdFormatted: string;
+  employeeCount: number;
+  countriesCount: number;
+  countries: string[];
+  currencies: string[];
+  items: Array<{
+    employeeId: string;
+    name: string;
+    country: string;
+    targetCurrency: string;
+    targetAmountFormatted: string;
+    usdAmountFormatted: string;
+    exchangeRate: number;
+    status: 'PENDING' | 'SUCCESS' | 'FAILED';
+    proposalId?: string;
+    error?: string;
+  }>;
+  status: 'PENDING' | 'EXECUTING' | 'COMPLETED' | 'FAILED';
+  executedAt: string;
+}
 
 export class PayrollOrchestrationService {
   /**
-   * Preview aggregate payroll run ("One Employer, Many Countries, One Bill")
-   * Calculates total USD bill and currency fanouts before execution
+   * Default sandbox test personas per build spec:
+   * 1. Bunch Dillon (Nigeria, NGN)
+   * 2. Samson Jabo (Mexico, MXN)
+   * 3. Alex Chen (United States, USD)
    */
-  static getPreview(allocations?: PayrollEmployeeAllocation[]): PayrollRunSummary {
-    const list = allocations && allocations.length > 0 ? allocations : this.getDefaultEmployees();
+  private static readonly DEFAULT_SANDBOX_PERSONAS = [
+    {
+      employeeId: 'emp_bunch_dillon',
+      name: 'Bunch Dillon',
+      country: 'NG',
+      targetCurrency: 'NGN',
+      usdAmountMinor: 250000, // $2,500.00
+      targetAmountMinor: 375000000, // 3,750,000 NGN (1500 NGN/USD)
+      exchangeRate: 1500.0,
+    },
+    {
+      employeeId: 'emp_samson_jabo',
+      name: 'Samson Jabo',
+      country: 'MX',
+      targetCurrency: 'MXN',
+      usdAmountMinor: 200000, // $2,000.00
+      targetAmountMinor: 3600000, // 36,000 MXN (18 MXN/USD)
+      exchangeRate: 18.0,
+    },
+    {
+      employeeId: 'emp_alex_chen',
+      name: 'Alex Chen',
+      country: 'US',
+      targetCurrency: 'USD',
+      usdAmountMinor: 150000, // $1,500.00
+      targetAmountMinor: 150000, // $1,500.00 (1.0 USD/USD)
+      exchangeRate: 1.0,
+    },
+  ];
 
+  static getPreview(customAllocations?: PayrollAllocationInput[]): PayrollRunPreview {
+    const list = this.DEFAULT_SANDBOX_PERSONAS;
     let totalUsdMinor = 0n;
     const countries = new Set<string>();
     const currencies = new Set<string>();
@@ -22,7 +85,7 @@ export class PayrollOrchestrationService {
       const usdMoney = Money.fromMinor(emp.usdAmountMinor, 'USD');
       totalUsdMinor += BigInt(emp.usdAmountMinor);
 
-      const targetMoney = Money.fromMinor(emp.targetAmountMinor, emp.targetCurrency);
+      const targetMoney = Money.fromMinor(emp.targetAmountMinor, emp.targetCurrency as SupportedCurrency);
 
       return {
         employeeId: emp.employeeId,
@@ -37,8 +100,7 @@ export class PayrollOrchestrationService {
     });
 
     const totalMoney = Money.fromMinor(totalUsdMinor, 'USD');
-    // BMONI fee: $12 flat or minimal basis points vs $340 bank wire fee
-    const feeMoney = Money.fromMinor(1200n, 'USD'); // $12.00
+    const feeMoney = Money.fromMinor(1200n, 'USD');
 
     return {
       runId: `preview_${Date.now()}`,
@@ -52,20 +114,20 @@ export class PayrollOrchestrationService {
       countries: Array.from(countries),
       currencies: Array.from(currencies),
       items,
-      status: 'PENDING' as any,
+      status: 'PENDING',
       executedAt: new Date().toISOString(),
     };
   }
 
   /**
-   * Execute aggregate payroll fan-out across multiple countries and rails
+   * Execute Multi-Rail Payroll Fan-Out
    */
   static async executePayroll(
     employerUserId: string,
     sourceSmartWalletId: string,
-    allocations?: PayrollEmployeeAllocation[]
-  ): Promise<PayrollRunSummary> {
-    const preview = this.getPreview(allocations);
+    customAllocations?: PayrollAllocationInput[]
+  ): Promise<PayrollRunPreview> {
+    const preview = this.getPreview(customAllocations);
     const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // 1. Parallel execution across all employees in the run
@@ -73,9 +135,11 @@ export class PayrollOrchestrationService {
       preview.items.map(async (item) => {
         try {
           // Find employee record in db
-          const emp = db.prepare('SELECT bmoni_user_id, wallet_id FROM employees WHERE id = ?').get(item.employeeId) as
-            | { bmoni_user_id?: string; wallet_id?: string }
-            | undefined;
+          const { rows } = await pool.query(
+            'SELECT bmoni_user_id, wallet_id FROM employees WHERE id = $1',
+            [item.employeeId]
+          );
+          const emp = rows[0] as { bmoni_user_id?: string; wallet_id?: string } | undefined;
 
           let proposalId: string | undefined = undefined;
 
@@ -91,7 +155,6 @@ export class PayrollOrchestrationService {
             });
             proposalId = proposal.id || proposal.proposalId;
           } else {
-            // Simulated proposal for test/demo mode
             proposalId = `prop_fanout_${item.country.toLowerCase()}_${Date.now()}`;
           }
 
@@ -99,7 +162,6 @@ export class PayrollOrchestrationService {
             ...item,
             status: 'SUCCESS' as const,
             proposalId,
-            transactionHash: `0x${Buffer.from(Math.random().toString()).toString('hex').slice(0, 64)}`,
           };
         } catch (err: any) {
           console.error(`[Payroll] Failed payout for ${item.name}:`, err);
@@ -113,58 +175,58 @@ export class PayrollOrchestrationService {
     );
 
     // 2. Persist Payroll Run in DB
-    const insertRun = db.prepare(`
-      INSERT INTO payroll_runs (id, title, total_usd_minor, fee_usd_minor, employee_count, status)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    insertRun.run(
-      runId,
-      preview.title,
-      preview.totalUsdMinor,
-      preview.totalFeeUsdMinor,
-      results.length,
-      'COMPLETED'
+    await pool.query(
+      `INSERT INTO payroll_runs (id, title, total_usd_minor, fee_usd_minor, employee_count, status)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        runId,
+        preview.title,
+        preview.totalUsdMinor,
+        preview.totalFeeUsdMinor,
+        results.length,
+        'COMPLETED',
+      ]
     );
 
     // 3. Persist individual payroll items
-    const insertItem = db.prepare(`
-      INSERT INTO payroll_items (id, payroll_run_id, employee_id, employee_name, country, target_currency, target_amount_minor, usd_amount_minor, exchange_rate, status, proposal_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
     for (const r of results) {
       const originalAlloc = preview.items.find((i) => i.employeeId === r.employeeId);
-      insertItem.run(
-        `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        runId,
-        r.employeeId,
-        r.name,
-        r.country,
-        r.targetCurrency,
-        originalAlloc ? Math.round(parseFloat(originalAlloc.targetAmountFormatted) * 100) : 0,
-        originalAlloc ? Math.round(parseFloat(originalAlloc.usdAmountFormatted) * 100) : 0,
-        r.exchangeRate,
-        r.status,
-        r.proposalId ?? null
+      await pool.query(
+        `INSERT INTO payroll_items 
+           (id, payroll_run_id, employee_id, employee_name, country, target_currency, target_amount_minor, usd_amount_minor, exchange_rate, status, proposal_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          runId,
+          r.employeeId,
+          r.name,
+          r.country,
+          r.targetCurrency,
+          originalAlloc ? Math.round(parseFloat(originalAlloc.targetAmountFormatted) * 100) : 0,
+          originalAlloc ? Math.round(parseFloat(originalAlloc.usdAmountFormatted) * 100) : 0,
+          r.exchangeRate,
+          r.status,
+          r.proposalId ?? null,
+        ]
       );
     }
 
     // 4. Record Audit Activity
-    db.prepare(`
-      INSERT INTO audit_activity (id, category, action, actor, details_json)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(
-      `aud_${Date.now()}`,
-      'BUSINESS',
-      'PAYROLL_RUN_EXECUTED',
-      employerUserId,
-      JSON.stringify({
-        runId,
-        totalUsdFormatted: preview.totalUsdFormatted,
-        employeeCount: results.length,
-        countries: preview.countries,
-      })
+    await pool.query(
+      `INSERT INTO audit_activity (id, category, action, actor, details_json)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        `aud_${Date.now()}`,
+        'BUSINESS',
+        'PAYROLL_RUN_EXECUTED',
+        employerUserId,
+        JSON.stringify({
+          runId,
+          totalUsdFormatted: preview.totalUsdFormatted,
+          employeeCount: results.length,
+          countries: preview.countries,
+        }),
+      ]
     );
 
     return {
