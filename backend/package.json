@@ -4,6 +4,9 @@
   "description": "FlowPay Intelligent Financial Operating Layer Backend for BMONI Infrastructure",
   "type": "module",
   "main": "dist/server.js",
+  "engines": {
+    "node": ">=20.0.0 <23.0.0"
+  },
   "scripts": {
     "build": "tsc && cp src/db/schema.sql dist/db/schema.sql",
     "start": "node dist/server.js",
@@ -12,7 +15,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
-    "better-sqlite3": "^9.6.0",
+    "better-sqlite3": "^11.10.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
