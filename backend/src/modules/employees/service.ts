@@ -1,30 +1,16 @@
 import { bmoniClient } from '../../bmoni/client.js';
-import { pool } from '../../db/index.js';
+import { prisma } from '../../db/index.js';
 import { env } from '../../config/env.js';
+import type { Employee } from '@prisma/client';
 
-export interface EmployeeRecord {
-  id: string;
-  bmoni_user_id?: string;
-  partner_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone_number?: string;
-  country: string;
-  target_currency: string;
-  wallet_id?: string;
-  wallet_address?: string;
-  card_id?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+export type EmployeeRecord = Employee;
 
 export class EmployeeService {
   static async listEmployees(): Promise<EmployeeRecord[]> {
     try {
-      const { rows } = await pool.query('SELECT * FROM employees ORDER BY created_at DESC');
-      return rows as EmployeeRecord[];
+      return await prisma.employee.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
     } catch (err) {
       console.warn('[EmployeeService] listEmployees error:', err);
       return [];
@@ -33,8 +19,8 @@ export class EmployeeService {
 
   static async getEmployeeById(id: string): Promise<EmployeeRecord | undefined> {
     try {
-      const { rows } = await pool.query('SELECT * FROM employees WHERE id = $1', [id]);
-      return rows[0] as EmployeeRecord | undefined;
+      const employee = await prisma.employee.findUnique({ where: { id } });
+      return employee ?? undefined;
     } catch (err) {
       console.warn('[EmployeeService] getEmployeeById error:', err);
       return undefined;
@@ -50,7 +36,7 @@ export class EmployeeService {
     targetCurrency: string;
   }): Promise<{ employee: EmployeeRecord; inviteUrl: string }> {
     const id = `emp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    
+
     // 1. Call BMONI partner employee invite endpoint
     let inviteUrl = `https://bmoni.com/invite/flowpay_${id}`;
     try {
@@ -66,25 +52,21 @@ export class EmployeeService {
       console.warn('[EmployeeService] BMONI invite fallback (offline/sandbox):', err);
     }
 
-    // 2. Insert into Postgres
-    await pool.query(
-      `INSERT INTO employees 
-         (id, partner_id, first_name, last_name, email, phone_number, country, target_currency, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
+    // 2. Insert via Prisma
+    const employee = await prisma.employee.create({
+      data: {
         id,
-        env.BMONI_PARTNER_ID,
-        data.firstName,
-        data.lastName,
-        data.email,
-        data.phoneNumber ?? null,
-        data.country,
-        data.targetCurrency,
-        'INVITED',
-      ]
-    );
+        partnerId: env.BMONI_PARTNER_ID,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber ?? null,
+        country: data.country,
+        targetCurrency: data.targetCurrency,
+        status: 'INVITED',
+      },
+    });
 
-    const employee = (await this.getEmployeeById(id))!;
     return { employee, inviteUrl };
   }
 }

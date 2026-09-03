@@ -1,59 +1,44 @@
-import { Pool } from 'pg';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
 import { env } from '../config/env.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// ---------------------------------------------------------------------------
+// Prisma Client — singleton pattern (safe for dev hot-reload via tsx)
+// ---------------------------------------------------------------------------
 
-const isPostgres = Boolean(
-  env.DATABASE_URL &&
-    (env.DATABASE_URL.startsWith('postgres://') || env.DATABASE_URL.startsWith('postgresql://'))
-);
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-const shouldUseSsl =
-  isPostgres &&
-  !env.DATABASE_URL.includes('localhost') &&
-  !env.DATABASE_URL.includes('127.0.0.1');
+export const prisma: PrismaClient =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log:
+      env.NODE_ENV === 'development'
+        ? ['query', 'warn', 'error']
+        : ['warn', 'error'],
+  });
 
-// env.DATABASE_URL holds a Postgres connection string (e.g. Supabase Session pooler URI)
-export const pool = new Pool(
-  isPostgres
-    ? {
-        connectionString: env.DATABASE_URL,
-        ssl: shouldUseSsl ? { rejectUnauthorized: false } : false,
-      }
-    : {
-        max: 1,
-      }
-);
+if (env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
+
+// ---------------------------------------------------------------------------
+// Database initialisation — run seed if tables are empty
+// ---------------------------------------------------------------------------
 
 export async function initDatabase(): Promise<void> {
+  const isPostgres =
+    env.DATABASE_URL?.startsWith('postgres://') ||
+    env.DATABASE_URL?.startsWith('postgresql://');
+
   if (!isPostgres) {
     console.warn(
       `[DB] Notice: DATABASE_URL is not set to a PostgreSQL URI (${env.DATABASE_URL || 'empty'}).\n` +
-      `     Set DATABASE_URL=postgresql://user:pass@host:port/dbname in backend/.env to connect to Postgres/Supabase.`
+        `     Set DATABASE_URL=postgresql://user:pass@host:port/dbname in backend/.env.`
     );
     return;
   }
 
   try {
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    let schemaSql = '';
-    if (fs.existsSync(schemaPath)) {
-      schemaSql = fs.readFileSync(schemaPath, 'utf-8');
-    } else {
-      const srcSchemaPath = path.resolve(__dirname, '../../src/db/schema.sql');
-      if (fs.existsSync(srcSchemaPath)) {
-        schemaSql = fs.readFileSync(srcSchemaPath, 'utf-8');
-      }
-    }
-
-    if (schemaSql) {
-      await pool.query(schemaSql);
-      console.log('[DB] PostgreSQL schema initialized successfully.');
-    }
+    // Prisma handles DDL via migrations; here we only seed demo data
     await seedDemoDataIfNeeded();
     console.log('[DB] PostgreSQL demo records verified.');
   } catch (err: any) {
@@ -63,79 +48,68 @@ export async function initDatabase(): Promise<void> {
 
 async function seedDemoDataIfNeeded(): Promise<void> {
   try {
-    const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM employees');
-    const employeeCount = rows[0].count as number;
+    const employeeCount = await prisma.employee.count();
 
     if (employeeCount === 0) {
       // Seed pre-verified BMONI sandbox personas per spec:
       // Employee 1: Bunch Dillon (Nigeria, BVN 99999999999)
       // Employee 2: Samson Jabo (Mexico/Nigeria alt, BVN/NIN 22222222222)
-      await pool.query(
-        `INSERT INTO employees
-           (id, bmoni_user_id, partner_id, first_name, last_name, email, phone_number, country, target_currency, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [
-          'emp_bunch_dillon',
-          'usr_bmoni_dillon_ngn',
-          env.BMONI_PARTNER_ID,
-          'Bunch',
-          'Dillon',
-          'bunch.dillon@example.ng',
-          '+2348011112222',
-          'NG',
-          'NGN',
-          'LINKED',
-        ]
-      );
-
-      await pool.query(
-        `INSERT INTO employees
-           (id, bmoni_user_id, partner_id, first_name, last_name, email, phone_number, country, target_currency, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [
-          'emp_samson_jabo',
-          'usr_bmoni_samson_mxn',
-          env.BMONI_PARTNER_ID,
-          'Samson',
-          'Jabo',
-          'samson.jabo@example.mx',
-          '+525512345678',
-          'MX',
-          'MXN',
-          'LINKED',
-        ]
-      );
+      await prisma.employee.createMany({
+        data: [
+          {
+            id: 'emp_bunch_dillon',
+            bmoniUserId: 'usr_bmoni_dillon_ngn',
+            partnerId: env.BMONI_PARTNER_ID,
+            firstName: 'Bunch',
+            lastName: 'Dillon',
+            email: 'bunch.dillon@example.ng',
+            phoneNumber: '+2348011112222',
+            country: 'NG',
+            targetCurrency: 'NGN',
+            status: 'LINKED',
+          },
+          {
+            id: 'emp_samson_jabo',
+            bmoniUserId: 'usr_bmoni_samson_mxn',
+            partnerId: env.BMONI_PARTNER_ID,
+            firstName: 'Samson',
+            lastName: 'Jabo',
+            email: 'samson.jabo@example.mx',
+            phoneNumber: '+525512345678',
+            country: 'MX',
+            targetCurrency: 'MXN',
+            status: 'LINKED',
+          },
+        ],
+        skipDuplicates: true,
+      });
 
       // Seed default Money Missions
-      await pool.query(
-        `INSERT INTO money_missions
-           (id, title, description, rule_type, condition_json, action_json, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          'mission_emergency_sweep',
-          '20% Emergency Fund Auto-Sweep',
-          'Automatically route 20% of international USD disbursements into high-yield NGN savings.',
-          'AUTO_SWEEP',
-          JSON.stringify({ trigger: 'DEPOSIT_RECEIVED', currency: 'USD' }),
-          JSON.stringify({ percentage: 20, destinationCurrency: 'NGN' }),
-          true,
-        ]
-      );
-
-      await pool.query(
-        `INSERT INTO money_missions
-           (id, title, description, rule_type, condition_json, action_json, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          'mission_card_cap',
-          'Contractor Card Monthly Cap',
-          'Enforce a strict $500/month spending limit on virtual cards for team contractors.',
-          'SPEND_CAP',
-          JSON.stringify({ role: 'CONTRACTOR' }),
-          JSON.stringify({ monthlyLimitUsdMinor: 50000 }),
-          true,
-        ]
-      );
+      await prisma.moneyMission.createMany({
+        data: [
+          {
+            id: 'mission_emergency_sweep',
+            title: '20% Emergency Fund Auto-Sweep',
+            description:
+              'Automatically route 20% of international USD disbursements into high-yield NGN savings.',
+            ruleType: 'AUTO_SWEEP',
+            conditionJson: { trigger: 'DEPOSIT_RECEIVED', currency: 'USD' },
+            actionJson: { percentage: 20, destinationCurrency: 'NGN' },
+            isActive: true,
+          },
+          {
+            id: 'mission_card_cap',
+            title: 'Contractor Card Monthly Cap',
+            description:
+              'Enforce a strict $500/month spending limit on virtual cards for team contractors.',
+            ruleType: 'SPEND_CAP',
+            conditionJson: { role: 'CONTRACTOR' },
+            actionJson: { monthlyLimitUsdMinor: 50000 },
+            isActive: true,
+          },
+        ],
+        skipDuplicates: true,
+      });
     }
   } catch (err) {
     console.warn('[DB] Seeding note:', err);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { pool } from '../db/index.js';
+import { prisma } from '../db/index.js';
 import { PayrollOrchestrationService } from '../modules/payroll/service.js';
 
 export const payrollRouter = Router();
@@ -33,8 +33,11 @@ payrollRouter.post('/execute', async (req, res, next) => {
 // GET /api/payroll/runs
 payrollRouter.get('/runs', async (req, res, next) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM payroll_runs ORDER BY created_at DESC LIMIT 20');
-    res.json({ success: true, data: rows });
+    const runs = await prisma.payrollRun.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+    res.json({ success: true, data: runs });
   } catch (err) {
     next(err);
   }

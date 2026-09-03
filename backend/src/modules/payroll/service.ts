@@ -1,6 +1,6 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { Money, type SupportedCurrency } from '../../core/money.js';
-import { pool } from '../../db/index.js';
+import { prisma } from '../../db/index.js';
 import type { PayrollEmployeeAllocation } from './types.js';
 
 export interface PayrollAllocationInput {
@@ -134,21 +134,20 @@ export class PayrollOrchestrationService {
     const results = await Promise.all(
       preview.items.map(async (item) => {
         try {
-          // Find employee record in db
-          const { rows } = await pool.query(
-            'SELECT bmoni_user_id, wallet_id FROM employees WHERE id = $1',
-            [item.employeeId]
-          );
-          const emp = rows[0] as { bmoni_user_id?: string; wallet_id?: string } | undefined;
+          // Find employee record via Prisma
+          const emp = await prisma.employee.findUnique({
+            where: { id: item.employeeId },
+            select: { bmoniUserId: true, walletId: true },
+          });
 
           let proposalId: string | undefined = undefined;
 
           // If live BMONI IDs exist, create proposal
-          if (emp?.bmoni_user_id && emp?.wallet_id) {
+          if (emp?.bmoniUserId && emp?.walletId) {
             const proposal = await bmoniClient.createTransferProposal({
               userId: employerUserId,
               walletId: sourceSmartWalletId,
-              toUserId: emp.bmoni_user_id,
+              toUserId: emp.bmoniUserId,
               sourceSmartWalletId: sourceSmartWalletId,
               token: item.targetCurrency === 'NGN' ? 'CNGN' : item.targetCurrency === 'MXN' ? 'MEXe' : 'USDB',
               fromAmount: item.targetAmountFormatted,
@@ -174,60 +173,57 @@ export class PayrollOrchestrationService {
       })
     );
 
-    // 2. Persist Payroll Run in DB
-    await pool.query(
-      `INSERT INTO payroll_runs (id, title, total_usd_minor, fee_usd_minor, employee_count, status)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [
-        runId,
-        preview.title,
-        preview.totalUsdMinor,
-        preview.totalFeeUsdMinor,
-        results.length,
-        'COMPLETED',
-      ]
-    );
+    // 2. Persist Payroll Run via Prisma
+    await prisma.payrollRun.create({
+      data: {
+        id: runId,
+        title: preview.title,
+        totalUsdMinor: preview.totalUsdMinor,
+        feeUsdMinor: preview.totalFeeUsdMinor,
+        employeeCount: results.length,
+        status: 'COMPLETED',
+      },
+    });
 
     // 3. Persist individual payroll items
-    for (const r of results) {
-      const originalAlloc = preview.items.find((i) => i.employeeId === r.employeeId);
-      await pool.query(
-        `INSERT INTO payroll_items 
-           (id, payroll_run_id, employee_id, employee_name, country, target_currency, target_amount_minor, usd_amount_minor, exchange_rate, status, proposal_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-        [
-          `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          runId,
-          r.employeeId,
-          r.name,
-          r.country,
-          r.targetCurrency,
-          originalAlloc ? Math.round(parseFloat(originalAlloc.targetAmountFormatted) * 100) : 0,
-          originalAlloc ? Math.round(parseFloat(originalAlloc.usdAmountFormatted) * 100) : 0,
-          r.exchangeRate,
-          r.status,
-          r.proposalId ?? null,
-        ]
-      );
-    }
+    await prisma.payrollItem.createMany({
+      data: results.map((r) => {
+        const originalAlloc = preview.items.find((i) => i.employeeId === r.employeeId);
+        return {
+          id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          payrollRunId: runId,
+          employeeId: r.employeeId,
+          employeeName: r.name,
+          country: r.country,
+          targetCurrency: r.targetCurrency,
+          targetAmountMinor: originalAlloc
+            ? Math.round(parseFloat(originalAlloc.targetAmountFormatted) * 100)
+            : 0,
+          usdAmountMinor: originalAlloc
+            ? Math.round(parseFloat(originalAlloc.usdAmountFormatted) * 100)
+            : 0,
+          exchangeRate: r.exchangeRate,
+          status: r.status,
+          proposalId: r.proposalId ?? null,
+        };
+      }),
+    });
 
     // 4. Record Audit Activity
-    await pool.query(
-      `INSERT INTO audit_activity (id, category, action, actor, details_json)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [
-        `aud_${Date.now()}`,
-        'BUSINESS',
-        'PAYROLL_RUN_EXECUTED',
-        employerUserId,
-        JSON.stringify({
+    await prisma.auditActivity.create({
+      data: {
+        id: `aud_${Date.now()}`,
+        category: 'BUSINESS',
+        action: 'PAYROLL_RUN_EXECUTED',
+        actor: employerUserId,
+        detailsJson: {
           runId,
           totalUsdFormatted: preview.totalUsdFormatted,
           employeeCount: results.length,
           countries: preview.countries,
-        }),
-      ]
-    );
+        },
+      },
+    });
 
     return {
       ...preview,

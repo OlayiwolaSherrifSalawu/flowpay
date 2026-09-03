@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
-import { pool } from '../db/index.js';
+import { prisma } from '../db/index.js';
+import type { Prisma } from '@prisma/client';
 import type { WebhookDeliveryPayload } from './types.js';
 
 export class BmoniWebhookService {
@@ -43,38 +44,34 @@ export class BmoniWebhookService {
   static async processEvent(event: WebhookDeliveryPayload): Promise<{ handled: boolean; message: string }> {
     try {
       // 1. Deduplication check
-      const { rows } = await pool.query(
-        'SELECT id FROM webhook_events WHERE bmoni_event_id = $1',
-        [event.id]
-      );
+      const existing = await prisma.webhookEvent.findUnique({
+        where: { bmoniEventId: event.id },
+        select: { id: true },
+      });
 
-      if (rows.length > 0) {
+      if (existing) {
         return { handled: true, message: `Event ${event.id} already processed (idempotent skip)` };
       }
 
       // 2. Persist raw event
-      await pool.query(
-        `INSERT INTO webhook_events (id, bmoni_event_id, event_type, payload_json)
-         VALUES ($1, $2, $3, $4)`,
-        [
-          `whk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-          event.id,
-          event.eventType,
-          JSON.stringify(event.payload),
-        ]
-      );
+      await prisma.webhookEvent.create({
+        data: {
+          id: `whk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          bmoniEventId: event.id,
+          eventType: event.eventType,
+          payloadJson: event.payload as object,
+        },
+      });
 
       // 3. Handle specific event families
       switch (event.eventType) {
         case 'employee.linked': {
           const { userId, email } = event.payload as { userId?: string; email?: string };
           if (userId && email) {
-            await pool.query(
-              `UPDATE employees 
-               SET bmoni_user_id = $1, status = 'LINKED', updated_at = now()
-               WHERE email = $2`,
-              [userId, email]
-            );
+            await prisma.employee.updateMany({
+              where: { email },
+              data: { bmoniUserId: userId, status: 'LINKED' },
+            });
             await this.logAudit('BUSINESS', 'EMPLOYEE_LINKED', 'BMONI_WEBHOOK', { email, userId });
           }
           break;
@@ -83,12 +80,10 @@ export class BmoniWebhookService {
         case 'onboarding.completed': {
           const { userId } = event.payload as { userId?: string };
           if (userId) {
-            await pool.query(
-              `UPDATE employees 
-               SET status = 'ACTIVE', updated_at = now()
-               WHERE bmoni_user_id = $1`,
-              [userId]
-            );
+            await prisma.employee.updateMany({
+              where: { bmoniUserId: userId },
+              data: { status: 'ACTIVE' },
+            });
             await this.logAudit('BUSINESS', 'ONBOARDING_COMPLETED', 'BMONI_WEBHOOK', { userId });
           }
           break;
@@ -116,19 +111,22 @@ export class BmoniWebhookService {
     return { handled: true, message: `Successfully processed ${event.eventType}` };
   }
 
-  private static async logAudit(category: string, action: string, actor: string, details: Record<string, unknown>): Promise<void> {
+  private static async logAudit(
+    category: string,
+    action: string,
+    actor: string,
+    details: Record<string, unknown>
+  ): Promise<void> {
     try {
-      await pool.query(
-        `INSERT INTO audit_activity (id, category, action, actor, details_json)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [
-          `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      await prisma.auditActivity.create({
+        data: {
+          id: `aud_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
           category,
           action,
           actor,
-          JSON.stringify(details),
-        ]
-      );
+          detailsJson: details as Prisma.InputJsonValue,
+        },
+      });
     } catch (err) {
       console.error('[Audit] Failed to log audit event:', err);
     }
