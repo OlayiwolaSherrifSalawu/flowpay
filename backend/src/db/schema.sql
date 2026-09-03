@@ -78,4 +78,4 @@ CREATE TABLE IF NOT EXISTS webhook_events (
 CREATE INDEX IF NOT EXISTS idx_employees_email ON employees(email);
 CREATE INDEX IF NOT EXISTS idx_employees_bmoni_user_id ON employees(bmoni_user_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_items_run ON payroll_items(payroll_run_id);
-CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_activity(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_activity(created_at);~
