@@ -44,6 +44,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 * [x] **Project Scaffolding & Shared Foundation**:
   * Enforced workspace rules and AI agent protocol in [AGENTS.md](file:///AGENTS.md).
   * Provided central environment template in [.env.example](file:///.env.example).
+  * Configured GitHub Actions CI workflow in [.github/workflows/build.yml](file:///.github/workflows/build.yml) targeting `main`, running on `macos-latest`, setting up Java 17 and Flutter, and building Android release APK and unsigned iOS release IPA.
 * [x] **Backend Infrastructure (`backend/`)**:
   * Typed configuration in `config/env.ts` with strict origin-only URL parsing (strips `/v1` to prevent 404s).
   * Relational persistence in SQLite (`db/schema.sql`, `db/index.ts`) for employees, payroll runs, money missions, audit logs, and webhooks.
