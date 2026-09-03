@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 import '../network/api_client.dart';
+import '../providers/bmoni/bmoni_activity_repo.dart';
+import '../providers/bmoni/bmoni_approval_repo.dart';
 import '../providers/bmoni/bmoni_card_repo.dart';
 import '../providers/bmoni/bmoni_employee_repo.dart';
+import '../providers/bmoni/bmoni_mission_repo.dart';
 import '../providers/bmoni/bmoni_payroll_repo.dart';
 import '../providers/bmoni/bmoni_transfer_repo.dart';
 import '../providers/bmoni/bmoni_wallet_repo.dart';
+import '../providers/demo/demo_activity_repo.dart';
+import '../providers/demo/demo_approval_repo.dart';
 import '../providers/demo/demo_card_repo.dart';
 import '../providers/demo/demo_employee_repo.dart';
+import '../providers/demo/demo_mission_repo.dart';
 import '../providers/demo/demo_payroll_repo.dart';
 import '../providers/demo/demo_transfer_repo.dart';
 import '../providers/demo/demo_wallet_repo.dart';
+import '../repositories/activity_repository.dart';
+import '../repositories/approval_repository.dart';
 import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
+import '../repositories/mission_repository.dart';
 import '../repositories/payroll_repository.dart';
 import '../repositories/transfer_repository.dart';
 import '../repositories/wallet_repository.dart';
 import 'business_provider.dart';
+import 'personal_provider.dart';
 
 enum AppRole { personal, business }
 enum ProviderMode { demo, bmoniSandbox }
@@ -33,6 +43,9 @@ class AppState extends ChangeNotifier {
   final DemoCardRepository _demoCard = DemoCardRepository();
   final DemoEmployeeRepository _demoEmployee = DemoEmployeeRepository();
   final DemoPayrollRepository _demoPayroll = DemoPayrollRepository();
+  final DemoActivityRepository _demoActivity = DemoActivityRepository();
+  final DemoMissionRepository _demoMission = DemoMissionRepository();
+  final DemoApprovalRepository _demoApproval = DemoApprovalRepository();
 
   // BMONI Live Repositories
   late final BmoniWalletRepository _bmoniWallet = BmoniWalletRepository(apiClient: _apiClient);
@@ -40,6 +53,9 @@ class AppState extends ChangeNotifier {
   late final BmoniCardRepository _bmoniCard = BmoniCardRepository(apiClient: _apiClient);
   late final BmoniEmployeeRepository _bmoniEmployee = BmoniEmployeeRepository(apiClient: _apiClient);
   late final BmoniPayrollRepository _bmoniPayroll = BmoniPayrollRepository(apiClient: _apiClient);
+  late final BmoniActivityRepository _bmoniActivity = BmoniActivityRepository(apiClient: _apiClient);
+  late final BmoniMissionRepository _bmoniMission = BmoniMissionRepository(apiClient: _apiClient);
+  late final BmoniApprovalRepository _bmoniApproval = BmoniApprovalRepository(apiClient: _apiClient);
 
   // Business Providers
   late final BusinessProvider _demoBusinessProvider = BusinessProvider(
@@ -56,6 +72,23 @@ class AppState extends ChangeNotifier {
     cardRepo: _bmoniCard,
   );
 
+  // Personal Providers
+  late final PersonalProvider _demoPersonalProvider = PersonalProvider(
+    walletRepo: _demoWallet,
+    activityRepo: _demoActivity,
+    missionRepo: _demoMission,
+    approvalRepo: _demoApproval,
+    transferRepo: _demoTransfer,
+  );
+
+  late final PersonalProvider _bmoniPersonalProvider = PersonalProvider(
+    walletRepo: _bmoniWallet,
+    activityRepo: _bmoniActivity,
+    missionRepo: _bmoniMission,
+    approvalRepo: _bmoniApproval,
+    transferRepo: _bmoniTransfer,
+  );
+
   AppRole get activeRole => _activeRole;
   ProviderMode get providerMode => _providerMode;
   ThemeMode get themeMode => _themeMode;
@@ -68,9 +101,13 @@ class AppState extends ChangeNotifier {
   CardRepository get cardRepo => isDemo ? _demoCard : _bmoniCard;
   EmployeeRepository get employeeRepo => isDemo ? _demoEmployee : _bmoniEmployee;
   PayrollRepository get payrollRepo => isDemo ? _demoPayroll : _bmoniPayroll;
+  ActivityRepository get activityRepo => isDemo ? _demoActivity : _bmoniActivity;
+  MissionRepository get missionRepo => isDemo ? _demoMission : _bmoniMission;
+  ApprovalRepository get approvalRepo => isDemo ? _demoApproval : _bmoniApproval;
 
-  // Active Business Provider
+  // Active Providers
   BusinessProvider get businessProvider => isDemo ? _demoBusinessProvider : _bmoniBusinessProvider;
+  PersonalProvider get personalProvider => isDemo ? _demoPersonalProvider : _bmoniPersonalProvider;
 
   void setRole(AppRole role) {
     if (_activeRole != role) {

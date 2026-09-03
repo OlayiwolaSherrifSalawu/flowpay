@@ -53,6 +53,16 @@ description: >-
   - `EmployeesScreen`: Built with `bkey_uikit` `EmptyState` for zero-employee states, per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges (`CREATED`, `WALLET_PENDING`, `KYC_PENDING`, `ONBOARDING`, `READY`, `FAILED`), and wallet/card status indicators.
   - `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
 - [x] Automated widget and shell tests passing in `test/app_shell_test.dart` and `test/design_system_test.dart`.
+- [x] **Personal Financial Dashboard**:
+  - `PersonalDashboardScreen` featuring portfolio valuation ($37,671.00 USD primary), available balances, privacy toggle, and sandbox demo indicator.
+  - `AiCommandBar` ("What should your money do?") with task-specific workflow routing: "Allocate my $2,000" (`AiAllocationModal`), "Send $500 to my designer" (`SendMoneyScreen`), and "Convert $1,000 to Naira" (`AiFxConversionModal`).
+  - `PendingApprovalsCard` surfacing pending actions with B-Key 6-digit PIN dialog.
+  - Quick Actions ("Create Mission", "Send Money", "View Wallets").
+  - `Money Missions` feature card & active autonomous mission switches.
+  - Multi-Currency Smart Wallets (USD, NGN, MXN, CAD) with one-tap clipboard address copy.
+  - Recent Financial Activity feed powered by `ActivityRepository`.
+  - State management via `PersonalProvider` coordinating `walletRepo`, `missionRepo`, `approvalRepo`, and `activityRepo`.
+- [x] Automated widget and shell tests passing in `test/app_shell_test.dart`, `test/design_system_test.dart`, `test/signup_kyc_test.dart`, and `test/personal_dashboard_test.dart` (23/23 tests passing).
 - [x] 0 static analysis errors/warnings via `flutter analyze`.
 
 ---
