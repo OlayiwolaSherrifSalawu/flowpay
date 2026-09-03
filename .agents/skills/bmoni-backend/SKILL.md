@@ -23,7 +23,7 @@ description: >-
 - `src/bmoni/client.ts`: Safe BMONI REST client handling timeouts, safe logging, and structured error responses.
 - `src/bmoni/webhooks.ts`: Constant-time HMAC-SHA256 verification using raw Buffer request bodies.
 - `src/modules/payroll/service.ts`: "One Employer, Many Countries, One Bill" aggregate payroll orchestrator.
-- `src/modules/ai/`: Natural language intent interpreter and deterministic validation preview generator.
+- `src/modules/ai/`: Natural language intent interpreter powered by Google Gemini (`@google/genai` with `gemini-2.5-flash`) using strict JSON Schema structured outputs, with deterministic fallback and financial safety validation.
 
 ---
 

@@ -1,0 +1,7 @@
+node_modules
+dist
+flowpay.db*
+*.log
+.env
+.env*.local
+.git
