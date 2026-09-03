@@ -9,7 +9,10 @@ class FlowPayApiClient {
   FlowPayApiClient({
     String? baseUrl,
     http.Client? client,
-  })  : baseUrl = baseUrl ?? (Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000'),
+  })  : baseUrl = baseUrl ??
+            (const String.fromEnvironment('FLOWPAY_API_URL').isNotEmpty
+                ? const String.fromEnvironment('FLOWPAY_API_URL')
+                : (Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000')),
         _client = client ?? http.Client();
 
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
