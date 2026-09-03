@@ -1,18 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
 import '../../../core/state/business_provider.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/components.dart';
 import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
+class CountryOption {
+  final String code;
+  final String name;
+  final String flag;
+  final Currency currency;
+  final String defaultSalary;
+
+  const CountryOption({
+    required this.code,
+    required this.name,
+    required this.flag,
+    required this.currency,
+    required this.defaultSalary,
+  });
+}
+
 /// Add Employee Modal
-/// Conforms to design.md §3.4, §3.5 & §4.1:
-/// - 24dp top corner radius sheet
-/// - 12dp input radius with hairline border
-/// - Field labels always above the input
-/// - Universal pill CTA button
+/// Powered by bkey_uikit design system:
+/// - BMoniTextFormField.filled for input fields
+/// - SelectorBottomSheet<CountryOption> via BMoniBottomSheet.show for country & rail selection
+/// - BMoniButton(variant: BMoniButtonVariant.primary) for submission
+/// - BMoniToastOverlay for rich feedback
 class AddEmployeeModal extends StatefulWidget {
   final BusinessProvider businessProvider;
 
@@ -32,85 +48,166 @@ class AddEmployeeModal extends StatefulWidget {
 }
 
 class _AddEmployeeModalState extends State<AddEmployeeModal> {
+  final _formKey = GlobalKey<FormState>();
   final _firstCtrl = TextEditingController();
   final _lastCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController(text: '3100000.00');
 
-  String _selectedCountry = 'NG';
-  Currency _selectedCurrency = Currency.ngn;
+  static const List<CountryOption> _countries = [
+    CountryOption(
+      code: 'NG',
+      name: 'Nigeria (NGN / CNGN)',
+      flag: '🇳🇬',
+      currency: Currency.ngn,
+      defaultSalary: '3100000.00',
+    ),
+    CountryOption(
+      code: 'MX',
+      name: 'Mexico (MXN / MEXe)',
+      flag: '🇲🇽',
+      currency: Currency.mxn,
+      defaultSalary: '35000.00',
+    ),
+  ];
+
+  CountryOption _selectedCountry = _countries.first;
   bool _isSubmitting = false;
 
-  void _onCountryChanged(String? country) {
-    if (country == null) return;
-    setState(() {
-      _selectedCountry = country;
-      if (country == 'NG') {
-        _selectedCurrency = Currency.ngn;
-        _salaryCtrl.text = '3100000.00';
-      } else if (country == 'MX') {
-        _selectedCurrency = Currency.mxn;
-        _salaryCtrl.text = '35000.00';
-      } else if (country == 'CA') {
-        _selectedCurrency = Currency.cad;
-        _salaryCtrl.text = '2750.00';
+  @override
+  void dispose() {
+    _firstCtrl.dispose();
+    _lastCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _salaryCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickCountry() async {
+    try {
+      final picked = await BMoniBottomSheet.show<CountryOption>(
+        context: context,
+        child: SelectorBottomSheet<CountryOption>(
+          items: _countries,
+          selected: _selectedCountry,
+          title: 'Select Destination Country & Rail',
+          label: (c) => '${c.flag} ${c.name}',
+          value: (c) => c.code,
+          showIcon: false,
+        ),
+      );
+
+      if (picked != null && mounted) {
+        setState(() {
+          _selectedCountry = picked;
+          _salaryCtrl.text = picked.defaultSalary;
+        });
       }
-    });
+    } catch (_) {
+      // Fallback simple dialog if bottom sheet is constrained
+      _showSimpleCountryPicker();
+    }
+  }
+
+  void _showSimpleCountryPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: FlowPayColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.sheet),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Select Destination Rail',
+                style: FlowPayTypography.title(color: FlowPayColors.ink),
+              ),
+            ),
+            ..._countries.map((c) => ListTile(
+                  leading: Text(c.flag, style: const TextStyle(fontSize: 22)),
+                  title: Text(c.name, style: const TextStyle(color: FlowPayColors.ink)),
+                  trailing: c.code == _selectedCountry.code
+                      ? const Icon(Icons.check_circle_rounded, color: FlowPayColors.primary)
+                      : null,
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _selectedCountry = c;
+                      _salaryCtrl.text = c.defaultSalary;
+                    });
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSubmit() async {
-    final first = _firstCtrl.text.trim();
-    final last = _lastCtrl.text.trim();
-    final email = _emailCtrl.text.trim();
-    final salaryStr = _salaryCtrl.text.trim();
-
-    if (first.isEmpty || last.isEmpty || email.isEmpty || salaryStr.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill out all fields.')),
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    final first = _firstCtrl.text.trim();
+    final last = _lastCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
+    final phone = _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null;
+    final salaryStr = _salaryCtrl.text.trim();
 
     setState(() => _isSubmitting = true);
 
     try {
-      final salaryMoney = Money.fromMajorString(salaryStr, _selectedCurrency);
+      final salaryMoney = Money.fromMajorString(salaryStr, _selectedCountry.currency);
       final usdSalary = Money.fromMajorString('2000.00', Currency.usd);
-
-      final countryName = _selectedCountry == 'NG'
-          ? 'Nigeria'
-          : _selectedCountry == 'MX'
-              ? 'Mexico'
-              : 'Canada';
 
       await widget.businessProvider.addEmployee(
         firstName: first,
         lastName: last,
         email: email,
-        country: _selectedCountry,
-        countryName: countryName,
-        targetCurrency: _selectedCurrency,
+        country: _selectedCountry.code,
+        countryName: _selectedCountry.code == 'NG' ? 'Nigeria' : 'Mexico',
+        targetCurrency: _selectedCountry.currency,
         payrollAmount: salaryMoney,
         usdPayrollAmount: usdSalary,
       );
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: FlowPayColors.ink,
-            content: Text(
-              '$first $last onboarded successfully! Smart wallet provisioned.',
-              style: const TextStyle(color: Colors.white),
+        try {
+          BMoniToastOverlay.showSuccess(
+            context: context,
+            title: 'Employee Onboarded',
+            message: '$first $last added with BMONI on-chain identity and smart wallet!',
+          );
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: FlowPayColors.ink,
+              content: Text(
+                '$first $last onboarded successfully! Smart wallet provisioned.',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add employee: $e')),
-        );
+        try {
+          BMoniToastOverlay.showError(
+            context: context,
+            title: 'Onboarding Failed',
+            message: 'Failed to create employee: $e',
+          );
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add employee: $e')),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -127,200 +224,196 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         borderRadius: FlowPayRadii.sheet,
       ),
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24,
+        left: 20,
+        right: 20,
+        top: 20,
         bottom: bottomInset + 24,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Bar
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: FlowPayColors.surfaceAlt,
-                    borderRadius: FlowPayRadii.avatar,
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: FlowPayColors.surfaceAlt,
+                      borderRadius: FlowPayRadii.avatar,
+                    ),
+                    child: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink, size: 20),
                   ),
-                  child: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Add Remote Employee',
+                          style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                        ),
+                        Text(
+                          'Stages: Created → Wallet → KYC → Ready',
+                          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: FlowPayColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Country & Currency Selector using SelectorBottomSheet
+              Text(
+                'DESTINATION COUNTRY & SETTLEMENT RAIL',
+                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: _pickCountry,
+                borderRadius: FlowPayRadii.input,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.surfaceAlt,
+                    borderRadius: FlowPayRadii.input,
+                    border: Border.all(color: FlowPayColors.hairline),
+                  ),
+                  child: Row(
                     children: [
-                      Text(
-                        'Add Remote Team Member',
-                        style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                      Text(_selectedCountry.flag, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedCountry.name,
+                              style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Disbursement currency: ${_selectedCountry.currency.code}',
+                              style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                            ),
+                          ],
+                        ),
                       ),
-                      Text(
-                        'Auto-provisions BMONI smart wallet & card',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
-                      ),
+                      const Icon(Icons.keyboard_arrow_down_rounded, color: FlowPayColors.textSecondary),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, color: FlowPayColors.textSecondary),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+              ),
+              const SizedBox(height: 16),
 
-            // Country & Settlement Rail Selector
-            Text(
-              'DESTINATION COUNTRY & RAIL',
-              style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
-                fontSize: 10,
-                letterSpacing: 0.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: FlowPayColors.surfaceAlt,
-                borderRadius: FlowPayRadii.input,
-                border: Border.all(color: FlowPayColors.hairline),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCountry,
-                  dropdownColor: FlowPayColors.surface,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: FlowPayColors.textSecondary),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'NG',
-                      child: Text('🇳🇬 Nigeria (NGN / CNGN)', style: TextStyle(color: FlowPayColors.ink, fontSize: 14)),
+              // Name Row with BMoniTextFormField.filled
+              Row(
+                children: [
+                  Expanded(
+                    child: BMoniTextFormField.filled(
+                      label: 'First Name',
+                      hintText: 'e.g. Bunch / Samson',
+                      controller: _firstCtrl,
+                      size: BMoniTextFieldSize.medium,
+                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
-                    DropdownMenuItem(
-                      value: 'MX',
-                      child: Text('🇲🇽 Mexico (MXN / MEXe)', style: TextStyle(color: FlowPayColors.ink, fontSize: 14)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: BMoniTextFormField.filled(
+                      label: 'Last Name',
+                      hintText: 'e.g. Dillon / Jabo',
+                      controller: _lastCtrl,
+                      size: BMoniTextFieldSize.medium,
+                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
-                    DropdownMenuItem(
-                      value: 'CA',
-                      child: Text('🇨🇦 Canada (CAD / CADC)', style: TextStyle(color: FlowPayColors.ink, fontSize: 14)),
-                    ),
-                  ],
-                  onChanged: _onCountryChanged,
-                ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Name Fields Row
-            Row(
-              children: [
-                Expanded(
-                  child: _InputField(
-                    label: 'First Name',
-                    controller: _firstCtrl,
-                    hint: 'e.g. Adebayo / Carlos',
+              // Work Email Field with BMoniTextFormField.filled
+              BMoniTextFormField.filled(
+                label: 'Work Email Address',
+                hintText: 'employee@company.com',
+                controller: _emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+                size: BMoniTextFieldSize.medium,
+                prefixIcon: const Icon(Icons.mail_outline_rounded, size: 18),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Email is required';
+                  final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+                  if (!emailRegex.hasMatch(v.trim())) return 'Enter a valid email';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Phone Number (Optional E.164)
+              BMoniTextFormField.filled(
+                label: 'Phone Number (E.164 format)',
+                hintText: _selectedCountry.code == 'NG' ? '+2348011112222' : '+525512345678',
+                controller: _phoneCtrl,
+                keyboardType: TextInputType.phone,
+                size: BMoniTextFieldSize.medium,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 18),
+              ),
+              const SizedBox(height: 16),
+
+              // Monthly Salary Field
+              BMoniTextFormField.filled(
+                label: 'Monthly Net Salary (${_selectedCountry.currency.code})',
+                hintText: '0.00',
+                controller: _salaryCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                size: BMoniTextFieldSize.medium,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  child: Text(
+                    _selectedCountry.currency.symbol,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _InputField(
-                    label: 'Last Name',
-                    controller: _lastCtrl,
-                    hint: 'e.g. Johnson / Silva',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Work Email Field
-            _InputField(
-              label: 'Work Email',
-              controller: _emailCtrl,
-              hint: 'employee@company.com',
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-
-            // Monthly Payroll Amount
-            _InputField(
-              label: 'Monthly Salary (${_selectedCurrency.code})',
-              controller: _salaryCtrl,
-              hint: '0.00',
-              prefixText: '${_selectedCurrency.symbol} ',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            ),
-            const SizedBox(height: 24),
-
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              child: FlowPayButton(
-                text: 'Add Employee & Provision Wallet',
-                icon: Icons.check_circle_rounded,
-                isLoading: _isSubmitting,
-                onPressed: _handleSubmit,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Salary is required';
+                  final numVal = double.tryParse(v.trim());
+                  if (numVal == null || numVal <= 0) return 'Must be a positive amount';
+                  return null;
+                },
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+              const SizedBox(height: 24),
 
-class _InputField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final String hint;
-  final String? prefixText;
-  final TextInputType keyboardType;
-
-  const _InputField({
-    required this.label,
-    required this.controller,
-    required this.hint,
-    this.prefixText,
-    this.keyboardType = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: FlowPayTypography.label(color: FlowPayColors.textSecondary).copyWith(fontSize: 12),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: FlowPayColors.ink, fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: FlowPayColors.textTertiary, fontSize: 13),
-            prefixText: prefixText,
-            prefixStyle: const TextStyle(color: FlowPayColors.ink, fontWeight: FontWeight.bold),
-            filled: true,
-            fillColor: FlowPayColors.surfaceAlt,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: FlowPayRadii.input,
-              borderSide: BorderSide(color: FlowPayColors.hairline),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: FlowPayRadii.input,
-              borderSide: BorderSide(color: FlowPayColors.ink, width: 1.5),
-            ),
+              // Primary Submission Button using BMoniButton
+              SizedBox(
+                width: double.infinity,
+                child: BMoniButton(
+                  onPressed: _isSubmitting ? null : _handleSubmit,
+                  text: 'Create Employee & Provision Rails',
+                  variant: BMoniButtonVariant.primary,
+                  size: BMoniButtonSize.large,
+                  isLoading: _isSubmitting,
+                  icon: Icons.check_circle_rounded,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }

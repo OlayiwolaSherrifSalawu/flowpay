@@ -102,9 +102,43 @@ export interface EmployeeInviteResponse {
   employeeId?: string;
 }
 
+export interface CreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+}
+
+export interface CreateUserResponse {
+  bmoniUserId: string;
+  id?: string;
+  email?: string;
+  phoneNumber?: string;
+  createdAt?: string;
+}
+
+export interface WebhookSubscribeRequest {
+  callbackUrl: string;
+  events: string[];
+  partnerId: string;
+  active?: boolean;
+}
+
+export interface WebhookSubscribeResponse {
+  id: string;
+  partnerId: string;
+  callbackUrl: string;
+  secretKey: string;
+  active: boolean;
+  events: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WebhookDeliveryPayload {
   id: string;
   eventType: string;
   payload: Record<string, unknown>;
   timestamp: string;
 }
+
