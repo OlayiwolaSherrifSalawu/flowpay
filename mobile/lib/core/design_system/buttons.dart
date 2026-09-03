@@ -75,8 +75,8 @@ class FlowPayButton extends StatelessWidget {
         iconSize = 16;
         break;
       case FlowPayButtonSize.medium:
-        padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 13);
-        fontSize = 15;
+        padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+        fontSize = 14;
         iconSize = 18;
         break;
       case FlowPayButtonSize.large:

@@ -201,16 +201,23 @@ class _PayrollScreenState extends State<PayrollScreen> {
                       ),
                       const SizedBox(height: 14),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'BMONI Rail Fee: ${_preview?.totalFeeUsd.formatFormatted() ?? "\$15.00"}',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                          Flexible(
+                            child: Text(
+                              'BMONI Fee: ${_preview?.totalFeeUsd.formatFormatted() ?? "\$15.00"}',
+                              style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          const Spacer(),
-                          Text(
-                            'Saved vs Wire: \$485.00 (96%)',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.signal).copyWith(
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Saved: \$485.00 (96%)',
+                              style: FlowPayTypography.captionStyle(color: FlowPayColors.signal).copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

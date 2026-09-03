@@ -137,7 +137,6 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                       Row(
                         children: [
                           Expanded(
-                            flex: 3,
                             child: FlowPayButton(
                               text: 'Run Payroll',
                               icon: Icons.payments_rounded,
@@ -146,7 +145,6 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            flex: 2,
                             child: FlowPayButton(
                               text: 'Add Employee',
                               isSecondary: true,

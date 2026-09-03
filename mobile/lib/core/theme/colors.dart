@@ -25,8 +25,8 @@ class FlowPayColors {
 
   static const Color purple = BMoniColors.brand400;        // AI / Missions Violet
 
-  // Upstream Fintech Design Aliases
-  static const Color ink = Color(0xFF0D2E2A);
+  // Upstream Fintech Design Aliases (Harmonized with BMoni UI Kit)
+  static const Color ink = BMoniColors.grey50; // High-contrast readable white on obsidian
   static const Color signal = BMoniColors.accent400;
   static const Color amber = BMoniColors.warning400;
   static const Color canvas = BMoniColors.offbrand950;
