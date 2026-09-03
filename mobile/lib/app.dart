@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'core/state/app_state.dart';
+import 'core/theme/app_theme.dart';
 import 'core/theme/colors.dart';
+import 'core/theme/components.dart';
+import 'core/theme/radii.dart';
 import 'core/theme/typography.dart';
 import 'modules/business/business_activity_screen.dart';
 import 'modules/business/business_dashboard_screen.dart';
@@ -58,140 +61,220 @@ class _FlowPayAppState extends State<FlowPayApp> {
     return MaterialApp(
       title: 'FlowPay',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: FlowPayColors.background,
-        primaryColor: FlowPayColors.primary,
-        colorScheme: const ColorScheme.dark(
-          primary: FlowPayColors.primary,
-          secondary: FlowPayColors.accent,
-          surface: FlowPayColors.surface,
-          background: FlowPayColors.background,
-        ),
-      ),
+      theme: FlowPayTheme.lightTheme,
       home: Scaffold(
-        drawer: Drawer(
-          backgroundColor: FlowPayColors.surfaceElevated,
+        backgroundColor: FlowPayColors.canvas,
+        appBar: AppBar(
+          backgroundColor: FlowPayColors.canvas,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleSpacing: 16,
+          title: Row(
+            children: [
+              Text(
+                'FlowPay',
+                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SegmentedRoleSwitch(
+                isPersonal: isPersonal,
+                onRoleChanged: (personal) {
+                  appState.setRole(personal ? AppRole.personal : AppRole.business);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            if (appState.isDemo) ...[
+              const Center(child: DemoPill()),
+              const SizedBox(width: 8),
+            ],
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.tune_rounded, color: FlowPayColors.ink),
+                onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                tooltip: 'Settings & Environment',
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        endDrawer: Drawer(
+          backgroundColor: FlowPayColors.surface,
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: FlowPayColors.surface),
+                decoration: const BoxDecoration(color: FlowPayColors.surfaceAlt),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('FLOWPAY', style: FlowPayTypography.headingLg),
-                    const SizedBox(height: 4),
                     Text(
-                      'Your money. Your rules. AI executes.',
-                      style: FlowPayTypography.caption.copyWith(color: FlowPayColors.textSecondary),
+                      'FLOWPAY',
+                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'One Employer. Many Countries. One Bill.',
+                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
                     ),
                   ],
                 ),
               ),
               ListTile(
-                leading: const Icon(Icons.swap_horiz, color: FlowPayColors.primaryLight),
-                title: const Text('Role: Personal / Business'),
+                leading: const Icon(Icons.swap_horiz_rounded, color: FlowPayColors.ink),
+                title: const Text('Active Surface', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
-                  isPersonal ? 'Active: Personal Mode' : 'Active: Business Mode',
+                  isPersonal ? 'Personal Wallet & Missions' : 'Business Multi-Rail Payroll',
                   style: const TextStyle(color: FlowPayColors.textSecondary),
                 ),
-                onTap: () {
-                  appState.setRole(isPersonal ? AppRole.business : AppRole.personal);
-                  Navigator.pop(context);
-                },
+                trailing: SegmentedRoleSwitch(
+                  isPersonal: isPersonal,
+                  onRoleChanged: (personal) {
+                    appState.setRole(personal ? AppRole.personal : AppRole.business);
+                    Navigator.pop(context);
+                  },
+                ),
               ),
-              const Divider(color: FlowPayColors.border),
+              const Divider(color: FlowPayColors.hairline),
               ListTile(
                 leading: Icon(
                   Icons.layers_outlined,
-                  color: appState.isDemo ? FlowPayColors.warning : FlowPayColors.accent,
+                  color: appState.isDemo ? FlowPayColors.amber : FlowPayColors.signal,
                 ),
-                title: const Text('Provider Mode'),
+                title: const Text('Provider Mode', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
-                  appState.isDemo ? '● Deterministic Demo' : '● BMONI Sandbox Live',
+                  appState.isDemo ? '● Deterministic Demo Mode' : '● BMONI Live Sandbox',
                   style: TextStyle(
-                    color: appState.isDemo ? FlowPayColors.warning : FlowPayColors.accent,
+                    color: appState.isDemo ? const Color(0xFFB45309) : FlowPayColors.signal,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 trailing: Switch.adaptive(
                   value: !appState.isDemo,
-                  activeColor: FlowPayColors.accent,
+                  activeColor: FlowPayColors.signal,
                   onChanged: (val) {
                     appState.setProviderMode(val ? ProviderMode.bmoniSandbox : ProviderMode.demo);
                   },
+                ),
+              ),
+              const Divider(color: FlowPayColors.hairline),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.surfaceAlt,
+                    borderRadius: FlowPayRadii.input,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'BMONI Rails Active',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: FlowPayColors.ink),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Nigeria (NGN / CNGN)\nMexico (MXN / MEXe)\nCanada (CAD / CADC)',
+                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
         body: isPersonal ? personalScreens[_personalIndex] : businessScreens[_businessIndex],
-        bottomNavigationBar: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            backgroundColor: FlowPayColors.surface,
-            indicatorColor: FlowPayColors.primary.withOpacity(0.2),
-            labelTextStyle: MaterialStateProperty.all(
-              const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: FlowPayColors.textSecondary),
-            ),
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: FlowPayColors.hairline, width: 1)),
           ),
-          child: isPersonal
-              ? NavigationBar(
-                  selectedIndex: _personalIndex,
-                  onDestinationSelected: (i) => setState(() => _personalIndex = i),
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home, color: FlowPayColors.primaryLight),
-                      label: 'Overview',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.account_balance_wallet_outlined),
-                      selectedIcon: Icon(Icons.account_balance_wallet, color: FlowPayColors.primaryLight),
-                      label: 'Wallets',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.bolt_outlined),
-                      selectedIcon: Icon(Icons.bolt, color: FlowPayColors.primaryLight),
-                      label: 'Missions',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.history_outlined),
-                      selectedIcon: Icon(Icons.history, color: FlowPayColors.primaryLight),
-                      label: 'Activity',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.shield_outlined),
-                      selectedIcon: Icon(Icons.shield, color: FlowPayColors.primaryLight),
-                      label: 'Security',
-                    ),
-                  ],
-                )
-              : NavigationBar(
-                  selectedIndex: _businessIndex,
-                  onDestinationSelected: (i) => setState(() => _businessIndex = i),
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      selectedIcon: Icon(Icons.dashboard, color: FlowPayColors.primaryLight),
-                      label: 'Overview',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.people_outline),
-                      selectedIcon: Icon(Icons.people, color: FlowPayColors.primaryLight),
-                      label: 'Team',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.payments_outlined),
-                      selectedIcon: Icon(Icons.payments, color: FlowPayColors.primaryLight),
-                      label: 'Payroll',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.receipt_long_outlined),
-                      selectedIcon: Icon(Icons.receipt_long, color: FlowPayColors.primaryLight),
-                      label: 'Audit',
-                    ),
-                  ],
-                ),
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              backgroundColor: FlowPayColors.surface,
+              indicatorColor: FlowPayColors.ink.withOpacity(0.08),
+              labelTextStyle: MaterialStateProperty.resolveWith((states) {
+                if (states.contains(MaterialState.selected)) {
+                  return const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: FlowPayColors.ink,
+                  );
+                }
+                return const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: FlowPayColors.textSecondary,
+                );
+              }),
+            ),
+            child: isPersonal
+                ? NavigationBar(
+                    selectedIndex: _personalIndex,
+                    onDestinationSelected: (i) => setState(() => _personalIndex = i),
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded, color: FlowPayColors.ink),
+                        label: 'Overview',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.account_balance_wallet_outlined),
+                        selectedIcon: Icon(Icons.account_balance_wallet_rounded, color: FlowPayColors.ink),
+                        label: 'Wallets',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.bolt_outlined),
+                        selectedIcon: Icon(Icons.bolt_rounded, color: FlowPayColors.ink),
+                        label: 'Missions',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.history_outlined),
+                        selectedIcon: Icon(Icons.history_rounded, color: FlowPayColors.ink),
+                        label: 'Activity',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.shield_outlined),
+                        selectedIcon: Icon(Icons.shield_rounded, color: FlowPayColors.ink),
+                        label: 'Security',
+                      ),
+                    ],
+                  )
+                : NavigationBar(
+                    selectedIndex: _businessIndex,
+                    onDestinationSelected: (i) => setState(() => _businessIndex = i),
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard_rounded, color: FlowPayColors.ink),
+                        label: 'Overview',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.people_outline_rounded),
+                        selectedIcon: Icon(Icons.people_rounded, color: FlowPayColors.ink),
+                        label: 'Team',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.payments_outlined),
+                        selectedIcon: Icon(Icons.payments_rounded, color: FlowPayColors.ink),
+                        label: 'Payroll',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.receipt_long_outlined),
+                        selectedIcon: Icon(Icons.receipt_long_rounded, color: FlowPayColors.ink),
+                        label: 'Audit',
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

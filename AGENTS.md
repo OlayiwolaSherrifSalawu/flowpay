@@ -25,6 +25,10 @@ Whenever you create, refactor, or complete any feature, component, API, or syste
 - **Create Subsystem Skills for Substantial Modules**:
   - Whenever a major subsystem is introduced (e.g., frontend, smart contracts, backend/indexer, payment engine), create `.agents/skills/<module-name>/SKILL.md` using the template at [MODULE_SKILL_TEMPLATE.md](file:///.agents/skills/templates/MODULE_SKILL_TEMPLATE.md).
 
+### 3. Official BMONI Documentation & API Key Protocol
+- **Single Source of Truth**: Always consult the official BMONI documentation at [bkey.mintlify.app](https://bkey.mintlify.app/) and its machine-readable index at [bkey.mintlify.app/llms.txt](https://bkey.mintlify.app/llms.txt) prior to implementing any BMONI feature, endpoint, or SDK integration.
+- **Explicit API Key Requests**: Never invent fake API keys or hardcode placeholder secrets for BMONI production/sandbox environments. Whenever an implementation requires an API key, webhook secret, or partner credential, explicitly ask the user for it.
+
 ---
 
 ## 👥 Multi-Developer Team Standards

@@ -35,6 +35,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 | **Backend / API** | Node.js (v20+), Express, TypeScript (ESM) | Complete modular backend in `backend/` |
 | **Database** | SQLite (`better-sqlite3`), WAL mode, relational schema | Active in `backend/flowpay.db` |
 | **Infrastructure** | BMONI Embedded REST Sandbox (`https://embedded-dev.bmoni.com`), Origin-only base URL | Integrated with client & raw HMAC webhooks |
+| **BMONI Docs & Specs** | [bkey.mintlify.app](https://bkey.mintlify.app/) (LLM Index: [/llms.txt](https://bkey.mintlify.app/llms.txt)) | Official docs & API specs; prompt user for any required keys |
 | **Provider Layer** | `DemoProvider` & `BMONIProvider` conforming to shared interfaces | Active with instant sandbox test personas |
 
 ---
@@ -68,6 +69,20 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 * [x] **Scaffolded Module Boundaries**:
   * **Personal**: Dashboard, Wallets, Money Missions ("Your money. Your rules. AI executes."), Send Money with PIN approval, Personal Activity, Personal Security.
   * **Business**: Business Dashboard, Global Team Roster, Employee Detail, Multi-country Payroll Orchestrator ("One Employer, Many Countries, One Bill"), Corporate Audit.
+* [x] **FlowPay Business Employer Dashboard**:
+  * Core value message: *"One Employer. Many Countries. One Bill."*
+  * Domain state coordinator: `BusinessProvider` (`mobile/lib/core/state/business_provider.dart`) decoupling widgets from direct API calls with deterministic demo data.
+  * 6 Employer metrics grid: Total payroll, employee count, countries, pending payroll, employee status, wallet/card status.
+  * Employee Preview with rich model: Name, Country, Currency, Payroll amount, Onboarding status, Wallet status, Card status across Nigeria 🇳🇬 (NGN), Mexico 🇲🇽 (MXN), and Canada 🇨🇦 (CAD).
+  * Primary action: Run Payroll (triggers on-device B-Key signing and multi-rail fan-out).
+  * Secondary action: Add Employee (`AddEmployeeModal` with instant local wallet & card provisioning).
+* [x] **Design System Polish & design.md Alignment**:
+  * Complete light-canvas fintech aesthetic matching Wise & Mercury guidelines in [design.md](file:///design.md).
+  * Exact tokens in `colors.dart`: `ink` (`#0D2E2A`), `signal` (`#00C48A`), `amber` (`#F4B740`), `canvas` (`#FAFAF7`), `surface` (`#FFFFFF`), `hairline` (`#E6E4DE`).
+  * Locked corner radii in `radii.dart`: Universal pill (`9999`) on all buttons & chips, `20` on cards, `24` on sheets, `12` on inputs.
+  * Inter typography with `FontFeature.tabularFigures()` on all monetary figures in `typography.dart` to prevent balance jitter.
+  * Physical `VirtualCardObject` with 1.586 aspect ratio, amber fill, Mastercard logo, and soft physical shadow (`0x1A0D2E2A`, blur 24, offset (0, 8)).
+  * Revolut-style `[ Personal | Business ]` pill segmented control and amber `Demo` pill indicator in `app.dart`.
 
 ---
 

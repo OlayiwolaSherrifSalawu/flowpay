@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
-import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
+import '../../core/state/business_provider.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
+import '../../core/theme/radii.dart';
 import '../../core/theme/typography.dart';
+import 'components/add_employee_modal.dart';
+import 'components/business_metrics_grid.dart';
+import 'components/employee_preview_card.dart';
+import 'components/hero_bill_card.dart';
+import 'employee_detail_screen.dart';
 import 'employees_screen.dart';
 import 'payroll_screen.dart';
 
+/// FlowPay Business — Employer Dashboard Screen
+/// Conforms to design.md §3.1, §3.4, §3.5, §4.4 & §6:
+/// - Light canvas background (#FAFAF7)
+/// - Universal pill buttons & chips (9999)
+/// - One primary CTA: "Run Payroll" (one verb per action)
+/// - 6 employer operating metrics and 7 employee preview attributes
 class BusinessDashboardScreen extends StatefulWidget {
+  static const String routeName = '/business-dashboard';
   final AppState appState;
 
   const BusinessDashboardScreen({Key? key, required this.appState}) : super(key: key);
@@ -17,179 +30,297 @@ class BusinessDashboardScreen extends StatefulWidget {
 }
 
 class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
-  List<EmployeeModel> employees = [];
-  bool isLoading = true;
+  String _selectedCountryFilter = 'ALL';
 
   @override
   void initState() {
     super.initState();
-    _load();
+    // Load deterministic business data through BusinessProvider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.appState.businessProvider.loadDashboard();
+    });
   }
 
-  Future<void> _load() async {
-    setState(() => isLoading = true);
-    final emps = await widget.appState.employeeRepo.getEmployees();
-    setState(() {
-      employees = emps;
-      isLoading = false;
-    });
+  void _onRunPayroll() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PayrollScreen(appState: widget.appState),
+      ),
+    );
+  }
+
+  void _onAddEmployee() {
+    AddEmployeeModal.show(context, widget.appState.businessProvider);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: FlowPayColors.background,
-      appBar: AppBar(
-        backgroundColor: FlowPayColors.background,
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('FlowPay Business', style: FlowPayTypography.headingSm),
-            Text(
-              widget.appState.isDemo ? '● Demo Provider' : '● BMONI Sandbox Live',
-              style: TextStyle(
-                fontSize: 12,
-                color: widget.appState.isDemo ? FlowPayColors.warning : FlowPayColors.accent,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: FlowPayColors.primary))
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  // 10x Hook Banner Card
-                  FlowPayCard(
-                    backgroundColor: FlowPayColors.surfaceElevated,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: const [
-                            Icon(Icons.public, color: FlowPayColors.accentLight),
-                            SizedBox(width: 8),
-                            Text('One Employer, Many Countries, One Bill', style: FlowPayTypography.headingSm),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Disburse international payroll to Nigeria (NGN) & Mexico (MXN) with instant spend cards — funded in one aggregate USD click.',
-                          style: FlowPayTypography.bodyMd,
-                        ),
-                        const SizedBox(height: 16),
-                        FlowPayButton(
-                          text: 'Open Payroll Orchestrator',
-                          icon: Icons.payments_outlined,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PayrollScreen(appState: widget.appState),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+    return AnimatedBuilder(
+      animation: widget.appState.businessProvider,
+      builder: (context, _) {
+        final provider = widget.appState.businessProvider;
+        final employees = provider.employees;
+        final isLoading = provider.isLoading && employees.isEmpty;
+
+        final filteredEmployees = _selectedCountryFilter == 'ALL'
+            ? employees
+            : employees.where((e) => e.country.toUpperCase() == _selectedCountryFilter).toList();
+
+        return Scaffold(
+          backgroundColor: FlowPayColors.canvas,
+          appBar: AppBar(
+            backgroundColor: FlowPayColors.canvas,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Business Dashboard',
+                  style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: widget.appState.isDemo ? FlowPayColors.amber : FlowPayColors.signal,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Quick Stats Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FlowPayCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Active Team', style: FlowPayTypography.caption),
-                              const SizedBox(height: 8),
-                              Text('${employees.length} Members', style: FlowPayTypography.headingSm),
-                              const SizedBox(height: 4),
-                              Text('2 Countries (NG, MX)', style: FlowPayTypography.caption.copyWith(color: FlowPayColors.accentLight)),
-                            ],
-                          ),
-                        ),
+                    const SizedBox(width: 5),
+                    Text(
+                      widget.appState.isDemo ? 'Deterministic Demo • BusinessProvider' : 'BMONI Sandbox Live',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: widget.appState.isDemo ? const Color(0xFFB45309) : FlowPayColors.signal,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FlowPayCard(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Monthly Run', style: FlowPayTypography.caption),
-                              const SizedBox(height: 8),
-                              Text('\$4,000.00', style: FlowPayTypography.headingSm),
-                              const SizedBox(height: 4),
-                              Text('Fee: \$12 (Saved \$328)', style: FlowPayTypography.caption.copyWith(color: FlowPayColors.accentLight)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Team Roster Preview Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink),
+                tooltip: 'Add Employee',
+                onPressed: _onAddEmployee,
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, color: FlowPayColors.textSecondary),
+                tooltip: 'Refresh',
+                onPressed: provider.refresh,
+              ),
+            ],
+          ),
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator(color: FlowPayColors.ink))
+              : RefreshIndicator(
+                  onRefresh: provider.refresh,
+                  color: FlowPayColors.ink,
+                  backgroundColor: FlowPayColors.surface,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     children: [
-                      Text('Linked Team Members', style: FlowPayTypography.headingSm),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EmployeesScreen(appState: widget.appState),
+                      // 1. Core Hook Hero Card: "One Employer. Many Countries. One Bill."
+                      HeroBillCard(
+                        businessProvider: provider,
+                        onRunPayroll: _onRunPayroll,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 2. Action Controls Bar (Primary: Run Payroll, Secondary: Add Employee)
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: FlowPayButton(
+                              text: 'Run Payroll',
+                              icon: Icons.payments_rounded,
+                              onPressed: _onRunPayroll,
                             ),
-                          );
-                        },
-                        child: const Text('View All', style: TextStyle(color: FlowPayColors.primaryLight)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: FlowPayButton(
+                              text: 'Add Employee',
+                              isSecondary: true,
+                              icon: Icons.person_add_rounded,
+                              onPressed: _onAddEmployee,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+                      const SizedBox(height: 24),
 
-                  ...employees.map((e) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: FlowPayCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      // 3. Core Employer Metrics Grid
+                      Row(
+                        children: [
+                          const Icon(Icons.analytics_outlined, size: 18, color: FlowPayColors.ink),
+                          const SizedBox(width: 8),
+                          Text(
+                            'EMPLOYER OPERATING METRICS',
+                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                              letterSpacing: 0.8,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      BusinessMetricsGrid(businessProvider: provider),
+                      const SizedBox(height: 28),
+
+                      // 4. Employee Preview Header with Country Filters
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'EMPLOYEE PREVIEW',
+                                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${filteredEmployees.length} remote team members linked',
+                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.arrow_forward_rounded, size: 14, color: FlowPayColors.ink),
+                            label: const Text(
+                              'Full Roster',
+                              style: TextStyle(color: FlowPayColors.ink, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EmployeesScreen(appState: widget.appState),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Country Filter Pills (Universal pill radius 9999)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              backgroundColor: FlowPayColors.surfaceElevated,
-                              child: Text(
-                                e.country,
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
+                            _FilterChip(
+                              label: 'All (${employees.length})',
+                              isSelected: _selectedCountryFilter == 'ALL',
+                              onSelected: () => setState(() => _selectedCountryFilter = 'ALL'),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(e.fullName, style: FlowPayTypography.bodyLg),
-                                  Text(e.email, style: FlowPayTypography.caption),
-                                ],
-                              ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: '🇳🇬 Nigeria (NGN)',
+                              isSelected: _selectedCountryFilter == 'NG',
+                              onSelected: () => setState(() => _selectedCountryFilter = 'NG'),
                             ),
-                            StatusBadge(status: e.status),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: '🇲🇽 Mexico (MXN)',
+                              isSelected: _selectedCountryFilter == 'MX',
+                              onSelected: () => setState(() => _selectedCountryFilter = 'MX'),
+                            ),
+                            const SizedBox(width: 8),
+                            _FilterChip(
+                              label: '🇨🇦 Canada (CAD)',
+                              isSelected: _selectedCountryFilter == 'CA',
+                              onSelected: () => setState(() => _selectedCountryFilter = 'CA'),
+                            ),
                           ],
                         ),
                       ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            ),
+                      const SizedBox(height: 16),
+
+                      // 5. Employee Preview List
+                      if (filteredEmployees.isEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: EmptyStateWidget(
+                            icon: Icons.person_off_outlined,
+                            title: 'No Employees in Selected Filter',
+                            description: 'Add an employee to this jurisdiction or switch filter to All.',
+                          ),
+                        ),
+                      ] else ...[
+                        ...filteredEmployees.map((emp) {
+                          return EmployeePreviewCard(
+                            employee: emp,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EmployeeDetailScreen(
+                                    appState: widget.appState,
+                                    employee: emp,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        }).toList(),
+                      ],
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onSelected;
+
+  const _FilterChip({
+    Key? key,
+    required this.label,
+    required this.isSelected,
+    required this.onSelected,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: FlowPayRadii.chip,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? FlowPayColors.ink : FlowPayColors.surfaceAlt,
+          borderRadius: FlowPayRadii.chip,
+          border: Border.all(
+            color: isSelected ? FlowPayColors.ink : FlowPayColors.hairline,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? Colors.white : FlowPayColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 }

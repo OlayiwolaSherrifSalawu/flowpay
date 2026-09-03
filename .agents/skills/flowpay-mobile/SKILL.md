@@ -25,7 +25,12 @@ description: >-
   - `EmployeeRepository`
   - `PayrollRepository`
 - `lib/core/providers/`: Concrete implementations for `demo/` (deterministic sandbox test data) and `bmoni/` (talking through backend proxy).
-- `lib/core/theme/`: Design tokens, colors (`colors.dart`), tabular number typography (`typography.dart`), reusable cards, buttons, badges (`components.dart`).
+- `lib/core/theme/`: Design tokens conforming to `design.md`:
+  - `colors.dart`: Palette (`ink`, `signal`, `amber`, `canvas`, `surface`, `hairline`).
+  - `radii.dart`: Locked radii (`button: 9999`, `card: 20`, `sheet: 24`, `input: 12`, `chip: 9999`).
+  - `typography.dart`: Inter hierarchy with `FontFeature.tabularFigures()` for all monetary balances.
+  - `app_theme.dart`: `FlowPayTheme.lightTheme` with `FlowPayTokens` extension.
+  - `components.dart`: `FlowPayCard`, `FlowPayButton`, `VirtualCardObject`, `DemoPill`, `SegmentedRoleSwitch`, `StatusBadge`.
 - `lib/modules/personal/`: Personal Dashboard, Wallets, Money Missions, Send Money, Activity, Security.
 - `lib/modules/business/`: Business Dashboard, Global Team, Employee Detail, Multi-country Payroll ("One Employer, Many Countries, One Bill"), Audit.
 - `lib/app.dart`: Application shell with instant role switcher (Personal vs Business) and provider mode toggle (Demo vs BMONI).
@@ -36,7 +41,10 @@ description: >-
 - [x] Full directory architecture and dependency contracts configured.
 - [x] BMONI SDK wrapper enforcing on-device key management with non-native test fallback.
 - [x] Complete provider abstraction separating Demo and BMONI backends.
-- [x] Pre-loaded sandbox personas (Bunch Dillon & Samson Jabo).
+- [x] Pre-loaded sandbox personas (Bunch Dillon [NGN], Samson Jabo [MXN], Liam Tremblay [CAD]).
+- [x] Dedicated `BusinessProvider` (`lib/core/state/business_provider.dart`) state coordinator managing dashboard metrics and payroll execution.
+- [x] FlowPay Business Employer Dashboard with "One Employer. Many Countries. One Bill." hero card, metrics grid, employee preview with 7 attributes, and primary (Run Payroll) & secondary (Add Employee) actions.
+- [x] Design System Polish conforming to `design.md`: light canvas (`#FAFAF7`), FlowPay Ink (`#0D2E2A`), Signal Green (`#00C48A`), FlowPay Amber (`#F4B740`), universal pill buttons (`9999`), 20dp card radius, zero drop shadows, and tabular monetary figures.
 - [x] Scaffolding for all 11 required screens across Personal and Business modules.
 
 ---

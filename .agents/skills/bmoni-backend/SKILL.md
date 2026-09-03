@@ -11,6 +11,8 @@ description: >-
 - **What it does**: Acts as the secure financial relay between the FlowPay Flutter client and the BMONI financial infrastructure.
 - **Why it exists**: The Flutter client must **NEVER** hold partner API keys. The backend holds partner credentials, executes BMONI API calls, verifies incoming webhooks with HMAC-SHA256, stores FlowPay business metadata in SQLite, and orchestrates multi-country payroll.
 - **Key dependencies**: `express`, `better-sqlite3`, `zod`, `dotenv`.
+- **Official BMONI Documentation**: [bkey.mintlify.app](https://bkey.mintlify.app/) (Index: [/llms.txt](https://bkey.mintlify.app/llms.txt)).
+- **API Key Protocol**: Never use fake placeholder API keys. When live BMONI partner credentials or webhook secrets are required for an implementation, always prompt the user directly.
 
 ---
 
