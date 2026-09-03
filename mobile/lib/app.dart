@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/auth/app_auth_gate.dart';
 import 'core/design_system/design_system.dart';
 import 'core/navigation/app_router.dart';
@@ -40,7 +41,7 @@ class _FlowPayAppState extends State<FlowPayApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    final app = MaterialApp(
       title: 'FlowPay',
       debugShowCheckedModeBanner: false,
       themeMode: _appState.themeMode,
@@ -52,5 +53,12 @@ class _FlowPayAppState extends State<FlowPayApp> {
         businessShell: BusinessShell(),
       ),
     );
+
+    try {
+      ProviderScope.containerOf(context, listen: false);
+      return app;
+    } catch (_) {
+      return ProviderScope(child: app);
+    }
   }
 }
