@@ -11,10 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # BMONI Flutter Ecosystem
-  bmoni_embedded_sdk: ^0.0.2
+  # BMONI Flutter UI Kit (Theme, tokens, BMoniWalletCard, typography, components)
   bkey_uikit: ^0.0.1
-  bmoni_embedded_wallets_cards: ^0.0.1
 
   # State Management & DI
   flutter_riverpod: ^3.2.1
@@ -22,6 +20,7 @@ dependencies:
   # Networking & Serialization
   http: ^1.2.0
   intl: ^0.19.0
+  crypto: ^3.0.7
 
   # Secure Storage (Never stores private keys — stores session & bmoniUserId)
   flutter_secure_storage: ^10.0.0

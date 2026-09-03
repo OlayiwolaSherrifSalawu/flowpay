@@ -80,6 +80,12 @@ class Money {
   bool get isZero => amountMinor == BigInt.zero;
   bool get isPositive => amountMinor > BigInt.zero;
 
+  /// Minor units as integer (e.g., 1050)
+  int get minorUnits => amountMinor.toInt();
+
+  /// Major units as double (e.g., 10.50)
+  double get majorUnits => double.parse(toMajorString());
+
   /// Returns standard major string (e.g., "1250.50")
   String toMajorString() {
     final isNegative = amountMinor < BigInt.zero;

@@ -23,6 +23,7 @@ enum ProviderMode { demo, bmoniSandbox }
 class AppState extends ChangeNotifier {
   AppRole _activeRole = AppRole.personal;
   ProviderMode _providerMode = ProviderMode.demo;
+  ThemeMode _themeMode = ThemeMode.dark;
 
   final FlowPayApiClient _apiClient = FlowPayApiClient();
 
@@ -57,7 +58,9 @@ class AppState extends ChangeNotifier {
 
   AppRole get activeRole => _activeRole;
   ProviderMode get providerMode => _providerMode;
+  ThemeMode get themeMode => _themeMode;
   bool get isDemo => _providerMode == ProviderMode.demo;
+  bool get isDarkMode => _themeMode == ThemeMode.dark;
 
   // Active Repositories conforming to shared interfaces
   WalletRepository get walletRepo => isDemo ? _demoWallet : _bmoniWallet;
@@ -76,10 +79,25 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  void toggleRole() {
+    setRole(_activeRole == AppRole.personal ? AppRole.business : AppRole.personal);
+  }
+
   void setProviderMode(ProviderMode mode) {
     if (_providerMode != mode) {
       _providerMode = mode;
       notifyListeners();
     }
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    if (_themeMode != mode) {
+      _themeMode = mode;
+      notifyListeners();
+    }
+  }
+
+  void toggleTheme() {
+    setThemeMode(_themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
   }
 }
