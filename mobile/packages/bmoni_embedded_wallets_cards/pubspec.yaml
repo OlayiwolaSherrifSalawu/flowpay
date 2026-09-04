@@ -1,0 +1,18 @@
+name: bmoni_embedded_wallets_cards
+description: "Model-aware wallet card widgets, Riverpod notifiers, and pluggable data contracts for BMONI Embedded."
+version: 0.0.1
+homepage: https://bkey.mintlify.app
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.2.1
+  bkey_uikit: ^0.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

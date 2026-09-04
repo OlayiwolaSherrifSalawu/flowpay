@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
 import { prisma } from '../db/index.js';
-import type { Prisma } from '@prisma/client';
 import type { WebhookDeliveryPayload } from './types.js';
 
 export class BmoniWebhookService {
@@ -162,7 +161,7 @@ export class BmoniWebhookService {
           category,
           action,
           actor,
-          detailsJson: details as Prisma.InputJsonValue,
+          detailsJson: details as any,
         },
       });
     } catch (err) {

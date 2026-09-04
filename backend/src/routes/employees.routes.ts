@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { EmployeeService } from '../modules/employees/service.js';
+import { EmployeeOnboardingService } from '../modules/employees/onboarding.service.js';
 
 export const employeesRouter = Router();
 
@@ -117,3 +118,124 @@ employeesRouter.patch('/:id/status', async (req, res, next) => {
     next(err);
   }
 });
+
+// =========================================================================
+// BMONI MULTI-STAGE ONBOARDING ENDPOINTS (Stages 2, 3, 4)
+// =========================================================================
+
+// POST /api/employees/:id/onboarding/challenge - Stage 2: Request Owner Proof Challenge
+employeesRouter.post('/:id/onboarding/challenge', async (req, res, next) => {
+  try {
+    const { userOwnerAddress } = req.body;
+    const challenge = await EmployeeOnboardingService.requestOwnerChallenge(req.params.id, userOwnerAddress);
+    res.json({ success: true, data: challenge });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/wallet - Stage 2: Deploy Managed Smart Wallet
+employeesRouter.post('/:id/onboarding/wallet', async (req, res, next) => {
+  try {
+    const { userOwnerAddress, ownerProofChallengeId, ownerProofSignature } = req.body;
+    const result = await EmployeeOnboardingService.provisionSmartWallet(req.params.id, {
+      userOwnerAddress,
+      ownerProofChallengeId,
+      ownerProofSignature,
+    });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/:id/onboarding/kyc/options - Stage 3: Get KYC options
+employeesRouter.get('/:id/onboarding/kyc/options', async (req, res, next) => {
+  try {
+    const options = await EmployeeOnboardingService.getKycOptions(req.params.id);
+    res.json({ success: true, data: options });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/kyc/submit - Stage 3: Submit Country-Specific KYC
+employeesRouter.post('/:id/onboarding/kyc/submit', async (req, res, next) => {
+  try {
+    const result = await EmployeeOnboardingService.submitCountryKyc(req.params.id, req.body);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/:id/onboarding/kyc/readiness - Stage 3: Check readiness gate
+employeesRouter.get('/:id/onboarding/kyc/readiness', async (req, res, next) => {
+  try {
+    const readiness = await EmployeeOnboardingService.checkKycReadiness(req.params.id);
+    res.json({ success: true, data: readiness });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/kyc/activate - Stage 3: Activate KYC
+employeesRouter.post('/:id/onboarding/kyc/activate', async (req, res, next) => {
+  try {
+    const result = await EmployeeOnboardingService.activateKyc(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/:id/onboarding/mx/agreements - Stage 4 (Mexico): Fetch Etherfuse agreements
+employeesRouter.get('/:id/onboarding/mx/agreements', async (req, res, next) => {
+  try {
+    const agreements = await EmployeeOnboardingService.getMexicoAgreements(req.params.id);
+    res.json({ success: true, data: agreements });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/activate-rail - Stage 4: Activate Country Rail
+employeesRouter.post('/:id/onboarding/activate-rail', async (req, res, next) => {
+  try {
+    const result = await EmployeeOnboardingService.activateRail(req.params.id, req.body);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/employees/:id/onboarding/status - Aggregate status across stages 2/3/4
+employeesRouter.get('/:id/onboarding/status', async (req, res, next) => {
+  try {
+    const status = await EmployeeOnboardingService.getOnboardingStatus(req.params.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/retry - Retry failed or pending stage
+employeesRouter.post('/:id/onboarding/retry', async (req, res, next) => {
+  try {
+    const status = await EmployeeOnboardingService.retryStage(req.params.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/onboarding/simulate-complete - Sandbox webhook completion simulation
+employeesRouter.post('/:id/onboarding/simulate-complete', async (req, res, next) => {
+  try {
+    const status = await EmployeeOnboardingService.simulateOnboardingCompleted(req.params.id);
+    res.json({ success: true, data: status });
+  } catch (err) {
+    next(err);
+  }
+});
+

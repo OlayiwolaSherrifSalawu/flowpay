@@ -1,5 +1,6 @@
 import '../money/money.dart';
 import '../money/currency.dart';
+import '../wallets_cards/bmoni_embedded_wallets_cards.dart';
 
 class WalletAccount {
   final String id;
@@ -19,8 +20,20 @@ class WalletAccount {
   });
 }
 
-abstract class WalletRepository {
+/// WalletRepository is a thin wrapper that directly implements
+/// [EmbeddedWalletReadDataSource], [EmbeddedWalletStorage], and [EmbeddedWalletBalanceCache]
+/// from bmoni_embedded_wallets_cards, while preserving backward-compatible convenience methods.
+abstract class WalletRepository
+    implements
+        EmbeddedWalletReadDataSource,
+        EmbeddedWalletStorage,
+        EmbeddedWalletBalanceCache {
+  // Legacy / convenience helpers
   Future<List<WalletAccount>> getWallets();
   Future<List<Money>> getBalances();
-  Future<String> createManagedWallet({required Currency currency, required String ownerAddress});
+  Future<String> createManagedWallet({
+    required Currency currency,
+    required String ownerAddress,
+  });
 }
+

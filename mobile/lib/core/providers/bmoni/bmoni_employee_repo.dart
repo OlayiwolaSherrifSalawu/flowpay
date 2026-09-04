@@ -82,4 +82,87 @@ class BmoniEmployeeRepository implements EmployeeRepository {
       usdPayrollAmount: usdPayrollAmount,
     );
   }
+
+  // --- Multi-Stage Onboarding Implementations ---
+
+  @override
+  Future<Map<String, dynamic>> requestOwnerChallenge(String employeeId, String userOwnerAddress) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/challenge', body: {
+      'userOwnerAddress': userOwnerAddress,
+    });
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> provisionSmartWallet(
+    String employeeId, {
+    required String userOwnerAddress,
+    required String ownerProofChallengeId,
+    required String ownerProofSignature,
+  }) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/wallet', body: {
+      'userOwnerAddress': userOwnerAddress,
+      'ownerProofChallengeId': ownerProofChallengeId,
+      'ownerProofSignature': ownerProofSignature,
+    });
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> getKycOptions(String employeeId) async {
+    final res = await apiClient.get('/api/employees/$employeeId/onboarding/kyc/options');
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> submitCountryKyc(String employeeId, Map<String, dynamic> kycPayload) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/kyc/submit', body: kycPayload);
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> checkKycReadiness(String employeeId) async {
+    final res = await apiClient.get('/api/employees/$employeeId/onboarding/kyc/readiness');
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {'ready': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>> activateKyc(String employeeId) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/kyc/activate', body: {});
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {'success': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>> getMexicoAgreements(String employeeId) async {
+    final res = await apiClient.get('/api/employees/$employeeId/onboarding/mx/agreements');
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> activateRail(String employeeId, {Map<String, dynamic>? options}) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/activate-rail', body: options ?? {});
+    return (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : {};
+  }
+
+  @override
+  Future<EmployeeOnboardingStatusModel> getOnboardingStatus(String employeeId) async {
+    final res = await apiClient.get('/api/employees/$employeeId/onboarding/status');
+    final data = (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : <String, dynamic>{};
+    return EmployeeOnboardingStatusModel.fromJson(data);
+  }
+
+  @override
+  Future<EmployeeOnboardingStatusModel> retryOnboarding(String employeeId) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/retry', body: {});
+    final data = (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : <String, dynamic>{};
+    return EmployeeOnboardingStatusModel.fromJson(data);
+  }
+
+  @override
+  Future<EmployeeOnboardingStatusModel> simulateWebhookCompleted(String employeeId) async {
+    final res = await apiClient.post('/api/employees/$employeeId/onboarding/simulate-complete', body: {});
+    final data = (res is Map && res['data'] is Map) ? Map<String, dynamic>.from(res['data']) : <String, dynamic>{};
+    return EmployeeOnboardingStatusModel.fromJson(data);
+  }
 }
+

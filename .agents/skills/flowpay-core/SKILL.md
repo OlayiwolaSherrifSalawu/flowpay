@@ -167,22 +167,53 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * `EmployeesScreen`: Built with `bkey_uikit` `EmptyState` for zero-employee states, per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges, and wallet/card status indicators.
       * `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
     * **Automated Unit Tests**: Added `backend/src/modules/employees/employee.test.ts` verifying all validation, countries, and currency rules. 18/18 tests passing (100%).
-  * **Post-Merge Mobile Compatibility Repair**: Replaced missing business-screen error color aliases with the BMoni-backed `FlowPayColors.error` token, switched the employee empty state to the shared asset-free `FlowPayEmptyState`, and corrected form/style diagnostics. `flutter analyze` is clean and all 79 Flutter tests pass.
+  * **FlowPay Business — Employee Onboarding (Nigeria & Mexico) [Model B]**:
+    * **Strict Currency & Stablecoin Mapping**: Smart-wallet calls strictly take canonical stablecoin token codes (`CNGN` for Nigeria, `MEXe` for Mexico — never fiat `NGN`/`MXN`) encoded centrally in `backend/src/core/currencies.ts` and `mobile/lib/core/money/currency_mapping.dart`.
+    * **Stage 2 (Smart Wallet Provisioning)**: On-device owner keypair generated via `BmoniEmbeddedSdk.initWallet()`, challenge requested via `POST /v1/users/{userId}/smart-wallets/owner-proof-challenges`, on-device PIN signed via `BmoniEmbeddedSdk.signMessage(challenge, pin)`, and managed wallet deployed via `POST /v1/users/{userId}/smart-wallets/create-managed`.
+    * **Stage 3 (Country-Specific KYC)**: `GET /kyc/options` → document upload → `PATCH /kyc` → `GET /kyc/readiness` → `POST /kyc/activate`:
+      * **Nigeria (`NG`)**: Strictly omits biometric selfie; requires BVN (11 digits, sandbox personas Bunch Dillon `95888168924`, Samson Jabo `22222222222`), Nigerian residential address, and EDD employment fields (`OCC_FIN_001`); activates KYC without body.
+      * **Mexico (`MX`)**: Requires document + Sumsub biometric liveness selfie; requires CURP (18 chars), RFC (12-13 chars), maternal and paternal surnames, and Mexican address; activates KYC with `sumsubLevelName: "id-and-liveness"`.
+    * **Stage 4 (Disbursement Rail Activation)**:
+      * **Nigeria (`NG`)**: Calls `POST /v1/users/{userId}/onboarding/start-nigeria` with `bvn` and `ngnWalletAddress`.
+      * **Mexico (`MX`)**: Enforces strict prerequisite where Etherfuse agreements must be fetched and signed via `GET /v1/users/{userId}/latam/mx/kyc/launch/agreements` (5-minute ephemeral JWT assertion) prior to calling `POST /v1/users/{userId}/latam/mx/kyc/activate` with `smartWalletId`.
+    * **4-State Onboarding Model**: Structured state engine with states `Not Started` → `In Progress` → `Ready` → `Failed`. Displays progress against actual stages (Stage 2, Stage 3, Stage 4), tracks `failedStage` and `failureReason`, and provides interactive `Retry` and `Refresh Status` controls.
+    * **Mobile Onboarding Wizard & Detail Tracking**:
+      * `EmployeeOnboardingScreen`: Multi-stage interactive wizard with B-Key PIN signing sheet, distinct Nigeria vs Mexico forms, Etherfuse agreements signing sheet modal, and deterministic simulation fallback.
+      * `EmployeeDetailScreen`: Added "Onboarding Progress (Actual Stages)" card displaying Stage 2, 3, and 4 cards, state badges, retry stage button, and refresh status icon.
+    * **Automated Test Coverage**: 26/26 backend tests passing (100%), covering currency mapping, Stage 2 address validation, Nigeria BVN/address rules, Mexico CURP/RFC/surname rules, Etherfuse agreement prerequisites, and state calculations.
+  * **FlowPay Business — Employee Wallet Control Center (`bmoni_embedded_wallets_cards`)**:
+    * **Core Package Interfaces**: Implemented `WalletRepository` as a thin wrapper satisfying `bmoni_embedded_wallets_cards`'s actual contract:
+      * `EmbeddedWalletReadDataSource` (`fetchWallets`, `fetchWalletDetail`, `fetchBalance`, `fetchTransactions`).
+      * `EmbeddedWalletStorage` (using `InMemoryEmbeddedWalletStorage`).
+      * `EmbeddedWalletBalanceCache` (using `InMemoryEmbeddedWalletBalanceCache`).
+    * **Identical Contract Conformance Across Providers**: Both `BMONIProvider` (`BmoniWalletRepository`) and `DemoProvider` (`DemoWalletRepository`) satisfy the identical contract. `BMONIProvider` calls the real API (`GET /v1/users/{userId}/smart-wallets/account/wallets`, balances, transactions), and `DemoProvider` returns typed responses from deterministic sandbox data.
+    * **Typed Failure Hierarchy**: Error handling branches strictly on typed `Either<EmbeddedFailure, T>` subclasses (`EmbeddedServerFailure`, `EmbeddedNetworkFailure`, `EmbeddedRateLimitFailure`, `EmbeddedNotFoundFailure`, `EmbeddedAuthenticationFailure`, `EmbeddedAuthorizationFailure`) without parsing error strings.
+    * **Model-Aware Widgets**:
+      * `EmbeddedWalletCard`: Wraps `BMoniWalletCard` with 6 built-in currency background art variants (`BMoniWalletType.ngn` for Nigeria NGN/CNGN, `BMoniWalletType.mxn` for Mexico MXN/MEXe, `BMoniWalletType.usd` for USDB, `BMoniWalletType.cad` for CADC, `BMoniWalletType.eur` for EURe, `BMoniWalletType.gbp` for GBPe). Dynamically selects the variant matching the employee's payroll currency.
+      * `EmbeddedWalletTransactionsSection`: Composed recent-activity list with host-driven row builders applying `design.md` copy rules (never exposing raw event strings like `EMBEDDED_TX_PAYROLL_TRANSFER_V2`).
+    * **App-Wide Riverpod State Management**: Screen tree is wired directly to Riverpod notifiers (`EmbeddedWalletListNotifier`, `EmbeddedWalletBalanceNotifier`, `EmbeddedWalletTransactionsNotifier`) via `walletListProvider`, `walletBalancesProvider`, and `walletTransactionsProvider`.
+    * **Actions & Copy Rules**: Features `View Wallet` (specs modal with Base Sepolia chain details, ERC-4337 standard, and support debug EVM address copy button), `Transactions` (full paginated ledger sheet), and `Issue Card` (virtual Mastercard issuance modal routing into Prompt 12). Wallet address is strictly a debug/support detail, never exposed as primary UI.
+    * **BMONI Security Architecture**: Documents that employee wallets use the identical on-device signing model as personal wallets — private keys never leave the device's Keystore/Secure Enclave via `BmoniEmbeddedSdk`.
+    * **Backend & Automated Verification**: Mounted `/api/wallets/:walletId`, `GET /:walletId/balance`, `GET /:walletId/transactions`, and `POST /issue-card`. Added `backend/src/modules/wallets/wallets.test.ts`. All 31 backend tests passing (100%).
 
-
-  * **FlowPay Personal Financial Dashboard ("Your money. Your rules. AI executes.")**:
-    * **Portfolio & Balance Section**: Displays real-time multi-currency portfolio valuation ($37,671.00 USD primary), minor-unit integer precision (no float truncation/fake precision), secondary NGN rail valuation, available balance ($24,500.00), sandbox mode badge, and interactive privacy hide/reveal toggle.
-    * **Primary AI Interaction ("What should your money do?")**: `AiCommandBar` built as an entry point into task-specific financial workflows (NOT a chatbot). Features interactive suggestion chips:
-      * "Allocate my $2,000" -> Opens `AiAllocationModal` with autonomous split across emergency reserve, contractor pool, and savings.
-      * "Send $500 to my designer" -> Pre-populates `SendMoneyScreen` with recipient and amounts.
-      * "Convert $1,000 to Naira" -> Opens `AiFxConversionModal` with zero-spread BMONI quote (1:1,550), fee breakdown, and PIN signing.
-    * **Pending Approvals Queue**: Prominently surfaces actions awaiting explicit B-Key signature (auto-sweep triggers, multi-currency transfers, FX conversions) with 6-digit PIN confirmation dialog.
-    * **Quick Actions Row**: 3 primary actions: "Create Mission", "Send Money", and "View Wallets".
-    * **Money Missions Feature Card & Live Toggles**: Prominent "Your money. Your rules. AI executes." card with active mission toggles directly on the dashboard.
-    * **Multi-Currency Smart Wallets Breakdown**: Renders verified balances and addresses for USD (USDB), NGN (CNGN), MXN (MEXe), and CAD (CADC) using shared wallet cards with one-tap clipboard copy.
-    * **Recent Financial Activity Feed**: Shows real-time history across missions, transfers, card payments, and conversions with category badges.
-    * **Repository Pattern Architecture**: Abstracted clean contracts (`ActivityRepository`, `MissionRepository`, `ApprovalRepository`) with deterministic `Demo*` implementations and live `Bmoni*` implementations behind `PersonalProvider`.
-    * **Verification**: 79/79 Flutter mobile tests passing (100%), 0 analyzer issues, 11/11 backend tests passing.
+  * **FlowPay Business — Virtual Employee Cards (BMONI Infrastructure & design.md §4.5)**:
+    * **Virtual Cards Only**: Strictly scoped to virtual cards, omitting physical card flows.
+    * **Verified BMONI Smart-Wallet Card Endpoints**:
+      * Card Creation: `POST /v1/users/{userId}/cards` with `{ cardName, cardColor: '#F4B740', currency, type: 'virtual', smartWalletId, nin? }`.
+      * Polling Sign Payload: `GET /v1/users/{userId}/smart-wallets/proposals/{proposalId}/sign-payload` (handles 409 "not ready yet" retry loops).
+      * Proposal Submission: `POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/signatures` with `{ signature }`.
+      * List Wallet Cards: `GET /v1/users/{userId}/smart-wallets/{smartWalletId}/cards` (strictly smart-wallet scoped, preserves reserved cards).
+      * Card Detail & Sensitive: `GET /v1/users/{userId}/smart-wallets/{smartWalletId}/cards/{cardId}` and `.../sensitive` (unmasks PAN, CVV, expiry).
+      * Card Status: `PUT /v1/users/{userId}/cards/{cardId}/status` with `{"status": "BLOCKED"}` or `"ACTIVE"` (exact uppercase, case-sensitive).
+      * Card Transactions: `GET /v1/users/{userId}/cards/{cardId}/transactions` supporting `size` and `status` query filters.
+    * **Auto-Approved Proposal Flow**: Issuance proposals are auto-approved by the proxy (`proposalStatus: PENDING_APPROVALS`), requiring zero separate `/approve` calls.
+    * **Hardware Signing via `signTransactionHash()`**: Strictly signs 32-byte `hashToSign` with `BmoniSdkService.signTransactionHash()`, avoiding silent on-chain execution failures caused by `signMessage()`.
+    * **First-Time Enrollment & Named E101 Error**: Catches `400 E101 — Card owner is not enrolled for cards yet` and presents a dedicated 11-digit Nigerian NIN input requirement banner rather than generic failure toasts.
+    * **Reserved Card Visual State ("Issuing...")**: Cards with `isReserved: true` or `status: 'RESERVED'` are never hidden; rendered with amber-bronze surface, progress spinner, and "Issuing..." status badge.
+    * **Dual Amount Format Parsing**: Card detail ledger parsed strictly as minor-unit string (`"250000"` = ₦2,500.00) and card transactions parsed strictly as major-unit numeric (`25.5` = $25.50) without cross-parsing.
+    * **Amber Card-as-Object UI (design.md §4.5)**: `VirtualCardObject` rendered in FlowPay Amber (`#F4B740`), soft physical shadow `Color(0x1A0D2E2A)` blur 24 offset (0,8), tabular numerals, Mastercard glyphs, and contactless icon.
+    * **Card Action Sheets**: `IssueVirtualCardSheet` (issuance with PIN signing) and `CardDetailSheet` (unmask sensitive details with 30s auto-hide timer, transaction list, and freeze/unfreeze toggle).
+    * **Automated Test Coverage**: 43/43 backend unit & integration tests passing (100%), including 12 dedicated tests in `backend/src/modules/cards/cards.test.ts`.
 
 ---
 
@@ -196,9 +227,9 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 
 ### Business Track Owner
-- [ ] Expand Employee Onboarding: connect deep-link generation and KYC verification status tracker.
+- [x] Implement FlowPay Business Employee Onboarding (Model B) for Nigeria (`NG`) and Mexico (`MX`) across Stage 2, Stage 3, and Stage 4 with 4-state lifecycle.
+- [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
 - [ ] Add virtual card spend limit presets (Junior / Senior / Contractor dropdowns).
-- [ ] Implement self-serve card freeze toggle and card replacement flow.
 - [ ] Add PDF export / receipt sharing for aggregate payroll disbursement runs.
 
 ---
