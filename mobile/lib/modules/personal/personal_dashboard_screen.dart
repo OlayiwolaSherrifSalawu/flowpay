@@ -17,8 +17,11 @@ import 'components/ai_fx_conversion_modal.dart';
 import 'components/pending_approvals_card.dart';
 import 'money_missions_screen.dart';
 import 'personal_activity_screen.dart';
+import 'personal_shell.dart';
 import 'send_money_screen.dart';
+import 'wallet_provisioning_screen.dart';
 import 'wallets_screen.dart';
+import '../../core/navigation/personal_tab_provider.dart';
 
 /// FLOWPAY — PERSONAL DASHBOARD
 ///
@@ -75,6 +78,20 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
         initialAmount: amount ?? Money.fromMajorString('1000.00', Currency.usd),
       ),
     );
+  }
+
+  void _navigateToTab(int tabIndex, {required Widget fallbackScreen, required String routeName}) {
+    widget.appState.setPersonalTabIndex(tabIndex);
+    final hasShell = context.findAncestorWidgetOfExactType<PersonalShell>() != null;
+    if (!hasShell) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => fallbackScreen,
+          settings: RouteSettings(name: routeName),
+        ),
+      );
+    }
   }
 
   void _openSendMoneyScreen({String? initialAmount, String? initialRecipient}) {
@@ -191,27 +208,36 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: BMoniColors.brand500.withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock_outline, size: 12, color: BMoniColors.brand400),
-                        SizedBox(width: 4),
-                        Text(
-                          'Self-Custody (B-Key)',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: BMoniColors.brand400,
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const WalletProvisioningScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: BMoniColors.brand500.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_outline, size: 12, color: BMoniColors.brand400),
+                          SizedBox(width: 4),
+                          Text(
+                            'Self-Custody (B-Key)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: BMoniColors.brand400,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -308,7 +334,13 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       icon: Icons.bolt,
                       label: 'Create Mission',
                       accentColor: BMoniColors.brand400,
-                      onPressed: () => _openAiAllocationModal(),
+                      onPressed: () {
+                        _navigateToTab(
+                          PersonalTab.missions,
+                          fallbackScreen: MoneyMissionsScreen(appState: widget.appState),
+                          routeName: AppRoutes.personalMissions,
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -327,12 +359,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       label: 'View Wallets',
                       accentColor: BMoniColors.success400,
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => WalletsScreen(appState: widget.appState),
-                            settings: const RouteSettings(name: AppRoutes.personalWallets),
-                          ),
+                        _navigateToTab(
+                          PersonalTab.wallets,
+                          fallbackScreen: WalletsScreen(appState: widget.appState),
+                          routeName: AppRoutes.personalWallets,
                         );
                       },
                     ),
@@ -344,12 +374,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               // 4. Money Missions Feature Card (Prominently displaying "Money Missions" & Tagline)
               InkWell(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MoneyMissionsScreen(appState: widget.appState),
-                      settings: const RouteSettings(name: AppRoutes.personalMissions),
-                    ),
+                  _navigateToTab(
+                    PersonalTab.missions,
+                    fallbackScreen: MoneyMissionsScreen(appState: widget.appState),
+                    routeName: AppRoutes.personalMissions,
                   );
                 },
                 borderRadius: BorderRadius.circular(16),
@@ -446,12 +474,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => MoneyMissionsScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalMissions),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.missions,
+                      fallbackScreen: MoneyMissionsScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalMissions,
                     );
                   },
                   child: Text(
@@ -544,12 +570,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => WalletsScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalWallets),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.wallets,
+                      fallbackScreen: WalletsScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalWallets,
                     );
                   },
                   child: const Text(
@@ -595,12 +619,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PersonalActivityScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalActivity),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.activity,
+                      fallbackScreen: PersonalActivityScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalActivity,
                     );
                   },
                   child: const Text(

@@ -29,6 +29,12 @@ class BmoniSdkService {
   static bool get requirePin => BmoniEmbeddedSdk.requirePin;
   static bool get isInitialized => true;
 
+  /// Pre-seed verified demo wallet keypair and 6-digit PIN for demo/sandbox mode
+  static void seedDemoWalletIfNeeded() {
+    _cachedAddress ??= '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
+    _inMemoryPinDigest ??= sha256.convert(utf8.encode('bmoni_salt_123456')).toString();
+  }
+
   /// Query whether an on-device wallet keypair has been provisioned.
   static Future<bool> hasWallet() async {
     if (_isTestEnv) return _cachedAddress != null;

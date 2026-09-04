@@ -48,9 +48,9 @@ class _FlowPayAppState extends State<FlowPayApp> {
       theme: FlowPayTheme.light(),
       darkTheme: FlowPayTheme.dark(),
       onGenerateRoute: (settings) => FlowPayRouter.onGenerateRoute(settings, _appState),
-      home: const AppAuthGate(
-        personalShell: PersonalShell(),
-        businessShell: BusinessShell(),
+      home: AppAuthGate(
+        personalShell: PersonalShell(appState: _appState),
+        businessShell: BusinessShell(appState: _appState),
       ),
     );
 

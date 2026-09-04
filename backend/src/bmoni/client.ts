@@ -218,21 +218,78 @@ export class BmoniClient {
   async createTransferProposal(args: {
     userId: string;
     walletId: string;
-    toUserId: string;
-    sourceSmartWalletId: string;
-    token: string;
-    fromAmount: string; // Minor units or formatted decimal per endpoint
+    toUserId?: string;
+    toAddress?: string;
+    token?: string;
+    currency?: string;
+    amount?: string;
+    fromAmount?: string;
+    description?: string;
+    sourceSmartWalletId?: string;
+  }): Promise<Proposal> {
+    const currency = args.currency || args.token || 'USDB';
+    const amount = args.amount || args.fromAmount || '0.00';
+
+    const proposalBody: Record<string, any> = {
+      type: 'TRANSFER',
+      amount,
+      currency,
+    };
+
+    if (args.toAddress) {
+      proposalBody.toAddress = args.toAddress;
+    } else if (args.toUserId) {
+      proposalBody.toUserId = args.toUserId;
+    }
+
+    if (args.description) {
+      proposalBody.description = args.description;
+    }
+
+    return this.request<Proposal>(
+      `/v1/users/${args.userId}/smart-wallets/${args.walletId}/proposals`,
+      {
+        method: 'POST',
+        body: {
+          proposal: proposalBody,
+        },
+      }
+    );
+  }
+
+  async createSwapProposal(args: {
+    userId: string;
+    walletId: string;
+    fromStablecoin: string;
+    toStablecoin: string;
+    fromAmount: string;
+    slippageBps?: number;
   }): Promise<Proposal> {
     return this.request<Proposal>(
       `/v1/users/${args.userId}/smart-wallets/${args.walletId}/proposals`,
       {
         method: 'POST',
         body: {
-          toUserId: args.toUserId,
-          sourceSmartWalletId: args.sourceSmartWalletId,
-          token: args.token,
-          fromAmount: args.fromAmount,
+          proposal: {
+            type: 'SWAP',
+            fromStablecoin: args.fromStablecoin,
+            toStablecoin: args.toStablecoin,
+            fromAmount: args.fromAmount,
+            slippageBps: args.slippageBps ?? 50,
+          },
         },
+      }
+    );
+  }
+
+  async approveProposal(args: {
+    userId: string;
+    proposalId: string;
+  }): Promise<{ success: boolean; status: string }> {
+    return this.request<{ success: boolean; status: string }>(
+      `/v1/users/${args.userId}/smart-wallets/proposals/${args.proposalId}/approve`,
+      {
+        method: 'POST',
       }
     );
   }

@@ -67,7 +67,7 @@ void main() {
 
       // 7. Scroll to Multi-Currency Smart Wallets & Recent Activity
       await tester.scrollUntilVisible(
-        find.text('Multi-Currency Smart Wallets'),
+        find.textContaining('CNGN'),
         300,
         scrollable: find.byType(Scrollable).first,
       );

@@ -251,6 +251,7 @@ class FlowPayStateView extends StatelessWidget {
       case FlowPayAppStatus.completed:
       case FlowPayAppStatus.pending:
       case FlowPayAppStatus.awaitingApproval:
+      case FlowPayAppStatus.cancelled:
         return content;
     }
   }

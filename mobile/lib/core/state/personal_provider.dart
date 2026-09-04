@@ -205,8 +205,21 @@ class PersonalProvider extends ChangeNotifier {
           timestamp: DateTime.now(),
           reference: 'APPR-${approval.id}',
         );
+        try {
+          await activityRepo.recordActivity(newAct);
+        } catch (_) {}
         _recentActivities.insert(0, newAct);
         _pendingApprovals.removeWhere((a) => a.id == approvalId);
+
+        if (approval.type == ApprovalType.transfer) {
+          try {
+            await walletRepo.debitWallet(
+              walletId: 'sw_demo_usdb_01',
+              amount: approval.amount,
+            );
+            _wallets = await walletRepo.getWallets();
+          } catch (_) {}
+        }
       }
 
       return success;

@@ -21,7 +21,20 @@ class _WalletsScreenState extends State<WalletsScreen> {
   @override
   void initState() {
     super.initState();
+    widget.appState.addListener(_onAppStateChanged);
     _load();
+  }
+
+  void _onAppStateChanged() {
+    if (mounted) {
+      _load();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.appState.removeListener(_onAppStateChanged);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -42,9 +55,12 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
     Widget content = isLoading
         ? const FlowPayLoadingState(message: 'Querying B-Key wallet registry...')
-        : ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            children: [
+        : RefreshIndicator(
+            onRefresh: _load,
+            color: BMoniColors.brand500,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              children: [
               // Security info banner
               InkWell(
                 borderRadius: BorderRadius.circular(16),
@@ -219,7 +235,8 @@ class _WalletsScreenState extends State<WalletsScreen> {
                 );
               }),
             ],
-          );
+          ),
+        );
 
     if (canPop) {
       return Scaffold(

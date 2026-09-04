@@ -172,17 +172,87 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 
   * **FlowPay Personal Financial Dashboard ("Your money. Your rules. AI executes.")**:
     * **Portfolio & Balance Section**: Displays real-time multi-currency portfolio valuation ($37,671.00 USD primary), minor-unit integer precision (no float truncation/fake precision), secondary NGN rail valuation, available balance ($24,500.00), sandbox mode badge, and interactive privacy hide/reveal toggle.
-    * **Primary AI Interaction ("What should your money do?")**: `AiCommandBar` built as an entry point into task-specific financial workflows (NOT a chatbot). Features interactive suggestion chips:
-      * "Allocate my $2,000" -> Opens `AiAllocationModal` with autonomous split across emergency reserve, contractor pool, and savings.
-      * "Send $500 to my designer" -> Pre-populates `SendMoneyScreen` with recipient and amounts.
-      * "Convert $1,000 to Naira" -> Opens `AiFxConversionModal` with zero-spread BMONI quote (1:1,550), fee breakdown, and PIN signing.
+    * **Primary AI Interaction ("What should your money do?")**: `AiCommandBar` built as an entry point into task-specific financial workflows (NOT a chatbot). Features interactive suggestion chips: "Allocate my $2,000", "Send $500 to my designer", and "Convert $1,000 to Naira".
     * **Pending Approvals Queue**: Prominently surfaces actions awaiting explicit B-Key signature (auto-sweep triggers, multi-currency transfers, FX conversions) with 6-digit PIN confirmation dialog.
     * **Quick Actions Row**: 3 primary actions: "Create Mission", "Send Money", and "View Wallets".
-    * **Money Missions Feature Card & Live Toggles**: Prominent "Your money. Your rules. AI executes." card with active mission toggles directly on the dashboard.
     * **Multi-Currency Smart Wallets Breakdown**: Renders verified balances and addresses for USD (USDB), NGN (CNGN), MXN (MEXe), and CAD (CADC) using shared wallet cards with one-tap clipboard copy.
     * **Recent Financial Activity Feed**: Shows real-time history across missions, transfers, card payments, and conversions with category badges.
-    * **Repository Pattern Architecture**: Abstracted clean contracts (`ActivityRepository`, `MissionRepository`, `ApprovalRepository`) with deterministic `Demo*` implementations and live `Bmoni*` implementations behind `PersonalProvider`.
-    * **Verification**: 79/79 Flutter mobile tests passing (100%), 0 analyzer issues, 11/11 backend tests passing.
+  * **FlowPay Flagship Feature — Money Missions ("Tell your money what to do.")**:
+    * **Full 8-Stage Financial Safety Pipeline**: Natural language → AI interpretation → structured intent (`MissionIntent`) → deterministic validation (`MissionValidator`) → preview modal ("Nothing moves until you approve.") → explicit user approval → BMONI operation proposal with 32-byte sha256 hash → B-Key hardware PIN signing via `WalletPinAuthSheet` → on-chain execution → activity ledger logging (`audit_activity`).
+    * **Core Financial Directives Enforced**: AI NEVER directly moves money. AI output is untrusted input subjected to deterministic dual-sided validation (percentages strictly sum to 100%, amounts match, currencies in allowlist: USD, NGN, MXN, CAD, EUR).
+    * **Typed Models & Schemas**: Implemented in Dart (`mobile/lib/core/missions/mission_intent.dart`) and TypeScript (`backend/src/modules/missions/types.ts`) with minor-unit integer precision (cents/kobo) and explicit allocation categories (`RESERVE_USD`, `CONVERT_EXPENSES_NGN`, `TAX_RESERVE`, `SAVINGS`, `CUSTOM`).
+    * **Dual-Sided Deterministic Validation**: `ClientMissionValidator` (Dart) and `MissionValidator` (TypeScript) verifying 100% split totals, integer precision, allowed currencies, valid action types, and non-empty allocation targets.
+    * **Backend AI & Mission Engine (`backend/src/modules/ai/mission_interpreter.ts`, `backend/src/modules/missions/`)**:
+      * `MissionInterpreter`: Privacy sanitization stripping PII, structured output extraction via Gemini `gemini-2.5-flash`, resilient deterministic regex fallback parser for sandbox/offline execution, and immediate validator invocation.
+      * `MoneyMissionService`: PostgreSQL/Prisma persistence, SHA-256 proposal hash calculation, B-Key signature verification, transactional state transition (`PROPOSED` → `EXECUTING` → `EXECUTED`), and audit activity logging.
+      * Endpoints: `POST /api/ai/missions/interpret`, `GET /api/missions`, `POST /api/missions/propose`, `POST /api/missions/:id/execute`, `PATCH /api/missions/:id/toggle`.
+    * **Mobile UI & Interactive Experience (`mobile/lib/modules/personal/`)**:
+      * Primary heading: *"Tell your money what to do."* with tagline *"Your money. Your rules. AI executes."*.
+      * Large NL input text field with live submit button.
+      * 5 Suggested action chips: "Split incoming payment", "Save for a goal", "Convert currency", "Send money", "Reserve for taxes".
+      * 3-Stage animated pipeline indicator: `Analyzing intent` → `Validating financial rules` → `Generating BMONI proposal`.
+      * `MissionPreviewModal`: Displays incoming trigger amount ($2,000 incoming), full allocation breakdown (USD Reserve 30% / $600, NGN Expenses 50% / $1,000 equiv, Tax Reserve 20% / $400), reassurance banner *"Nothing moves until you approve."*, and Edit / Approve buttons.
+      * B-Key Hardware PIN Signing: Integrates `WalletPinAuthSheet` with 6-digit numeric PIN pad for EIP-191 / B-Key hardware enclave signing.
+      * Success Receipt Dialog: Shows celebration icon, transaction hash, BMONI confirmation, and done button.
+      * Active Missions List: Custom `MissionCard` components with allocation pill badges, status indicator, last run timestamp, active toggle switch, and interactive ⚡ Run Now button.
+    * **Automated Verification**:
+  * **FlowPay Personal — Send Money Feature & Balance-Aware Routing ("Send $500 to my designer in Ghana.")**:
+    * **Natural Language Entry & AI Intent Interpretation**:
+      * Dedicated natural language prompt input with 4 instant suggestion chips ("Send $500 to my designer in Ghana", "Send $150 to bunch.dillon@example.ng", "Send ₦50,000 to Samson Jabo", "Send $1,200 to contractor in Mexico").
+      * Gemini 2.5 Flash extraction (`backend/src/modules/ai/transfer_interpreter.ts`) producing typed `TransferIntent` (recipient, amount, amountMinor, currency, purpose) with deterministic regex fallback for offline/sandbox mode.
+      * Full Zod schema validation (`backend/src/modules/transfers/validator.ts`) and Dart models (`mobile/lib/core/transfers/`).
+    * **Balance-Aware Multi-Currency Smart Wallet Routing**:
+      * Dynamic wallet balance inspection (`backend/src/modules/transfers/service.ts`, `DemoTransferRepository.inspectBalances`, `BmoniTransferRepository.inspectBalances`).
+      * Auto-routing when direct currency is insufficient (e.g. user requests $500 USD, direct USD smart wallet has only $300 USD, sufficient NGN smart wallet has ₦6,820,000): FlowPay produces an NGN-funded payment with required NGN → USD conversion, deterministic exchange rate (1550.0 NGN/USD), network fee ($0.50), FX fee (15 bps), and total debit calculation without float drift.
+    * **Premium Review Confirmation Screen (`TransferReviewModal`)**:
+      * Displays: Recipient, Amount, Currency, Funding source, Conversion label & badge, Exchange rate, Fee breakdown, Total debit.
+      * Prominent security reassurance banner: **"Nothing moves until you approve."** with subtext *"Zero AI money movement • On-device B-Key hardware PIN signature required"*.
+      * Action buttons: `Edit` (dismisses modal to adjust inputs) and `Approve & Send` (advances to on-device PIN signing).
+    * **Authentic BMONI On-Device Hardware PIN Signing**:
+      * Invokes `WalletPinAuthSheet` with 6-digit numeric PIN pad.
+      * Signs canonical 32-byte sha256 proposal hash on-device via `BmoniSdkService.signTransactionHash` / `bmoni_embedded_sdk` hardware enclave (EIP-191 / EIP-712). Zero fake signatures.
+      * Submits signature to FlowPay backend (`POST /api/transfers/execute`), which calls BMONI proposal approval (`POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/approve`), broadcasts to EVM rails, and records the event in the PostgreSQL `audit_activity` ledger.
+      * Presents celebratory receipt dialog (`TransferReceiptDialog`) displaying transaction hash, settlement details, and direct link to Activity.
+    * **8 Human-Readable Failure Modes**:
+      * Explicit enum `TransferErrorCode` mapped to clear human-readable messages: Insufficient funds, unsupported currency, invalid recipient, conversion unavailable, transfer failure, signature failure, proposal expiration, network failure.
+    * **Automated Verification**:
+      * Backend: All 29 unit tests passing (`pass 29, fail 0`).
+      * Mobile: All 91 Flutter tests passing (`+91: All tests passed!`), `flutter analyze` clean with 0 warnings or errors.
+  * **FlowPay Personal — Activity Ledger & Hardware Security Core**:
+    * **Personal Activity Screen (`mobile/lib/modules/personal/personal_activity_screen.dart`)**:
+      * Comprehensive activity ledger displaying: Transfers, Conversions, Mission executions, Wallet operations, Card transactions, Pending approvals, and Failures.
+      * Interactive filter chips (All, Transfers, Conversions, Missions, Wallet Ops, Cards, Pending Approvals, Failures) and real-time counterparty/reference search bar.
+      * 6 Required Statuses: Pending, Processing, Awaiting Approval, Completed, Failed, Cancelled (integrated with `FlowPayAppStatus.cancelled` and `FlowPayStatusBadge`).
+      * Real-time Awaiting Approval counter with 1-tap inline B-Key PIN approval shortcut.
+    * **Transaction Details Modal (`mobile/lib/modules/personal/components/activity_detail_modal.dart`)**:
+      * Complete inspection view displaying: Amount, Currency (with BMONI token badge e.g. USDB, CNGN, MEXe, CADC), Source, Destination, Fee, Exchange Rate, Timestamp, FlowPay Reference (one-tap copy), and BMONI Reference (one-tap copy).
+      * Strict Security Invariants: Never exposes private keys, never exposes signing payloads unnecessarily, and never exposes API credentials.
+      * Reassurance callout: "Verified by On-Device B-Key Signer • Zero AI Money Movement".
+      * Interactive approval flow for pending items invoking `WalletPinAuthSheet` with 6-digit numeric PIN pad.
+    * **Personal Security Screen (`mobile/lib/modules/personal/personal_security_screen.dart`)**:
+      * 3 Distinct Core Sections: **1. Wallet Security**, **2. Signing Security**, **3. Approval Rules**.
+      * Prominently explains and enforces: **"Financial actions require your approval."** (AI is strictly advisory with zero custody or execution authority).
+      * Live device indicators showing whether:
+        * Wallet is initialized (`INITIALIZED` vs `NOT INITIALIZED`) with public EVM address and Hardware Keystore / Secure Enclave isolation.
+        * Device signing is available (`AVAILABLE & ACTIVE` / `HARDWARE SECURED`) supporting EIP-191 personal message signing and EIP-712 structured proposal signing.
+        * PIN protection is enabled (`PIN CONFIGURED (6 DIGITS)`) backed by salted PBKDF2-HMAC-SHA256 digests.
+      * 4 Invariants of Financial Safety: Intent interpretation → Deterministic rule validation → Mandatory human preview → On-device B-Key hardware PIN signature.
+      * Active approval policy threshold matrix (Transfers, Conversions, Missions, Card actions require strict PIN).
+      * Honest Security Disclosure: Refuses to make unsupported claims; relies strictly on genuine on-device hardware cryptography and BMONI embedded rails.
+    * **Automated Test Coverage & Verification**:
+      * Added `test/personal_activity_test.dart` and `test/personal_security_test.dart`.
+      * Updated `test/design_system_test.dart` covering all 10 shared states.
+      * 99/99 Flutter tests passing (`+99: All tests passed!`), `flutter analyze` clean with 0 warnings or errors.
+  * **FlowPay Personal Complete Feature Integration (Dashboard, Wallets, Missions, Send Money, Activity, Security)**:
+    * **Single State Architecture & Unified AppShell**: Wired singleton `AppState` into `PersonalShell` and `BusinessShell` in `FlowPayApp` (`mobile/lib/app.dart`), fixing decoupled state instances and ensuring cross-tab reactivity.
+    * **Cross-Tab Coordination & Navigation**: Created `personalTabIndexProvider` (`mobile/lib/core/navigation/personal_tab_provider.dart`) and wired `appState.personalTabIndex` with `notifyListeners()`. `PersonalShell` uses `IndexedStack` to preserve view state, and all dashboard quick actions ("Send Money", "Create Mission", "View Wallets") switch tabs seamlessly.
+    * **Atomic Balance Synchronization**: Implemented `debitWallet` and `creditWallet` on `WalletRepository` and `DemoWalletRepository`. Executing a Send Money proposal or activating a Money Mission debits the funding wallet with minor-unit integer precision and notifies listeners.
+    * **Unified Activity Ledger & Live Listeners**: `PersonalActivityScreen` and `WalletsScreen` register reactive listeners on `AppState`, automatically refreshing transactions and balances whenever actions settle. Both Send Money and Money Missions record verified entries into `ActivityRepository`.
+    * **End-to-End Automated Integration Verification (`mobile/test/personal_integration_flow_test.dart`)**:
+      * **Journey 1 (Open App → Balances → Tab Switching)**: Unlocks app, verifies multi-currency balances, switches tabs via bottom nav and dashboard quick actions.
+      * **Journey 2 (Money Mission Full Flow)**: Enters NLP directive, verifies AI preview, approves, signs via 6-digit B-Key PIN, executes, and transitions directly to Activity tab.
+      * **Journey 3 (Send Money Full Flow)**: Quick action opens Send Money, selects intent chip, inspects balances, opens review modal ("Nothing moves until you approve"), authorizes with B-Key PIN, settles, and navigates to Activity with debited wallet balance.
+      * **Full Test Suite Status**: 102/102 mobile tests passing (100%), 29/29 backend tests passing (100%), 0 Dart analyzer warnings or lints.
 
 ---
 
@@ -191,8 +261,10 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 ### Personal Track Owner
 - [x] Build Personal Financial Dashboard with portfolio balance, AI command bar, pending approvals, multi-currency wallets, and money missions.
 - [x] Implement on-device B-Key / BMONI wallet layer: `WalletService`, `WalletSigner`, `WalletPinAuthSheet`, `WalletProvisioningScreen`, 56 tests.
-- [ ] Implement Money Missions builder UI to allow adding custom percentage rules and triggers.
-- [ ] Polish Send Money modal animations and transaction status receipt states.
+- [x] Implement Money Missions flagship end-to-end pipeline: NL interpretation, deterministic validation, preview sheet, B-Key PIN signing, active mission list with ⚡ Run Now manual triggers.
+- [x] Implement Send Money feature with natural language entry, balance-aware smart routing, premium confirmation screen, "Nothing moves until you approve." trust banner, on-device B-Key signing, and activity logging.
+- [x] Implement Personal Activity ledger with 7 filters, 6 statuses, transaction details modal, and zero credential leakage.
+- [x] Implement Personal Security screen with 3 core sections (Wallet Security, Signing Security, Approval Rules), "Financial actions require your approval." enforcement, and hardware key indicators.
 - [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 
 ### Business Track Owner

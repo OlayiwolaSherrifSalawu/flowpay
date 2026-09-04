@@ -89,7 +89,7 @@ void main() {
       expect(find.text('\$'), findsOneWidget);
     });
 
-    testWidgets('Renders FlowPayStatusBadge across all 9 shared states', (tester) async {
+    testWidgets('Renders FlowPayStatusBadge across all 10 shared states', (tester) async {
       const states = [
         FlowPayAppStatus.loading,
         FlowPayAppStatus.success,
@@ -100,6 +100,7 @@ void main() {
         FlowPayAppStatus.processing,
         FlowPayAppStatus.completed,
         FlowPayAppStatus.failed,
+        FlowPayAppStatus.cancelled,
       ];
 
       await tester.pumpWidget(

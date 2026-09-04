@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../bmoni_sdk/bmoni_sdk_service.dart';
 import '../network/api_client.dart';
 import '../providers/bmoni/bmoni_activity_repo.dart';
 import '../providers/bmoni/bmoni_approval_repo.dart';
@@ -35,16 +36,30 @@ class AppState extends ChangeNotifier {
   ProviderMode _providerMode = ProviderMode.demo;
   ThemeMode _themeMode = ThemeMode.dark;
 
+  int _personalTabIndex = 0;
+
+  AppState() {
+    if (isDemo) {
+      BmoniSdkService.seedDemoWalletIfNeeded();
+    }
+  }
+
   final FlowPayApiClient _apiClient = FlowPayApiClient();
 
   // Demo Repositories
   final DemoWalletRepository _demoWallet = DemoWalletRepository();
-  final DemoTransferRepository _demoTransfer = DemoTransferRepository();
+  final DemoActivityRepository _demoActivity = DemoActivityRepository();
+  late final DemoTransferRepository _demoTransfer = DemoTransferRepository(
+    activityRepo: _demoActivity,
+    walletRepo: _demoWallet,
+  );
   final DemoCardRepository _demoCard = DemoCardRepository();
   final DemoEmployeeRepository _demoEmployee = DemoEmployeeRepository();
   final DemoPayrollRepository _demoPayroll = DemoPayrollRepository();
-  final DemoActivityRepository _demoActivity = DemoActivityRepository();
-  final DemoMissionRepository _demoMission = DemoMissionRepository();
+  late final DemoMissionRepository _demoMission = DemoMissionRepository(
+    activityRepo: _demoActivity,
+    walletRepo: _demoWallet,
+  );
   final DemoApprovalRepository _demoApproval = DemoApprovalRepository();
 
   // BMONI Live Repositories
@@ -136,5 +151,14 @@ class AppState extends ChangeNotifier {
 
   void toggleTheme() {
     setThemeMode(_themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+  }
+
+  int get personalTabIndex => _personalTabIndex;
+
+  void setPersonalTabIndex(int index) {
+    if (_personalTabIndex != index) {
+      _personalTabIndex = index;
+      notifyListeners();
+    }
   }
 }

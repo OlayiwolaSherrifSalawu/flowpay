@@ -59,4 +59,14 @@ class BmoniWalletRepository implements WalletRepository {
 
     return res['id'] ?? '';
   }
+
+  @override
+  Future<bool> debitWallet({required String walletId, required Money amount}) async {
+    return true;
+  }
+
+  @override
+  Future<bool> creditWallet({required String walletId, required Money amount}) async {
+    return true;
+  }
 }

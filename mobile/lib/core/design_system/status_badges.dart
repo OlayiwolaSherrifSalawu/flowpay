@@ -12,6 +12,7 @@ enum FlowPayAppStatus {
   processing,
   completed,
   failed,
+  cancelled,
 }
 
 extension FlowPayAppStatusX on FlowPayAppStatus {
@@ -35,6 +36,8 @@ extension FlowPayAppStatusX on FlowPayAppStatus {
         return 'Completed';
       case FlowPayAppStatus.failed:
         return 'Failed';
+      case FlowPayAppStatus.cancelled:
+        return 'Cancelled';
     }
   }
 
@@ -52,6 +55,7 @@ extension FlowPayAppStatusX on FlowPayAppStatus {
       case FlowPayAppStatus.error:
       case FlowPayAppStatus.failed:
         return FlowPayColors.error;
+      case FlowPayAppStatus.cancelled:
       case FlowPayAppStatus.empty:
         return FlowPayColors.darkTextTertiary;
     }
@@ -157,6 +161,9 @@ class FlowPayStatusBadge extends StatelessWidget {
       case 'FAILED':
       case 'REJECTED':
         color = FlowPayColors.error;
+        break;
+      case 'CANCELLED':
+        color = FlowPayColors.darkTextTertiary;
         break;
       case 'SELF-CUSTODY (B-KEY)':
       case 'SECURE':
