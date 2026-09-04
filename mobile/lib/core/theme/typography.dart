@@ -5,6 +5,13 @@ import 'colors.dart';
 /// FlowPay Typography Hierarchy
 /// Features monospaced tabular figures for all financial amounts to eliminate numerical drift.
 class FlowPayTypography {
+  static const TextStyle headlineLarge = headingLg;
+  static const TextStyle headlineMedium = headingMd;
+  static const TextStyle headlineSmall = headingSm;
+  static const TextStyle titleMedium = headingSm;
+  static const TextStyle bodyMedium = bodyMd;
+  static const TextStyle bodySmall = bodySm;
+
   /// Display / balance — 40dp, weight 600, letterSpacing -0.8, height 1.05
   static TextStyle display({Color color = FlowPayColors.textPrimary}) =>
       GoogleFonts.inter(

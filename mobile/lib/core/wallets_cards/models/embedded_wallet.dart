@@ -40,6 +40,8 @@ class EmbeddedWallet {
     this.metadata,
   });
 
+  String get id => walletId;
+
   EmbeddedWallet copyWith({
     String? walletId,
     String? name,
@@ -129,7 +131,8 @@ class EmbeddedWalletTransaction {
           status == other.status;
 
   @override
-  int get hashCode => id.hashCode ^ walletId.hashCode ^ amount.hashCode ^ status.hashCode;
+  int get hashCode =>
+      id.hashCode ^ walletId.hashCode ^ amount.hashCode ^ status.hashCode;
 }
 
 /// Response payload for listing smart wallets.

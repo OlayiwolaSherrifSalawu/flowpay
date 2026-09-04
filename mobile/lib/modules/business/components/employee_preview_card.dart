@@ -81,7 +81,8 @@ class EmployeePreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         employee.fullName,
-                        style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                        style: FlowPayTypography.title(color: FlowPayColors.ink)
+                            .copyWith(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
@@ -89,7 +90,8 @@ class EmployeePreviewCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         employee.email,
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                        style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.textSecondary),
                       ),
                     ],
                   ),
@@ -112,7 +114,9 @@ class EmployeePreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         'COUNTRY & RAIL',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                        style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.textTertiary)
+                            .copyWith(
                           fontSize: 10,
                           letterSpacing: 0.5,
                           fontWeight: FontWeight.w600,
@@ -131,9 +135,11 @@ class EmployeePreviewCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: _getCurrencyBg(employee.targetCurrency.code),
+                              color:
+                                  _getCurrencyBg(employee.targetCurrency.code),
                               borderRadius: FlowPayRadii.chip,
                             ),
                             child: Text(
@@ -141,7 +147,8 @@ class EmployeePreviewCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: _getCurrencyFg(employee.targetCurrency.code),
+                                color: _getCurrencyFg(
+                                    employee.targetCurrency.code),
                               ),
                             ),
                           ),
@@ -157,7 +164,9 @@ class EmployeePreviewCard extends StatelessWidget {
                   children: [
                     Text(
                       'PAYROLL AMOUNT',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                      style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textTertiary)
+                          .copyWith(
                         fontSize: 10,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.w600,
@@ -166,14 +175,16 @@ class EmployeePreviewCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       payrollFormatted,
-                      style: FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
+                      style: FlowPayTypography.amount(color: FlowPayColors.ink)
+                          .copyWith(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
                       usdFormatted,
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.textSecondary),
                     ),
                   ],
                 ),
@@ -194,7 +205,8 @@ class EmployeePreviewCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.account_balance_wallet_outlined, size: 14, color: FlowPayColors.ink),
+                        const Icon(Icons.account_balance_wallet_outlined,
+                            size: 14, color: FlowPayColors.ink),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Column(
@@ -202,7 +214,9 @@ class EmployeePreviewCard extends StatelessWidget {
                             children: [
                               Text(
                                 'WALLET STATUS',
-                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(fontSize: 9),
+                                style: FlowPayTypography.captionStyle(
+                                        color: FlowPayColors.textTertiary)
+                                    .copyWith(fontSize: 9),
                               ),
                               Text(
                                 '${employee.walletStatus} • ${employee.walletAddress ?? "0x...Ready"}',
@@ -230,7 +244,8 @@ class EmployeePreviewCard extends StatelessWidget {
                   Expanded(
                     child: Row(
                       children: [
-                        const Icon(Icons.credit_card_rounded, size: 14, color: FlowPayColors.amber),
+                        const Icon(Icons.credit_card_rounded,
+                            size: 14, color: FlowPayColors.amber),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Column(
@@ -238,7 +253,9 @@ class EmployeePreviewCard extends StatelessWidget {
                             children: [
                               Text(
                                 'CARD STATUS',
-                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(fontSize: 9),
+                                style: FlowPayTypography.captionStyle(
+                                        color: FlowPayColors.textTertiary)
+                                    .copyWith(fontSize: 9),
                               ),
                               Text(
                                 '${employee.cardStatus} • •••• ${employee.cardLast4 ?? "4289"}',

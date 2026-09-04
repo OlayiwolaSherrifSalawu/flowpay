@@ -11,8 +11,10 @@ import '../../wallets_cards/bmoni_embedded_wallets_cards.dart';
 /// and [EmbeddedWalletBalanceCache] contracts from bmoni_embedded_wallets_cards.
 class BmoniWalletRepository implements WalletRepository {
   final FlowPayApiClient apiClient;
-  final InMemoryEmbeddedWalletStorage _storage = InMemoryEmbeddedWalletStorage();
-  final InMemoryEmbeddedWalletBalanceCache _cache = InMemoryEmbeddedWalletBalanceCache();
+  final InMemoryEmbeddedWalletStorage _storage =
+      InMemoryEmbeddedWalletStorage();
+  final InMemoryEmbeddedWalletBalanceCache _cache =
+      InMemoryEmbeddedWalletBalanceCache();
 
   BmoniWalletRepository({required this.apiClient});
 
@@ -22,7 +24,9 @@ class BmoniWalletRepository implements WalletRepository {
 
   EmbeddedFailure _mapException(dynamic error) {
     if (error is SocketException || error is TimeoutException) {
-      return EmbeddedNetworkFailure('Network connectivity error. Please verify your connection.', cause: error);
+      return EmbeddedNetworkFailure(
+          'Network connectivity error. Please verify your connection.',
+          cause: error);
     }
     final msg = error.toString().replaceFirst('Exception: ', '');
     if (msg.contains('401') || msg.toLowerCase().contains('unauthorized')) {
@@ -48,17 +52,23 @@ class BmoniWalletRepository implements WalletRepository {
   // =========================================================
 
   @override
-  Future<Either<EmbeddedFailure, EmbeddedWalletListResponse>> fetchWallets() async {
+  Future<Either<EmbeddedFailure, EmbeddedWalletListResponse>>
+      fetchWallets() async {
     try {
       final res = await apiClient.get('/api/wallets');
       if (res is List) {
         final wallets = res.map((w) {
           final cur = (w['currency'] ?? 'USDB').toString();
-          final balNum = double.tryParse(w['balance']?.toString() ?? '0.00') ?? 0.0;
+          final balNum =
+              double.tryParse(w['balance']?.toString() ?? '0.00') ?? 0.0;
           return EmbeddedWallet(
             walletId: w['id'] ?? w['walletId'] ?? '',
             name: w['name'] ?? '$cur Smart Wallet',
-            currency: cur.startsWith('C') && cur.length == 4 ? 'NGN' : cur.startsWith('M') ? 'MXN' : cur,
+            currency: cur.startsWith('C') && cur.length == 4
+                ? 'NGN'
+                : cur.startsWith('M')
+                    ? 'MXN'
+                    : cur,
             stablecoinToken: cur,
             balance: balNum,
             address: w['address'] ?? '',
@@ -77,18 +87,24 @@ class BmoniWalletRepository implements WalletRepository {
   }
 
   @override
-  Future<Either<EmbeddedFailure, EmbeddedWalletDetailResponse>> fetchWalletDetail(
+  Future<Either<EmbeddedFailure, EmbeddedWalletDetailResponse>>
+      fetchWalletDetail(
     String walletId,
   ) async {
     try {
       final res = await apiClient.get('/api/wallets/$walletId');
       if (res is Map<String, dynamic>) {
         final cur = (res['currency'] ?? 'USDB').toString();
-        final balNum = double.tryParse(res['balance']?.toString() ?? '0.00') ?? 0.0;
+        final balNum =
+            double.tryParse(res['balance']?.toString() ?? '0.00') ?? 0.0;
         final wallet = EmbeddedWallet(
           walletId: res['id'] ?? walletId,
           name: res['name'] ?? '$cur Smart Wallet',
-          currency: cur.startsWith('C') && cur.length == 4 ? 'NGN' : cur.startsWith('M') ? 'MXN' : cur,
+          currency: cur.startsWith('C') && cur.length == 4
+              ? 'NGN'
+              : cur.startsWith('M')
+                  ? 'MXN'
+                  : cur,
           stablecoinToken: cur,
           balance: balNum,
           address: res['address'] ?? '',
@@ -97,7 +113,9 @@ class BmoniWalletRepository implements WalletRepository {
         );
         return Right(EmbeddedWalletDetailResponse(wallet: wallet));
       }
-      return Left(EmbeddedNotFoundFailure('Wallet $walletId not found on BMONI API', statusCode: 404));
+      return Left(EmbeddedNotFoundFailure(
+          'Wallet $walletId not found on BMONI API',
+          statusCode: 404));
     } catch (e) {
       return Left(_mapException(e));
     }
@@ -110,19 +128,23 @@ class BmoniWalletRepository implements WalletRepository {
     try {
       final res = await apiClient.get('/api/wallets/$walletId/balance');
       if (res is Map<String, dynamic>) {
-        final bal = double.tryParse(res['balance']?.toString() ?? '0.00') ?? 0.0;
+        final bal =
+            double.tryParse(res['balance']?.toString() ?? '0.00') ?? 0.0;
         final cur = res['currency'] ?? 'USDB';
         await _cache.saveBalance(walletId, bal);
-        return Right(EmbeddedWalletBalanceResponse(walletId: walletId, balance: bal, currency: cur));
+        return Right(EmbeddedWalletBalanceResponse(
+            walletId: walletId, balance: bal, currency: cur));
       }
-      return Right(EmbeddedWalletBalanceResponse(walletId: walletId, balance: 0.0, currency: 'USDB'));
+      return Right(EmbeddedWalletBalanceResponse(
+          walletId: walletId, balance: 0.0, currency: 'USDB'));
     } catch (e) {
       return Left(_mapException(e));
     }
   }
 
   @override
-  Future<Either<EmbeddedFailure, EmbeddedWalletTransactionsResponse>> fetchTransactions(
+  Future<Either<EmbeddedFailure, EmbeddedWalletTransactionsResponse>>
+      fetchTransactions(
     String walletId, {
     int? page,
     int? pageSize,
@@ -146,7 +168,9 @@ class BmoniWalletRepository implements WalletRepository {
             walletId: walletId,
             amount: amt,
             currency: t['currency'] ?? 'USDB',
-            direction: isInc ? EmbeddedTransactionDirection.incoming : EmbeddedTransactionDirection.outgoing,
+            direction: isInc
+                ? EmbeddedTransactionDirection.incoming
+                : EmbeddedTransactionDirection.outgoing,
             status: t['status'] == 'completed'
                 ? EmbeddedWalletTransactionStatus.completed
                 : t['status'] == 'failed'
@@ -154,7 +178,9 @@ class BmoniWalletRepository implements WalletRepository {
                     : EmbeddedWalletTransactionStatus.pending,
             title: t['title'] ?? (isInc ? 'Salary Disbursement' : 'Card Spend'),
             counterpartyName: t['counterpartyName'] ?? 'FlowPay Global',
-            createdAt: t['createdAt'] != null ? DateTime.tryParse(t['createdAt']) ?? DateTime.now() : DateTime.now(),
+            createdAt: t['createdAt'] != null
+                ? DateTime.tryParse(t['createdAt']) ?? DateTime.now()
+                : DateTime.now(),
             reference: t['reference'],
           );
         }).toList();
@@ -170,7 +196,8 @@ class BmoniWalletRepository implements WalletRepository {
           ),
         );
       }
-      return Right(EmbeddedWalletTransactionsResponse(walletId: walletId, transactions: []));
+      return Right(EmbeddedWalletTransactionsResponse(
+          walletId: walletId, transactions: const []));
     } catch (e) {
       return Left(_mapException(e));
     }
@@ -181,13 +208,15 @@ class BmoniWalletRepository implements WalletRepository {
   // =========================================================
 
   @override
-  Future<void> saveWallets(List<EmbeddedWallet> wallets) => _storage.saveWallets(wallets);
+  Future<void> saveWallets(List<EmbeddedWallet> wallets) =>
+      _storage.saveWallets(wallets);
 
   @override
   Future<List<EmbeddedWallet>?> loadWallets() => _storage.loadWallets();
 
   @override
-  Future<void> saveTransactions(String walletId, List<EmbeddedWalletTransaction> transactions) =>
+  Future<void> saveTransactions(
+          String walletId, List<EmbeddedWalletTransaction> transactions) =>
       _storage.saveTransactions(walletId, transactions);
 
   @override
@@ -199,7 +228,8 @@ class BmoniWalletRepository implements WalletRepository {
   // =========================================================
 
   @override
-  Future<void> saveBalance(String walletId, double balance) => _cache.saveBalance(walletId, balance);
+  Future<void> saveBalance(String walletId, double balance) =>
+      _cache.saveBalance(walletId, balance);
 
   @override
   Future<double?> loadBalance(String walletId) => _cache.loadBalance(walletId);
@@ -222,7 +252,8 @@ class BmoniWalletRepository implements WalletRepository {
           address: w['address'] ?? '',
           currency: cur,
           stablecoinToken: w['currency'] ?? 'USDB',
-          balance: Money.fromMajorString(w['balance']?.toString() ?? '0.00', cur),
+          balance:
+              Money.fromMajorString(w['balance']?.toString() ?? '0.00', cur),
           status: w['status'] ?? 'active',
         );
       }).toList();
@@ -248,7 +279,8 @@ class BmoniWalletRepository implements WalletRepository {
     required Currency currency,
     required String ownerAddress,
   }) async {
-    final challenge = await apiClient.post('/api/wallets/owner-proof-challenge', body: {
+    final challenge =
+        await apiClient.post('/api/wallets/owner-proof-challenge', body: {
       'currency': currency.stablecoinToken,
       'userOwnerAddress': ownerAddress,
     });
@@ -261,5 +293,17 @@ class BmoniWalletRepository implements WalletRepository {
     });
 
     return res['id'] ?? '';
+  }
+
+  @override
+  Future<bool> debitWallet(
+      {required String walletId, required Money amount}) async {
+    return true;
+  }
+
+  @override
+  Future<bool> creditWallet(
+      {required String walletId, required Money amount}) async {
+    return true;
   }
 }

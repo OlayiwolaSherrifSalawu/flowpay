@@ -65,7 +65,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.25), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.25),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF10B981).withValues(alpha: 0.12),
@@ -84,7 +86,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.28), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.28),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
@@ -103,7 +107,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.25), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFFEF4444).withValues(alpha: 0.12),
@@ -122,7 +128,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.25), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.25),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF6366F1).withValues(alpha: 0.12),
@@ -141,7 +149,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFFA855F7).withValues(alpha: 0.25), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFFA855F7).withValues(alpha: 0.25),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFFA855F7).withValues(alpha: 0.12),
@@ -161,7 +171,9 @@ class EmbeddedWalletCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.25), width: 1.2),
+          border: Border.all(
+              color: const Color(0xFF38BDF8).withValues(alpha: 0.25),
+              width: 1.2),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF38BDF8).withValues(alpha: 0.12),
@@ -192,8 +204,10 @@ class EmbeddedWalletCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardDecoration = resolveCardArtDecoration(wallet.currency);
-    final isNg = wallet.currency.toUpperCase() == 'NGN' || wallet.currency.toUpperCase() == 'CNGN';
-    final isMx = wallet.currency.toUpperCase() == 'MXN' || wallet.currency.toUpperCase() == 'MEXE';
+    final isNg = wallet.currency.toUpperCase() == 'NGN' ||
+        wallet.currency.toUpperCase() == 'CNGN';
+    final isMx = wallet.currency.toUpperCase() == 'MXN' ||
+        wallet.currency.toUpperCase() == 'MEXE';
 
     return GestureDetector(
       onTap: onTap,
@@ -236,7 +250,8 @@ class EmbeddedWalletCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
@@ -254,7 +269,8 @@ class EmbeddedWalletCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         if (wallet.stablecoinToken != null) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
                               color: FlowPayColors.brand.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(6),
@@ -279,14 +295,16 @@ class EmbeddedWalletCard extends StatelessWidget {
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white70),
                             ),
                           ),
                           const SizedBox(width: 8),
                         ],
                         if (onInfoTap != null) ...[
                           IconButton(
-                            icon: const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 20),
+                            icon: const Icon(Icons.info_outline_rounded,
+                                color: Colors.white70, size: 20),
                             onPressed: onInfoTap,
                             tooltip: 'Wallet Details',
                             padding: EdgeInsets.zero,
@@ -330,7 +348,9 @@ class EmbeddedWalletCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isBalanceHidden ? '••••••••' : _formatCurrency(wallet.balance, wallet.currency),
+                      isBalanceHidden
+                          ? '••••••••'
+                          : _formatCurrency(wallet.balance, wallet.currency),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -355,7 +375,8 @@ class EmbeddedWalletCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: wallet.status.toLowerCase() == 'active'
                             ? FlowPayColors.signal.withValues(alpha: 0.25)

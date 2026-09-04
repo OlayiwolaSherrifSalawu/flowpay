@@ -74,7 +74,9 @@ class TransactionDetailSheet extends StatelessWidget {
                       : (transaction.type == TransactionType.cardTransaction
                           ? Icons.credit_card
                           : Icons.account_balance_wallet_outlined),
-                  color: transaction.isFailure ? FlowPayColors.stateError : FlowPayColors.accent,
+                  color: transaction.isFailure
+                      ? FlowPayColors.stateError
+                      : FlowPayColors.accent,
                   size: 24,
                 ),
               ),
@@ -107,11 +109,9 @@ class TransactionDetailSheet extends StatelessWidget {
 
           // Primary Amount Display
           FlowPayAmountDisplay(
-            amount: transaction.amount,
-            textStyle: FlowPayTypography.headlineLarge.copyWith(
-              color: FlowPayColors.ink,
-              fontWeight: FontWeight.w800,
-            ),
+            amount: transaction.amount.formatFormatted(),
+            size: AmountDisplaySize.large,
+            color: FlowPayColors.ink,
           ),
           if (transaction.secondaryAmount != null) ...[
             const SizedBox(height: 4),
@@ -137,9 +137,11 @@ class TransactionDetailSheet extends StatelessWidget {
                 _buildRow('Category', transaction.type.name.toUpperCase()),
                 _buildRow('Date & Time', _formatDate(transaction.timestamp)),
                 if (transaction.flowpayReference != null)
-                  _buildRow('FlowPay Reference', transaction.flowpayReference!, isMonospace: true),
+                  _buildRow('FlowPay Reference', transaction.flowpayReference!,
+                      isMonospace: true),
                 if (transaction.bmoniReference != null)
-                  _buildRow('BMONI Rail Reference', transaction.bmoniReference!, isMonospace: true),
+                  _buildRow('BMONI Rail Reference', transaction.bmoniReference!,
+                      isMonospace: true),
                 if (transaction.description.isNotEmpty)
                   _buildRow('Description', transaction.description),
               ],
@@ -155,14 +157,16 @@ class TransactionDetailSheet extends StatelessWidget {
               decoration: BoxDecoration(
                 color: FlowPayColors.stateError.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: FlowPayColors.stateError.withValues(alpha: 0.35)),
+                border: Border.all(
+                    color: FlowPayColors.stateError.withValues(alpha: 0.35)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: FlowPayColors.stateError, size: 16),
+                      const Icon(Icons.warning_amber_rounded,
+                          color: FlowPayColors.stateError, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         'AUDIT FAILURE LOG',
@@ -177,7 +181,8 @@ class TransactionDetailSheet extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     transaction.errorReason!,
-                    style: FlowPayTypography.caption.copyWith(color: FlowPayColors.ink),
+                    style: FlowPayTypography.caption
+                        .copyWith(color: FlowPayColors.ink),
                   ),
                   if (transaction.failedStage != null) ...[
                     const SizedBox(height: 4),

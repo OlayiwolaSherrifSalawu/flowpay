@@ -37,11 +37,36 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   String _selectedCountry = 'NG';
 
   final List<Map<String, String>> _countries = [
-    {'code': 'NG', 'name': 'Nigeria 🇳🇬', 'currency': 'NGN', 'idLabel': 'BVN / NIN'},
-    {'code': 'MX', 'name': 'Mexico 🇲🇽', 'currency': 'MXN', 'idLabel': 'CURP / RFC'},
-    {'code': 'US', 'name': 'United States 🇺🇸', 'currency': 'USD', 'idLabel': 'SSN / Tax ID'},
-    {'code': 'CA', 'name': 'Canada 🇨🇦', 'currency': 'CAD', 'idLabel': 'SIN / CRA Number'},
-    {'code': 'GB', 'name': 'United Kingdom 🇬🇧', 'currency': 'GBP', 'idLabel': 'National Insurance'},
+    {
+      'code': 'NG',
+      'name': 'Nigeria 🇳🇬',
+      'currency': 'NGN',
+      'idLabel': 'BVN / NIN'
+    },
+    {
+      'code': 'MX',
+      'name': 'Mexico 🇲🇽',
+      'currency': 'MXN',
+      'idLabel': 'CURP / RFC'
+    },
+    {
+      'code': 'US',
+      'name': 'United States 🇺🇸',
+      'currency': 'USD',
+      'idLabel': 'SSN / Tax ID'
+    },
+    {
+      'code': 'CA',
+      'name': 'Canada 🇨🇦',
+      'currency': 'CAD',
+      'idLabel': 'SIN / CRA Number'
+    },
+    {
+      'code': 'GB',
+      'name': 'United Kingdom 🇬🇧',
+      'currency': 'GBP',
+      'idLabel': 'National Insurance'
+    },
   ];
 
   @override
@@ -81,7 +106,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
 
-    final userId = 'usr_${_accountType.name}_${DateTime.now().millisecondsSinceEpoch}';
+    final userId =
+        'usr_${_accountType.name}_${DateTime.now().millisecondsSinceEpoch}';
     final profile = UserProfile(
       userId: userId,
       fullName: _fullNameController.text.trim(),
@@ -89,9 +115,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       accountType: _accountType,
       country: _selectedCountry,
       phone: _phoneController.text.trim(),
-      companyName: _accountType == AccountType.business ? _companyNameController.text.trim() : null,
-      companyRole: _accountType == AccountType.business ? _companyRoleController.text.trim() : null,
-      companyRegNumber: _accountType == AccountType.business ? _companyRegController.text.trim() : null,
+      companyName: _accountType == AccountType.business
+          ? _companyNameController.text.trim()
+          : null,
+      companyRole: _accountType == AccountType.business
+          ? _companyRoleController.text.trim()
+          : null,
+      companyRegNumber: _accountType == AccountType.business
+          ? _companyRegController.text.trim()
+          : null,
       createdAt: DateTime.now(),
     );
 
@@ -181,7 +213,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         icon: Icons.person_outline,
                         title: 'Personal',
                         tagline: 'Freelancer & Worker',
-                        description: 'Multi-currency wallets, virtual cards & money missions',
+                        description:
+                            'Multi-currency wallets, virtual cards & money missions',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -191,7 +224,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         icon: Icons.business_center_outlined,
                         title: 'Business',
                         tagline: 'Employer & Payroll',
-                        description: 'One Employer, Many Countries, One Bill fan-out',
+                        description:
+                            'One Employer, Many Countries, One Bill fan-out',
                       ),
                     ),
                   ],
@@ -213,23 +247,35 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 // Full Name
                 FlowPayTextField(
                   label: 'Full Legal Name',
-                  hintText: _accountType == AccountType.personal ? 'e.g. Bunch Dillon' : 'e.g. Waffiyyi Fashola',
+                  hintText: _accountType == AccountType.personal
+                      ? 'e.g. Bunch Dillon'
+                      : 'e.g. Waffiyyi Fashola',
                   controller: _fullNameController,
-                  prefix: const Icon(Icons.person, size: 18, color: FlowPayColors.textSecondary),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your legal name' : null,
+                  prefix: const Icon(Icons.person,
+                      size: 18, color: FlowPayColors.textSecondary),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter your legal name'
+                      : null,
                 ),
                 const SizedBox(height: 14),
 
                 // Email
                 FlowPayTextField(
-                  label: _accountType == AccountType.personal ? 'Personal Email' : 'Work Email',
+                  label: _accountType == AccountType.personal
+                      ? 'Personal Email'
+                      : 'Work Email',
                   hintText: 'name@example.com',
                   keyboardType: TextInputType.emailAddress,
                   controller: _emailController,
-                  prefix: const Icon(Icons.email_outlined, size: 18, color: FlowPayColors.textSecondary),
+                  prefix: const Icon(Icons.email_outlined,
+                      size: 18, color: FlowPayColors.textSecondary),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Please enter your email';
-                    if (!v.contains('@') || !v.contains('.')) return 'Invalid email address';
+                    if (v == null || v.trim().isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!v.contains('@') || !v.contains('.')) {
+                      return 'Invalid email address';
+                    }
                     return null;
                   },
                 ),
@@ -248,7 +294,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     ),
                     const SizedBox(height: FlowPaySpacing.xs),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 4),
                       decoration: BoxDecoration(
                         color: FlowPayColors.surfaceAlt,
                         borderRadius: FlowPayRadii.input,
@@ -269,7 +316,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               value: c['code'],
                               child: Row(
                                 children: [
-                                  Text(c['name']!, style: const TextStyle(fontSize: 14)),
+                                  Text(c['name']!,
+                                      style: const TextStyle(fontSize: 14)),
                                   const Spacer(),
                                   Text(
                                     '(${c['currency']})',
@@ -302,12 +350,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   hintText: '+234 800 000 0000',
                   keyboardType: TextInputType.phone,
                   controller: _phoneController,
-                  prefix: const Icon(Icons.phone_outlined, size: 18, color: FlowPayColors.textSecondary),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Please enter your phone number' : null,
+                  prefix: const Icon(Icons.phone_outlined,
+                      size: 18, color: FlowPayColors.textSecondary),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Please enter your phone number'
+                      : null,
                 ),
                 const SizedBox(height: 14),
-
-
 
                 // Business Specific Fields
                 if (_accountType == AccountType.business) ...[
@@ -320,34 +369,37 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
                   FlowPayTextField(
                     label: 'Registered Company Name',
                     hintText: 'e.g. Acme Global Technologies Ltd',
                     controller: _companyNameController,
-                    prefix: const Icon(Icons.domain, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Please enter company name' : null,
+                    prefix: const Icon(Icons.domain,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter company name'
+                        : null,
                   ),
                   const SizedBox(height: 14),
-
                   FlowPayTextField(
                     label: 'Registration / Tax Number',
                     hintText: 'e.g. RC-8924190 or EIN / RFC',
                     controller: _companyRegController,
-                    prefix: const Icon(Icons.numbers, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Please enter registration number' : null,
+                    prefix: const Icon(Icons.numbers,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter registration number'
+                        : null,
                   ),
                   const SizedBox(height: 14),
-
                   FlowPayTextField(
                     label: 'Your Company Role',
                     hintText: 'e.g. Founder & CEO, Head of Finance',
                     controller: _companyRoleController,
-                    prefix: const Icon(Icons.badge_outlined, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Please enter your corporate role' : null,
+                    prefix: const Icon(Icons.badge_outlined,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Please enter your corporate role'
+                        : null,
                   ),
                   const SizedBox(height: 14),
                 ],
@@ -367,7 +419,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.bolt, size: 14, color: FlowPayColors.amber),
+                          Icon(Icons.bolt,
+                              size: 14, color: FlowPayColors.amber),
                           SizedBox(width: 4),
                           Text(
                             'Quick Autofill Persona',
@@ -385,13 +438,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: FlowPayColors.hairline),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                side: const BorderSide(
+                                    color: FlowPayColors.hairline),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                               ),
                               onPressed: _autofillPersonalDemo,
                               child: const Text(
                                 '👤 Personal (Bunch)',
-                                style: TextStyle(fontSize: 12, color: FlowPayColors.ink),
+                                style: TextStyle(
+                                    fontSize: 12, color: FlowPayColors.ink),
                               ),
                             ),
                           ),
@@ -399,13 +455,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: FlowPayColors.hairline),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                side: const BorderSide(
+                                    color: FlowPayColors.hairline),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                               ),
                               onPressed: _autofillBusinessDemo,
                               child: const Text(
                                 '💼 Business (FlowPay)',
-                                style: TextStyle(fontSize: 12, color: FlowPayColors.ink),
+                                style: TextStyle(
+                                    fontSize: 12, color: FlowPayColors.ink),
                               ),
                             ),
                           ),
@@ -430,7 +489,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 if (widget.onBypassToDemo != null)
                   TextButton.icon(
                     onPressed: widget.onBypassToDemo,
-                    icon: const Icon(Icons.flash_on, size: 16, color: FlowPayColors.amber),
+                    icon: const Icon(Icons.flash_on,
+                        size: 16, color: FlowPayColors.amber),
                     label: const Text(
                       'Skip to Sandbox Master',
                       style: TextStyle(
@@ -502,19 +562,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: isSelected ? FlowPayColors.primary : FlowPayColors.surfaceSubtle,
+                    color: isSelected
+                        ? FlowPayColors.primary
+                        : FlowPayColors.surfaceSubtle,
                     borderRadius: FlowPayRadii.chip,
                   ),
                   child: Icon(
                     icon,
                     size: 20,
-                    color: isSelected ? Colors.white : FlowPayColors.textSecondary,
+                    color:
+                        isSelected ? Colors.white : FlowPayColors.textSecondary,
                   ),
                 ),
                 Icon(
-                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  isSelected
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
                   size: 20,
-                  color: isSelected ? FlowPayColors.primary : FlowPayColors.textTertiary,
+                  color: isSelected
+                      ? FlowPayColors.primary
+                      : FlowPayColors.textTertiary,
                 ),
               ],
             ),

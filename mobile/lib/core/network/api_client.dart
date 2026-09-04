@@ -12,11 +12,14 @@ class FlowPayApiClient {
   })  : baseUrl = baseUrl ??
             (const String.fromEnvironment('FLOWPAY_API_URL').isNotEmpty
                 ? const String.fromEnvironment('FLOWPAY_API_URL')
-                : (Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000')),
+                : (Platform.isAndroid
+                    ? 'http://10.0.2.2:4000'
+                    : 'http://localhost:4000')),
         _client = client ?? http.Client();
 
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
-    final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
+    final uri =
+        Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
     final res = await _client.get(uri, headers: {'Accept': 'application/json'});
     return _handleResponse(res);
   }
@@ -25,7 +28,10 @@ class FlowPayApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final res = await _client.post(
       uri,
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);
@@ -35,7 +41,23 @@ class FlowPayApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final res = await _client.patch(
       uri,
-      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: body != null ? jsonEncode(body) : null,
+    );
+    return _handleResponse(res);
+  }
+
+  Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final res = await _client.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);

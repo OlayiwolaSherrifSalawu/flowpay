@@ -1,7 +1,6 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../../repositories/card_repository.dart';
-import 'demo_data.dart';
 
 class DemoCardRepository implements CardRepository {
   final List<VirtualCardModel> _cards = [
@@ -93,7 +92,8 @@ class DemoCardRepository implements CardRepository {
     await Future.delayed(const Duration(milliseconds: 200));
 
     final proposalId = 'prop_card_${DateTime.now().millisecondsSinceEpoch}';
-    final dummyHash = '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16).padLeft(64, '0')}';
+    final dummyHash =
+        '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16).padLeft(64, '0')}';
 
     final reservedCard = VirtualCardModel(
       id: proposalId,
@@ -141,7 +141,8 @@ class DemoCardRepository implements CardRepository {
     String? userId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 250));
-    final idx = _cards.indexWhere((c) => c.id == proposalId || c.proposalId == proposalId);
+    final idx = _cards
+        .indexWhere((c) => c.id == proposalId || c.proposalId == proposalId);
     if (idx != -1) {
       final old = _cards[idx];
       final activated = old.copyWith(
@@ -236,8 +237,8 @@ class DemoCardRepository implements CardRepository {
     String cardId,
     String currentStatus,
   ) async {
-    final isCurrentlyFrozen =
-        currentStatus.toUpperCase() == 'BLOCKED' || currentStatus.toUpperCase() == 'FROZEN';
+    final isCurrentlyFrozen = currentStatus.toUpperCase() == 'BLOCKED' ||
+        currentStatus.toUpperCase() == 'FROZEN';
     return setCardStatus(cardId, freeze: !isCurrentlyFrozen);
   }
 }

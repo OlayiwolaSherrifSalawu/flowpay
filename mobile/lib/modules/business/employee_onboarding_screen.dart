@@ -24,14 +24,14 @@ class EmployeeOnboardingScreen extends StatefulWidget {
   });
 
   @override
-  State<EmployeeOnboardingScreen> createState() => _EmployeeOnboardingScreenState();
+  State<EmployeeOnboardingScreen> createState() =>
+      _EmployeeOnboardingScreenState();
 }
 
 class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   late EmployeeModel _emp;
   EmployeeOnboardingStatusModel? _status;
   bool _isLoading = true;
-  String? _errorMessage;
 
   // Active stage tab (2, 3, or 4)
   int _activeStage = 2;
@@ -39,7 +39,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // Nigeria Form Controllers
   final _bvnCtrl = TextEditingController(text: '95888168924');
   final _ninCtrl = TextEditingController(text: '63184876213');
-  final _ngStreetCtrl = TextEditingController(text: '15 Admiralty Way, Lekki Phase 1');
+  final _ngStreetCtrl =
+      TextEditingController(text: '15 Admiralty Way, Lekki Phase 1');
   final _ngCityCtrl = TextEditingController(text: 'Lagos');
   final _ngStateCtrl = TextEditingController(text: 'Lagos');
   final _ngPostalCtrl = TextEditingController(text: '101241');
@@ -94,11 +95,11 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   Future<void> _fetchStatus() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
-      final status = await widget.appState.employeeRepo.getOnboardingStatus(_emp.id);
+      final status =
+          await widget.appState.employeeRepo.getOnboardingStatus(_emp.id);
       setState(() {
         _status = status;
         _activeStage = status.currentStage;
@@ -106,7 +107,6 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Failed to load status: $e';
         _isLoading = false;
       });
     }
@@ -129,7 +129,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       }
 
       // 2. Request owner challenge from proxy with stablecoin code (CNGN or MEXe)
-      final challengeData = await widget.appState.employeeRepo.requestOwnerChallenge(
+      final challengeData =
+          await widget.appState.employeeRepo.requestOwnerChallenge(
         _emp.id,
         ownerAddress,
       );
@@ -142,8 +143,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Authorize Smart Wallet',
-        subtitle: 'Sign owner challenge for $_stablecoin smart wallet on-device.',
-        confirmLabel: 'Sign & Deploy Wallet',
+        subtitle:
+            'Sign owner challenge for $_stablecoin smart wallet on-device.',
         onAuthorize: (pin) async {
           return await BmoniSdkService.signMessage(messageToSign, pin: pin);
         },
@@ -228,7 +229,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       } else {
         // Mexico KYC payload (Requires biometric selfie + CURP + RFC + maternal/paternal surnames)
         if (!_selfieCaptured) {
-          throw Exception('Mexico KYC requires biometric selfie verification. Please capture selfie first.');
+          throw Exception(
+              'Mexico KYC requires biometric selfie verification. Please capture selfie first.');
         }
 
         final payload = {
@@ -300,7 +302,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     setState(() => _isProcessingAction = true);
     try {
       // Fetch agreements payload from backend
-      final agreements = await widget.appState.employeeRepo.getMexicoAgreements(_emp.id);
+      final agreements =
+          await widget.appState.employeeRepo.getMexicoAgreements(_emp.id);
       final expiresAt = agreements['expiresAt']?.toString() ?? '';
 
       if (!mounted) return;
@@ -326,9 +329,11 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Etherfuse Custody Agreements',
-                            style: FlowPayTypography.title(color: FlowPayColors.ink)),
+                            style: FlowPayTypography.title(
+                                color: FlowPayColors.ink)),
                         Text('Required for SPEI / CLABE onboarding in Mexico',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary)),
+                            style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.textSecondary)),
                       ],
                     ),
                   ),
@@ -349,12 +354,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       '• Etherfuse Digital Asset Custody Agreement (MEXe)\n'
                       '• Fintoc Banking Rail & SPEI Offramp Authorization\n'
                       '• CNBV & SAT Regulatory Compliance Disclosures',
-                      style: FlowPayTypography.body(color: FlowPayColors.textSecondary),
+                      style: FlowPayTypography.body(
+                          color: FlowPayColors.textSecondary),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Token expires: ${expiresAt.isNotEmpty ? expiresAt.substring(11, 19) : '5 minutes'}',
-                      style: FlowPayTypography.captionStyle(color: Colors.amber),
+                      style:
+                          FlowPayTypography.captionStyle(color: Colors.amber),
                     ),
                   ],
                 ),
@@ -374,6 +381,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
 
       if (signed == true) {
         setState(() => _agreementsSigned = true);
+        if (!mounted) return;
         BMoniToastOverlay.showSuccess(
           context: context,
           title: 'Agreements Signed',
@@ -397,7 +405,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
 
     try {
       if (!_isNigeria && !_agreementsSigned) {
-        throw Exception('Mexico KYC cannot approve until Etherfuse agreements are signed first.');
+        throw Exception(
+            'Mexico KYC cannot approve until Etherfuse agreements are signed first.');
       }
 
       await widget.appState.employeeRepo.activateRail(
@@ -414,7 +423,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       BMoniToastOverlay.showSuccess(
         context: context,
         title: 'Stage 4 Submitted',
-        message: 'Rail activation started. Awaiting onboarding.completed webhook.',
+        message:
+            'Rail activation started. Awaiting onboarding.completed webhook.',
       );
 
       await _fetchStatus();
@@ -438,12 +448,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       BMoniToastOverlay.showSuccess(
         context: context,
         title: 'Onboarding Completed',
-        message: 'onboarding.completed webhook processed! Employee is ready for payroll.',
+        message:
+            'onboarding.completed webhook processed! Employee is ready for payroll.',
       );
       await _fetchStatus();
     } catch (e) {
       if (!mounted) return;
-      BMoniToastOverlay.showError(context: context, title: 'Error', message: e.toString());
+      BMoniToastOverlay.showError(
+          context: context, title: 'Error', message: e.toString());
     } finally {
       if (mounted) setState(() => _isProcessingAction = false);
     }
@@ -454,11 +466,15 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     try {
       await widget.appState.employeeRepo.retryOnboarding(_emp.id);
       if (!mounted) return;
-      BMoniToastOverlay.showInfo(context: context, title: 'Retrying', message: 'Stage reset to retry onboarding.');
+      BMoniToastOverlay.showInfo(
+          context: context,
+          title: 'Retrying',
+          message: 'Stage reset to retry onboarding.');
       await _fetchStatus();
     } catch (e) {
       if (!mounted) return;
-      BMoniToastOverlay.showError(context: context, title: 'Retry Failed', message: e.toString());
+      BMoniToastOverlay.showError(
+          context: context, title: 'Retry Failed', message: e.toString());
     } finally {
       if (mounted) setState(() => _isProcessingAction = false);
     }
@@ -478,9 +494,11 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Employee Onboarding',
-                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16)),
+                style: FlowPayTypography.title(color: FlowPayColors.ink)
+                    .copyWith(fontSize: 16)),
             Text('${_emp.fullName} • ${_emp.resolvedCountryName}',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary)),
+                style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textSecondary)),
           ],
         ),
         actions: [
@@ -493,7 +511,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: FlowPayColors.ink))
+          ? const Center(
+              child: CircularProgressIndicator(color: FlowPayColors.ink))
           : ListView(
               padding: FlowPaySpacing.insetXl,
               children: [
@@ -556,18 +575,26 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(_emp.fullName,
-                        style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17)),
-                    Text('Rail: ${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary)),
+                        style: FlowPayTypography.title(color: FlowPayColors.ink)
+                            .copyWith(fontSize: 17)),
+                    Text(
+                        'Rail: ${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
+                        style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.textSecondary)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(6)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: badgeBg, borderRadius: BorderRadius.circular(6)),
                 child: Text(
                   overall.label.toUpperCase(),
-                  style: TextStyle(color: badgeFg, fontSize: 11, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: badgeFg,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -575,7 +602,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           const SizedBox(height: 12),
           Text(
             'Current Stage: Stage ${_status?.currentStage ?? 2} of 4',
-            style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w600),
+            style: FlowPayTypography.body(color: FlowPayColors.ink)
+                .copyWith(fontWeight: FontWeight.w600),
           ),
           if (_status?.failedStage != null) ...[
             const SizedBox(height: 4),
@@ -592,11 +620,16 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   Widget _buildStageTabs() {
     return Row(
       children: [
-        Expanded(child: _stageTabItem(2, 'Stage 2\nWallet', _status?.stage2Wallet.state)),
+        Expanded(
+            child: _stageTabItem(
+                2, 'Stage 2\nWallet', _status?.stage2Wallet.state)),
         const SizedBox(width: 8),
-        Expanded(child: _stageTabItem(3, 'Stage 3\nKYC', _status?.stage3Kyc.state)),
+        Expanded(
+            child: _stageTabItem(3, 'Stage 3\nKYC', _status?.stage3Kyc.state)),
         const SizedBox(width: 8),
-        Expanded(child: _stageTabItem(4, 'Stage 4\nRail', _status?.stage4Rail.state)),
+        Expanded(
+            child:
+                _stageTabItem(4, 'Stage 4\nRail', _status?.stage4Rail.state)),
       ],
     );
   }
@@ -626,7 +659,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isSelected ? FlowPayColors.ink : FlowPayColors.textSecondary,
+                color: isSelected
+                    ? FlowPayColors.ink
+                    : FlowPayColors.textSecondary,
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -635,11 +670,15 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             Icon(
               isReady
                   ? Icons.check_circle_rounded
-                  : (isFailed ? Icons.error_outline_rounded : Icons.radio_button_unchecked_rounded),
+                  : (isFailed
+                      ? Icons.error_outline_rounded
+                      : Icons.radio_button_unchecked_rounded),
               size: 16,
               color: isReady
                   ? FlowPayColors.signal
-                  : (isFailed ? FlowPayColors.error : FlowPayColors.textTertiary),
+                  : (isFailed
+                      ? FlowPayColors.error
+                      : FlowPayColors.textTertiary),
             ),
           ],
         ),
@@ -651,7 +690,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // STAGE 2 VIEW: SMART WALLET PROVISIONING
   // =========================================================================
   Widget _buildStage2Card() {
-    final walletReady = _status?.stage2Wallet.state == OnboardingStageState.ready;
+    final walletReady =
+        _status?.stage2Wallet.state == OnboardingStageState.ready;
 
     return FlowPayCard(
       child: Column(
@@ -659,10 +699,12 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_rounded, color: FlowPayColors.primary, size: 24),
+              const Icon(Icons.account_balance_wallet_rounded,
+                  color: FlowPayColors.primary, size: 24),
               const SizedBox(width: 10),
               Text('Stage 2: Smart Wallet Provisioning',
-                  style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16)),
+                  style: FlowPayTypography.title(color: FlowPayColors.ink)
+                      .copyWith(fontSize: 16)),
             ],
           ),
           const SizedBox(height: 12),
@@ -674,12 +716,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: FlowPayColors.primary, size: 18),
+                const Icon(Icons.info_outline_rounded,
+                    color: FlowPayColors.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Smart wallet calls use stablecoin token $_stablecoin (not ${_emp.targetCurrency.code}) per BMONI specifications.',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.ink),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.ink),
                   ),
                 ),
               ],
@@ -691,7 +735,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             '2. POST /owner-proof-challenges requests challenge\n'
             '3. BmoniEmbeddedSdk.signMessage() signs challenge via 6-digit PIN\n'
             '4. POST /create-managed registers managed smart wallet',
-            style: FlowPayTypography.body(color: FlowPayColors.textSecondary).copyWith(fontSize: 13),
+            style: FlowPayTypography.body(color: FlowPayColors.textSecondary)
+                .copyWith(fontSize: 13),
           ),
           const SizedBox(height: 16),
           if (walletReady) ...[
@@ -700,16 +745,20 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               decoration: BoxDecoration(
                 color: FlowPayColors.signal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: FlowPayColors.signal.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: FlowPayColors.signal.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: FlowPayColors.signal),
+                  const Icon(Icons.check_circle_rounded,
+                      color: FlowPayColors.signal),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Smart wallet active: ${_status?.stage2Wallet.details['walletAddress'] ?? _emp.walletAddress ?? '0x...'}',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.signal).copyWith(fontFamily: 'monospace'),
+                      style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.signal)
+                          .copyWith(fontFamily: 'monospace'),
                     ),
                   ),
                 ],
@@ -717,11 +766,12 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             ),
           ] else ...[
             BMoniButton(
-              text: _isProcessingAction ? 'Provisioning Wallet...' : 'Provision Smart Wallet on BMONI',
+              text: _isProcessingAction
+                  ? 'Provisioning Wallet...'
+                  : 'Provision Smart Wallet on BMONI',
               variant: BMoniButtonVariant.primary,
               size: BMoniButtonSize.medium,
               icon: Icons.key_rounded,
-              disabled: _isProcessingAction,
               onPressed: _handleProvisionWallet,
             ),
           ],
@@ -742,11 +792,13 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.verified_user_rounded, color: FlowPayColors.primary, size: 24),
+              const Icon(Icons.verified_user_rounded,
+                  color: FlowPayColors.primary, size: 24),
               const SizedBox(width: 10),
               Text(
                 'Stage 3: ${_isNigeria ? 'Nigeria KYC (No Selfie)' : 'Mexico KYC (Selfie + CURP)'}',
-                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16),
+                style: FlowPayTypography.title(color: FlowPayColors.ink)
+                    .copyWith(fontSize: 16),
               ),
             ],
           ),
@@ -755,7 +807,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             _isNigeria
                 ? 'Nigeria path strictly omits biometric selfie. Requires 11-digit BVN and Enhanced Due Diligence (EDD).'
                 : 'Mexico path requires CURP, RFC, maternal/paternal surnames, and biometric selfie scan.',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+            style: FlowPayTypography.captionStyle(
+                color: FlowPayColors.textSecondary),
           ),
           const SizedBox(height: 16),
 
@@ -763,14 +816,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           if (_isNigeria) ...[
             BMoniTextFormField.filled(
               controller: _bvnCtrl,
-              labelText: 'Bank Verification Number (BVN)',
+              label: 'Bank Verification Number (BVN)',
               hintText: '11 digits (e.g. 95888168924)',
               prefixIcon: const Icon(Icons.numbers_rounded),
             ),
             const SizedBox(height: 10),
             BMoniTextFormField.filled(
               controller: _ninCtrl,
-              labelText: 'National Identification Number (NIN)',
+              label: 'National Identification Number (NIN)',
               hintText: '11 digits',
               prefixIcon: const Icon(Icons.badge_rounded),
             ),
@@ -780,7 +833,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 Expanded(
                   child: BMoniTextFormField.filled(
                     controller: _ngCityCtrl,
-                    labelText: 'City',
+                    label: 'City',
                     hintText: 'Lagos',
                   ),
                 ),
@@ -788,7 +841,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 Expanded(
                   child: BMoniTextFormField.filled(
                     controller: _ngStateCtrl,
-                    labelText: 'State',
+                    label: 'State',
                     hintText: 'Lagos',
                   ),
                 ),
@@ -797,7 +850,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             const SizedBox(height: 10),
             BMoniTextFormField.filled(
               controller: _ngOccupationCtrl,
-              labelText: 'Occupation Code (EDD)',
+              label: 'Occupation Code (EDD)',
               hintText: 'OCC_FIN_001',
               prefixIcon: const Icon(Icons.work_outline_rounded),
             ),
@@ -810,12 +863,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.verified_outlined, color: Colors.blue, size: 18),
+                  const Icon(Icons.verified_outlined,
+                      color: Colors.blue, size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Biometric selfie step is omitted for Nigeria per official BMONI KYC guidelines.',
-                      style: FlowPayTypography.captionStyle(color: Colors.blue[900] ?? Colors.blue),
+                      style: FlowPayTypography.captionStyle(
+                          color: Colors.blue[900] ?? Colors.blue),
                     ),
                   ),
                 ],
@@ -825,14 +880,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             // Mexico KYC Form
             BMoniTextFormField.filled(
               controller: _curpCtrl,
-              labelText: 'CURP (18 characters)',
+              label: 'CURP (18 characters)',
               hintText: 'OKAC900115MDFXYZ01',
               prefixIcon: const Icon(Icons.badge_rounded),
             ),
             const SizedBox(height: 10),
             BMoniTextFormField.filled(
               controller: _rfcCtrl,
-              labelText: 'RFC (12-13 characters)',
+              label: 'RFC (12-13 characters)',
               hintText: 'OKAC900115XYZ',
               prefixIcon: const Icon(Icons.numbers_rounded),
             ),
@@ -842,7 +897,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 Expanded(
                   child: BMoniTextFormField.filled(
                     controller: _paternalCtrl,
-                    labelText: 'Paternal Surname',
+                    label: 'Paternal Surname',
                     hintText: 'Mendoza',
                   ),
                 ),
@@ -850,7 +905,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 Expanded(
                   child: BMoniTextFormField.filled(
                     controller: _maternalCtrl,
-                    labelText: 'Maternal Surname',
+                    label: 'Maternal Surname',
                     hintText: 'García',
                   ),
                 ),
@@ -864,23 +919,33 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 BMoniToastOverlay.showInfo(
                   context: context,
                   title: _selfieCaptured ? 'Selfie Captured' : 'Selfie Cleared',
-                  message: _selfieCaptured ? 'Facial liveness scan verified.' : 'Please take selfie.',
+                  message: _selfieCaptured
+                      ? 'Facial liveness scan verified.'
+                      : 'Please take selfie.',
                 );
               },
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _selfieCaptured ? FlowPayColors.signal.withValues(alpha: 0.1) : FlowPayColors.surfaceAlt,
+                  color: _selfieCaptured
+                      ? FlowPayColors.signal.withValues(alpha: 0.1)
+                      : FlowPayColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: _selfieCaptured ? FlowPayColors.signal : FlowPayColors.hairline,
+                    color: _selfieCaptured
+                        ? FlowPayColors.signal
+                        : FlowPayColors.hairline,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _selfieCaptured ? Icons.face_retouching_natural_rounded : Icons.camera_front_rounded,
-                      color: _selfieCaptured ? FlowPayColors.signal : FlowPayColors.ink,
+                      _selfieCaptured
+                          ? Icons.face_retouching_natural_rounded
+                          : Icons.camera_front_rounded,
+                      color: _selfieCaptured
+                          ? FlowPayColors.signal
+                          : FlowPayColors.ink,
                       size: 28,
                     ),
                     const SizedBox(width: 12),
@@ -889,19 +954,30 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _selfieCaptured ? 'Biometric Selfie: Captured & Verified' : 'Capture Biometric Selfie (Required)',
-                            style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(fontWeight: FontWeight.w600),
+                            _selfieCaptured
+                                ? 'Biometric Selfie: Captured & Verified'
+                                : 'Capture Biometric Selfie (Required)',
+                            style:
+                                FlowPayTypography.body(color: FlowPayColors.ink)
+                                    .copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
-                            _selfieCaptured ? 'Liveness and anti-spoofing radar passed' : 'Tap to simulate camera scan',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                            _selfieCaptured
+                                ? 'Liveness and anti-spoofing radar passed'
+                                : 'Tap to simulate camera scan',
+                            style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.textSecondary),
                           ),
                         ],
                       ),
                     ),
                     Icon(
-                      _selfieCaptured ? Icons.check_circle_rounded : Icons.arrow_forward_ios_rounded,
-                      color: _selfieCaptured ? FlowPayColors.signal : FlowPayColors.textTertiary,
+                      _selfieCaptured
+                          ? Icons.check_circle_rounded
+                          : Icons.arrow_forward_ios_rounded,
+                      color: _selfieCaptured
+                          ? FlowPayColors.signal
+                          : FlowPayColors.textTertiary,
                       size: 18,
                     ),
                   ],
@@ -920,19 +996,23 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: FlowPayColors.signal),
+                  const Icon(Icons.check_circle_rounded,
+                      color: FlowPayColors.signal),
                   const SizedBox(width: 8),
-                  Text('KYC Profile & Verification Passed', style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)),
+                  Text('KYC Profile & Verification Passed',
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.signal)),
                 ],
               ),
             ),
           ] else ...[
             BMoniButton(
-              text: _isProcessingAction ? 'Submitting KYC...' : 'Submit & Activate KYC',
+              text: _isProcessingAction
+                  ? 'Submitting KYC...'
+                  : 'Submit & Activate KYC',
               variant: BMoniButtonVariant.primary,
               size: BMoniButtonSize.medium,
               icon: Icons.send_rounded,
-              disabled: _isProcessingAction,
               onPressed: _handleSubmitKyc,
             ),
           ],
@@ -946,7 +1026,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // =========================================================================
   Widget _buildStage4Card() {
     final railReady = _status?.stage4Rail.state == OnboardingStageState.ready;
-    final railProcessing = _status?.stage4Rail.state == OnboardingStageState.inProgress;
+    final railProcessing =
+        _status?.stage4Rail.state == OnboardingStageState.inProgress;
 
     return FlowPayCard(
       child: Column(
@@ -954,11 +1035,13 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.alt_route_rounded, color: FlowPayColors.primary, size: 24),
+              const Icon(Icons.alt_route_rounded,
+                  color: FlowPayColors.primary, size: 24),
               const SizedBox(width: 10),
               Text(
                 'Stage 4: ${_isNigeria ? 'Activate Nigeria Rail' : 'Activate Mexico Rail'}',
-                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16),
+                style: FlowPayTypography.title(color: FlowPayColors.ink)
+                    .copyWith(fontSize: 16),
               ),
             ],
           ),
@@ -967,39 +1050,54 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             _isNigeria
                 ? 'Issues NGN virtual account pointing at smart wallet address via POST /onboarding/start-nigeria.'
                 : 'Approval requires Etherfuse agreements signing first, then POST /latam/mx/kyc/activate.',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+            style: FlowPayTypography.captionStyle(
+                color: FlowPayColors.textSecondary),
           ),
           const SizedBox(height: 16),
-
           if (!_isNigeria) ...[
             // Mexico Agreements Prerequisite Step
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: _agreementsSigned ? FlowPayColors.signal.withValues(alpha: 0.1) : Colors.amber.withValues(alpha: 0.1),
+                color: _agreementsSigned
+                    ? FlowPayColors.signal.withValues(alpha: 0.1)
+                    : Colors.amber.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _agreementsSigned ? FlowPayColors.signal : Colors.amber),
+                border: Border.all(
+                    color: _agreementsSigned
+                        ? FlowPayColors.signal
+                        : Colors.amber),
               ),
               child: Row(
                 children: [
-                  Icon(_agreementsSigned ? Icons.check_circle_rounded : Icons.pending_actions_rounded,
-                      color: _agreementsSigned ? FlowPayColors.signal : Colors.amber),
+                  Icon(
+                      _agreementsSigned
+                          ? Icons.check_circle_rounded
+                          : Icons.pending_actions_rounded,
+                      color: _agreementsSigned
+                          ? FlowPayColors.signal
+                          : Colors.amber),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _agreementsSigned ? 'Etherfuse Agreements: Signed' : 'Prerequisite: Sign Etherfuse Agreements',
+                          _agreementsSigned
+                              ? 'Etherfuse Agreements: Signed'
+                              : 'Prerequisite: Sign Etherfuse Agreements',
                           style: TextStyle(
-                            color: _agreementsSigned ? FlowPayColors.signal : Colors.amber[900],
+                            color: _agreementsSigned
+                                ? FlowPayColors.signal
+                                : Colors.amber[900],
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
                         Text(
                           'GET /v1/users/{userId}/latam/mx/kyc/launch/agreements',
-                          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                          style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textSecondary),
                         ),
                       ],
                     ),
@@ -1014,7 +1112,6 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             ),
             const SizedBox(height: 16),
           ],
-
           if (railReady) ...[
             Container(
               padding: const EdgeInsets.all(12),
@@ -1024,10 +1121,12 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: FlowPayColors.signal),
+                  const Icon(Icons.check_circle_rounded,
+                      color: FlowPayColors.signal),
                   const SizedBox(width: 8),
                   Text('Disbursement Rail Active & Ready for Payroll',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)),
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.signal)),
                 ],
               ),
             ),
@@ -1046,27 +1145,33 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: FlowPayColors.primary),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: FlowPayColors.primary),
                       ),
                       const SizedBox(width: 10),
-                      Text('Onboarding Processing', style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 14)),
+                      Text('Onboarding Processing',
+                          style:
+                              FlowPayTypography.title(color: FlowPayColors.ink)
+                                  .copyWith(fontSize: 14)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Subscribed to onboarding.completed webhook. Do not poll — waiting for provider settlement confirmation.',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
                   ),
                 ],
               ),
             ),
           ] else ...[
             BMoniButton(
-              text: _isProcessingAction ? 'Activating Rail...' : 'Activate Rail on BMONI',
+              text: _isProcessingAction
+                  ? 'Activating Rail...'
+                  : 'Activate Rail on BMONI',
               variant: BMoniButtonVariant.primary,
               size: BMoniButtonSize.medium,
               icon: Icons.power_settings_new_rounded,
-              disabled: _isProcessingAction,
               onPressed: _handleActivateRail,
             ),
           ],
@@ -1078,13 +1183,13 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   Widget _buildSandboxActionBar(OnboardingStageState overall) {
     return Column(
       children: [
-        if (overall == OnboardingStageState.inProgress || overall == OnboardingStageState.notStarted) ...[
+        if (overall == OnboardingStageState.inProgress ||
+            overall == OnboardingStageState.notStarted) ...[
           BMoniButton(
             text: 'Simulate Webhook (onboarding.completed)',
             variant: BMoniButtonVariant.outline,
             size: BMoniButtonSize.medium,
             icon: Icons.bolt_rounded,
-            disabled: _isProcessingAction,
             onPressed: _handleSimulateWebhook,
           ),
           const SizedBox(height: 10),
@@ -1095,7 +1200,6 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             variant: BMoniButtonVariant.primary,
             size: BMoniButtonSize.medium,
             icon: Icons.refresh_rounded,
-            disabled: _isProcessingAction,
             onPressed: _handleRetry,
           ),
         ],

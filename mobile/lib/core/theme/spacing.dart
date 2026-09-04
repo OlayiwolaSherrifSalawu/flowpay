@@ -47,5 +47,6 @@ class FlowPaySpacing {
   static final BorderRadius borderRadiusMd = BorderRadius.circular(radiusMd);
   static final BorderRadius borderRadiusLg = BorderRadius.circular(radiusLg);
   static final BorderRadius borderRadiusXl = BorderRadius.circular(radiusXl);
-  static final BorderRadius borderRadiusPill = BorderRadius.circular(radiusPill);
+  static final BorderRadius borderRadiusPill =
+      BorderRadius.circular(radiusPill);
 }

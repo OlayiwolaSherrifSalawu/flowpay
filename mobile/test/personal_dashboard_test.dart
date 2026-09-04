@@ -20,7 +20,9 @@ Future<void> unlockIntoPersonal(WidgetTester tester) async {
 
 void main() {
   group('FlowPay Personal Dashboard Tests', () {
-    testWidgets('Renders complete Personal Financial Dashboard with all core sections', (tester) async {
+    testWidgets(
+        'Renders complete Personal Financial Dashboard with all core sections',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -41,7 +43,8 @@ void main() {
       // 2. Portfolio Balance Section
       expect(find.text('Total Multi-Currency Portfolio'), findsOneWidget);
       expect(find.text('USD PRIMARY'), findsOneWidget);
-      expect(find.textContaining('\$37,671'), findsOneWidget); // deterministic minor unit valuation
+      expect(find.textContaining('\$37,671'),
+          findsOneWidget); // deterministic minor unit valuation
       expect(find.textContaining('Avail: \$24,500.00'), findsOneWidget);
 
       // 3. Quick Actions
@@ -67,7 +70,7 @@ void main() {
 
       // 7. Scroll to Multi-Currency Smart Wallets & Recent Activity
       await tester.scrollUntilVisible(
-        find.text('Multi-Currency Smart Wallets'),
+        find.textContaining('CNGN'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
@@ -93,7 +96,9 @@ void main() {
       expect(find.text('Emergency Fund Auto-Sweep'), findsWidgets);
     });
 
-    testWidgets('Tapping "Allocate my \$2,000" opens AiAllocationModal workflow', (tester) async {
+    testWidgets(
+        'Tapping "Allocate my \$2,000" opens AiAllocationModal workflow',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -112,11 +117,14 @@ void main() {
       // Verify AiAllocationModal opened
       expect(find.byType(AiAllocationModal), findsOneWidget);
       expect(find.text('Smart Capital Allocation'), findsOneWidget);
-      expect(find.text('Task Workflow: Autonomous Split & Sweep'), findsOneWidget);
+      expect(
+          find.text('Task Workflow: Autonomous Split & Sweep'), findsOneWidget);
       expect(find.text('Activate Allocation Rule'), findsOneWidget);
     });
 
-    testWidgets('Tapping "Convert \$1,000 to Naira" opens AiFxConversionModal workflow', (tester) async {
+    testWidgets(
+        'Tapping "Convert \$1,000 to Naira" opens AiFxConversionModal workflow',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -129,7 +137,8 @@ void main() {
       await unlockIntoPersonal(tester);
 
       // Drag horizontal suggestions row to bring 3rd suggestion chip into view
-      await tester.drag(find.text('Allocate my \$2,000'), const Offset(-350, 0));
+      await tester.drag(
+          find.text('Allocate my \$2,000'), const Offset(-350, 0));
       await tester.pumpAndSettle();
 
       // Tap conversion suggestion chip
@@ -139,11 +148,13 @@ void main() {
       // Verify AiFxConversionModal opened
       expect(find.byType(AiFxConversionModal), findsOneWidget);
       expect(find.text('Instant Multi-Currency FX'), findsOneWidget);
-      expect(find.text('Task Workflow: Zero-Spread BMONI Rail'), findsOneWidget);
+      expect(
+          find.text('Task Workflow: Zero-Spread BMONI Rail'), findsOneWidget);
       expect(find.text('Sign & Convert'), findsOneWidget);
     });
 
-    testWidgets('Pending Approvals opens PIN signing dialog on Approve', (tester) async {
+    testWidgets('Pending Approvals opens PIN signing dialog on Approve',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

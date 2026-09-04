@@ -16,7 +16,9 @@ Future<void> unlockApp(WidgetTester tester) async {
 
 void main() {
   group('FlowPay Application Shell & Auth Gate Tests', () {
-    testWidgets('Initializes behind AppAuthGate and unlocks into Personal Shell', (tester) async {
+    testWidgets(
+        'Initializes behind AppAuthGate and unlocks into Personal Shell',
+        (tester) async {
       final appState = AppState();
 
       await tester.pumpWidget(FlowPayApp(appState: appState));
@@ -36,18 +38,24 @@ void main() {
 
       // Personal navigation tabs within bottom NavigationBar
       final navBar = find.byType(NavigationBar);
-      expect(find.descendant(of: navBar, matching: find.text('Overview')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Wallets')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Missions')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Activity')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Security')), findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Overview')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Wallets')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Missions')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Activity')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Security')),
+          findsOneWidget);
 
       // Personal Dashboard content
       expect(find.text('Personal Account'), findsOneWidget);
       expect(find.text('Money Missions'), findsOneWidget);
     });
 
-    testWidgets('Tapping Business in Role Switch seamlessly transitions to Business Shell',
+    testWidgets(
+        'Tapping Business in Role Switch seamlessly transitions to Business Shell',
         (tester) async {
       final appState = AppState();
 
@@ -63,14 +71,19 @@ void main() {
 
       // Business navigation tabs within bottom NavigationBar
       final navBar = find.byType(NavigationBar);
-      expect(find.descendant(of: navBar, matching: find.text('Dashboard')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Team')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Payroll')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Audit')), findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Dashboard')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Team')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Payroll')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Audit')),
+          findsOneWidget);
 
       // Business Dashboard content
       expect(find.text('Business Dashboard'), findsOneWidget);
-      expect(find.text('One Employer. Many Countries. One Bill.'), findsOneWidget);
+      expect(
+          find.text('One Employer. Many Countries. One Bill.'), findsOneWidget);
     });
 
     testWidgets('Switches tabs cleanly in Business mode', (tester) async {
@@ -87,17 +100,20 @@ void main() {
       final navBar = find.byType(NavigationBar);
 
       // Tap Team tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Team')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Team')));
       await tester.pumpAndSettle();
       expect(find.text('Global Team'), findsOneWidget);
 
       // Tap Payroll tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Payroll')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Payroll')));
       await tester.pumpAndSettle();
       expect(find.text('One Aggregate Bill'), findsOneWidget);
 
       // Tap Audit tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Audit')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Audit')));
       await tester.pumpAndSettle();
       expect(find.text('Global Payroll Fan-Out'), findsOneWidget);
     });
@@ -114,17 +130,20 @@ void main() {
       final navBar = find.byType(NavigationBar);
 
       // Tap Wallets tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Wallets')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Wallets')));
       await tester.pumpAndSettle();
       expect(find.text('Secure Hardware Isolation'), findsOneWidget);
 
       // Tap Missions tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Missions')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Missions')));
       await tester.pumpAndSettle();
       expect(find.text('Your money. Your rules. AI executes.'), findsOneWidget);
 
       // Tap Security tab in nav bar
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Security')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Security')));
       await tester.pumpAndSettle();
       expect(find.text('B-Key Hardware Enclave Active'), findsOneWidget);
     });

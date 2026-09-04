@@ -14,7 +14,8 @@ class AiOperatorModal extends StatefulWidget {
 }
 
 class _AiOperatorModalState extends State<AiOperatorModal> {
-  final _inputController = TextEditingController(text: 'Send \$250 to Bunch Dillon');
+  final _inputController =
+      TextEditingController(text: 'Send \$250 to Bunch Dillon');
   bool _isInterpreting = false;
   FinancialIntent? _interpretedIntent;
 
@@ -70,7 +71,9 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         top: FlowPaySpacing.xl,
       ),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
+        color: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -79,12 +82,15 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         children: [
           Row(
             children: [
-              const Icon(Icons.psychology, color: FlowPayColors.primaryLight, size: 28),
+              const Icon(Icons.psychology,
+                  color: FlowPayColors.primaryLight, size: 28),
               const SizedBox(width: FlowPaySpacing.sm),
               Text(
                 'AI Financial Operator',
                 style: FlowPayTypography.headingSm.copyWith(
-                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
                 ),
               ),
               const Spacer(),
@@ -98,13 +104,16 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           Text(
             'Describe what you want to achieve in plain English. AI interprets your intent; execution is strictly gated behind your PIN.',
             style: FlowPayTypography.bodyMd.copyWith(
-              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+              color: isDark
+                  ? FlowPayColors.darkTextSecondary
+                  : FlowPayColors.lightTextSecondary,
             ),
           ),
           const SizedBox(height: FlowPaySpacing.lg),
           FlowPayTextField(
             controller: _inputController,
-            hintText: 'e.g. "Send \$150 to Samson Jabo" or "Run global payroll"',
+            hintText:
+                'e.g. "Send \$150 to Samson Jabo" or "Run global payroll"',
           ),
           const SizedBox(height: FlowPaySpacing.lg),
           FlowPayButton(
@@ -121,7 +130,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Structured Financial Intent', style: FlowPayTypography.caption),
+                  const Text('Structured Financial Intent',
+                      style: FlowPayTypography.caption),
                   const SizedBox(height: FlowPaySpacing.xs),
                   Text(
                     _interpretedIntent!.description,
@@ -141,7 +151,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                       const Spacer(),
                       Text(
                         '95% Confidence',
-                        style: FlowPayTypography.caption.copyWith(color: FlowPayColors.accentLight),
+                        style: FlowPayTypography.caption
+                            .copyWith(color: FlowPayColors.accentLight),
                       ),
                     ],
                   ),
@@ -154,7 +165,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => SendMoneyScreen(appState: widget.appState),
+                          builder: (_) =>
+                              SendMoneyScreen(appState: widget.appState),
                         ),
                       );
                     },

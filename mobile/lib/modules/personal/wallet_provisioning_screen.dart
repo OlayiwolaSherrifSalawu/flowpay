@@ -23,10 +23,12 @@ class WalletProvisioningScreen extends ConsumerStatefulWidget {
   const WalletProvisioningScreen({super.key});
 
   @override
-  ConsumerState<WalletProvisioningScreen> createState() => _WalletProvisioningScreenState();
+  ConsumerState<WalletProvisioningScreen> createState() =>
+      _WalletProvisioningScreenState();
 }
 
-class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScreen> {
+class _WalletProvisioningScreenState
+    extends ConsumerState<WalletProvisioningScreen> {
   String? _lastTestSignature;
 
   @override
@@ -49,7 +51,9 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
       subtitle: 'Testing hardware enclave signature generation.',
       recipient: 'FlowPay Security Verification',
       onAuthorize: (pin) async {
-        return await BmoniSdkService.signMessage('FlowPay Security Verification Challenge', pin: pin);
+        return await BmoniSdkService.signMessage(
+            'FlowPay Security Verification Challenge',
+            pin: pin);
       },
     );
 
@@ -88,19 +92,23 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: FlowPayColors.stateError),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: FlowPayColors.stateError),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete Permanently', style: TextStyle(color: Colors.white)),
+            child: const Text('Delete Permanently',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
 
     if (confirmed == true && mounted) {
-      final success = await ref.read(walletStateProvider.notifier).deleteWallet();
+      final success =
+          await ref.read(walletStateProvider.notifier).deleteWallet();
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Wallet deleted from device secure storage.')),
+          const SnackBar(
+              content: Text('Wallet deleted from device secure storage.')),
         );
       }
     }
@@ -122,7 +130,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
           if (walletState.isReady)
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: () => ref.read(walletStateProvider.notifier).loadWalletState(),
+              onPressed: () =>
+                  ref.read(walletStateProvider.notifier).loadWalletState(),
               tooltip: 'Refresh Status',
             ),
         ],
@@ -209,21 +218,24 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
         _buildBenefitCard(
           icon: Icons.phonelink_lock,
           title: 'Protected by Device Hardware',
-          description: 'Keys are created inside your phone\'s hardware enclave and never touch the internet.',
+          description:
+              'Keys are created inside your phone\'s hardware enclave and never touch the internet.',
         ),
         const SizedBox(height: 14),
 
         _buildBenefitCard(
           icon: Icons.currency_exchange,
           title: 'Instant Multi-Currency Rails',
-          description: 'Seamlessly hold and send USD, NGN, EUR, MEX, and CAD pegged stablecoins.',
+          description:
+              'Seamlessly hold and send USD, NGN, EUR, MEX, and CAD pegged stablecoins.',
         ),
         const SizedBox(height: 14),
 
         _buildBenefitCard(
           icon: Icons.pin,
           title: '6-Digit Transaction PIN',
-          description: 'Every payment requires your explicit confirmation on this device.',
+          description:
+              'Every payment requires your explicit confirmation on this device.',
         ),
         const SizedBox(height: 36),
 
@@ -319,7 +331,10 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
             const Text(
               'Generating a unique hardware-isolated keypair inside your device secure enclave. '
               'Private keys will never leave your phone.',
-              style: TextStyle(fontSize: 12, color: FlowPayColors.textSecondary, height: 1.4),
+              style: TextStyle(
+                  fontSize: 12,
+                  color: FlowPayColors.textSecondary,
+                  height: 1.4),
               textAlign: TextAlign.center,
             ),
           ],
@@ -332,7 +347,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
   // 3. WALLET READY STATE
   // --------------------------------------------------------------------------
   Widget _buildWalletReadyView(WalletState state, bool isDark) {
-    final address = state.address ?? '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
+    final address =
+        state.address ?? '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -351,7 +367,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
           ),
           child: Row(
             children: [
-              const Icon(Icons.verified_user, color: BMoniColors.brand400, size: 36),
+              const Icon(Icons.verified_user,
+                  color: BMoniColors.brand400, size: 36),
               const SizedBox(width: 14),
               const Expanded(
                 child: Column(
@@ -378,7 +395,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: FlowPayColors.stateSuccess.withAlpha(30),
                   borderRadius: BorderRadius.circular(8),
@@ -421,11 +439,13 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.copy, size: 16, color: FlowPayColors.primary),
+                    icon: const Icon(Icons.copy,
+                        size: 16, color: FlowPayColors.primary),
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: address));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Address copied to clipboard!')),
+                        const SnackBar(
+                            content: Text('Address copied to clipboard!')),
                       );
                     },
                     tooltip: 'Copy Address',
@@ -449,7 +469,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
                 children: [
                   Text(
                     'Supported Tokens:',
-                    style: TextStyle(fontSize: 11, color: FlowPayColors.textSecondary),
+                    style: TextStyle(
+                        fontSize: 11, color: FlowPayColors.textSecondary),
                   ),
                   SizedBox(width: 8),
                   Text(
@@ -522,14 +543,16 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
             decoration: BoxDecoration(
               color: FlowPayColors.stateSuccess.withAlpha(15),
               borderRadius: FlowPayRadii.card,
-              border: Border.all(color: FlowPayColors.stateSuccess.withAlpha(60)),
+              border:
+                  Border.all(color: FlowPayColors.stateSuccess.withAlpha(60)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.check_circle, size: 16, color: FlowPayColors.stateSuccess),
+                    Icon(Icons.check_circle,
+                        size: 16, color: FlowPayColors.stateSuccess),
                     SizedBox(width: 6),
                     Text(
                       'Verified On-Device Signature:',
@@ -588,7 +611,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
+          style:
+              const TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
         ),
         Text(
           value,
@@ -612,7 +636,8 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 56, color: FlowPayColors.stateError),
+            const Icon(Icons.error_outline,
+                size: 56, color: FlowPayColors.stateError),
             const SizedBox(height: 16),
             Text(
               'Wallet Encountered an Issue',
@@ -621,14 +646,18 @@ class _WalletProvisioningScreenState extends ConsumerState<WalletProvisioningScr
             const SizedBox(height: 8),
             Text(
               state.errorMessage ?? 'An unexpected hardware error occurred.',
-              style: const TextStyle(fontSize: 12, color: FlowPayColors.textSecondary, height: 1.4),
+              style: const TextStyle(
+                  fontSize: 12,
+                  color: FlowPayColors.textSecondary,
+                  height: 1.4),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             FlowPayButton(
               text: 'Try Again',
               icon: Icons.refresh,
-              onPressed: () => ref.read(walletStateProvider.notifier).loadWalletState(),
+              onPressed: () =>
+                  ref.read(walletStateProvider.notifier).loadWalletState(),
             ),
           ],
         ),

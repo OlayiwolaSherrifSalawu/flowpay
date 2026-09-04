@@ -83,8 +83,10 @@ class BmoniCardRepository implements CardRepository {
       if (nin != null && nin.isNotEmpty) 'nin': nin,
     });
 
-    final proposalId = res['proposalId']?.toString() ?? 'prop_${DateTime.now().millisecondsSinceEpoch}';
-    final proposalStatus = res['proposalStatus']?.toString() ?? 'PENDING_APPROVALS';
+    final proposalId = res['proposalId']?.toString() ??
+        'prop_${DateTime.now().millisecondsSinceEpoch}';
+    final proposalStatus =
+        res['proposalStatus']?.toString() ?? 'PENDING_APPROVALS';
     final signPayload = res['signPayload'];
     final signPayloadPending = res['signPayloadPending'] == true;
 
@@ -97,7 +99,9 @@ class BmoniCardRepository implements CardRepository {
       hashToSign = signPayload;
     }
 
-    final cardJson = res['card'] is Map<String, dynamic> ? res['card'] as Map<String, dynamic> : <String, dynamic>{};
+    final cardJson = res['card'] is Map<String, dynamic>
+        ? res['card'] as Map<String, dynamic>
+        : <String, dynamic>{};
     final reservedCard = VirtualCardModel(
       id: cardJson['id']?.toString() ?? proposalId,
       cardName: cardJson['cardName']?.toString() ?? cardName,
@@ -130,7 +134,8 @@ class BmoniCardRepository implements CardRepository {
     String? userId,
   }) async {
     final query = userId != null ? '?userId=$userId' : '';
-    final res = await apiClient.get('/api/cards/proposals/$proposalId/sign-payload$query');
+    final res = await apiClient
+        .get('/api/cards/proposals/$proposalId/sign-payload$query');
     if (res is Map && res['hashToSign'] != null) {
       return res['hashToSign'].toString();
     }
@@ -143,7 +148,8 @@ class BmoniCardRepository implements CardRepository {
     required String signature,
     String? userId,
   }) async {
-    final res = await apiClient.post('/api/cards/proposals/$proposalId/sign', body: {
+    final res =
+        await apiClient.post('/api/cards/proposals/$proposalId/sign', body: {
       'userId': userId,
       'signature': signature,
     });
@@ -179,7 +185,8 @@ class BmoniCardRepository implements CardRepository {
     if (size != null) params['size'] = size.toString();
     if (status != null) params['status'] = status;
 
-    final query = params.isNotEmpty ? '?${Uri(queryParameters: params).query}' : '';
+    final query =
+        params.isNotEmpty ? '?${Uri(queryParameters: params).query}' : '';
     final res = await apiClient.get('/api/cards/$cardId/transactions$query');
 
     if (res is List) {
@@ -223,14 +230,14 @@ class BmoniCardRepository implements CardRepository {
     String cardId,
     String currentStatus,
   ) async {
-    final isCurrentlyFrozen =
-        currentStatus.toUpperCase() == 'BLOCKED' || currentStatus.toUpperCase() == 'FROZEN';
+    final isCurrentlyFrozen = currentStatus.toUpperCase() == 'BLOCKED' ||
+        currentStatus.toUpperCase() == 'FROZEN';
     return setCardStatus(cardId, freeze: !isCurrentlyFrozen);
   }
 
   VirtualCardModel _mapCardJson(dynamic c) {
     if (c is! Map<String, dynamic>) {
-      return VirtualCardModel(
+      return const VirtualCardModel(
         id: 'card_fallback',
         cardName: 'FlowPay Card',
         cardColor: '#F4B740',

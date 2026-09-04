@@ -63,6 +63,7 @@ class EmployeeModel {
   });
 
   String get fullName => '$firstName $lastName';
+  double get salaryAmount => payrollAmount?.majorUnits ?? 0;
 
   bool get isReady => status.toUpperCase() == EmployeeLifecycleStages.ready;
   bool get isFailed => status.toUpperCase() == EmployeeLifecycleStages.failed;
@@ -193,12 +194,14 @@ class StageDetailModel {
   final String title;
   final OnboardingStageState state;
   final Map<String, dynamic> details;
+  final String description;
 
   const StageDetailModel({
     required this.stageNumber,
     required this.title,
     required this.state,
     this.details = const {},
+    this.description = '',
   });
 
   factory StageDetailModel.fromJson(Map<String, dynamic> json) {
@@ -206,7 +209,9 @@ class StageDetailModel {
       stageNumber: json['stageNumber'] ?? 2,
       title: json['title'] ?? '',
       state: OnboardingStageState.fromString(json['state'] ?? 'Not Started'),
-      details: json['details'] != null ? Map<String, dynamic>.from(json['details']) : {},
+      details: json['details'] != null
+          ? Map<String, dynamic>.from(json['details'])
+          : {},
     );
   }
 }
@@ -240,6 +245,8 @@ class EmployeeOnboardingStatusModel {
     required this.stage4Rail,
   });
 
+  List<StageDetailModel> get stages => [stage2Wallet, stage3Kyc, stage4Rail];
+
   factory EmployeeOnboardingStatusModel.fromJson(Map<String, dynamic> json) {
     final stages = json['stages'] ?? {};
     return EmployeeOnboardingStatusModel(
@@ -248,25 +255,29 @@ class EmployeeOnboardingStatusModel {
       country: json['country'] ?? 'NG',
       targetCurrency: json['targetCurrency'] ?? 'NGN',
       stablecoinToken: json['stablecoinToken'] ?? 'CNGN',
-      overallState: OnboardingStageState.fromString(json['overallState'] ?? 'Not Started'),
+      overallState: OnboardingStageState.fromString(
+          json['overallState'] ?? 'Not Started'),
       currentStage: json['currentStage'] ?? 2,
       failedStage: json['failedStage'],
       failureReason: json['failureReason'],
-      stage2Wallet: StageDetailModel.fromJson(stages['stage2Wallet'] ?? {
-        'stageNumber': 2,
-        'title': 'Smart Wallet Provisioning',
-        'state': 'Not Started'
-      }),
-      stage3Kyc: StageDetailModel.fromJson(stages['stage3Kyc'] ?? {
-        'stageNumber': 3,
-        'title': 'Identity & KYC Verification',
-        'state': 'Not Started'
-      }),
-      stage4Rail: StageDetailModel.fromJson(stages['stage4Rail'] ?? {
-        'stageNumber': 4,
-        'title': 'Rail Activation',
-        'state': 'Not Started'
-      }),
+      stage2Wallet: StageDetailModel.fromJson(stages['stage2Wallet'] ??
+          {
+            'stageNumber': 2,
+            'title': 'Smart Wallet Provisioning',
+            'state': 'Not Started'
+          }),
+      stage3Kyc: StageDetailModel.fromJson(stages['stage3Kyc'] ??
+          {
+            'stageNumber': 3,
+            'title': 'Identity & KYC Verification',
+            'state': 'Not Started'
+          }),
+      stage4Rail: StageDetailModel.fromJson(stages['stage4Rail'] ??
+          {
+            'stageNumber': 4,
+            'title': 'Rail Activation',
+            'state': 'Not Started'
+          }),
     );
   }
 }
@@ -302,7 +313,8 @@ abstract class EmployeeRepository {
   });
 
   // --- Multi-Stage Onboarding Methods ---
-  Future<Map<String, dynamic>> requestOwnerChallenge(String employeeId, String userOwnerAddress);
+  Future<Map<String, dynamic>> requestOwnerChallenge(
+      String employeeId, String userOwnerAddress);
 
   Future<Map<String, dynamic>> provisionSmartWallet(
     String employeeId, {
@@ -313,7 +325,8 @@ abstract class EmployeeRepository {
 
   Future<Map<String, dynamic>> getKycOptions(String employeeId);
 
-  Future<Map<String, dynamic>> submitCountryKyc(String employeeId, Map<String, dynamic> kycPayload);
+  Future<Map<String, dynamic>> submitCountryKyc(
+      String employeeId, Map<String, dynamic> kycPayload);
 
   Future<Map<String, dynamic>> checkKycReadiness(String employeeId);
 
@@ -321,12 +334,17 @@ abstract class EmployeeRepository {
 
   Future<Map<String, dynamic>> getMexicoAgreements(String employeeId);
 
-  Future<Map<String, dynamic>> activateRail(String employeeId, {Map<String, dynamic>? options});
+  Future<Map<String, dynamic>> activateRail(String employeeId,
+      {Map<String, dynamic>? options});
 
   Future<EmployeeOnboardingStatusModel> getOnboardingStatus(String employeeId);
 
   Future<EmployeeOnboardingStatusModel> retryOnboarding(String employeeId);
 
-  Future<EmployeeOnboardingStatusModel> simulateWebhookCompleted(String employeeId);
-}
+  Future<EmployeeOnboardingStatusModel> retryStage(
+          String employeeId, int stage) =>
+      retryOnboarding(employeeId);
 
+  Future<EmployeeOnboardingStatusModel> simulateWebhookCompleted(
+      String employeeId);
+}

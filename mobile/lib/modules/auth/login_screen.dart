@@ -60,7 +60,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       // 1. Validate PIN against secure storage fallback or BMONI SDK
-      final isValidPin = await ref.read(secureStorageServiceProvider).verifyFallbackPin(pin);
+      final isValidPin =
+          await ref.read(secureStorageServiceProvider).verifyFallbackPin(pin);
       if (!isValidPin) {
         setState(() {
           _isLoading = false;
@@ -70,10 +71,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
 
       // 2. Resolve persona by email domain/type
-      final isBusiness = email.contains('flowpay') || email.contains('business') || email.contains('company');
+      final isBusiness = email.contains('flowpay') ||
+          email.contains('business') ||
+          email.contains('company');
       final profile = isBusiness
           ? UserProfile(
-              userId: 'usr_flowpay_business_${email.hashCode.abs().toString().substring(0, 6)}',
+              userId:
+                  'usr_flowpay_business_${email.hashCode.abs().toString().substring(0, 6)}',
               fullName: 'Waffiyyi Fashola',
               email: email,
               phone: '+14155552671',
@@ -85,7 +89,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               createdAt: DateTime.now(),
             )
           : UserProfile(
-              userId: 'usr_flowpay_personal_${email.hashCode.abs().toString().substring(0, 6)}',
+              userId:
+                  'usr_flowpay_personal_${email.hashCode.abs().toString().substring(0, 6)}',
               fullName: 'Bunch Dillon',
               email: email,
               phone: '+2348012345678',
@@ -96,7 +101,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             );
 
       // 3. Establish active session
-      await ref.read(appLockStateProvider.notifier).loginAsPersona(profile, pin: pin);
+      await ref
+          .read(appLockStateProvider.notifier)
+          .loginAsPersona(profile, pin: pin);
 
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -195,16 +202,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // Email
                 const Text(
                   'Account Email',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: FlowPayColors.ink),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: FlowPayColors.ink),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: FlowPayColors.ink, fontSize: 14),
+                  style:
+                      const TextStyle(color: FlowPayColors.ink, fontSize: 14),
                   decoration: const InputDecoration(
                     hintText: 'name@company.com',
-                    prefixIcon: Icon(Icons.email_outlined, color: FlowPayColors.textSecondary, size: 18),
+                    prefixIcon: Icon(Icons.email_outlined,
+                        color: FlowPayColors.textSecondary, size: 18),
                     filled: true,
                     fillColor: FlowPayColors.surfaceAlt,
                     border: OutlineInputBorder(
@@ -212,7 +224,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderSide: BorderSide(color: FlowPayColors.hairline),
                     ),
                   ),
-                  validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email address' : null,
+                  validator: (v) => v == null || !v.contains('@')
+                      ? 'Enter a valid email address'
+                      : null,
                 ),
 
                 const SizedBox(height: 18),
@@ -220,7 +234,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 // PIN
                 const Text(
                   '6-Digit PIN',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: FlowPayColors.ink),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: FlowPayColors.ink),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -228,11 +245,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   keyboardType: TextInputType.number,
                   obscureText: true,
                   maxLength: 6,
-                  style: const TextStyle(color: FlowPayColors.ink, fontSize: 18, letterSpacing: 4),
+                  style: const TextStyle(
+                      color: FlowPayColors.ink, fontSize: 18, letterSpacing: 4),
                   decoration: const InputDecoration(
                     counterText: '',
                     hintText: '••••••',
-                    prefixIcon: Icon(Icons.lock_outline, color: FlowPayColors.textSecondary, size: 18),
+                    prefixIcon: Icon(Icons.lock_outline,
+                        color: FlowPayColors.textSecondary, size: 18),
                     filled: true,
                     fillColor: FlowPayColors.surfaceAlt,
                     border: OutlineInputBorder(
@@ -240,7 +259,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderSide: BorderSide(color: FlowPayColors.hairline),
                     ),
                   ),
-                  validator: (v) => v == null || v.length != 6 ? 'PIN must be 6 digits' : null,
+                  validator: (v) => v == null || v.length != 6
+                      ? 'PIN must be 6 digits'
+                      : null,
                 ),
 
                 const SizedBox(height: 16),
@@ -258,11 +279,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.bolt, size: 14, color: FlowPayColors.amber),
+                          Icon(Icons.bolt,
+                              size: 14, color: FlowPayColors.amber),
                           SizedBox(width: 4),
                           Text(
                             'Quick Autofill Account',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: FlowPayColors.ink),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: FlowPayColors.ink),
                           ),
                         ],
                       ),
@@ -272,22 +297,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: FlowPayColors.hairline),
-                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                side: const BorderSide(
+                                    color: FlowPayColors.hairline),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
                               ),
                               onPressed: _autofillPersonal,
-                              child: const Text('👤 Personal', style: TextStyle(fontSize: 12, color: FlowPayColors.ink)),
+                              child: const Text('👤 Personal',
+                                  style: TextStyle(
+                                      fontSize: 12, color: FlowPayColors.ink)),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: FlowPayColors.hairline),
-                                padding: const EdgeInsets.symmetric(vertical: 6),
+                                side: const BorderSide(
+                                    color: FlowPayColors.hairline),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
                               ),
                               onPressed: _autofillBusiness,
-                              child: const Text('💼 Business', style: TextStyle(fontSize: 12, color: FlowPayColors.ink)),
+                              child: const Text('💼 Business',
+                                  style: TextStyle(
+                                      fontSize: 12, color: FlowPayColors.ink)),
                             ),
                           ),
                         ],
@@ -318,7 +351,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                     child: const Text(
                       'Don\'t have an account? Sign Up',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: FlowPayColors.primary),
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: FlowPayColors.primary),
                     ),
                   ),
                 ),

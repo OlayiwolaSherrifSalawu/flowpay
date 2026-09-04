@@ -35,7 +35,8 @@ class FlowPayCard extends StatelessWidget {
 
     switch (variant) {
       case FlowPayCardVariant.surface:
-        bg = backgroundColor ?? (isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface);
+        bg = backgroundColor ??
+            (isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface);
         b ??= Border.all(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
           width: 1,
@@ -43,9 +44,13 @@ class FlowPayCard extends StatelessWidget {
         break;
       case FlowPayCardVariant.elevated:
         bg = backgroundColor ??
-            (isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated);
+            (isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurfaceElevated);
         b ??= Border.all(
-          color: isDark ? FlowPayColors.darkBorderLight : FlowPayColors.lightBorderLight,
+          color: isDark
+              ? FlowPayColors.darkBorderLight
+              : FlowPayColors.lightBorderLight,
           width: 1,
         );
         break;
@@ -129,19 +134,22 @@ class FlowPayStatCard extends StatelessWidget {
               Text(
                 label,
                 style: FlowPayTypography.caption.copyWith(
-                  color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                  color: isDark
+                      ? FlowPayColors.darkTextSecondary
+                      : FlowPayColors.lightTextSecondary,
                 ),
               ),
               const Spacer(),
-              if (icon != null)
-                Icon(icon, size: 16, color: accent),
+              if (icon != null) Icon(icon, size: 16, color: accent),
             ],
           ),
           const SizedBox(height: FlowPaySpacing.sm),
           Text(
             value,
             style: FlowPayTypography.headingSm.copyWith(
-              color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+              color: isDark
+                  ? FlowPayColors.darkTextPrimary
+                  : FlowPayColors.lightTextPrimary,
             ),
           ),
           if (subtitle != null) ...[

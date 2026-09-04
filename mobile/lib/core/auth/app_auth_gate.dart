@@ -179,16 +179,19 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               // Status Badge
               if (isExpired)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: FlowPayColors.amber.withAlpha(30),
                     borderRadius: FlowPayRadii.chip,
-                    border: Border.all(color: FlowPayColors.amber.withAlpha(120)),
+                    border:
+                        Border.all(color: FlowPayColors.amber.withAlpha(120)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.warning_amber_rounded, size: 14, color: FlowPayColors.amber),
+                      Icon(Icons.warning_amber_rounded,
+                          size: 14, color: FlowPayColors.amber),
                       SizedBox(width: 6),
                       Text(
                         'Authentication Expired',
@@ -203,7 +206,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 )
               else if (lockState.hasFaceId || lockState.hasFingerprint)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: FlowPayColors.surfaceAlt,
                     borderRadius: FlowPayRadii.chip,
@@ -284,7 +288,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
               // Log In Button
               OutlinedButton.icon(
-                icon: const Icon(Icons.login, size: 16, color: FlowPayColors.ink),
+                icon:
+                    const Icon(Icons.login, size: 16, color: FlowPayColors.ink),
                 label: const Text(
                   'Log In to Existing Account',
                   style: TextStyle(
@@ -295,9 +300,11 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: FlowPayColors.hairline),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   minimumSize: const Size(double.infinity, 46),
-                  shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.button),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: FlowPayRadii.button),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -311,7 +318,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
               // Create New Account (Sign Up & KYC)
               OutlinedButton.icon(
-                icon: const Icon(Icons.person_add_outlined, size: 16, color: FlowPayColors.ink),
+                icon: const Icon(Icons.person_add_outlined,
+                    size: 16, color: FlowPayColors.ink),
                 label: const Text(
                   'Create New Account / Sign Up',
                   style: TextStyle(
@@ -322,9 +330,11 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: FlowPayColors.hairline),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   minimumSize: const Size(double.infinity, 46),
-                  shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.button),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: FlowPayRadii.button),
                 ),
                 onPressed: () {
                   Navigator.push(
@@ -333,7 +343,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                       builder: (_) => SignupScreen(
                         onBypassToDemo: () {
                           Navigator.pop(context);
-                          ref.read(appLockStateProvider.notifier).verifyFallbackPin('123456');
+                          ref
+                              .read(appLockStateProvider.notifier)
+                              .verifyFallbackPin('123456');
                         },
                       ),
                     ),
@@ -346,7 +358,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               // Quick Unlock Bypass
               GestureDetector(
                 onTap: () {
-                  ref.read(appLockStateProvider.notifier).verifyFallbackPin('123456');
+                  ref
+                      .read(appLockStateProvider.notifier)
+                      .verifyFallbackPin('123456');
                 },
                 child: const Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
@@ -392,7 +406,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
             color: FlowPayColors.surface,
             borderRadius: FlowPayRadii.input,
             border: Border.all(
-              color: _pinError ? FlowPayColors.stateError : FlowPayColors.hairline,
+              color:
+                  _pinError ? FlowPayColors.stateError : FlowPayColors.hairline,
             ),
           ),
           child: TextField(

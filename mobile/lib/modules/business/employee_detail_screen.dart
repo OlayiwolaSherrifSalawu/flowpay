@@ -51,7 +51,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   Future<void> _fetchOnboardingStatus() async {
     setState(() => _isLoadingStatus = true);
     try {
-      final status = await widget.appState.employeeRepo.getOnboardingStatus(_emp.id);
+      final status =
+          await widget.appState.employeeRepo.getOnboardingStatus(_emp.id);
       if (mounted) {
         setState(() {
           _onboardingStatus = status;
@@ -91,7 +92,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              targetFreeze ? 'Card has been frozen (BLOCKED).' : 'Card is now active (ACTIVE).',
+              targetFreeze
+                  ? 'Card has been frozen (BLOCKED).'
+                  : 'Card is now active (ACTIVE).',
             ),
           ),
         );
@@ -100,9 +103,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   }
 
   Future<void> _retryOnboarding() async {
-    final targetStage = _onboardingStatus?.failedStage ?? _onboardingStatus?.currentStage ?? 2;
+    final targetStage =
+        _onboardingStatus?.failedStage ?? _onboardingStatus?.currentStage ?? 2;
     try {
-      final updated = await widget.appState.employeeRepo.retryStage(_emp.id, targetStage);
+      final updated =
+          await widget.appState.employeeRepo.retryStage(_emp.id, targetStage);
       setState(() {
         _onboardingStatus = updated;
       });
@@ -110,7 +115,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         BMoniToastOverlay.showInfo(
           context: context,
           title: 'Stage $targetStage Re-triggered',
-          message: 'Reset Stage $targetStage for ${_emp.fullName}. Proceeding to onboarding wizard.',
+          message:
+              'Reset Stage $targetStage for ${_emp.fullName}. Proceeding to onboarding wizard.',
         );
         _openOnboardingWizard();
       }
@@ -142,7 +148,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       overrides: [
         walletDataSourceProvider.overrideWithValue(widget.appState.walletRepo),
         walletStorageProvider.overrideWithValue(widget.appState.walletRepo),
-        walletBalanceCacheProvider.overrideWithValue(widget.appState.walletRepo),
+        walletBalanceCacheProvider
+            .overrideWithValue(widget.appState.walletRepo),
       ],
       child: _EmployeeDetailContent(
         appState: widget.appState,
@@ -184,14 +191,15 @@ class _EmployeeDetailContent extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_EmployeeDetailContent> createState() => _EmployeeDetailContentState();
+  ConsumerState<_EmployeeDetailContent> createState() =>
+      _EmployeeDetailContentState();
 }
 
-class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> {
+class _EmployeeDetailContentState
+    extends ConsumerState<_EmployeeDetailContent> {
   bool _isBalanceHidden = false;
   bool _hasInitialLoaded = false;
   VirtualCardModel? _activeCard;
-  bool _isLoadingCard = true;
 
   @override
   void initState() {
@@ -210,14 +218,9 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
       if (mounted && cards.isNotEmpty) {
         setState(() {
           _activeCard = cards.first;
-          _isLoadingCard = false;
         });
-      } else if (mounted) {
-        setState(() => _isLoadingCard = false);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingCard = false);
-    }
+      } else if (mounted) {}
+    } catch (_) {}
   }
 
   Future<void> _initWalletData() async {
@@ -231,21 +234,19 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
     final walletListState = ref.read(walletListProvider);
     final activeWallet = _resolveEmployeeWallet(walletListState.wallets);
 
-    if (activeWallet != null) {
-      // 3. Fetch transactions and balances via Riverpod notifiers
-      ref.read(walletTransactionsProvider.notifier).fetchTransactions(
-            activeWallet.walletId,
-            pageSize: 5,
-            isCache: true,
-          );
-      ref.read(walletBalancesProvider.notifier).fetchWalletBalances(
-            [activeWallet.walletId],
-            isCache: true,
-          );
+    // 3. Fetch transactions and balances via Riverpod notifiers
+    ref.read(walletTransactionsProvider.notifier).fetchTransactions(
+          activeWallet.walletId,
+          pageSize: 5,
+          isCache: true,
+        );
+    ref.read(walletBalancesProvider.notifier).fetchWalletBalances(
+      [activeWallet.walletId],
+      isCache: true,
+    );
 
-      // 4. Fetch virtual employee card attached to smart wallet
-      _fetchCard(activeWallet.walletId);
-    }
+    // 4. Fetch virtual employee card attached to smart wallet
+    _fetchCard(activeWallet.walletId);
   }
 
   /// Resolves the employee's EmbeddedWallet from the list, or builds a provisioned fallback.
@@ -259,28 +260,36 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
     // Match by smart wallet address
     if (widget.employee.walletAddress != null) {
       for (final w in wallets) {
-        if (w.address?.toLowerCase() == widget.employee.walletAddress?.toLowerCase()) {
+        if (w.address?.toLowerCase() ==
+            widget.employee.walletAddress?.toLowerCase()) {
           return w;
         }
       }
     }
     // Match by currency code
     for (final w in wallets) {
-      if (w.currency.toUpperCase() == widget.employee.targetCurrency.code.toUpperCase()) {
+      if (w.currency.toUpperCase() ==
+          widget.employee.targetCurrency.code.toUpperCase()) {
         return w;
       }
     }
 
     // Deterministic provisioned wallet fallback
     return EmbeddedWallet(
-      walletId: 'sw_${widget.employee.targetCurrency.code.toLowerCase()}_${widget.employee.id}',
+      walletId:
+          'sw_${widget.employee.targetCurrency.code.toLowerCase()}_${widget.employee.id}',
       name: '${widget.employee.targetCurrency.code} Smart Wallet',
       currency: widget.employee.targetCurrency.code,
       stablecoinToken: widget.employee.targetCurrency.stablecoinToken,
-      balance: widget.employee.isReady ? (widget.employee.salaryAmount ?? 2000.0) * 1.94 : 0.0,
-      address: widget.employee.walletAddress ?? '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
+      balance:
+          widget.employee.isReady ? widget.employee.salaryAmount * 1.94 : 0.0,
+      address: widget.employee.walletAddress ??
+          '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
       status: widget.employee.walletStatus.toLowerCase(),
-      metadata: {'employeeId': widget.employee.id, 'country': widget.employee.country},
+      metadata: {
+        'employeeId': widget.employee.id,
+        'country': widget.employee.country
+      },
     );
   }
 
@@ -300,10 +309,12 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
     // Resolve active wallet and attach live balance if available
     var activeWallet = _resolveEmployeeWallet(walletListState.wallets);
     if (balancesState.containsKey(activeWallet.walletId)) {
-      activeWallet = activeWallet.copyWith(balance: balancesState[activeWallet.walletId]!);
+      activeWallet =
+          activeWallet.copyWith(balance: balancesState[activeWallet.walletId]!);
     }
 
-    final transactions = txState.getTransactionsForWallet(activeWallet.walletId);
+    final transactions =
+        txState.getTransactionsForWallet(activeWallet.walletId);
     final failure = walletListState.failure ?? txState.failure;
 
     final payrollFormatted = widget.employee.payrollAmount != null
@@ -347,7 +358,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         children: [
                           Text(
                             widget.employee.fullName,
-                            style: FlowPayTypography.title(color: FlowPayColors.ink)
+                            style: FlowPayTypography.title(
+                                    color: FlowPayColors.ink)
                                 .copyWith(fontSize: 17),
                           ),
                           const SizedBox(height: 2),
@@ -375,7 +387,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                 const SizedBox(height: 14),
                 _DetailRow(
                   label: 'Jurisdiction',
-                  value: '${widget.employee.flagEmoji} ${widget.employee.resolvedCountryName}',
+                  value:
+                      '${widget.employee.flagEmoji} ${widget.employee.resolvedCountryName}',
                 ),
                 const SizedBox(height: 10),
                 _DetailRow(
@@ -400,7 +413,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
             children: [
               Text(
                 'WALLET CONTROL CENTER',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+                style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary)
                     .copyWith(
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w700,
@@ -413,7 +427,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.refresh, size: 16, color: FlowPayColors.brand),
+                    : const Icon(Icons.refresh,
+                        size: 16, color: FlowPayColors.brand),
                 onPressed: () => _refreshAll(activeWallet.walletId),
                 tooltip: 'Refresh Ledger',
                 constraints: const BoxConstraints(),
@@ -429,11 +444,13 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
             decoration: BoxDecoration(
               color: FlowPayColors.brand.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: FlowPayColors.brand.withValues(alpha: 0.2)),
+              border:
+                  Border.all(color: FlowPayColors.brand.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.shield_outlined, size: 16, color: FlowPayColors.brand),
+                const Icon(Icons.shield_outlined,
+                    size: 16, color: FlowPayColors.brand),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -463,7 +480,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
           EmbeddedWalletCard(
             wallet: activeWallet,
             isBalanceHidden: _isBalanceHidden,
-            onToggleHideBalance: () => setState(() => _isBalanceHidden = !_isBalanceHidden),
+            onToggleHideBalance: () =>
+                setState(() => _isBalanceHidden = !_isBalanceHidden),
             isLoading: walletListState.isLoading,
             isRefreshing: walletListState.isRefreshing,
             onInfoTap: () => _showWalletDetailSheet(context, activeWallet),
@@ -480,7 +498,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                   icon: Icons.account_balance_wallet_outlined,
                   variant: BMoniButtonVariant.outline,
                   size: BMoniButtonSize.small,
-                  onPressed: () => _showWalletDetailSheet(context, activeWallet),
+                  onPressed: () =>
+                      _showWalletDetailSheet(context, activeWallet),
                 ),
               ),
               const SizedBox(width: 8),
@@ -490,7 +509,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                   icon: Icons.receipt_long_outlined,
                   variant: BMoniButtonVariant.outline,
                   size: BMoniButtonSize.small,
-                  onPressed: () => _showTransactionsSheet(context, activeWallet, transactions),
+                  onPressed: () => _showTransactionsSheet(
+                      context, activeWallet, transactions),
                 ),
               ),
               const SizedBox(width: 8),
@@ -515,7 +535,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
             viewAllLabel: 'View All (${transactions.length})',
             transactions: transactions,
             isInitialLoading: txState.isLoading && transactions.isEmpty,
-            onViewAll: () => _showTransactionsSheet(context, activeWallet, transactions),
+            onViewAll: () =>
+                _showTransactionsSheet(context, activeWallet, transactions),
           ),
           const SizedBox(height: FlowPaySpacing.xl),
 
@@ -525,7 +546,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
             children: [
               Text(
                 'VIRTUAL MASTERCARD STATUS',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+                style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary)
                     .copyWith(
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w700,
@@ -538,11 +560,13 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                     children: [
                       Text(
                         'Manage Card',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.brand)
+                        style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.brand)
                             .copyWith(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: FlowPayColors.brand),
+                      const Icon(Icons.arrow_forward_ios_rounded,
+                          size: 10, color: FlowPayColors.brand),
                     ],
                   ),
                 ),
@@ -550,7 +574,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
           ),
           const SizedBox(height: 12),
           VirtualCardObject(
-            cardLast4: _activeCard?.last4 ?? widget.employee.cardLast4 ?? '••••',
+            cardLast4:
+                _activeCard?.last4 ?? widget.employee.cardLast4 ?? '••••',
             countryFlag: widget.employee.flagEmoji,
             cardHolderName: widget.employee.fullName,
             cardName: _activeCard?.cardName ?? 'FlowPay Spend Card',
@@ -570,7 +595,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
             children: [
               Text(
                 'ONBOARDING PROGRESS (ACTUAL STAGES)',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+                style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary)
                     .copyWith(
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w700,
@@ -583,8 +609,10 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         height: 14,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.refresh, size: 16, color: FlowPayColors.brand),
-                onPressed: widget.isLoadingStatus ? null : widget.onRefreshStatus,
+                    : const Icon(Icons.refresh,
+                        size: 16, color: FlowPayColors.brand),
+                onPressed:
+                    widget.isLoadingStatus ? null : widget.onRefreshStatus,
                 tooltip: 'Refresh Status',
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
@@ -604,7 +632,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         children: [
                           Text(
                             'BMONI Onboarding Lifecycle',
-                            style: FlowPayTypography.title(color: FlowPayColors.ink)
+                            style: FlowPayTypography.title(
+                                    color: FlowPayColors.ink)
                                 .copyWith(fontSize: 15),
                           ),
                           const SizedBox(height: 2),
@@ -628,7 +657,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                     ),
                   ],
                 ),
-                if (widget.onboardingStatus?.overallState == OnboardingStageState.failed ||
+                if (widget.onboardingStatus?.overallState ==
+                        OnboardingStageState.failed ||
                     widget.employee.isFailed) ...[
                   const SizedBox(height: 12),
                   Container(
@@ -663,7 +693,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                                 widget.onboardingStatus?.failureReason ??
                                     'Verification requirement unfulfilled or challenge expired.',
                                 style: TextStyle(
-                                  color: FlowPayColors.error.withValues(alpha: 0.9),
+                                  color: FlowPayColors.error
+                                      .withValues(alpha: 0.9),
                                   fontSize: 11,
                                 ),
                               ),
@@ -673,7 +704,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         TextButton(
                           onPressed: widget.onRetryOnboarding,
                           style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -741,7 +773,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                     onPressed: widget.onOpenOnboardingWizard,
                     text: widget.employee.isReady
                         ? 'View Full Onboarding Flow'
-                        : (widget.onboardingStatus?.overallState == OnboardingStageState.failed
+                        : (widget.onboardingStatus?.overallState ==
+                                OnboardingStageState.failed
                             ? 'Fix Onboarding Issues'
                             : 'Continue Onboarding Wizard'),
                     variant: widget.employee.isReady
@@ -759,7 +792,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
           // 6. KYC Compliance Section
           Text(
             'KYC & COMPLIANCE VERIFICATION',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
                 .copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
@@ -775,7 +809,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                   subtitle: widget.employee.country == 'NG'
                       ? 'BVN / NIN verification'
                       : 'CURP / RFC verification',
-                  isPassed: widget.employee.isReady || widget.employee.status == 'ACTIVE',
+                  isPassed: widget.employee.isReady ||
+                      widget.employee.status == 'ACTIVE',
                   isPending: widget.employee.status == 'KYC_PENDING' ||
                       widget.employee.status == 'ONBOARDING',
                 ),
@@ -783,7 +818,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                 _KycIndicatorRow(
                   title: 'Proof of Address',
                   subtitle: 'Utility or jurisdictional document',
-                  isPassed: widget.employee.isReady || widget.employee.status == 'ACTIVE',
+                  isPassed: widget.employee.isReady ||
+                      widget.employee.status == 'ACTIVE',
                   isPending: widget.employee.status == 'KYC_PENDING' ||
                       widget.employee.status == 'ONBOARDING',
                 ),
@@ -792,7 +828,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                   _KycIndicatorRow(
                     title: 'Facial Biometric Liveness',
                     subtitle: 'Anti-spoofing radar scan validation (Sumsub)',
-                    isPassed: widget.employee.isReady || widget.employee.status == 'ACTIVE',
+                    isPassed: widget.employee.isReady ||
+                        widget.employee.status == 'ACTIVE',
                     isPending: widget.employee.status == 'ONBOARDING',
                   ),
                 ],
@@ -804,7 +841,8 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
           // 7. Actions: Freeze/Unfreeze & Wizard
           Text(
             'ACTIONS',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
                 .copyWith(
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
@@ -829,15 +867,18 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
               const SizedBox(width: 12),
               Expanded(
                 child: BMoniButton(
-                  onPressed: widget.onboardingStatus?.overallState == OnboardingStageState.failed
+                  onPressed: widget.onboardingStatus?.overallState ==
+                          OnboardingStageState.failed
                       ? widget.onRetryOnboarding
                       : widget.onOpenOnboardingWizard,
-                  text: widget.onboardingStatus?.overallState == OnboardingStageState.failed
+                  text: widget.onboardingStatus?.overallState ==
+                          OnboardingStageState.failed
                       ? 'Retry Stage'
                       : 'Onboarding Wizard',
                   variant: BMoniButtonVariant.primary,
                   size: BMoniButtonSize.medium,
-                  icon: widget.onboardingStatus?.overallState == OnboardingStageState.failed
+                  icon: widget.onboardingStatus?.overallState ==
+                          OnboardingStageState.failed
                       ? Icons.refresh_rounded
                       : Icons.arrow_forward_rounded,
                 ),
@@ -865,9 +906,13 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
     }
     if (widget.employee.isReady) return OnboardingStageState.ready;
     if (widget.employee.isFailed) {
-      return stageNumber == 2 ? OnboardingStageState.failed : OnboardingStageState.notStarted;
+      return stageNumber == 2
+          ? OnboardingStageState.failed
+          : OnboardingStageState.notStarted;
     }
-    return stageNumber == 2 ? OnboardingStageState.inProgress : OnboardingStageState.notStarted;
+    return stageNumber == 2
+        ? OnboardingStageState.inProgress
+        : OnboardingStageState.notStarted;
   }
 
   // =========================================================
@@ -905,10 +950,12 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                 children: [
                   Text(
                     'Smart Wallet Specification',
-                    style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                    style: FlowPayTypography.title(color: FlowPayColors.ink)
+                        .copyWith(fontSize: 17),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: FlowPayColors.signal.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
@@ -927,19 +974,29 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
               const SizedBox(height: 6),
               Text(
                 'ERC-4337 Account Abstraction on Base Sepolia',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textSecondary),
               ),
               const SizedBox(height: 16),
               const Divider(color: FlowPayColors.hairline),
               const SizedBox(height: 12),
 
-              _DetailRow(label: 'Wallet Identifier', value: wallet.walletId, isMonospace: true),
+              _DetailRow(
+                  label: 'Wallet Identifier',
+                  value: wallet.walletId,
+                  isMonospace: true),
               const SizedBox(height: 10),
-              _DetailRow(label: 'Settlement Rail', value: '${wallet.currency} (${wallet.stablecoinToken ?? "Native"})'),
+              _DetailRow(
+                  label: 'Settlement Rail',
+                  value:
+                      '${wallet.currency} (${wallet.stablecoinToken ?? "Native"})'),
               const SizedBox(height: 10),
-              _DetailRow(label: 'Network & Chain', value: 'Base Sepolia (84532)'),
+              const _DetailRow(
+                  label: 'Network & Chain', value: 'Base Sepolia (84532)'),
               const SizedBox(height: 10),
-              _DetailRow(label: 'Signing Standard', value: 'BmoniEmbeddedSdk (B-Key Signer)'),
+              const _DetailRow(
+                  label: 'Signing Standard',
+                  value: 'BmoniEmbeddedSdk (B-Key Signer)'),
               const SizedBox(height: 16),
 
               // Wallet Address (Secondary / Support debug detail per design.md copy rules)
@@ -958,12 +1015,15 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                         children: [
                           Text(
                             'ON-CHAIN CONTRACT ADDRESS (SUPPORT / AUDIT)',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
-                                .copyWith(fontSize: 9, fontWeight: FontWeight.w700),
+                            style: FlowPayTypography.captionStyle(
+                                    color: FlowPayColors.textTertiary)
+                                .copyWith(
+                                    fontSize: 9, fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            wallet.address ?? '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
+                            wallet.address ??
+                                '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
                             style: const TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 12,
@@ -975,14 +1035,17 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.copy_rounded, size: 18, color: FlowPayColors.brand),
+                      icon: const Icon(Icons.copy_rounded,
+                          size: 18, color: FlowPayColors.brand),
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: wallet.address ?? ''));
+                        Clipboard.setData(
+                            ClipboardData(text: wallet.address ?? ''));
                         Navigator.pop(ctx);
                         BMoniToastOverlay.showSuccess(
                           context: context,
                           title: 'Address Copied',
-                          message: 'On-chain smart wallet address copied to clipboard.',
+                          message:
+                              'On-chain smart wallet address copied to clipboard.',
                         );
                       },
                       tooltip: 'Copy EVM Address',
@@ -1048,43 +1111,50 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                     children: [
                       Text(
                         'Wallet Transactions',
-                        style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 17),
+                        style: FlowPayTypography.title(color: FlowPayColors.ink)
+                            .copyWith(fontSize: 17),
                       ),
                       Text(
                         '${transactions.length} records',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                        style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.textTertiary),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${wallet.name} • ${wallet.currency} (${wallet.stablecoinToken ?? "Token"})',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
                   const Divider(color: FlowPayColors.hairline, height: 1),
                   const SizedBox(height: 8),
-
                   Expanded(
                     child: transactions.isEmpty
                         ? Center(
                             child: Text(
                               'No transactions recorded for this wallet.',
-                              style: FlowPayTypography.body(color: FlowPayColors.textSecondary),
+                              style: FlowPayTypography.body(
+                                  color: FlowPayColors.textSecondary),
                             ),
                           )
                         : ListView.separated(
                             controller: scrollController,
                             itemCount: transactions.length,
-                            separatorBuilder: (_, __) => const Divider(color: FlowPayColors.hairline, height: 1),
+                            separatorBuilder: (_, __) => const Divider(
+                                color: FlowPayColors.hairline, height: 1),
                             itemBuilder: (_, index) {
                               final tx = transactions[index];
                               final isIncoming = tx.isIncoming;
                               final sign = isIncoming ? '+' : '-';
-                              final color = isIncoming ? FlowPayColors.signal : FlowPayColors.ink;
+                              final color = isIncoming
+                                  ? FlowPayColors.signal
+                                  : FlowPayColors.ink;
 
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12),
                                 child: Row(
                                   children: [
                                     Container(
@@ -1093,37 +1163,52 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         color: isIncoming
-                                            ? FlowPayColors.signal.withValues(alpha: 0.12)
+                                            ? FlowPayColors.signal
+                                                .withValues(alpha: 0.12)
                                             : FlowPayColors.surfaceAlt,
                                       ),
                                       child: Icon(
-                                        isIncoming ? Icons.south_west_rounded : Icons.north_east_rounded,
+                                        isIncoming
+                                            ? Icons.south_west_rounded
+                                            : Icons.north_east_rounded,
                                         size: 18,
-                                        color: isIncoming ? FlowPayColors.signal : FlowPayColors.textSecondary,
+                                        color: isIncoming
+                                            ? FlowPayColors.signal
+                                            : FlowPayColors.textSecondary,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             tx.title,
-                                            style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                                            style: FlowPayTypography.body(
+                                                    color: FlowPayColors.ink)
+                                                .copyWith(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 13,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            tx.counterpartyName ?? (isIncoming ? 'FlowPay' : 'Merchant'),
-                                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                                            tx.counterpartyName ??
+                                                (isIncoming
+                                                    ? 'FlowPay'
+                                                    : 'Merchant'),
+                                            style:
+                                                FlowPayTypography.captionStyle(
+                                                    color: FlowPayColors
+                                                        .textTertiary),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           '$sign${wallet.currency} ${tx.amount.toStringAsFixed(2)}',
@@ -1136,10 +1221,13 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
                                         ),
                                         const SizedBox(height: 2),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 5, vertical: 1),
                                           decoration: BoxDecoration(
-                                            color: FlowPayColors.signal.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: FlowPayColors.signal
+                                                .withValues(alpha: 0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(4),
                                           ),
                                           child: Text(
                                             tx.status.name.toUpperCase(),
@@ -1177,7 +1265,9 @@ class _EmployeeDetailContentState extends ConsumerState<_EmployeeDetailContent> 
         setState(() {
           _activeCard = card;
         });
-        ref.read(walletBalancesProvider.notifier).fetchWalletBalances([wallet.walletId]);
+        ref
+            .read(walletBalancesProvider.notifier)
+            .fetchWalletBalances([wallet.walletId]);
       },
     );
   }
@@ -1215,28 +1305,34 @@ class _FailureStateBanner extends StatelessWidget {
     if (failure is EmbeddedNetworkFailure) {
       icon = Icons.wifi_off_rounded;
       title = 'Network Connection Offline';
-      description = 'Unable to reach BMONI node. Please check your connection and retry.';
+      description =
+          'Unable to reach BMONI node. Please check your connection and retry.';
     } else if (failure is EmbeddedServerFailure) {
       icon = Icons.cloud_off_rounded;
       title = 'BMONI Ledger Latency';
-      description = 'The smart wallet RPC node is temporarily unavailable (Status: ${failure.statusCode ?? 500}).';
+      description =
+          'The smart wallet RPC node is temporarily unavailable (Status: ${failure.statusCode ?? 500}).';
     } else if (failure is EmbeddedRateLimitFailure) {
       final rf = failure as EmbeddedRateLimitFailure;
       icon = Icons.speed_rounded;
       title = 'Rate Limit Reached';
-      description = 'Too many requests. Please wait ${rf.retryAfterSeconds ?? 30} seconds before retrying.';
+      description =
+          'Too many requests. Please wait ${rf.retryAfterSeconds ?? 30} seconds before retrying.';
     } else if (failure is EmbeddedNotFoundFailure) {
       icon = Icons.search_off_rounded;
       title = 'Smart Wallet Not Found';
-      description = 'No on-chain smart wallet was found for this user ID on Base Sepolia.';
+      description =
+          'No on-chain smart wallet was found for this user ID on Base Sepolia.';
     } else if (failure is EmbeddedAuthenticationFailure) {
       icon = Icons.lock_outline_rounded;
       title = 'Authentication Expired';
-      description = 'BMONI API session key expired. Re-authentication required.';
+      description =
+          'BMONI API session key expired. Re-authentication required.';
     } else if (failure is EmbeddedAuthorizationFailure) {
       icon = Icons.gpp_bad_outlined;
       title = 'Unauthorized Access';
-      description = 'Your API key does not have permission to inspect this smart wallet.';
+      description =
+          'Your API key does not have permission to inspect this smart wallet.';
     } else {
       icon = Icons.error_outline_rounded;
       title = 'Wallet Query Failed';
@@ -1333,7 +1429,8 @@ class _StatusPill extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
         upper,
         style: TextStyle(
@@ -1394,14 +1491,16 @@ class _KycIndicatorRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                style:
+                    FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),
               ),
               Text(
                 subtitle,
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary),
               ),
             ],
           ),
@@ -1439,7 +1538,8 @@ class _DetailRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+          style: FlowPayTypography.captionStyle(
+              color: FlowPayColors.textSecondary),
         ),
         const Spacer(),
         Text(
@@ -1495,7 +1595,8 @@ class _OnboardingStatePill extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
         label,
         style: TextStyle(
@@ -1532,7 +1633,8 @@ class _StageProgressRow extends StatelessWidget {
 
     switch (state) {
       case OnboardingStageState.ready:
-        iconWidget = const Icon(Icons.check_circle_rounded, color: FlowPayColors.signal, size: 22);
+        iconWidget = const Icon(Icons.check_circle_rounded,
+            color: FlowPayColors.signal, size: 22);
         textColor = FlowPayColors.signal;
         statusText = 'PASSED';
         break;
@@ -1559,7 +1661,8 @@ class _StageProgressRow extends StatelessWidget {
         statusText = 'IN PROGRESS';
         break;
       case OnboardingStageState.failed:
-        iconWidget = const Icon(Icons.error_rounded, color: FlowPayColors.error, size: 22);
+        iconWidget = const Icon(Icons.error_rounded,
+            color: FlowPayColors.error, size: 22);
         textColor = FlowPayColors.error;
         statusText = 'FAILED';
         break;
@@ -1600,14 +1703,16 @@ class _StageProgressRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                    style: FlowPayTypography.body(color: FlowPayColors.ink)
+                        .copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary),
                   ),
                 ],
               ),

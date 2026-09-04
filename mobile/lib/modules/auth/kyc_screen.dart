@@ -32,13 +32,18 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
   // Personal Fields
   late final TextEditingController _nationalIdController;
-  final TextEditingController _dobController = TextEditingController(text: '1992-04-18');
-  final TextEditingController _addressController = TextEditingController(text: '14 Admiralty Way, Lekki Phase 1, Lagos');
+  final TextEditingController _dobController =
+      TextEditingController(text: '1992-04-18');
+  final TextEditingController _addressController =
+      TextEditingController(text: '14 Admiralty Way, Lekki Phase 1, Lagos');
 
   // Business Fields
-  final TextEditingController _taxIdController = TextEditingController(text: 'TIN-99482014');
-  final TextEditingController _officeAddressController = TextEditingController(text: '100 Financial District, Suite 400');
-  final TextEditingController _signatoryIdController = TextEditingController(text: '99999999999');
+  final TextEditingController _taxIdController =
+      TextEditingController(text: 'TIN-99482014');
+  final TextEditingController _officeAddressController =
+      TextEditingController(text: '100 Financial District, Suite 400');
+  final TextEditingController _signatoryIdController =
+      TextEditingController(text: '99999999999');
 
   bool _isScanningFace = false;
   bool _faceScanCompleted = false;
@@ -49,7 +54,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     super.initState();
     final defaultId = widget.userProfile.country == 'NG'
         ? '99999999999' // Sandbox BVN persona
-        : (widget.userProfile.country == 'MX' ? 'CURP920418HDFR01' : '987-65-4321');
+        : (widget.userProfile.country == 'MX'
+            ? 'CURP920418HDFR01'
+            : '987-65-4321');
     _nationalIdController = TextEditingController(text: defaultId);
   }
 
@@ -98,7 +105,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     if (widget.userProfile.isPersonal && !_faceScanCompleted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please perform the facial liveness verification to proceed.'),
+          content: Text(
+              'Please perform the facial liveness verification to proceed.'),
           backgroundColor: FlowPayColors.warning,
         ),
       );
@@ -116,7 +124,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
       // 1. Notify FlowPay backend of KYC completion (with safe fallback)
       try {
-        final host = Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
+        final host = Platform.isAndroid
+            ? 'http://10.0.2.2:4000'
+            : 'http://localhost:4000';
         final uri = Uri.parse('$host/api/auth/kyc');
         await http
             .post(
@@ -140,7 +150,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       await storage.saveUserProfile(updatedProfile);
       await storage.setKycCompleted(true);
 
-      final targetMode = widget.userProfile.isPersonal ? AccountMode.personal : AccountMode.business;
+      final targetMode = widget.userProfile.isPersonal
+          ? AccountMode.personal
+          : AccountMode.business;
       await storage.saveAccountMode(targetMode);
 
       final capabilities = widget.userProfile.isPersonal
@@ -154,7 +166,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
       // 3. Update Riverpod Notifiers
       ref.read(currentAccountModeProvider.notifier).state = targetMode;
-      await ref.read(currentUserProfileProvider.notifier).saveProfile(updatedProfile);
+      await ref
+          .read(currentUserProfileProvider.notifier)
+          .saveProfile(updatedProfile);
       await ref.read(currentUserProfileProvider.notifier).setKycVerified();
 
       // 4. Navigate to Step 3: Set Security PIN
@@ -225,7 +239,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           borderRadius: FlowPayRadii.avatar,
                         ),
                         child: Icon(
-                          isPersonal ? Icons.verified_user_outlined : Icons.shield_outlined,
+                          isPersonal
+                              ? Icons.verified_user_outlined
+                              : Icons.shield_outlined,
                           color: FlowPayColors.primaryLight,
                           size: 24,
                         ),
@@ -236,7 +252,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isPersonal ? 'Tier 1 BMONI Smart Wallet' : 'Global Payroll Rail Verification',
+                              isPersonal
+                                  ? 'Tier 1 BMONI Smart Wallet'
+                                  : 'Global Payroll Rail Verification',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -276,9 +294,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: _idLabel,
                     hintText: 'Enter ID number',
                     controller: _nationalIdController,
-                    prefix: const Icon(Icons.badge_outlined, size: 18, color: FlowPayColors.textSecondary),
-                    helperText: 'Verified automatically via BMONI Sandbox Trust Rail.',
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'ID is required' : null,
+                    prefix: const Icon(Icons.badge_outlined,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    helperText:
+                        'Verified automatically via BMONI Sandbox Trust Rail.',
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'ID is required'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -286,8 +308,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Date of Birth (YYYY-MM-DD)',
                     hintText: 'YYYY-MM-DD',
                     controller: _dobController,
-                    prefix: const Icon(Icons.calendar_today_outlined, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Date of birth is required' : null,
+                    prefix: const Icon(Icons.calendar_today_outlined,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Date of birth is required'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -295,8 +320,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Residential Address',
                     hintText: 'Street, City, State, Country',
                     controller: _addressController,
-                    prefix: const Icon(Icons.home_outlined, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    prefix: const Icon(Icons.home_outlined,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Address is required'
+                        : null,
                   ),
                   const SizedBox(height: 28),
 
@@ -335,8 +363,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Corporate Tax ID / RFC / EIN',
                     hintText: 'e.g. TIN-99482014',
                     controller: _taxIdController,
-                    prefix: const Icon(Icons.numbers, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Tax ID is required' : null,
+                    prefix: const Icon(Icons.numbers,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Tax ID is required'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -344,8 +375,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Registered Business Office Address',
                     hintText: 'e.g. 100 Financial Plaza',
                     controller: _officeAddressController,
-                    prefix: const Icon(Icons.business, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Address is required' : null,
+                    prefix: const Icon(Icons.business,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Address is required'
+                        : null,
                   ),
                   const SizedBox(height: 24),
 
@@ -371,9 +405,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Authorized Officer Identity / BVN',
                     hintText: 'Enter representative identification number',
                     controller: _signatoryIdController,
-                    prefix: const Icon(Icons.verified_user, size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Signatory ID is required' : null,
+                    prefix: const Icon(Icons.verified_user,
+                        size: 18, color: FlowPayColors.textSecondary),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Signatory ID is required'
+                        : null,
                   ),
                   const SizedBox(height: 20),
 
@@ -390,7 +426,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.hub_outlined, size: 18, color: FlowPayColors.amber),
+                            Icon(Icons.hub_outlined,
+                                size: 18, color: FlowPayColors.amber),
                             SizedBox(width: 8),
                             Text(
                               'Disbursement Rails Activated',
@@ -403,9 +440,12 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildRailItem('Nigeria Rail 🇳🇬 (NGN)', 'Direct NUBAN bank transfers & B-Cards'),
-                        _buildRailItem('Mexico Rail 🇲🇽 (MXN)', 'SPEI rails & instant virtual cards'),
-                        _buildRailItem('Global USD Treasury 🇺🇸', 'Aggregate one-bill settlement'),
+                        _buildRailItem('Nigeria Rail 🇳🇬 (NGN)',
+                            'Direct NUBAN bank transfers & B-Cards'),
+                        _buildRailItem('Mexico Rail 🇲🇽 (MXN)',
+                            'SPEI rails & instant virtual cards'),
+                        _buildRailItem('Global USD Treasury 🇺🇸',
+                            'Aggregate one-bill settlement'),
                       ],
                     ),
                   ),
@@ -474,7 +514,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         color: FlowPayColors.surfaceAlt,
         borderRadius: FlowPayRadii.card,
         border: Border.all(
-          color: _faceScanCompleted ? FlowPayColors.stateSuccess : FlowPayColors.hairline,
+          color: _faceScanCompleted
+              ? FlowPayColors.stateSuccess
+              : FlowPayColors.hairline,
           width: _faceScanCompleted ? 1.5 : 1.0,
         ),
       ),
@@ -490,7 +532,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
               border: Border.all(
                 color: _faceScanCompleted
                     ? FlowPayColors.stateSuccess
-                    : (_isScanningFace ? FlowPayColors.primary : FlowPayColors.hairline),
+                    : (_isScanningFace
+                        ? FlowPayColors.primary
+                        : FlowPayColors.hairline),
                 width: 2.5,
               ),
             ),
@@ -502,7 +546,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   size: 64,
                   color: _faceScanCompleted
                       ? FlowPayColors.stateSuccess
-                      : (_isScanningFace ? FlowPayColors.primaryLight : FlowPayColors.textTertiary),
+                      : (_isScanningFace
+                          ? FlowPayColors.primaryLight
+                          : FlowPayColors.textTertiary),
                 ),
                 if (_isScanningFace)
                   const SizedBox(
@@ -521,11 +567,15 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           Text(
             _faceScanCompleted
                 ? 'Facial Biometrics Verified ✅'
-                : (_isScanningFace ? 'Aligning face with BMONI liveness grid...' : 'Position face inside the frame'),
+                : (_isScanningFace
+                    ? 'Aligning face with BMONI liveness grid...'
+                    : 'Position face inside the frame'),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _faceScanCompleted ? FlowPayColors.stateSuccess : FlowPayColors.ink,
+              color: _faceScanCompleted
+                  ? FlowPayColors.stateSuccess
+                  : FlowPayColors.ink,
             ),
           ),
           const SizedBox(height: 6),

@@ -9,7 +9,8 @@ import 'package:flowpay_mobile/modules/auth/login_screen.dart';
 
 void main() {
   group('Signup, KYC and Account Separation Tests', () {
-    testWidgets('Opens SignupScreen from lock screen and renders form controls', (tester) async {
+    testWidgets('Opens SignupScreen from lock screen and renders form controls',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -35,7 +36,8 @@ void main() {
       expect(find.text('Proceed to Identity Verification'), findsOneWidget);
     });
 
-    testWidgets('Personal signup autofill and navigation to KYC screen', (tester) async {
+    testWidgets('Personal signup autofill and navigation to KYC screen',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -67,7 +69,8 @@ void main() {
       expect(find.text('Start Liveness Scan'), findsOneWidget);
     });
 
-    testWidgets('Completing Personal KYC lands strictly in Personal Shell with Personal-only header',
+    testWidgets(
+        'Completing Personal KYC lands strictly in Personal Shell with Personal-only header',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
@@ -122,12 +125,16 @@ void main() {
       // Should now be in PersonalShell with Personal-only title badge
       expect(find.text('Personal Account'), findsWidgets);
       final navBar = find.byType(NavigationBar);
-      expect(find.descendant(of: navBar, matching: find.text('Overview')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Wallets')), findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Missions')), findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Overview')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Wallets')),
+          findsOneWidget);
+      expect(find.descendant(of: navBar, matching: find.text('Missions')),
+          findsOneWidget);
     });
 
-    testWidgets('Business signup autofill, corporate KYB, Set PIN, and strict Business Shell landing',
+    testWidgets(
+        'Business signup autofill, corporate KYB, Set PIN, and strict Business Shell landing',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
@@ -156,7 +163,8 @@ void main() {
       expect(find.byType(KycScreen), findsOneWidget);
       expect(find.text('Corporate KYB Compliance'), findsOneWidget);
       expect(find.text('Step 1: Corporate Legal Entity'), findsOneWidget);
-      expect(find.text('Step 2: Authorized Signatory Verification'), findsOneWidget);
+      expect(find.text('Step 2: Authorized Signatory Verification'),
+          findsOneWidget);
       expect(find.text('Disbursement Rails Activated'), findsOneWidget);
 
       // Submit Corporate Verification & proceed to Set PIN
@@ -185,7 +193,8 @@ void main() {
       expect(find.text('Audit'), findsOneWidget);
     });
 
-    testWidgets('Opens LoginScreen and logs in via email and PIN', (tester) async {
+    testWidgets('Opens LoginScreen and logs in via email and PIN',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

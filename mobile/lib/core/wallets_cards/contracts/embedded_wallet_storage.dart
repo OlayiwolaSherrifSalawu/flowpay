@@ -36,7 +36,8 @@ class InMemoryEmbeddedWalletStorage implements EmbeddedWalletStorage {
   }
 
   @override
-  Future<List<EmbeddedWalletTransaction>?> loadTransactions(String walletId) async {
+  Future<List<EmbeddedWalletTransaction>?> loadTransactions(
+      String walletId) async {
     return _txs[walletId];
   }
 
