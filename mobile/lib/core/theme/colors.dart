@@ -9,6 +9,8 @@ class FlowPayColors {
   static const Color primary =
       BMoniColors.brand500; // BMoni Brand Magenta (#B001B0)
   static const Color brand = primary;
+  static const Color brand500 = primary;
+  static const Color brand400 = BMoniColors.brand400;
   static const Color primaryLight =
       BMoniColors.brand400; // Vibrant Highlight (#C94CD7)
   static const Color primaryDark = BMoniColors.brand700; // Deep Brand (#690669)
@@ -19,6 +21,7 @@ class FlowPayColors {
   static const Color accentDark = BMoniColors.accent600;
 
   static const Color warning = BMoniColors.warning400; // Amber
+  static const Color signalCaution = warning;
   static const Color warningLight = BMoniColors.warning300;
 
   static const Color error = BMoniColors.error400; // Coral Red

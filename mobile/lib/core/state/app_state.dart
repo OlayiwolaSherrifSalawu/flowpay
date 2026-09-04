@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
 import '../network/api_client.dart';
 import '../providers/bmoni/bmoni_activity_repo.dart';
 import '../providers/bmoni/bmoni_approval_repo.dart';
+import '../providers/bmoni/bmoni_business_audit_repo.dart';
 import '../providers/bmoni/bmoni_card_repo.dart';
 import '../providers/bmoni/bmoni_employee_repo.dart';
 import '../providers/bmoni/bmoni_mission_repo.dart';
@@ -11,6 +11,7 @@ import '../providers/bmoni/bmoni_transfer_repo.dart';
 import '../providers/bmoni/bmoni_wallet_repo.dart';
 import '../providers/demo/demo_activity_repo.dart';
 import '../providers/demo/demo_approval_repo.dart';
+import '../providers/demo/demo_business_audit_repo.dart';
 import '../providers/demo/demo_card_repo.dart';
 import '../providers/demo/demo_employee_repo.dart';
 import '../providers/demo/demo_mission_repo.dart';
@@ -19,6 +20,7 @@ import '../providers/demo/demo_transfer_repo.dart';
 import '../providers/demo/demo_wallet_repo.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/approval_repository.dart';
+import '../repositories/business_audit_repository.dart';
 import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
 import '../repositories/mission_repository.dart';
@@ -36,32 +38,26 @@ class AppState extends ChangeNotifier {
   AppRole _activeRole = AppRole.personal;
   ProviderMode _providerMode = ProviderMode.demo;
   ThemeMode _themeMode = ThemeMode.dark;
-
   int _personalTabIndex = 0;
-
-  AppState() {
-    if (isDemo) {
-      BmoniSdkService.seedDemoWalletIfNeeded();
-    }
-  }
 
   final FlowPayApiClient _apiClient = FlowPayApiClient();
 
   // Demo Repositories
   final DemoWalletRepository _demoWallet = DemoWalletRepository();
-  final DemoActivityRepository _demoActivity = DemoActivityRepository();
-  late final DemoTransferRepository _demoTransfer = DemoTransferRepository(
-    activityRepo: _demoActivity,
-    walletRepo: _demoWallet,
-  );
+  final DemoTransferRepository _demoTransfer = DemoTransferRepository();
   final DemoCardRepository _demoCard = DemoCardRepository();
   final DemoEmployeeRepository _demoEmployee = DemoEmployeeRepository();
   final DemoPayrollRepository _demoPayroll = DemoPayrollRepository();
-  late final DemoMissionRepository _demoMission = DemoMissionRepository(
-    activityRepo: _demoActivity,
-    walletRepo: _demoWallet,
-  );
+  final DemoActivityRepository _demoActivity = DemoActivityRepository();
+  final DemoMissionRepository _demoMission = DemoMissionRepository();
   final DemoApprovalRepository _demoApproval = DemoApprovalRepository();
+  late final DemoBusinessAuditRepository _demoAudit =
+      DemoBusinessAuditRepository(
+    payrollRepo: _demoPayroll,
+    cardRepo: _demoCard,
+    walletRepo: _demoWallet,
+    activityRepo: _demoActivity,
+  );
 
   // BMONI Live Repositories
   late final BmoniWalletRepository _bmoniWallet =
@@ -80,6 +76,13 @@ class AppState extends ChangeNotifier {
       BmoniMissionRepository(apiClient: _apiClient);
   late final BmoniApprovalRepository _bmoniApproval =
       BmoniApprovalRepository(apiClient: _apiClient);
+  late final BmoniBusinessAuditRepository _bmoniAudit =
+      BmoniBusinessAuditRepository(
+    payrollRepo: _bmoniPayroll,
+    cardRepo: _bmoniCard,
+    walletRepo: _bmoniWallet,
+    activityRepo: _bmoniActivity,
+  );
 
   // Business Providers
   late final BusinessProvider _demoBusinessProvider = BusinessProvider(
@@ -87,6 +90,7 @@ class AppState extends ChangeNotifier {
     payrollRepo: _demoPayroll,
     walletRepo: _demoWallet,
     cardRepo: _demoCard,
+    auditRepo: _demoAudit,
   );
 
   late final BusinessProvider _bmoniBusinessProvider = BusinessProvider(
@@ -94,6 +98,7 @@ class AppState extends ChangeNotifier {
     payrollRepo: _bmoniPayroll,
     walletRepo: _bmoniWallet,
     cardRepo: _bmoniCard,
+    auditRepo: _bmoniAudit,
   );
 
   // Personal Providers
@@ -118,6 +123,7 @@ class AppState extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get isDemo => _providerMode == ProviderMode.demo;
   bool get isDarkMode => _themeMode == ThemeMode.dark;
+  int get personalTabIndex => _personalTabIndex;
 
   // Active Repositories conforming to shared interfaces
   WalletRepository get walletRepo => isDemo ? _demoWallet : _bmoniWallet;
@@ -132,6 +138,7 @@ class AppState extends ChangeNotifier {
   MissionRepository get missionRepo => isDemo ? _demoMission : _bmoniMission;
   ApprovalRepository get approvalRepo =>
       isDemo ? _demoApproval : _bmoniApproval;
+  BusinessAuditRepository get auditRepo => isDemo ? _demoAudit : _bmoniAudit;
 
   // Active Providers
   BusinessProvider get businessProvider =>
@@ -142,6 +149,13 @@ class AppState extends ChangeNotifier {
   void setRole(AppRole role) {
     if (_activeRole != role) {
       _activeRole = role;
+      notifyListeners();
+    }
+  }
+
+  void setPersonalTabIndex(int index) {
+    if (_personalTabIndex != index) {
+      _personalTabIndex = index;
       notifyListeners();
     }
   }
@@ -168,14 +182,5 @@ class AppState extends ChangeNotifier {
   void toggleTheme() {
     setThemeMode(
         _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
-  }
-
-  int get personalTabIndex => _personalTabIndex;
-
-  void setPersonalTabIndex(int index) {
-    if (_personalTabIndex != index) {
-      _personalTabIndex = index;
-      notifyListeners();
-    }
   }
 }

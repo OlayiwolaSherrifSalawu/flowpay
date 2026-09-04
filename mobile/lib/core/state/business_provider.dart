@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../bmoni_sdk/bmoni_sdk_service.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
+import '../models/shared_transaction.dart';
+import '../repositories/business_audit_repository.dart';
 import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
 import '../repositories/payroll_repository.dart';
@@ -16,12 +18,14 @@ class BusinessProvider extends ChangeNotifier {
   final PayrollRepository payrollRepo;
   final WalletRepository walletRepo;
   final CardRepository cardRepo;
+  final BusinessAuditRepository? auditRepo;
 
   BusinessProvider({
     required this.employeeRepo,
     required this.payrollRepo,
     required this.walletRepo,
     required this.cardRepo,
+    this.auditRepo,
   });
 
   bool _isLoading = false;
@@ -33,6 +37,13 @@ class BusinessProvider extends ChangeNotifier {
   List<WalletAccount> _wallets = [];
   List<VirtualCardModel> _cards = [];
 
+  // Audit State
+  List<SharedTransactionModel> _auditActivities = [];
+  List<PayrollRunModel> _payrollRuns = [];
+  AuditFilterCategory _selectedAuditFilter = AuditFilterCategory.all;
+  bool _isAuditLoading = false;
+  String? _auditErrorMessage;
+
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -41,6 +52,14 @@ class BusinessProvider extends ChangeNotifier {
   PayrollRunModel? get lastExecutedPayroll => _lastExecutedPayroll;
   List<WalletAccount> get wallets => List.unmodifiable(_wallets);
   List<VirtualCardModel> get cards => List.unmodifiable(_cards);
+
+  // Audit Getters
+  List<SharedTransactionModel> get auditActivities => List.unmodifiable(_auditActivities);
+  List<PayrollRunModel> get payrollRuns => List.unmodifiable(_payrollRuns);
+  AuditFilterCategory get selectedAuditFilter => _selectedAuditFilter;
+  bool get isAuditLoading => _isAuditLoading;
+  String? get auditErrorMessage => _auditErrorMessage;
+  int get failureCount => _auditActivities.where((a) => a.status == TransactionStatus.failed).length;
 
   // Computed Core Dashboard Metrics
   int get employeeCount => _employees.length;
@@ -144,12 +163,55 @@ class BusinessProvider extends ChangeNotifier {
       _pendingPayroll = results[1] as PayrollRunModel;
       _wallets = results[2] as List<WalletAccount>;
       _cards = results[3] as List<VirtualCardModel>;
+
     } catch (e) {
       _errorMessage = 'Failed to load business data: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Load audit activities with optional category filter
+  Future<void> loadAuditActivities({AuditFilterCategory? filter}) async {
+    if (filter != null) {
+      _selectedAuditFilter = filter;
+    }
+    _isAuditLoading = true;
+    _auditErrorMessage = null;
+    notifyListeners();
+
+    try {
+      if (auditRepo != null) {
+        _auditActivities = await auditRepo!.getAllActivities(filter: _selectedAuditFilter);
+        _payrollRuns = await auditRepo!.getPayrollRuns();
+      } else {
+        final runs = await payrollRepo.getPastRuns();
+        _payrollRuns = runs;
+        _auditActivities = runs.map((r) => SharedTransactionModel.fromPayrollRun(r)).toList();
+      }
+    } catch (e) {
+      _auditErrorMessage = 'Failed to load corporate audit: $e';
+    } finally {
+      _isAuditLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Update active audit filter tab
+  void setAuditFilter(AuditFilterCategory filter) {
+    _selectedAuditFilter = filter;
+    loadAuditActivities(filter: filter);
+  }
+
+  /// Fetch detail of a single payroll run
+  Future<PayrollRunModel?> getPayrollRunDetail(String runId) async {
+    if (auditRepo != null) {
+      return await auditRepo!.getPayrollRunDetail(runId);
+    }
+    final match = _payrollRuns.where((r) => r.runId == runId);
+    if (match.isNotEmpty) return match.first;
+    return null;
   }
 
   /// Refresh business data
@@ -206,7 +268,7 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Sign on device via BMONI SDK
+      // 1. Sign 32-byte digest on device via BMONI SDK (raw secp256k1, no EIP-191 prefix)
       final sig = await BmoniSdkService.signTransactionHash(
         '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
         pin: pin,
@@ -222,6 +284,50 @@ class BusinessProvider extends ChangeNotifier {
       return completed;
     } catch (e) {
       _errorMessage = 'Payroll execution failed: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Retry a single failed payroll proposal
+  /// Per BMONI docs: "A FAILED proposal can be retried by calling approve again, restarting the workflow."
+  Future<PayrollItemModel> retryPayrollProposal({
+    required String proposalId,
+    required String employeeId,
+    required String pin,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final updatedItem = await payrollRepo.retryFailedProposal(
+        proposalId: proposalId,
+        employeeId: employeeId,
+        pin: pin,
+      );
+
+      // Update item in lastExecutedPayroll if present
+      if (_lastExecutedPayroll != null) {
+        final updatedItems = _lastExecutedPayroll!.items.map((item) {
+          if (item.proposalId == proposalId || item.employeeId == employeeId) {
+            return updatedItem;
+          }
+          return item;
+        }).toList();
+
+        final allSucceeded = updatedItems.every((i) => i.status == 'SUCCESS' || i.status == 'COMPLETED');
+
+        _lastExecutedPayroll = _lastExecutedPayroll!.copyWith(
+          status: allSucceeded ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
+          items: updatedItems,
+        );
+      }
+
+      return updatedItem;
+    } catch (e) {
+      _errorMessage = 'Proposal retry failed: $e';
       rethrow;
     } finally {
       _isLoading = false;

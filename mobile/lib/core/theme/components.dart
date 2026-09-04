@@ -392,3 +392,292 @@ class VirtualCardObject extends StatelessWidget {
     );
   }
 }
+
+/// BMONI Status Type Enum
+enum StatusType {
+  warning,
+  success,
+  error,
+  neutral,
+  info,
+}
+
+extension StatusTypeX on StatusType {
+  Color get color {
+    switch (this) {
+      case StatusType.warning:
+        return FlowPayColors.warning; // #FFB300
+      case StatusType.success:
+        return FlowPayColors.accent; // Electric brand accent / success
+      case StatusType.error:
+        return FlowPayColors.error; // #FF5252
+      case StatusType.neutral:
+        return FlowPayColors.darkTextSecondary;
+      case StatusType.info:
+        return FlowPayColors.info; // #2B88D1
+    }
+  }
+}
+
+/// Official BMoni UI Kit StatusText component
+/// Renders a coloured status badge string adhering strictly to bkey_uikit standards:
+/// StatusText('Pending',  status: StatusType.warning)
+/// StatusText('Active',   status: StatusType.success)
+/// StatusText('Failed',   status: StatusType.error)
+/// StatusText('Archived', status: StatusType.neutral)
+class StatusText extends StatelessWidget {
+  final String text;
+  final StatusType status;
+  final bool showDot;
+  final double? fontSize;
+  final EdgeInsetsGeometry? padding;
+
+  const StatusText(
+    this.text, {
+    super.key,
+    required this.status,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  });
+
+  const StatusText.warning(
+    this.text, {
+    super.key,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  }) : status = StatusType.warning;
+
+  const StatusText.success(
+    this.text, {
+    super.key,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  }) : status = StatusType.success;
+
+  const StatusText.error(
+    this.text, {
+    super.key,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  }) : status = StatusType.error;
+
+  const StatusText.neutral(
+    this.text, {
+    super.key,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  }) : status = StatusType.neutral;
+
+  const StatusText.info(
+    this.text, {
+    super.key,
+    this.showDot = true,
+    this.fontSize,
+    this.padding,
+  }) : status = StatusType.info;
+
+  /// Helper factory to map any string status to StatusText
+  factory StatusText.fromStatusString(String? rawStatus) {
+    if (rawStatus == null || rawStatus.isEmpty) {
+      return const StatusText('UNKNOWN', status: StatusType.neutral);
+    }
+    final s = rawStatus.toUpperCase().replaceAll(' ', '_');
+    switch (s) {
+      case 'COMPLETED':
+      case 'SUCCESS':
+      case 'PAID':
+      case 'ACTIVE':
+      case 'LINKED':
+        return StatusText(rawStatus, status: StatusType.success);
+      case 'PENDING':
+      case 'PENDING_APPROVAL':
+      case 'AWAITING_APPROVAL':
+      case 'PARTIALLY_COMPLETED':
+      case 'PROCESSING':
+      case 'IN_PROGRESS':
+        return StatusText(rawStatus, status: StatusType.warning);
+      case 'FAILED':
+      case 'ERROR':
+      case 'DECLINED':
+      case 'REJECTED':
+        return StatusText(rawStatus, status: StatusType.error);
+      case 'DRAFT':
+      case 'ARCHIVED':
+      case 'NOT_STARTED':
+      default:
+        return StatusText(rawStatus, status: StatusType.neutral);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = status.color;
+    final textStyle = TextStyle(
+      color: statusColor,
+      fontSize: fontSize ?? 11,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.5,
+    );
+
+    return Container(
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: statusColor.withValues(alpha: 0.35), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showDot) ...[
+            Container(
+              width: 5.5,
+              height: 5.5,
+              decoration: BoxDecoration(
+                color: statusColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            text.toUpperCase(),
+            style: textStyle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Official BMoni UI Kit SectionHeader component
+class SectionHeader extends StatelessWidget {
+  final String title;
+  final Widget? trailing;
+  final Widget? subtitle;
+  final EdgeInsetsGeometry padding;
+  final bool showBottomDivider;
+
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.subtitle,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    this.showBottomDivider = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: padding,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: FlowPayTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: FlowPayColors.ink,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      subtitle!,
+                    ],
+                  ],
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
+          ),
+        ),
+        if (showBottomDivider)
+          const Divider(
+            height: 1,
+            thickness: 1,
+            color: FlowPayColors.hairline,
+          ),
+      ],
+    );
+  }
+}
+
+/// Official BMoni UI Kit ActivitySectionCard container component
+/// A card-shaped container with a structured SectionHeader, a content area,
+/// and an optional footer. Designed for activity feeds, dashboards, and audit logs.
+class ActivitySectionCard extends StatelessWidget {
+  final SectionHeader header;
+  final Widget child;
+  final Widget? footer;
+  final EdgeInsetsGeometry? contentPadding;
+  final VoidCallback? onTap;
+
+  const ActivitySectionCard({
+    super.key,
+    required this.header,
+    required this.child,
+    this.footer,
+    this.contentPadding,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Widget card = Container(
+      decoration: BoxDecoration(
+        color: FlowPayColors.darkSurface,
+        borderRadius: FlowPayRadii.card,
+        border: Border.all(color: FlowPayColors.hairline, width: 1),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1A000000),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          header,
+          Padding(
+            padding: contentPadding ?? const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: child,
+          ),
+          if (footer != null) ...[
+            const Divider(
+                height: 1, thickness: 1, color: FlowPayColors.hairline),
+            footer!,
+          ],
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      card = InkWell(
+        onTap: onTap,
+        borderRadius: FlowPayRadii.card,
+        child: card,
+      );
+    }
+
+    return card;
+  }
+}

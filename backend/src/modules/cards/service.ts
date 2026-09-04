@@ -145,7 +145,7 @@ export class CardService {
     proposalId: string;
   }): Promise<ProposalSignPayload> {
     try {
-      return await bmoniClient.getCardProposalSignPayload(args);
+      return await bmoniClient.getProposalSignPayload(args);
     } catch (err) {
       console.warn('[CardService] getProposalSignPayload fallback:', err);
       const dummyHash = `0x${Buffer.from(`flowpay_card_${args.proposalId}`)

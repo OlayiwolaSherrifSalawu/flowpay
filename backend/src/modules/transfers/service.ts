@@ -80,7 +80,7 @@ export class TransferService {
       try {
         const bmoniRes = await bmoniClient.createTransferProposal({
           userId,
-          walletId: fundingOption.fundingWalletId,
+          smartWalletId: fundingOption.fundingWalletId,
           toAddress: intent.recipient.startsWith('0x') ? intent.recipient : undefined,
           toUserId: !intent.recipient.startsWith('0x') ? intent.recipient : undefined,
           currency: intent.currency === 'USD' ? 'USDB' : intent.currency === 'NGN' ? 'CNGN' : intent.currency,
@@ -102,8 +102,8 @@ export class TransferService {
           proposalId: bmoniProposalId,
         });
 
-        if (payloadRes?.data?.hashToSign) {
-          signPayload = payloadRes.data.hashToSign;
+        if (payloadRes.hashToSign) {
+          signPayload = payloadRes.hashToSign;
         }
       } catch (err: any) {
         console.warn('[BMONI Client] Live proposal creation call failed, using deterministic proposal hash:', err.message);
