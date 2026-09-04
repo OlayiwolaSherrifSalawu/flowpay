@@ -181,7 +181,9 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             label,
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textTertiary)
+                .copyWith(
               fontSize: 11,
               letterSpacing: 0.5,
               fontWeight: FontWeight.w600,
@@ -200,7 +202,9 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(
+            style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textSecondary)
+                .copyWith(
               fontSize: 11,
             ),
             maxLines: 1,

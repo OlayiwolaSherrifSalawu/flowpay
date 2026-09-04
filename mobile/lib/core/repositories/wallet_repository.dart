@@ -18,6 +18,24 @@ class WalletAccount {
     required this.balance,
     required this.status,
   });
+
+  WalletAccount copyWith({
+    String? id,
+    String? address,
+    Currency? currency,
+    String? stablecoinToken,
+    Money? balance,
+    String? status,
+  }) {
+    return WalletAccount(
+      id: id ?? this.id,
+      address: address ?? this.address,
+      currency: currency ?? this.currency,
+      stablecoinToken: stablecoinToken ?? this.stablecoinToken,
+      balance: balance ?? this.balance,
+      status: status ?? this.status,
+    );
+  }
 }
 
 /// WalletRepository is a thin wrapper that directly implements
@@ -31,9 +49,12 @@ abstract class WalletRepository
   // Legacy / convenience helpers
   Future<List<WalletAccount>> getWallets();
   Future<List<Money>> getBalances();
-  Future<String> createManagedWallet({
-    required Currency currency,
-    required String ownerAddress,
-  });
+  Future<String> createManagedWallet(
+      {required Currency currency, required String ownerAddress});
+  Future<bool> debitWallet(
+          {required String walletId, required Money amount}) async =>
+      false;
+  Future<bool> creditWallet(
+          {required String walletId, required Money amount}) async =>
+      false;
 }
-

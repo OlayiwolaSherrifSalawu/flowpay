@@ -15,13 +15,15 @@ export 'package:bmoni_embedded_sdk/bmoni_embedded_sdk.dart'
 /// 3. PIN policy is enforced (defaults to 6 digits, PBKDF2-HMAC-SHA256 salted digest).
 /// 4. Handles native platform limitations transparently in host/test runners without hanging.
 class BmoniSdkService {
-  static final bool _isTestEnv = Platform.environment.containsKey('FLUTTER_TEST');
+  static final bool _isTestEnv =
+      Platform.environment.containsKey('FLUTTER_TEST');
   static String? _cachedAddress;
   static String? _inMemoryPinDigest;
 
   /// Initialize BMONI Embedded SDK and set PIN policy.
   /// Call once at app startup before runApp.
-  static Future<void> initialize({int pinLength = 6, bool requirePin = true}) async {
+  static Future<void> initialize(
+      {int pinLength = 6, bool requirePin = true}) async {
     BmoniEmbeddedSdk.initialize(pinLength: pinLength, requirePin: requirePin);
   }
 
@@ -29,11 +31,19 @@ class BmoniSdkService {
   static bool get requirePin => BmoniEmbeddedSdk.requirePin;
   static bool get isInitialized => true;
 
+  /// Pre-seed verified demo wallet keypair and 6-digit PIN for demo/sandbox mode
+  static void seedDemoWalletIfNeeded() {
+    _cachedAddress ??= '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
+    _inMemoryPinDigest ??=
+        sha256.convert(utf8.encode('bmoni_salt_123456')).toString();
+  }
+
   /// Query whether an on-device wallet keypair has been provisioned.
   static Future<bool> hasWallet() async {
     if (_isTestEnv) return _cachedAddress != null;
     try {
-      final has = await BmoniEmbeddedSdk.hasWallet().timeout(const Duration(milliseconds: 200));
+      final has = await BmoniEmbeddedSdk.hasWallet()
+          .timeout(const Duration(milliseconds: 200));
       if (has) return true;
       return _cachedAddress != null;
     } catch (_) {
@@ -45,7 +55,8 @@ class BmoniSdkService {
   static Future<String?> walletAddress() async {
     if (_isTestEnv) return _cachedAddress;
     try {
-      final addr = await BmoniEmbeddedSdk.walletAddress().timeout(const Duration(milliseconds: 200));
+      final addr = await BmoniEmbeddedSdk.walletAddress()
+          .timeout(const Duration(milliseconds: 200));
       if (addr != null && addr.isNotEmpty) {
         _cachedAddress = addr;
         return addr;
@@ -92,7 +103,8 @@ class BmoniSdkService {
   static Future<bool> hasPin() async {
     if (_isTestEnv) return _inMemoryPinDigest != null;
     try {
-      final has = await BmoniEmbeddedSdk.hasPin().timeout(const Duration(milliseconds: 200));
+      final has = await BmoniEmbeddedSdk.hasPin()
+          .timeout(const Duration(milliseconds: 200));
       if (has) return true;
       return _inMemoryPinDigest != null;
     } catch (_) {
@@ -105,14 +117,17 @@ class BmoniSdkService {
     if (pin.length != pinLength) {
       throw BmoniSignerException(
         errorCode: BmoniSignerErrorCode.pinInvalid,
-        message: 'PIN must be exactly $pinLength characters (received ${pin.length})',
+        message:
+            'PIN must be exactly $pinLength characters (received ${pin.length})',
       );
     }
-    _inMemoryPinDigest = sha256.convert(utf8.encode('bmoni_salt_$pin')).toString();
+    _inMemoryPinDigest =
+        sha256.convert(utf8.encode('bmoni_salt_$pin')).toString();
     if (_isTestEnv) return;
 
     try {
-      await BmoniEmbeddedSdk.setPin(pin).timeout(const Duration(milliseconds: 300));
+      await BmoniEmbeddedSdk.setPin(pin)
+          .timeout(const Duration(milliseconds: 300));
     } catch (_) {}
   }
 
@@ -125,7 +140,8 @@ class BmoniSdkService {
     }
 
     try {
-      final matches = await BmoniEmbeddedSdk.matchPin(pin).timeout(const Duration(milliseconds: 200));
+      final matches = await BmoniEmbeddedSdk.matchPin(pin)
+          .timeout(const Duration(milliseconds: 200));
       if (matches) return true;
     } catch (_) {}
 
@@ -148,7 +164,8 @@ class BmoniSdkService {
         message: 'PIN does not match',
       );
     }
-    _inMemoryPinDigest = sha256.convert(utf8.encode('bmoni_salt_$newPin')).toString();
+    _inMemoryPinDigest =
+        sha256.convert(utf8.encode('bmoni_salt_$newPin')).toString();
     if (_isTestEnv) return;
 
     try {
@@ -174,7 +191,8 @@ class BmoniSdkService {
   }
 
   /// Sign an arbitrary UTF-8 message (e.g. EIP-191 personal_sign).
-  static Future<String> signMessage(String message, {required String pin}) async {
+  static Future<String> signMessage(String message,
+      {required String pin}) async {
     final matches = await matchPin(pin);
     if (!matches) {
       throw const BmoniSignerException(
@@ -197,7 +215,8 @@ class BmoniSdkService {
   }
 
   /// Sign a 32-byte hash (used for EIP-712 proposals and transactions).
-  static Future<String> signTransactionHash(String hash32, {required String pin}) async {
+  static Future<String> signTransactionHash(String hash32,
+      {required String pin}) async {
     final matches = await matchPin(pin);
     if (!matches) {
       throw const BmoniSignerException(
@@ -207,14 +226,18 @@ class BmoniSdkService {
     }
 
     if (_isTestEnv) {
-      final hash = sha256.convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin')).toString();
+      final hash = sha256
+          .convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin'))
+          .toString();
       return '0x${hash}1c';
     }
 
     try {
       return await BmoniEmbeddedSdk.signTransactionHash(hash32, pin: pin);
     } catch (_) {
-      final hash = sha256.convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin')).toString();
+      final hash = sha256
+          .convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin'))
+          .toString();
       return '0x${hash}1c';
     }
   }

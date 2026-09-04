@@ -3,6 +3,7 @@ import '../theme/colors.dart';
 import '../theme/spacing.dart';
 
 enum FlowPayButtonVariant { primary, secondary, outline, ghost, danger }
+
 enum FlowPayButtonSize { small, medium, large }
 
 class FlowPayButton extends StatelessWidget {
@@ -14,6 +15,7 @@ class FlowPayButton extends StatelessWidget {
   final IconData? icon;
   final IconData? suffixIcon;
   final bool isFullWidth;
+  final bool disabled;
 
   const FlowPayButton({
     super.key,
@@ -26,7 +28,11 @@ class FlowPayButton extends StatelessWidget {
     this.icon,
     this.suffixIcon,
     this.isFullWidth = false,
-  }) : variant = variant ?? (isSecondary ? FlowPayButtonVariant.secondary : FlowPayButtonVariant.primary);
+    this.disabled = false,
+  }) : variant = variant ??
+            (isSecondary
+                ? FlowPayButtonVariant.secondary
+                : FlowPayButtonVariant.primary);
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +48,12 @@ class FlowPayButton extends StatelessWidget {
         fg = Colors.white;
         break;
       case FlowPayButtonVariant.secondary:
-        bg = isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated;
-        fg = isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary;
+        bg = isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurfaceElevated;
+        fg = isDark
+            ? FlowPayColors.darkTextPrimary
+            : FlowPayColors.lightTextPrimary;
         borderSide = BorderSide(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
           width: 1,
@@ -56,7 +66,9 @@ class FlowPayButton extends StatelessWidget {
         break;
       case FlowPayButtonVariant.ghost:
         bg = Colors.transparent;
-        fg = isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary;
+        fg = isDark
+            ? FlowPayColors.darkTextSecondary
+            : FlowPayColors.lightTextSecondary;
         break;
       case FlowPayButtonVariant.danger:
         bg = FlowPayColors.error;
@@ -119,7 +131,7 @@ class FlowPayButton extends StatelessWidget {
     return SizedBox(
       width: isFullWidth ? double.infinity : null,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: isLoading || disabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,
           foregroundColor: fg,
@@ -158,8 +170,13 @@ class FlowPayIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = backgroundColor ??
-        (isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated);
-    final fg = color ?? (isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary);
+        (isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurfaceElevated);
+    final fg = color ??
+        (isDark
+            ? FlowPayColors.darkTextPrimary
+            : FlowPayColors.lightTextPrimary);
 
     return Tooltip(
       message: tooltip ?? '',
@@ -173,7 +190,8 @@ class FlowPayIconButton extends StatelessWidget {
             color: bg,
             shape: BoxShape.circle,
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
           ),
           child: Icon(icon, size: size * 0.5, color: fg),

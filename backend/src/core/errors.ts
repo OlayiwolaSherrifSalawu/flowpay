@@ -56,4 +56,3 @@ export class CardEnrollmentRequiredError extends FlowPayError {
     this.name = 'CardEnrollmentRequiredError';
   }
 }
-

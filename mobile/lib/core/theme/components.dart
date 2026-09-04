@@ -136,7 +136,8 @@ class VirtualCardObject extends StatelessWidget {
     // Card face color resolution
     final Color cardBackground;
     if (isReserved) {
-      cardBackground = const Color(0xFF332612); // Deep Amber-bronze for issuing state
+      cardBackground =
+          const Color(0xFF332612); // Deep Amber-bronze for issuing state
     } else if (isFrozen) {
       cardBackground = const Color(0xFF2C2D35); // Slate frozen surface
     } else {
@@ -158,8 +159,11 @@ class VirtualCardObject extends StatelessWidget {
             color: cardBackground,
             borderRadius: FlowPayRadii.card,
             border: isReserved
-                ? Border.all(color: flowpayAmber.withValues(alpha: 0.5), width: 1.5)
-                : (isFrozen ? Border.all(color: Colors.white24, width: 1) : null),
+                ? Border.all(
+                    color: flowpayAmber.withValues(alpha: 0.5), width: 1.5)
+                : (isFrozen
+                    ? Border.all(color: Colors.white24, width: 1)
+                    : null),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x1A0D2E2A),
@@ -180,7 +184,8 @@ class VirtualCardObject extends StatelessWidget {
                     children: [
                       Text(
                         'FlowPay',
-                        style: FlowPayTypography.title(color: textColor).copyWith(
+                        style:
+                            FlowPayTypography.title(color: textColor).copyWith(
                           fontWeight: FontWeight.w900,
                           fontSize: 19,
                           letterSpacing: -0.6,
@@ -188,7 +193,8 @@ class VirtualCardObject extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: textColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
@@ -209,11 +215,13 @@ class VirtualCardObject extends StatelessWidget {
                     children: [
                       if (isReserved)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: flowpayAmber.withValues(alpha: 0.25),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: flowpayAmber.withValues(alpha: 0.6)),
+                            border: Border.all(
+                                color: flowpayAmber.withValues(alpha: 0.6)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -244,7 +252,8 @@ class VirtualCardObject extends StatelessWidget {
                         )
                       else if (isFrozen)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white12,
                             borderRadius: BorderRadius.circular(12),
@@ -252,7 +261,8 @@ class VirtualCardObject extends StatelessWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.ac_unit_rounded, size: 10, color: Colors.white70),
+                              Icon(Icons.ac_unit_rounded,
+                                  size: 10, color: Colors.white70),
                               SizedBox(width: 4),
                               Text(
                                 'FROZEN',
@@ -303,7 +313,9 @@ class VirtualCardObject extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isReserved ? '•••• •••• •••• ••••' : '•••• •••• •••• $cardLast4',
+                    isReserved
+                        ? '•••• •••• •••• ••••'
+                        : '•••• •••• •••• $cardLast4',
                     style: FlowPayTypography.amount(color: textColor).copyWith(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -333,7 +345,9 @@ class VirtualCardObject extends StatelessWidget {
                               cardHolderName.toUpperCase(),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: FlowPayTypography.captionStyle(color: textColor).copyWith(
+                              style: FlowPayTypography.captionStyle(
+                                      color: textColor)
+                                  .copyWith(
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.5,
                                 fontSize: 11,
@@ -359,7 +373,8 @@ class VirtualCardObject extends StatelessWidget {
                               width: 20,
                               height: 20,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF79E1B).withValues(alpha: 0.92),
+                                color: const Color(0xFFF79E1B)
+                                    .withValues(alpha: 0.92),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -393,13 +408,13 @@ extension StatusTypeX on StatusType {
       case StatusType.warning:
         return FlowPayColors.warning; // #FFB300
       case StatusType.success:
-        return FlowPayColors.accent;  // Electric brand accent / success
+        return FlowPayColors.accent; // Electric brand accent / success
       case StatusType.error:
-        return FlowPayColors.error;   // #FF5252
+        return FlowPayColors.error; // #FF5252
       case StatusType.neutral:
         return FlowPayColors.darkTextSecondary;
       case StatusType.info:
-        return FlowPayColors.info;    // #2B88D1
+        return FlowPayColors.info; // #2B88D1
     }
   }
 }
@@ -510,11 +525,13 @@ class StatusText extends StatelessWidget {
     );
 
     return Container(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
         color: statusColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withValues(alpha: 0.35), width: 1),
+        border:
+            Border.all(color: statusColor.withValues(alpha: 0.35), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -645,7 +662,8 @@ class ActivitySectionCard extends StatelessWidget {
             child: child,
           ),
           if (footer != null) ...[
-            const Divider(height: 1, thickness: 1, color: FlowPayColors.hairline),
+            const Divider(
+                height: 1, thickness: 1, color: FlowPayColors.hairline),
             footer!,
           ],
         ],
@@ -663,5 +681,3 @@ class ActivitySectionCard extends StatelessWidget {
     return card;
   }
 }
-
-

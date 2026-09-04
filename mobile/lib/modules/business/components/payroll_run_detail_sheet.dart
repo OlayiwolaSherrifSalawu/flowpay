@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../../core/design_system/amount_display.dart';
-import '../../../core/design_system/buttons.dart';
-import '../../../core/design_system/spacing.dart';
 import '../../../core/repositories/payroll_repository.dart';
 import '../../../core/state/business_provider.dart';
 import '../../../core/theme/colors.dart';
@@ -62,10 +60,14 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
 
   Future<void> _handleRetryItem(PayrollItemModel item) async {
     final pin = await WalletPinAuthSheet.show(
-      context,
+      context: context,
       title: 'Authorize Payout Retry',
-      subtitle: 'Enter your 6-digit B-Key PIN to retry disbursement for ${item.employeeName}',
-      actionLabel: 'Authorize Retry',
+      subtitle:
+          'Enter your 6-digit B-Key PIN to retry disbursement for ${item.employeeName}',
+      onAuthorize: (pin) => BmoniSdkService.signMessage(
+        'Retry payroll proposal ${item.proposalId ?? item.employeeId}',
+        pin: pin,
+      ),
     );
 
     if (pin == null || pin.length != BmoniSdkService.pinLength) return;
@@ -86,7 +88,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
         return i;
       }).toList();
 
-      final allCompleted = updatedItems.every((i) => i.status == 'COMPLETED' || i.status == 'SUCCESS');
+      final allCompleted = updatedItems
+          .every((i) => i.status == 'COMPLETED' || i.status == 'SUCCESS');
 
       setState(() {
         _currentRun = _currentRun.copyWith(
@@ -101,7 +104,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
             backgroundColor: FlowPayColors.stateSuccess,
             content: Text(
               'Successfully retried payment for ${item.employeeName}. Settled on ${item.destinationStablecoin} rail.',
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: Colors.black, fontWeight: FontWeight.w600),
             ),
           ),
         );
@@ -124,8 +128,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final flowpayRef = 'FP-PAY-${_currentRun.runId.length > 8 ? _currentRun.runId.substring(_currentRun.runId.length - 8) : _currentRun.runId}';
+    final flowpayRef =
+        'FP-PAY-${_currentRun.runId.length > 8 ? _currentRun.runId.substring(_currentRun.runId.length - 8) : _currentRun.runId}';
 
     return DraggableScrollableSheet(
       initialChildSize: 0.88,
@@ -164,7 +168,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                         color: FlowPayColors.brand500.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.receipt_long, color: FlowPayColors.brand400, size: 22),
+                      child: const Icon(Icons.receipt_long,
+                          color: FlowPayColors.brand400, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -192,7 +197,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                   ],
                 ),
               ),
-              const Divider(height: 1, thickness: 1, color: FlowPayColors.hairline),
+              const Divider(
+                  height: 1, thickness: 1, color: FlowPayColors.hairline),
 
               // Scrollable Content Area
               Expanded(
@@ -204,7 +210,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                     ActivitySectionCard(
                       header: const SectionHeader(
                         title: 'Payroll Summary',
-                        trailing: Icon(Icons.analytics_outlined, color: FlowPayColors.darkTextSecondary, size: 18),
+                        trailing: Icon(Icons.analytics_outlined,
+                            color: FlowPayColors.darkTextSecondary, size: 18),
                       ),
                       child: Column(
                         children: [
@@ -224,11 +231,10 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                   ),
                                   const SizedBox(height: 4),
                                   FlowPayAmountDisplay(
-                                    amount: _currentRun.totalUsd,
-                                    textStyle: FlowPayTypography.headlineMedium.copyWith(
-                                      color: FlowPayColors.ink,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                                    amount:
+                                        _currentRun.totalUsd.formatFormatted(),
+                                    size: AmountDisplaySize.large,
+                                    color: FlowPayColors.ink,
                                   ),
                                 ],
                               ),
@@ -246,7 +252,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                   const SizedBox(height: 4),
                                   Text(
                                     _currentRun.totalFeeUsd.formatted,
-                                    style: FlowPayTypography.titleMedium.copyWith(
+                                    style:
+                                        FlowPayTypography.titleMedium.copyWith(
                                       color: FlowPayColors.accent,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -260,21 +267,27 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: FlowPayColors.accent.withValues(alpha: 0.1),
+                              color:
+                                  FlowPayColors.accent.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: FlowPayColors.accent.withValues(alpha: 0.25)),
+                              border: Border.all(
+                                  color: FlowPayColors.accent
+                                      .withValues(alpha: 0.25)),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.savings_outlined, color: FlowPayColors.accent, size: 20),
+                                const Icon(Icons.savings_outlined,
+                                    color: FlowPayColors.accent, size: 20),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Saved ${_currentRun.totalSavedFeeUsd.formatted} (${_currentRun.savedPercentage.toStringAsFixed(0)}% vs SWIFT Wire)',
-                                        style: FlowPayTypography.bodySmall.copyWith(
+                                        style: FlowPayTypography.bodySmall
+                                            .copyWith(
                                           fontWeight: FontWeight.w700,
                                           color: FlowPayColors.ink,
                                         ),
@@ -282,8 +295,10 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                       const SizedBox(height: 2),
                                       Text(
                                         'One aggregate USD bill fan-out saved \$170/country compared to traditional wires.',
-                                        style: FlowPayTypography.caption.copyWith(
-                                          color: FlowPayColors.darkTextSecondary,
+                                        style:
+                                            FlowPayTypography.caption.copyWith(
+                                          color:
+                                              FlowPayColors.darkTextSecondary,
                                         ),
                                       ),
                                     ],
@@ -300,8 +315,12 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                               _buildMetaItem('FlowPay Reference', flowpayRef),
                               _buildMetaItem(
                                 'BMONI Batch Ref',
-                                _currentRun.items.isNotEmpty && _currentRun.items.first.proposalId != null
-                                    ? (_currentRun.items.first.proposalId!.length > 16
+                                _currentRun.items.isNotEmpty &&
+                                        _currentRun.items.first.proposalId !=
+                                            null
+                                    ? (_currentRun.items.first.proposalId!
+                                                .length >
+                                            16
                                         ? '${_currentRun.items.first.proposalId!.substring(0, 16)}...'
                                         : _currentRun.items.first.proposalId!)
                                     : 'BMONI-BATCH-${_currentRun.runId.hashCode.abs().toString().substring(0, 6)}',
@@ -317,29 +336,35 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                     ActivitySectionCard(
                       header: const SectionHeader(
                         title: 'Orchestration Timeline',
-                        trailing: Icon(Icons.timeline, color: FlowPayColors.darkTextSecondary, size: 18),
+                        trailing: Icon(Icons.timeline,
+                            color: FlowPayColors.darkTextSecondary, size: 18),
                       ),
                       child: Column(
                         children: [
                           _buildTimelineStep(
                             index: 1,
                             title: 'Rail Validation',
-                            subtitle: 'Pre-validated employee smart-wallet addresses & active rails (CNGN, MEXe)',
+                            subtitle:
+                                'Pre-validated employee smart-wallet addresses & active rails (CNGN, MEXe)',
                             status: StepStatus.completed,
                             time: '0.2s',
                           ),
                           _buildTimelineStep(
                             index: 2,
                             title: 'B-Key On-Device PIN Approval',
-                            subtitle: 'Employer approved proposal batch via hardware Secure Enclave',
+                            subtitle:
+                                'Employer approved proposal batch via hardware Secure Enclave',
                             status: StepStatus.completed,
                             time: '1.1s',
                           ),
                           _buildTimelineStep(
                             index: 3,
                             title: 'Multi-Country Fan-Out',
-                            subtitle: 'Orchestrated parallel disbursements via BMONI transfer primitives',
-                            status: _currentRun.status == 'PROCESSING' ? StepStatus.inProgress : StepStatus.completed,
+                            subtitle:
+                                'Orchestrated parallel disbursements via BMONI transfer primitives',
+                            status: _currentRun.status == 'PROCESSING'
+                                ? StepStatus.inProgress
+                                : StepStatus.completed,
                             time: '2.4s',
                           ),
                           _buildTimelineStep(
@@ -350,7 +375,9 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                 : 'All employee accounts funded in local stablecoins',
                             status: _currentRun.failedCount > 0
                                 ? StepStatus.warning
-                                : (_currentRun.status == 'COMPLETED' ? StepStatus.completed : StepStatus.pending),
+                                : (_currentRun.status == 'COMPLETED'
+                                    ? StepStatus.completed
+                                    : StepStatus.pending),
                             time: 'Finished',
                             isLast: true,
                           ),
@@ -362,7 +389,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                     // Section 3: Employee Payments & Individual Status (ActivitySectionCard)
                     ActivitySectionCard(
                       header: SectionHeader(
-                        title: 'Employee Payments (${_currentRun.items.length})',
+                        title:
+                            'Employee Payments (${_currentRun.items.length})',
                         trailing: Text(
                           '${_currentRun.countries.length} Countries',
                           style: FlowPayTypography.caption.copyWith(
@@ -373,10 +401,15 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                       ),
                       child: Column(
                         children: [
-                          for (int i = 0; i < _currentRun.items.length; i++) ...[
+                          for (int i = 0;
+                              i < _currentRun.items.length;
+                              i++) ...[
                             _buildEmployeePaymentRow(_currentRun.items[i]),
                             if (i < _currentRun.items.length - 1)
-                              const Divider(height: 20, thickness: 1, color: FlowPayColors.hairline),
+                              const Divider(
+                                  height: 20,
+                                  thickness: 1,
+                                  color: FlowPayColors.hairline),
                           ],
                         ],
                       ),
@@ -459,7 +492,9 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                 Expanded(
                   child: Container(
                     width: 1.5,
-                    color: status == StepStatus.completed ? FlowPayColors.accent.withValues(alpha: 0.4) : FlowPayColors.hairline,
+                    color: status == StepStatus.completed
+                        ? FlowPayColors.accent.withValues(alpha: 0.4)
+                        : FlowPayColors.hairline,
                   ),
                 ),
             ],
@@ -509,7 +544,9 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
 
   Widget _buildEmployeePaymentRow(PayrollItemModel item) {
     final isFailed = item.status == 'FAILED';
-    final flag = item.country == 'NG' ? '🇳🇬' : (item.country == 'MX' ? '🇲🇽' : '🇨🇦');
+    final flag = item.country == 'NG'
+        ? '🇳🇬'
+        : (item.country == 'MX' ? '🇲🇽' : '🇨🇦');
     final isRetrying = _retryingEmployeeIds.contains(item.employeeId);
 
     return Column(
@@ -589,14 +626,16 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
             decoration: BoxDecoration(
               color: FlowPayColors.stateError.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: FlowPayColors.stateError.withValues(alpha: 0.35)),
+              border: Border.all(
+                  color: FlowPayColors.stateError.withValues(alpha: 0.35)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.error_outline, color: FlowPayColors.stateError, size: 16),
+                    const Icon(Icons.error_outline,
+                        color: FlowPayColors.stateError, size: 16),
                     const SizedBox(width: 6),
                     Text(
                       'FAILURE DETAILS',
@@ -610,7 +649,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  item.errorReason ?? 'Destination smart-wallet rejected proposal execution',
+                  item.errorReason ??
+                      'Destination smart-wallet rejected proposal execution',
                   style: FlowPayTypography.caption.copyWith(
                     color: FlowPayColors.ink,
                   ),
@@ -619,7 +659,8 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: FlowPayButton(
-                    text: isRetrying ? 'Retrying...' : 'Retry Payout via Approve',
+                    text:
+                        isRetrying ? 'Retrying...' : 'Retry Payout via Approve',
                     variant: FlowPayButtonVariant.primary,
                     icon: Icons.refresh,
                     isLoading: isRetrying,

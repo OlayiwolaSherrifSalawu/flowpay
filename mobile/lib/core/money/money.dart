@@ -31,7 +31,8 @@ class Money {
       fractionStr = fractionStr.padRight(currency.decimals, '0');
     }
 
-    final fraction = fractionStr.isEmpty ? BigInt.zero : BigInt.parse(fractionStr);
+    final fraction =
+        fractionStr.isEmpty ? BigInt.zero : BigInt.parse(fractionStr);
     final multiplier = BigInt.from(10).pow(currency.decimals);
 
     final totalMinor = whole >= BigInt.zero
@@ -47,16 +48,19 @@ class Money {
 
   Money add(Money other) {
     _assertMatchingCurrency(other);
-    return Money._(amountMinor: amountMinor + other.amountMinor, currency: currency);
+    return Money._(
+        amountMinor: amountMinor + other.amountMinor, currency: currency);
   }
 
   Money subtract(Money other) {
     _assertMatchingCurrency(other);
-    return Money._(amountMinor: amountMinor - other.amountMinor, currency: currency);
+    return Money._(
+        amountMinor: amountMinor - other.amountMinor, currency: currency);
   }
 
   Money multiply(int scalar) {
-    return Money._(amountMinor: amountMinor * BigInt.from(scalar), currency: currency);
+    return Money._(
+        amountMinor: amountMinor * BigInt.from(scalar), currency: currency);
   }
 
   /// Basis points calculation: 100 bps = 1.00%
@@ -113,6 +117,8 @@ class Money {
     final prefix = includeSymbol ? currency.symbol : '';
     return '$prefix$formattedWhole.$fraction';
   }
+
+  String get formatted => formatFormatted();
 
   /// Minor units as string for BMONI endpoints expecting integer minor string (e.g. "1050")
   String toBmoniMinorString() => amountMinor.toString();

@@ -22,8 +22,8 @@ description: >-
 - `lib/core/design_system/`: 13 shared primitives powered by `bkey_uikit` (`buttons.dart`, `cards.dart`, `input_fields.dart`, `status_badges.dart`, `amount_display.dart`, `currency_display.dart`, `bottom_sheets.dart`, `dialogs.dart`, `states.dart`). For styling guidelines, consult `.agents/skills/flowpay-design/SKILL.md`.
 - `lib/core/navigation/`: Modular navigation architecture (`app_routes.dart`, `personal_routes.dart`, `business_routes.dart`, `role_switcher.dart`, `app_router.dart`).
 - `lib/core/repositories/`: Unified repository contracts (`WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`).
-- `lib/core/providers/`: Concrete implementations for `demo/` (deterministic sandbox test data) and `bmoni/` (talking through backend proxy).
-- `lib/modules/personal/`: Personal Dashboard, Wallets, Money Missions, Send Money, Activity, Security.
+- `lib/core/missions/`: Money Missions domain models and validation (`mission_intent.dart`, `mission_validator.dart`).
+- `lib/modules/personal/`: Personal Dashboard, Wallets, Money Missions (`money_missions_screen.dart`, `components/mission_card.dart`, `components/mission_preview_modal.dart`), Send Money, Activity, Security.
 - `lib/core/auth/`: App-lock biometrics & mode routing architecture:
   - `account_capabilities.dart`: Capabilities model (`hasPersonalWallet`, `hasBusinessAccess`) and `AccountMode` enum.
   - `secure_storage_service.dart`: Encrypted storage wrapper with 15-minute TTL caching.
@@ -68,19 +68,63 @@ description: >-
 - [x] Automated widget and shell tests passing in `test/app_shell_test.dart` and `test/design_system_test.dart`.
 - [x] **Personal Financial Dashboard**:
   - `PersonalDashboardScreen` featuring portfolio valuation ($37,671.00 USD primary), available balances, privacy toggle, and sandbox demo indicator.
-  - `AiCommandBar` ("What should your money do?") with task-specific workflow routing: "Allocate my $2,000" (`AiAllocationModal`), "Send $500 to my designer" (`SendMoneyScreen`), and "Convert $1,000 to Naira" (`AiFxConversionModal`).
+  - `AiCommandBar` ("What should your money do?") with task-specific workflow routing.
   - `PendingApprovalsCard` surfacing pending actions with B-Key 6-digit PIN dialog.
   - Quick Actions ("Create Mission", "Send Money", "View Wallets").
   - `Money Missions` feature card & active autonomous mission switches.
   - Multi-Currency Smart Wallets (USD, NGN, MXN, CAD) with one-tap clipboard address copy.
   - Recent Financial Activity feed powered by `ActivityRepository`.
-  - State management via `PersonalProvider` coordinating `walletRepo`, `missionRepo`, `approvalRepo`, and `activityRepo`.
-- [x] Post-merge business-screen compatibility restored: BMoni error tokens, shared empty-state component, and employee form diagnostics are clean; `flutter analyze` passes and all 79 Flutter tests pass.
-- [x] 0 static analysis errors/warnings via `flutter analyze`.
+- [x] **Flagship Money Missions Screen & Pipeline (`lib/modules/personal/money_missions_screen.dart`)**:
+  - Heading *"Tell your money what to do."* with tagline *"Your money. Your rules. AI executes."*.
+  - 5 Suggestion chips prefilling financial directives ("Split incoming payment", "Save for a goal", "Convert currency", "Send money", "Reserve for taxes").
+  - 3-stage animated progress pipeline: Analyzing intent → Validating rules → Generating BMONI proposal.
+  - `MissionPreviewModal` rendering incoming funds and exact allocation splits with "Nothing moves until you approve" reassurance.
+  - Hardware B-Key 6-digit PIN signing via `WalletPinAuthSheet`.
+  - Confirmed execution dialog with transaction hash and live state update.
+  - Active missions list with `MissionCard` components featuring ⚡ Run Now triggers and active status toggle.
+- [x] **Send Money Screen & Balance-Aware Routing (`lib/modules/personal/send_money_screen.dart`)**:
+  - Natural Language Entry with 4 quick suggestion chips ("Send $500 to my designer in Ghana", etc.).
+  - 3-stage animated analysis indicator (`Interpreting intent` → `Inspecting wallet balances` → `Generating proposal`).
+  - Balance-Aware auto-funding card highlighting routing and required conversion when direct balance is insufficient.
+  - Interactive multi-currency funding wallet selector with live balance displays.
+  - `TransferReviewModal`: Premium confirmation bottom sheet with recipient, amount, currency, funding source, conversion label/badge, exchange rate, fee breakdown, total debit, and **"Nothing moves until you approve."** security reassurance banner.
+  - On-device B-Key PIN hardware signing via `WalletPinAuthSheet` with 6-digit numeric PIN pad.
+  - Celebratory receipt dialog `TransferReceiptDialog` with EVM transaction hash and Activity navigation.
+  - 8 failure modes with human-readable feedback.
+  - 91/91 Flutter tests passing (`test/send_money_flow_test.dart`), 0 analyzer lints.
+- [x] **Personal Activity Ledger & Transaction Detail (`lib/modules/personal/personal_activity_screen.dart`, `components/activity_detail_modal.dart`)**:
+  - Displays Transfers, Conversions, Mission executions, Wallet operations, Card transactions, Pending approvals, and Failures.
+  - 8 Category filter chips and search input for counterparty and references.
+  - 6 Statuses: Pending, Processing, Awaiting Approval, Completed, Failed, Cancelled with `FlowPayAppStatus.cancelled` support.
+  - `ActivityDetailModal`: Displays Amount, Currency (USDB, CNGN, MEXe, CADC), Source, Destination, Fee, Exchange Rate, Timestamp, FlowPay Reference, and BMONI Reference.
+  - Guarantees zero exposure of private keys, unnecessary signing payloads, or API credentials.
+  - In-modal and inline 1-tap B-Key hardware PIN authorization for pending transactions.
+- [x] **Personal Security & Cryptographic Hardware Keys (`lib/modules/personal/personal_security_screen.dart`)**:
+  - 3 Core Sections: Wallet Security, Signing Security, Approval Rules.
+  - Prominent banner & enforcement: **"Financial actions require your approval."** (AI is strictly advisory with zero execution rights).
+  - Dynamic indicators showing whether:
+    - Wallet is initialized (`INITIALIZED` vs `NOT INITIALIZED`) with public EVM address.
+    - Device signing is available (`AVAILABLE & ACTIVE`) supporting EIP-191 & EIP-712 hashing.
+    - PIN protection is enabled (`PIN CONFIGURED (6 DIGITS)`) with salted PBKDF2-HMAC-SHA256.
+  - 4 Invariants of Financial Safety and Active Approval Policy Matrix.
+  - No unsupported claims: Strict reliance on on-device BMONI B-Key SDK and local biometrics.
+  - 99/99 Flutter tests passing (`test/personal_activity_test.dart`, `test/personal_security_test.dart`), 0 analyzer lints.
+- [x] **Complete Personal Feature Integration (Dashboard, Wallets, Missions, Send Money, Activity, Security)**:
+  - Unified `AppState` singleton wired into `PersonalShell` and `BusinessShell` in `FlowPayApp` (`lib/app.dart`).
+  - Cross-tab coordination via `personalTabIndexProvider` (`lib/core/navigation/personal_tab_provider.dart`), `IndexedStack` view preservation in `PersonalShell`, and responsive navigation from Dashboard Quick Actions ("Send Money", "Create Mission", "View Wallets").
+  - Atomic wallet debiting and crediting via `debitWallet`/`creditWallet` in `WalletRepository` and `DemoWalletRepository`.
+  - Unified activity ledger auto-refreshing via `appState` listeners in `PersonalActivityScreen` and `WalletsScreen`.
+  - Comprehensive end-to-end integration test suite (`test/personal_integration_flow_test.dart`):
+    - **Journey 1**: Open FlowPay → Wallet Exists → Balances Visible → Bottom Nav & Quick Actions Switch Tabs.
+    - **Journey 2**: Money Mission Full Flow (NLP Prompt → AI Interpretation → Review → PIN Sign → Execution → Activity Verification).
+    - **Journey 3**: Send Money Full Flow (Intent → Balance Check & Conversion → Review → PIN Sign → Execution → Wallet Debit & Activity Ledger).
+  - 102/102 Flutter tests passing (`test/personal_integration_flow_test.dart`), 0 analyzer warnings or errors.
 
 ---
 
 ## 4. What Needs to Be Done (Next Steps)
+- Personal track owner: Connect live real-time webhook balance push.
+- Business track owner: Connect deep-link sharing for employee invites and spend limit controls.
 - Personal track owner: Extend Money Missions builder and polish send animations.
 - Business track owner: Connect virtual card spend limit presets and PDF payslip exports.
 

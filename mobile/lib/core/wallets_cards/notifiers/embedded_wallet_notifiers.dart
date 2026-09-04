@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../contracts/embedded_wallet_balance_cache.dart';
 import '../contracts/embedded_wallet_read_data_source.dart';
 import '../contracts/embedded_wallet_storage.dart';
@@ -42,7 +43,8 @@ class EmbeddedWalletListState {
   }
 }
 
-class EmbeddedWalletListNotifier extends StateNotifier<EmbeddedWalletListState> {
+class EmbeddedWalletListNotifier
+    extends StateNotifier<EmbeddedWalletListState> {
   final EmbeddedWalletReadDataSource walletDataSource;
   final EmbeddedWalletStorage? storage;
 
@@ -55,12 +57,15 @@ class EmbeddedWalletListNotifier extends StateNotifier<EmbeddedWalletListState> 
     if (isCache && storage != null) {
       final cached = await storage!.loadWallets();
       if (cached != null && cached.isNotEmpty) {
-        state = state.copyWith(wallets: cached, isLoading: false, clearFailure: true);
+        state = state.copyWith(
+            wallets: cached, isLoading: false, clearFailure: true);
         return;
       }
     }
 
-    state = state.copyWith(isLoading: state.wallets.isEmpty, isRefreshing: state.wallets.isNotEmpty);
+    state = state.copyWith(
+        isLoading: state.wallets.isEmpty,
+        isRefreshing: state.wallets.isNotEmpty);
 
     final result = await walletDataSource.fetchWallets();
 
@@ -98,7 +103,8 @@ class EmbeddedWalletBalanceNotifier extends StateNotifier<Map<String, double>> {
     this.cache,
   }) : super(const {});
 
-  Future<void> fetchWalletBalances(List<String> walletIds, {bool isCache = false}) async {
+  Future<void> fetchWalletBalances(List<String> walletIds,
+      {bool isCache = false}) async {
     if (isCache && cache != null) {
       final Map<String, double> cachedMap = {};
       for (final id in walletIds) {
@@ -162,7 +168,8 @@ class EmbeddedWalletTransactionsState {
   }
 }
 
-class EmbeddedWalletTransactionsNotifier extends StateNotifier<EmbeddedWalletTransactionsState> {
+class EmbeddedWalletTransactionsNotifier
+    extends StateNotifier<EmbeddedWalletTransactionsState> {
   final EmbeddedWalletReadDataSource walletDataSource;
   final EmbeddedWalletStorage? storage;
 
@@ -181,21 +188,26 @@ class EmbeddedWalletTransactionsNotifier extends StateNotifier<EmbeddedWalletTra
       final cached = await storage!.loadTransactions(walletId);
       if (cached != null) {
         final map = {...state.transactionsByWallet, walletId: cached};
-        state = state.copyWith(transactionsByWallet: map, isLoading: false, clearFailure: true);
+        state = state.copyWith(
+            transactionsByWallet: map, isLoading: false, clearFailure: true);
         return;
       }
     }
 
     state = state.copyWith(isLoading: true);
 
-    final result = await walletDataSource.fetchTransactions(walletId, page: page, pageSize: pageSize);
+    final result = await walletDataSource.fetchTransactions(walletId,
+        page: page, pageSize: pageSize);
 
     result.fold(
       (failure) {
         state = state.copyWith(isLoading: false, failure: failure);
       },
       (resp) {
-        final map = {...state.transactionsByWallet, walletId: resp.transactions};
+        final map = {
+          ...state.transactionsByWallet,
+          walletId: resp.transactions
+        };
         state = state.copyWith(
           transactionsByWallet: map,
           isLoading: false,
@@ -240,8 +252,7 @@ final walletBalancesProvider =
 );
 
 final walletTransactionsProvider = StateNotifierProvider<
-    EmbeddedWalletTransactionsNotifier,
-    EmbeddedWalletTransactionsState>(
+    EmbeddedWalletTransactionsNotifier, EmbeddedWalletTransactionsState>(
   (ref) => EmbeddedWalletTransactionsNotifier(
     walletDataSource: ref.watch(walletDataSourceProvider),
     storage: ref.watch(walletStorageProvider),

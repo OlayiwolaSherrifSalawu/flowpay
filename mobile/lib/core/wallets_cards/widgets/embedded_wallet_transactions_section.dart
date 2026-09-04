@@ -95,19 +95,23 @@ class EmbeddedWalletTransactionsSection extends StatelessWidget {
           emptyState ??
               FlowPayCard(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                   child: Center(
                     child: Column(
                       children: [
                         Icon(
                           Icons.receipt_long_outlined,
                           size: 36,
-                          color: FlowPayColors.textTertiary.withValues(alpha: 0.5),
+                          color:
+                              FlowPayColors.textTertiary.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           'No recent transactions',
-                          style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                          style:
+                              FlowPayTypography.body(color: FlowPayColors.ink)
+                                  .copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -171,8 +175,7 @@ class _DefaultTransactionTile extends StatelessWidget {
                 ? 'CA\$'
                 : '\$';
 
-    final formattedAmount =
-        '$sign$sym${transaction.amount.toStringAsFixed(2)}';
+    final formattedAmount = '$sign$sym${transaction.amount.toStringAsFixed(2)}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -190,7 +193,9 @@ class _DefaultTransactionTile extends StatelessWidget {
             child: Icon(
               isIncoming ? Icons.south_west_rounded : Icons.north_east_rounded,
               size: 18,
-              color: isIncoming ? FlowPayColors.signal : FlowPayColors.textSecondary,
+              color: isIncoming
+                  ? FlowPayColors.signal
+                  : FlowPayColors.textSecondary,
             ),
           ),
           const SizedBox(width: 12),
@@ -200,7 +205,8 @@ class _DefaultTransactionTile extends StatelessWidget {
               children: [
                 Text(
                   transaction.title,
-                  style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                  style:
+                      FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -232,7 +238,8 @@ class _DefaultTransactionTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  color: transaction.status == EmbeddedWalletTransactionStatus.completed
+                  color: transaction.status ==
+                          EmbeddedWalletTransactionStatus.completed
                       ? FlowPayColors.signal.withValues(alpha: 0.1)
                       : Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
@@ -240,7 +247,8 @@ class _DefaultTransactionTile extends StatelessWidget {
                 child: Text(
                   transaction.status.name.toUpperCase(),
                   style: TextStyle(
-                    color: transaction.status == EmbeddedWalletTransactionStatus.completed
+                    color: transaction.status ==
+                            EmbeddedWalletTransactionStatus.completed
                         ? FlowPayColors.signal
                         : Colors.amber[700],
                     fontSize: 9,

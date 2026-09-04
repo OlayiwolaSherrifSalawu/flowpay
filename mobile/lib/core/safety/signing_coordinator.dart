@@ -13,7 +13,8 @@ class SigningCoordinator {
     required FinancialIntent intent,
     required Money availableBalance,
   }) async {
-    final amountMoney = Money.fromMinor(intent.amountMinor, intent.sourceCurrency);
+    final amountMoney =
+        Money.fromMinor(intent.amountMinor, intent.sourceCurrency);
     final recipient = intent.recipientIdentifier ?? 'Unknown Recipient';
 
     return OperationPreview.fromIntentAndBalance(

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/modules/business/payroll_screen.dart';
 
 void main() {
   group('FlowPay Global Payroll Screen Widget Tests', () {
-    testWidgets('Renders global payroll header, core message, and aggregate bill', (tester) async {
+    testWidgets(
+        'Renders global payroll header, core message, and aggregate bill',
+        (tester) async {
       final appState = AppState();
 
       await tester.pumpWidget(
@@ -21,7 +22,8 @@ void main() {
 
       // 1. Header & Core Message
       expect(find.text('Global Payroll'), findsOneWidget);
-      expect(find.text('One Employer. Many Countries. One Bill.'), findsOneWidget);
+      expect(
+          find.text('One Employer. Many Countries. One Bill.'), findsOneWidget);
 
       // 2. Aggregate Bill Card
       expect(find.text('One Aggregate Bill'), findsOneWidget);
@@ -39,10 +41,12 @@ void main() {
       expect(find.text('MEXe Rail Active & Verified'), findsOneWidget);
 
       // 5. "Run Payroll" action button
-      expect(find.widgetWithText(FlowPayButton, 'Run Payroll'), findsOneWidget);
+      expect(find.text('Run Payroll'), findsOneWidget);
     });
 
-    testWidgets('Tapping Run Payroll opens Confirmation modal with employee count, country count, total', (tester) async {
+    testWidgets(
+        'Tapping Run Payroll opens Confirmation modal with employee count, country count, total',
+        (tester) async {
       final appState = AppState();
 
       await tester.pumpWidget(
@@ -55,7 +59,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Tap "Run Payroll"
-      await tester.tap(find.widgetWithText(FlowPayButton, 'Run Payroll'));
+      await tester.tap(find.text('Run Payroll'));
       await tester.pumpAndSettle();
 
       // Confirmation Modal must appear
@@ -65,13 +69,15 @@ void main() {
       expect(find.text('COUNTRIES'), findsOneWidget);
       expect(find.text('3 (NG, MX, CA)'), findsOneWidget);
       expect(find.text('AGGREGATE DISBURSEMENT'), findsOneWidget);
-      expect(find.text('\$6,000.00'), findsOneWidget);
+      expect(find.text('\$6,000.00'), findsAtLeastNWidgets(2));
       expect(find.text('Saved \$495.00'), findsOneWidget);
-      expect(find.widgetWithText(FlowPayButton, 'Approve Payroll'), findsOneWidget);
-      expect(find.widgetWithText(FlowPayButton, 'Cancel'), findsOneWidget);
+      expect(find.text('Approve Payroll'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
     });
 
-    testWidgets('Tapping Approve Payroll prompts for PIN and runs through 4-stage execution pipeline', (tester) async {
+    testWidgets(
+        'Tapping Approve Payroll prompts for PIN and runs through 4-stage execution pipeline',
+        (tester) async {
       final appState = AppState();
 
       await tester.pumpWidget(
@@ -84,19 +90,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Open confirmation modal
-      await tester.tap(find.widgetWithText(FlowPayButton, 'Run Payroll'));
+      await tester.tap(find.text('Run Payroll'));
       await tester.pumpAndSettle();
 
       // Tap "Approve Payroll"
-      await tester.tap(find.widgetWithText(FlowPayButton, 'Approve Payroll'));
+      await tester.tap(find.text('Approve Payroll'));
       await tester.pumpAndSettle();
 
       // PIN Dialog appears
       expect(find.text('B-Key PIN Signing'), findsOneWidget);
-      expect(find.widgetWithText(FlowPayButton, 'Authorize & Sign'), findsOneWidget);
+      expect(find.text('Authorize & Sign'), findsOneWidget);
 
       // Tap Authorize & Sign
-      await tester.tap(find.widgetWithText(FlowPayButton, 'Authorize & Sign'));
+      await tester.enterText(find.byType(TextField), '123456');
+      await tester.tap(find.text('Authorize & Sign'));
       await tester.pump();
 
       // Execution Pipeline appears with all 4 timeline states

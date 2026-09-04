@@ -6,27 +6,35 @@ import 'package:bkey_uikit/bkey_uikit.dart';
 /// providing high-contrast, accessible palettes for both Dark and Light themes.
 class FlowPayColors {
   // Brand Accents (Official BMoni Brand Magenta & Accents)
-  static const Color primary = BMoniColors.brand500;       // BMoni Brand Magenta (#B001B0)
-  static const Color primaryLight = BMoniColors.brand400;  // Vibrant Highlight (#C94CD7)
-  static const Color primaryDark = BMoniColors.brand700;   // Deep Brand (#690669)
+  static const Color primary =
+      BMoniColors.brand500; // BMoni Brand Magenta (#B001B0)
+  static const Color brand = primary;
+  static const Color brand500 = primary;
+  static const Color brand400 = BMoniColors.brand400;
+  static const Color primaryLight =
+      BMoniColors.brand400; // Vibrant Highlight (#C94CD7)
+  static const Color primaryDark = BMoniColors.brand700; // Deep Brand (#690669)
 
-  static const Color accent = BMoniColors.accent400;       // Electric Accent Blue (#2B88D1)
+  static const Color accent =
+      BMoniColors.accent400; // Electric Accent Blue (#2B88D1)
   static const Color accentLight = BMoniColors.accent300;
   static const Color accentDark = BMoniColors.accent600;
 
-  static const Color warning = BMoniColors.warning400;     // Amber
+  static const Color warning = BMoniColors.warning400; // Amber
+  static const Color signalCaution = warning;
   static const Color warningLight = BMoniColors.warning300;
 
-  static const Color error = BMoniColors.error400;         // Coral Red
+  static const Color error = BMoniColors.error400; // Coral Red
   static const Color errorLight = BMoniColors.error300;
 
-  static const Color info = BMoniColors.accent400;         // Info Ocean Blue
+  static const Color info = BMoniColors.accent400; // Info Ocean Blue
   static const Color infoLight = BMoniColors.accent300;
 
-  static const Color purple = BMoniColors.brand400;        // AI / Missions Violet
+  static const Color purple = BMoniColors.brand400; // AI / Missions Violet
 
   // Upstream Fintech Design Aliases (Harmonized with BMoni UI Kit)
-  static const Color ink = BMoniColors.grey50; // High-contrast readable white on obsidian
+  static const Color ink =
+      BMoniColors.grey50; // High-contrast readable white on obsidian
   static const Color signal = BMoniColors.accent400;
   static const Color amber = BMoniColors.warning400;
   static const Color canvas = BMoniColors.offbrand950;
@@ -34,22 +42,23 @@ class FlowPayColors {
   static const Color hairline = BMoniColors.offbrand700;
 
   static const Color stateSuccess = BMoniColors.success400;
+  static const Color success = stateSuccess;
   static const Color statePending = BMoniColors.warning400;
   static const Color stateError = BMoniColors.error400;
   static const Color stateInfo = BMoniColors.accent400;
 
   // Dark Theme Palette (BMoni Obsidian/Plum Dark System)
-  static const Color darkBackground = BMoniColors.offbrand950;      // #1C0C1C
-  static const Color darkSurface = BMoniColors.offbrand900;         // #240D24
+  static const Color darkBackground = BMoniColors.offbrand950; // #1C0C1C
+  static const Color darkSurface = BMoniColors.offbrand900; // #240D24
   static const Color darkSurfaceElevated = BMoniColors.offbrand800; // #351835
-  static const Color darkSurfaceSubtle = BMoniColors.offbrand700;   // #4C274C
-  static const Color darkBorder = BMoniColors.offbrand700;          // #4C274C
-  static const Color darkBorderLight = BMoniColors.offbrand600;     // #693C69
+  static const Color darkSurfaceSubtle = BMoniColors.offbrand700; // #4C274C
+  static const Color darkBorder = BMoniColors.offbrand700; // #4C274C
+  static const Color darkBorderLight = BMoniColors.offbrand600; // #693C69
 
-  static const Color darkTextPrimary = BMoniColors.grey50;          // #F9F9FA
-  static const Color darkTextSecondary = BMoniColors.grey400;       // #9E9EA4
-  static const Color darkTextTertiary = BMoniColors.grey600;        // #5E5E66
-  static const Color darkTextMuted = BMoniColors.grey700;           // #45454C
+  static const Color darkTextPrimary = BMoniColors.grey50; // #F9F9FA
+  static const Color darkTextSecondary = BMoniColors.grey400; // #9E9EA4
+  static const Color darkTextTertiary = BMoniColors.grey600; // #5E5E66
+  static const Color darkTextMuted = BMoniColors.grey700; // #45454C
 
   // Light Theme Palette
   static const Color lightBackground = BMoniColors.offbrand25;

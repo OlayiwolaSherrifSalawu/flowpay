@@ -23,7 +23,9 @@ class FlowPayRoleSwitcher extends StatelessWidget {
       height: 32,
       padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+        color: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurfaceElevated,
         borderRadius: FlowPaySpacing.borderRadiusPill,
         border: Border.all(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
@@ -92,7 +94,9 @@ class FlowPayRoleSwitcher extends StatelessWidget {
               size: 13,
               color: isSelected
                   ? Colors.white
-                  : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
+                  : (isDark
+                      ? FlowPayColors.darkTextSecondary
+                      : FlowPayColors.lightTextSecondary),
             ),
             const SizedBox(width: 4),
             Text(
@@ -102,7 +106,9 @@ class FlowPayRoleSwitcher extends StatelessWidget {
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
                     ? Colors.white
-                    : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
+                    : (isDark
+                        ? FlowPayColors.darkTextSecondary
+                        : FlowPayColors.lightTextSecondary),
                 letterSpacing: -0.1,
               ),
             ),

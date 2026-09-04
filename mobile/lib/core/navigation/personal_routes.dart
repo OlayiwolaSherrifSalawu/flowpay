@@ -73,20 +73,27 @@ class PersonalRoutes {
     }
   }
 
-  static Route<dynamic>? onGenerateRoute(RouteSettings settings, AppState appState) {
+  static Route<dynamic>? onGenerateRoute(
+      RouteSettings settings, AppState appState) {
     switch (settings.name) {
       case AppRoutes.personalDashboard:
-        return MaterialPageRoute(builder: (_) => PersonalDashboardScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => PersonalDashboardScreen(appState: appState));
       case AppRoutes.personalWallets:
-        return MaterialPageRoute(builder: (_) => WalletsScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => WalletsScreen(appState: appState));
       case AppRoutes.personalSendMoney:
-        return MaterialPageRoute(builder: (_) => SendMoneyScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => SendMoneyScreen(appState: appState));
       case AppRoutes.personalMissions:
-        return MaterialPageRoute(builder: (_) => MoneyMissionsScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => MoneyMissionsScreen(appState: appState));
       case AppRoutes.personalActivity:
-        return MaterialPageRoute(builder: (_) => PersonalActivityScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => PersonalActivityScreen(appState: appState));
       case AppRoutes.personalSecurity:
-        return MaterialPageRoute(builder: (_) => PersonalSecurityScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => PersonalSecurityScreen(appState: appState));
       default:
         return null;
     }

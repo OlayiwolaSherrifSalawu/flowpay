@@ -25,7 +25,8 @@ class BusinessDashboardScreen extends StatefulWidget {
   const BusinessDashboardScreen({super.key, required this.appState});
 
   @override
-  State<BusinessDashboardScreen> createState() => _BusinessDashboardScreenState();
+  State<BusinessDashboardScreen> createState() =>
+      _BusinessDashboardScreenState();
 }
 
 class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
@@ -64,7 +65,9 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
 
         final filteredEmployees = _selectedCountryFilter == 'ALL'
             ? employees
-            : employees.where((e) => e.country.toUpperCase() == _selectedCountryFilter).toList();
+            : employees
+                .where((e) => e.country.toUpperCase() == _selectedCountryFilter)
+                .toList();
 
         return Scaffold(
           backgroundColor: FlowPayColors.canvas,
@@ -77,7 +80,8 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
               children: [
                 Text(
                   'Business Dashboard',
-                  style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                  style: FlowPayTypography.title(color: FlowPayColors.ink)
+                      .copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -106,25 +110,29 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.person_add_rounded, color: FlowPayColors.ink),
+                icon: const Icon(Icons.person_add_rounded,
+                    color: FlowPayColors.ink),
                 tooltip: 'Add Employee',
                 onPressed: _onAddEmployee,
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: FlowPayColors.textSecondary),
+                icon: const Icon(Icons.refresh_rounded,
+                    color: FlowPayColors.textSecondary),
                 tooltip: 'Refresh',
                 onPressed: provider.refresh,
               ),
             ],
           ),
           body: isLoading
-              ? const Center(child: CircularProgressIndicator(color: FlowPayColors.ink))
+              ? const Center(
+                  child: CircularProgressIndicator(color: FlowPayColors.ink))
               : RefreshIndicator(
                   onRefresh: provider.refresh,
                   color: FlowPayColors.ink,
                   backgroundColor: FlowPayColors.surface,
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 16),
                     children: [
                       // 1. Core Hook Hero Card: "One Employer. Many Countries. One Bill."
                       HeroBillCard(
@@ -159,11 +167,14 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                       // 3. Core Employer Metrics Grid
                       Row(
                         children: [
-                          const Icon(Icons.analytics_outlined, size: 18, color: FlowPayColors.ink),
+                          const Icon(Icons.analytics_outlined,
+                              size: 18, color: FlowPayColors.ink),
                           const SizedBox(width: 8),
                           Text(
                             'EMPLOYER OPERATING METRICS',
-                            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                            style: FlowPayTypography.captionStyle(
+                                    color: FlowPayColors.textTertiary)
+                                .copyWith(
                               letterSpacing: 0.8,
                               fontWeight: FontWeight.w700,
                             ),
@@ -183,26 +194,34 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                             children: [
                               Text(
                                 'EMPLOYEE PREVIEW',
-                                style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16),
+                                style: FlowPayTypography.title(
+                                        color: FlowPayColors.ink)
+                                    .copyWith(fontSize: 16),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${filteredEmployees.length} remote team members linked',
-                                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                                style: FlowPayTypography.captionStyle(
+                                    color: FlowPayColors.textSecondary),
                               ),
                             ],
                           ),
                           TextButton.icon(
-                            icon: const Icon(Icons.arrow_forward_rounded, size: 14, color: FlowPayColors.ink),
+                            icon: const Icon(Icons.arrow_forward_rounded,
+                                size: 14, color: FlowPayColors.ink),
                             label: const Text(
                               'Full Roster',
-                              style: TextStyle(color: FlowPayColors.ink, fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                  color: FlowPayColors.ink,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600),
                             ),
                             onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => EmployeesScreen(appState: widget.appState),
+                                  builder: (_) => EmployeesScreen(
+                                      appState: widget.appState),
                                 ),
                               );
                             },
@@ -219,25 +238,29 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                             _FilterChip(
                               label: 'All (${employees.length})',
                               isSelected: _selectedCountryFilter == 'ALL',
-                              onSelected: () => setState(() => _selectedCountryFilter = 'ALL'),
+                              onSelected: () => setState(
+                                  () => _selectedCountryFilter = 'ALL'),
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇳🇬 Nigeria (NGN)',
                               isSelected: _selectedCountryFilter == 'NG',
-                              onSelected: () => setState(() => _selectedCountryFilter == 'NG'),
+                              onSelected: () => setState(
+                                  () => _selectedCountryFilter == 'NG'),
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇲🇽 Mexico (MXN)',
                               isSelected: _selectedCountryFilter == 'MX',
-                              onSelected: () => setState(() => _selectedCountryFilter == 'MX'),
+                              onSelected: () => setState(
+                                  () => _selectedCountryFilter == 'MX'),
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇨🇦 Canada (CAD)',
                               isSelected: _selectedCountryFilter == 'CA',
-                              onSelected: () => setState(() => _selectedCountryFilter == 'CA'),
+                              onSelected: () => setState(
+                                  () => _selectedCountryFilter == 'CA'),
                             ),
                           ],
                         ),
@@ -252,7 +275,8 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                             child: Text(
                               'No Employees in Selected Filter\nAdd an employee to this jurisdiction or switch filter to All.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: FlowPayColors.textSecondary),
+                              style:
+                                  TextStyle(color: FlowPayColors.textSecondary),
                             ),
                           ),
                         ),

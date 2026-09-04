@@ -24,13 +24,15 @@ class SecureStorageService {
 
   final FlutterSecureStorage _storage;
   final Map<String, String> _memoryCache = {};
-  static final bool _isTestEnv = Platform.environment.containsKey('FLUTTER_TEST');
+  static final bool _isTestEnv =
+      Platform.environment.containsKey('FLUTTER_TEST');
 
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ??
             const FlutterSecureStorage(
               aOptions: AndroidOptions(),
-              iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+              iOptions:
+                  IOSOptions(accessibility: KeychainAccessibility.first_unlock),
             );
 
   Future<String?> _safeRead(String key) async {

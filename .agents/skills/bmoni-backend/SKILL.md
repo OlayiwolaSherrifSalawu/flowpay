@@ -26,7 +26,12 @@ description: >-
 - `src/modules/employees/onboarding.service.ts`: End-to-end multi-stage orchestration for Employee Onboarding (Model B) across Stage 2 (owner proof challenges & managed wallet deployment), Stage 3 (country-specific KYC for Nigeria vs Mexico), Stage 4 (Mexico Etherfuse agreements & rail activation), and 4-state lifecycle calculation.
 - `src/routes/employees.routes.ts`: Exposes 11 onboarding REST endpoints for challenges, wallet creation, KYC options, document upload, submission, activation, Mexico agreements, rail activation, status, retry, and webhook simulation.
 - `src/modules/payroll/service.ts`: "One Employer, Many Countries, One Bill" aggregate payroll orchestrator.
-- `src/modules/ai/`: Natural language intent interpreter powered by Google Gemini (`@google/genai` with `gemini-2.5-flash`) using strict JSON Schema structured outputs, with deterministic fallback and financial safety validation.
+- `src/modules/ai/`: Natural language intent interpreter powered by Google Gemini (`@google/genai` with `gemini-2.5-flash`) using strict JSON Schema structured outputs, with deterministic fallback and financial safety validation. Includes `mission_interpreter.ts` for parsing money directives.
+- `src/modules/missions/`: Money Missions backend subsystem:
+  - `types.ts`: Strongly typed interfaces (`MissionIntent`, `MissionAllocation`, `MissionStatus`, `MissionProposalPayload`, etc.).
+  - `validator.ts`: Deterministic `MissionValidator` ensuring 100% split totals, minor-unit positive amounts, allowlisted currencies (`USD`, `NGN`, `MXN`, `CAD`, `EUR`), and allowed action types.
+  - `service.ts`: `MoneyMissionService` managing mission proposals with SHA-256 hashes, B-Key signature verification, transactional execution, and audit logging into `audit_activity`.
+  - Routes (`src/routes/missions.routes.ts`, `src/routes/ai.routes.ts`): `POST /api/ai/missions/interpret`, `GET /api/missions`, `POST /api/missions/propose`, `POST /api/missions/:id/execute`, `PATCH /api/missions/:id/toggle`.
 
 ---
 
@@ -37,6 +42,7 @@ description: >-
 - [x] PostgreSQL database migration with connection pooling and automated DDL schema migrations.
 - [x] Multi-country payroll fanout service and relational persistence.
 - [x] Employee management engine with server-side validation and lifecycle status filtering.
+- [x] Money Missions backend engine with AI NL interpretation, deterministic validation, proposal generation with SHA-256 hash, and B-Key signature verification.
 - [x] Multi-stage Employee Onboarding Engine (`modules/employees/onboarding.service.ts`) for Nigeria (`NG`) and Mexico (`MX`):
   - Canonical fiat-to-stablecoin mapping (`CNGN`, `MEXe`).
   - Stage 2 smart wallet challenge and deployment proxy.
@@ -44,7 +50,7 @@ description: >-
   - Stage 4 Etherfuse agreement launch & rail activation.
   - 4-state status calculation (`Not Started`, `In Progress`, `Ready`, `Failed`), retry stage, and webhook simulation.
 - [x] Smart Wallets & Embedded Contracts endpoints (`GET /api/wallets/:walletId`, `GET /:walletId/balance`, `GET /:walletId/transactions`, `POST /issue-card`) adhering to BMONI standard routes and `design.md` copy rules.
-- [x] 31 unit tests passing (100%) across Money math, HMAC verification, AI safety checks, employee validation, onboarding rules, and smart wallet operations (`npm test`).
+- [x] Automated backend coverage for Money math, HMAC verification, AI safety, employee validation, onboarding, Money Missions, transfers, smart wallets, and cards (`npm test`).
 
 ---
 

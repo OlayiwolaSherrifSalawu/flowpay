@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../../core/design_system/design_system.dart';
-import '../../../core/money/money.dart';
 import '../../../core/repositories/card_repository.dart';
 import '../../../core/theme/components.dart';
 
@@ -103,15 +102,18 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
 
     setState(() => _isLoadingSensitive = true);
     try {
-      final sensitive = await widget.cardRepo.getCardSensitiveData(_card.id, userId: widget.userId);
+      final sensitive = await widget.cardRepo
+          .getCardSensitiveData(_card.id, userId: widget.userId);
       if (!mounted) return;
 
       setState(() {
         _isRevealed = true;
         _isLoadingSensitive = false;
-        _unmaskedPan = sensitive['pan']?.toString() ?? '5399 8383 8383 ${_card.last4}';
+        _unmaskedPan =
+            sensitive['pan']?.toString() ?? '5399 8383 8383 ${_card.last4}';
         _unmaskedCvv = sensitive['cvv']?.toString() ?? '824';
-        _unmaskedExpiry = sensitive['expirationDate']?.toString() ?? _card.expirationDate;
+        _unmaskedExpiry =
+            sensitive['expirationDate']?.toString() ?? _card.expirationDate;
       });
 
       // Auto-hide after 30 seconds for PCI compliance / safety
@@ -139,7 +141,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
     setState(() => _isTogglingFreeze = true);
     final targetFreeze = !_card.isFrozen;
     try {
-      final updated = await widget.cardRepo.setCardStatus(_card.id, freeze: targetFreeze, userId: widget.userId);
+      final updated = await widget.cardRepo
+          .setCardStatus(_card.id, freeze: targetFreeze, userId: widget.userId);
       if (!mounted) return;
 
       setState(() {
@@ -160,7 +163,9 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
       } catch (_) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(targetFreeze ? 'Card has been frozen (BLOCKED).' : 'Card is now active (ACTIVE).'),
+            content: Text(targetFreeze
+                ? 'Card has been frozen (BLOCKED).'
+                : 'Card is now active (ACTIVE).'),
           ),
         );
       }
@@ -183,7 +188,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
     });
 
     try {
-      final txs = await widget.cardRepo.getCardTransactions(_card.id, size: 20, status: 'COMPLETED');
+      final txs = await widget.cardRepo
+          .getCardTransactions(_card.id, size: 20, status: 'COMPLETED');
       if (!mounted) return;
       setState(() {
         _transactions = txs;
@@ -228,16 +234,19 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   children: [
                     Text(
                       _card.cardName,
-                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 18),
+                      style: FlowPayTypography.title(color: FlowPayColors.ink)
+                          .copyWith(fontSize: 18),
                     ),
                     Text(
                       'Virtual Mastercard • ${widget.cardHolderName}',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.textSecondary),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: FlowPayColors.textSecondary),
+                  icon: const Icon(Icons.close_rounded,
+                      color: FlowPayColors.textSecondary),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -263,11 +272,14 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 Expanded(
                   child: BMoniButton(
                     text: _isRevealed ? 'Hide Details' : 'View Card',
-                    icon: _isRevealed ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                    icon: _isRevealed
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
                     variant: BMoniButtonVariant.outline,
                     size: BMoniButtonSize.small,
                     isLoading: _isLoadingSensitive,
-                    onPressed: _card.isReserved ? null : _toggleRevealCardDetails,
+                    onPressed:
+                        _card.isReserved ? null : _toggleRevealCardDetails,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -292,8 +304,12 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 Expanded(
                   child: BMoniButton(
                     text: _card.isFrozen ? 'Unfreeze' : 'Freeze',
-                    icon: _card.isFrozen ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
-                    variant: _card.isFrozen ? BMoniButtonVariant.primary : BMoniButtonVariant.outline,
+                    icon: _card.isFrozen
+                        ? Icons.lock_open_rounded
+                        : Icons.lock_outline_rounded,
+                    variant: _card.isFrozen
+                        ? BMoniButtonVariant.primary
+                        : BMoniButtonVariant.outline,
                     size: BMoniButtonSize.small,
                     isLoading: _isTogglingFreeze,
                     onPressed: _card.isReserved ? null : _toggleFreezeCard,
@@ -320,7 +336,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.shield_outlined, size: 16, color: FlowPayColors.brand),
+                            Icon(Icons.shield_outlined,
+                                size: 16, color: FlowPayColors.brand),
                             SizedBox(width: 6),
                             Text(
                               'SENSITIVE CARD DATA',
@@ -335,7 +352,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                         ),
                         Text(
                           'Auto-hides in 30s',
-                          style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+                          style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textTertiary),
                         ),
                       ],
                     ),
@@ -377,14 +395,17 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 children: [
                   Text(
                     'CARD TRANSACTIONS',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                    style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.textTertiary)
+                        .copyWith(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                     ),
                   ),
                   Text(
                     '${_transactions.length} items',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
                   ),
                 ],
               ),
@@ -406,7 +427,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   alignment: Alignment.center,
                   child: Text(
                     'No settled transactions recorded on this card.',
-                    style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
                   ),
                 ),
               ] else ...[
@@ -425,15 +447,19 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
               ),
               child: Column(
                 children: [
-                  _SpecRow(label: 'Card Status', value: _card.status.toUpperCase()),
+                  _SpecRow(
+                      label: 'Card Status', value: _card.status.toUpperCase()),
                   const SizedBox(height: 8),
-                  _SpecRow(label: 'Card Type', value: 'Virtual Mastercard'),
+                  const _SpecRow(
+                      label: 'Card Type', value: 'Virtual Mastercard'),
                   const SizedBox(height: 8),
                   _SpecRow(label: 'Currency', value: _card.currency.code),
                   const SizedBox(height: 8),
                   _SpecRow(
                     label: 'Available Card Balance',
-                    value: _card.balance != null ? _card.balance!.formatted : 'Direct Wallet Debit',
+                    value: _card.balance != null
+                        ? _card.balance!.formatted
+                        : 'Direct Wallet Debit',
                   ),
                 ],
               ),
@@ -463,7 +489,9 @@ class _SensitiveRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(fontSize: 10),
+          style:
+              FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary)
+                  .copyWith(fontSize: 10),
         ),
         const SizedBox(height: 2),
         Row(
@@ -471,7 +499,8 @@ class _SensitiveRow extends StatelessWidget {
           children: [
             Text(
               value,
-              style: FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
+              style:
+                  FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
                 fontSize: 14,
                 letterSpacing: 1.2,
                 fontWeight: FontWeight.w600,
@@ -481,12 +510,14 @@ class _SensitiveRow extends StatelessWidget {
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () {
-                  Clipboard.setData(ClipboardData(text: value.replaceAll(' ', '')));
+                  Clipboard.setData(
+                      ClipboardData(text: value.replaceAll(' ', '')));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Copied $label to clipboard')),
                   );
                 },
-                child: const Icon(Icons.copy_rounded, size: 14, color: FlowPayColors.textTertiary),
+                child: const Icon(Icons.copy_rounded,
+                    size: 14, color: FlowPayColors.textTertiary),
               ),
             ],
           ],
@@ -520,7 +551,8 @@ class _TransactionItemRow extends StatelessWidget {
               color: FlowPayColors.surfaceElevated,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.shopping_bag_outlined, size: 18, color: FlowPayColors.brand),
+            child: const Icon(Icons.shopping_bag_outlined,
+                size: 18, color: FlowPayColors.brand),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -529,14 +561,17 @@ class _TransactionItemRow extends StatelessWidget {
               children: [
                 Text(
                   tx.merchantName,
-                  style: FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
+                  style:
+                      FlowPayTypography.body(color: FlowPayColors.ink).copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
                 Text(
                   tx.category,
-                  style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(fontSize: 11),
+                  style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.textSecondary)
+                      .copyWith(fontSize: 11),
                 ),
               ],
             ),
@@ -546,7 +581,8 @@ class _TransactionItemRow extends StatelessWidget {
             children: [
               Text(
                 tx.amount.formatted,
-                style: FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
+                style:
+                    FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
@@ -587,7 +623,9 @@ class _SpecRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(fontSize: 12),
+          style:
+              FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary)
+                  .copyWith(fontSize: 12),
         ),
         Text(
           value,

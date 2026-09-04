@@ -7,6 +7,8 @@ import '../../core/state/app_state.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
 
+import '../../core/navigation/personal_tab_provider.dart';
+
 /// Independent Navigation Shell for Personal Account Mode.
 /// Maintains its own navigation stack, active tab state, and app bar.
 class PersonalShell extends ConsumerStatefulWidget {
@@ -19,19 +21,34 @@ class PersonalShell extends ConsumerStatefulWidget {
 }
 
 class _PersonalShellState extends ConsumerState<PersonalShell> {
-  int _currentIndex = 0;
   late final AppState _appState;
 
   @override
   void initState() {
     super.initState();
     _appState = widget.appState ?? AppState();
+    _appState.addListener(_onAppStateChanged);
+  }
+
+  void _onAppStateChanged() {
+    if (mounted &&
+        ref.read(personalTabIndexProvider) != _appState.personalTabIndex) {
+      ref.read(personalTabIndexProvider.notifier).state =
+          _appState.personalTabIndex;
+    }
+  }
+
+  @override
+  void dispose() {
+    _appState.removeListener(_onAppStateChanged);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final capabilitiesAsync = ref.watch(accountCapabilitiesProvider);
     final hasBothModes = capabilitiesAsync.asData?.value.hasBothModes ?? true;
+    final currentIndex = ref.watch(personalTabIndexProvider);
 
     return Scaffold(
       backgroundColor: FlowPayColors.canvas,
@@ -48,7 +65,9 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
                     isPersonal: true,
                     onRoleChanged: (isPersonal) {
                       ref.read(appLockStateProvider.notifier).setAccountMode(
-                            isPersonal ? AccountMode.personal : AccountMode.business,
+                            isPersonal
+                                ? AccountMode.personal
+                                : AccountMode.business,
                           );
                     },
                   ),
@@ -60,7 +79,8 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.lock_outline, color: FlowPayColors.ink, size: 20),
+            icon: const Icon(Icons.lock_outline,
+                color: FlowPayColors.ink, size: 20),
             tooltip: 'Lock FlowPay',
             onPressed: () {
               ref.read(appLockStateProvider.notifier).lockApp();
@@ -69,7 +89,16 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
           const SizedBox(width: 4),
         ],
       ),
-      body: PersonalRoutes.buildScreen(_currentIndex, _appState),
+      body: IndexedStack(
+        index: currentIndex,
+        children: [
+          PersonalRoutes.buildScreen(0, _appState),
+          PersonalRoutes.buildScreen(1, _appState),
+          PersonalRoutes.buildScreen(2, _appState),
+          PersonalRoutes.buildScreen(3, _appState),
+          PersonalRoutes.buildScreen(4, _appState),
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: FlowPayColors.surface,
@@ -78,11 +107,14 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
           ),
         ),
         child: NavigationBar(
-          selectedIndex: _currentIndex,
+          selectedIndex: currentIndex,
           backgroundColor: FlowPayColors.surface,
           indicatorColor: FlowPayColors.surfaceAlt,
           elevation: 0,
-          onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+          onDestinationSelected: (idx) {
+            ref.read(personalTabIndexProvider.notifier).state = idx;
+            _appState.setPersonalTabIndex(idx);
+          },
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
@@ -91,7 +123,8 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet, color: FlowPayColors.ink),
+              selectedIcon:
+                  Icon(Icons.account_balance_wallet, color: FlowPayColors.ink),
               label: 'Wallets',
             ),
             NavigationDestination(

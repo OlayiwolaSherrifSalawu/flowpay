@@ -65,21 +65,27 @@ class BusinessRoutes {
     }
   }
 
-  static Route<dynamic>? onGenerateRoute(RouteSettings settings, AppState appState) {
+  static Route<dynamic>? onGenerateRoute(
+      RouteSettings settings, AppState appState) {
     switch (settings.name) {
       case AppRoutes.businessDashboard:
-        return MaterialPageRoute(builder: (_) => BusinessDashboardScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => BusinessDashboardScreen(appState: appState));
       case AppRoutes.businessEmployees:
-        return MaterialPageRoute(builder: (_) => EmployeesScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => EmployeesScreen(appState: appState));
       case AppRoutes.businessPayroll:
-        return MaterialPageRoute(builder: (_) => PayrollScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => PayrollScreen(appState: appState));
       case AppRoutes.businessActivity:
-        return MaterialPageRoute(builder: (_) => BusinessActivityScreen(appState: appState));
+        return MaterialPageRoute(
+            builder: (_) => BusinessActivityScreen(appState: appState));
       case AppRoutes.businessEmployeeDetail:
         final employee = settings.arguments as EmployeeModel?;
         if (employee != null) {
           return MaterialPageRoute(
-            builder: (_) => EmployeeDetailScreen(appState: appState, employee: employee),
+            builder: (_) =>
+                EmployeeDetailScreen(appState: appState, employee: employee),
           );
         }
         return null;

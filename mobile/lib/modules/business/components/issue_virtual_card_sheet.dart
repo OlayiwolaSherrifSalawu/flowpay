@@ -69,9 +69,12 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: '${widget.employee.fullName.split(' ').first} Payroll Card');
+    _nameController = TextEditingController(
+        text: '${widget.employee.fullName.split(' ').first} Payroll Card');
     _ninController = TextEditingController();
-    _selectedCurrency = widget.wallet.currency.toUpperCase() == 'NGN' ? Currency.ngn : Currency.usd;
+    _selectedCurrency = widget.wallet.currency.toUpperCase() == 'NGN'
+        ? Currency.ngn
+        : Currency.usd;
   }
 
   @override
@@ -111,8 +114,11 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
       String? hashToSign = proposal.hashToSign;
 
       // 2. Poll for signPayload if pending (409 means not ready yet)
-      if (proposal.signPayloadPending || hashToSign == null || hashToSign.isEmpty) {
-        setState(() => _pollingMessage = 'Preparing hardware signing payload...');
+      if (proposal.signPayloadPending ||
+          hashToSign == null ||
+          hashToSign.isEmpty) {
+        setState(
+            () => _pollingMessage = 'Preparing hardware signing payload...');
         for (int i = 0; i < 6; i++) {
           await Future.delayed(const Duration(milliseconds: 1500));
           try {
@@ -127,7 +133,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
         }
       }
 
-      hashToSign ??= '0x${proposal.proposalId.hashCode.toRadixString(16).padLeft(64, '0')}';
+      hashToSign ??=
+          '0x${proposal.proposalId.hashCode.toRadixString(16).padLeft(64, '0')}';
 
       if (!mounted) return;
       setState(() {
@@ -144,7 +151,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
         recipient: cardName,
         onAuthorize: (pin) async {
           // CRITICAL: Must use signTransactionHash(), NOT signMessage()
-          return await BmoniSdkService.signTransactionHash(hashToSign!, pin: pin);
+          return await BmoniSdkService.signTransactionHash(hashToSign!,
+              pin: pin);
         },
       );
 
@@ -171,11 +179,14 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
         BMoniToastOverlay.showSuccess(
           context: context,
           title: 'Virtual Card Issued',
-          message: 'Issued $cardName for ${widget.employee.fullName} (Amber #F4B740).',
+          message:
+              'Issued $cardName for ${widget.employee.fullName} (Amber #F4B740).',
         );
       } catch (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Card issued successfully for ${widget.employee.fullName}')),
+          SnackBar(
+              content: Text(
+                  'Card issued successfully for ${widget.employee.fullName}')),
         );
       }
     } catch (err) {
@@ -249,11 +260,13 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                   children: [
                     Text(
                       'Issue Virtual Spend Card',
-                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(fontSize: 16),
+                      style: FlowPayTypography.title(color: FlowPayColors.ink)
+                          .copyWith(fontSize: 16),
                     ),
                     Text(
                       'Attached to ${widget.wallet.currency} Smart Wallet (${widget.employee.fullName})',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                      style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.textSecondary),
                     ),
                   ],
                 ),
@@ -267,7 +280,9 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
             cardLast4: '••••',
             countryFlag: widget.employee.flagEmoji,
             cardHolderName: widget.employee.fullName,
-            cardName: _nameController.text.isNotEmpty ? _nameController.text : 'Payroll Card',
+            cardName: _nameController.text.isNotEmpty
+                ? _nameController.text
+                : 'Payroll Card',
             currencyCode: _selectedCurrency.code,
             isFrozen: false,
             isReserved: false,
@@ -281,12 +296,14 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
               decoration: BoxDecoration(
                 color: FlowPayColors.warning.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: FlowPayColors.warning.withValues(alpha: 0.4)),
+                border: Border.all(
+                    color: FlowPayColors.warning.withValues(alpha: 0.4)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 18, color: FlowPayColors.warning),
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 18, color: FlowPayColors.warning),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -323,7 +340,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: _selectedCurrency == Currency.ngn
-                          ? VirtualCardObject.flowpayAmber.withValues(alpha: 0.18)
+                          ? VirtualCardObject.flowpayAmber
+                              .withValues(alpha: 0.18)
                           : FlowPayColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
@@ -354,7 +372,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
                       color: _selectedCurrency == Currency.usd
-                          ? VirtualCardObject.flowpayAmber.withValues(alpha: 0.18)
+                          ? VirtualCardObject.flowpayAmber
+                              .withValues(alpha: 0.18)
                           : FlowPayColors.surface,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
@@ -395,7 +414,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
           const SizedBox(height: 4),
           Text(
             'Required by BMONI only on first card enrollment for this cardholder.',
-            style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary),
+            style: FlowPayTypography.captionStyle(
+                color: FlowPayColors.textTertiary),
           ),
           const SizedBox(height: 16),
 
@@ -418,7 +438,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
+                const Expanded(
                   child: Text(
                     'Color: #F4B740 (FlowPay Amber) • Auto-approved proposal via B-Key Proxy',
                     style: TextStyle(
@@ -449,7 +469,8 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                     const SizedBox(width: 8),
                     Text(
                       _pollingMessage!,
-                      style: const TextStyle(color: FlowPayColors.amber, fontSize: 12),
+                      style: const TextStyle(
+                          color: FlowPayColors.amber, fontSize: 12),
                     ),
                   ],
                 ),

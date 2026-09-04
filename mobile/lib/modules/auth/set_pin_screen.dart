@@ -177,7 +177,9 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
 
               // Title & Instructions
               Text(
-                _isConfirming ? 'Confirm Your 6-Digit PIN' : 'Set Your 6-Digit PIN',
+                _isConfirming
+                    ? 'Confirm Your 6-Digit PIN'
+                    : 'Set Your 6-Digit PIN',
                 style: FlowPayTypography.headline(),
                 textAlign: TextAlign.center,
               ),
@@ -208,9 +210,12 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                     height: 16,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isFilled ? FlowPayColors.primary : Colors.transparent,
+                      color:
+                          isFilled ? FlowPayColors.primary : Colors.transparent,
                       border: Border.all(
-                        color: isFilled ? FlowPayColors.primary : FlowPayColors.hairline,
+                        color: isFilled
+                            ? FlowPayColors.primary
+                            : FlowPayColors.hairline,
                         width: 2,
                       ),
                     ),
@@ -223,7 +228,8 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
               // Error banner
               if (_errorMessage != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: FlowPayColors.stateError.withAlpha(30),
                     borderRadius: FlowPayRadii.chip,
@@ -245,7 +251,8 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Provisioning B-Key hardware keypair...',
-                  style: TextStyle(fontSize: 13, color: FlowPayColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 13, color: FlowPayColors.textSecondary),
                 ),
                 const Spacer(),
               ] else ...[
@@ -272,7 +279,9 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
         ]) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: row.map((d) => _buildKey(d, onTap: () => _onDigitTapped(d))).toList(),
+            children: row
+                .map((d) => _buildKey(d, onTap: () => _onDigitTapped(d)))
+                .toList(),
           ),
           const SizedBox(height: 14),
         ],

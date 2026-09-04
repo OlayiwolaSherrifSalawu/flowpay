@@ -49,7 +49,9 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
                     isPersonal: false,
                     onRoleChanged: (isPersonal) {
                       ref.read(appLockStateProvider.notifier).setAccountMode(
-                            isPersonal ? AccountMode.personal : AccountMode.business,
+                            isPersonal
+                                ? AccountMode.personal
+                                : AccountMode.business,
                           );
                     },
                   ),
@@ -61,7 +63,8 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.lock_outline, color: FlowPayColors.ink, size: 20),
+            icon: const Icon(Icons.lock_outline,
+                color: FlowPayColors.ink, size: 20),
             tooltip: 'Lock FlowPay',
             onPressed: () {
               ref.read(appLockStateProvider.notifier).lockApp();

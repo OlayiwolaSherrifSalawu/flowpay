@@ -32,7 +32,8 @@ extension AccountModeExtension on AccountMode {
 /// plus whether a personal smart wallet exists).
 class AccountCapabilities {
   final bool hasPersonalWallet;
-  final bool hasBusinessAccess; // true if bmoniUserId is linked as employer/admin to a company
+  final bool
+      hasBusinessAccess; // true if bmoniUserId is linked as employer/admin to a company
   final String? companyName;
   final String? companyRole;
   final String? bmoniUserId;
@@ -216,10 +217,13 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      userId: json['userId'] as String? ?? 'usr_flowpay_${DateTime.now().millisecondsSinceEpoch}',
+      userId: json['userId'] as String? ??
+          'usr_flowpay_${DateTime.now().millisecondsSinceEpoch}',
       fullName: json['fullName'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      accountType: (json['accountType'] == 'business') ? AccountType.business : AccountType.personal,
+      accountType: (json['accountType'] == 'business')
+          ? AccountType.business
+          : AccountType.personal,
       country: json['country'] as String? ?? 'NG',
       phone: json['phone'] as String? ?? '',
       kycStatus: switch (json['kycStatus']) {

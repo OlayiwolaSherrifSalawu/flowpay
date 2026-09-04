@@ -9,13 +9,16 @@ abstract class EmbeddedWalletReadDataSource {
   Future<Either<EmbeddedFailure, EmbeddedWalletListResponse>> fetchWallets();
 
   /// Fetches deep detail for a specific smart wallet.
-  Future<Either<EmbeddedFailure, EmbeddedWalletDetailResponse>> fetchWalletDetail(String walletId);
+  Future<Either<EmbeddedFailure, EmbeddedWalletDetailResponse>>
+      fetchWalletDetail(String walletId);
 
   /// Fetches real-time on-chain balance for a wallet.
-  Future<Either<EmbeddedFailure, EmbeddedWalletBalanceResponse>> fetchBalance(String walletId);
+  Future<Either<EmbeddedFailure, EmbeddedWalletBalanceResponse>> fetchBalance(
+      String walletId);
 
   /// Fetches paginated transaction history for a wallet.
-  Future<Either<EmbeddedFailure, EmbeddedWalletTransactionsResponse>> fetchTransactions(
+  Future<Either<EmbeddedFailure, EmbeddedWalletTransactionsResponse>>
+      fetchTransactions(
     String walletId, {
     int? page,
     int? pageSize,

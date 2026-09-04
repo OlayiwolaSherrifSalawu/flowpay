@@ -36,9 +36,13 @@ class FlowPayAmountDisplay extends StatelessWidget {
     } else if (isCredit) {
       fg = FlowPayColors.accent;
     } else if (isDebit) {
-      fg = isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary;
+      fg = isDark
+          ? FlowPayColors.darkTextPrimary
+          : FlowPayColors.lightTextPrimary;
     } else {
-      fg = isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary;
+      fg = isDark
+          ? FlowPayColors.darkTextPrimary
+          : FlowPayColors.lightTextPrimary;
     }
 
     TextStyle mainStyle;
@@ -119,7 +123,9 @@ class FlowPayAmountDisplay extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                  color: isDark
+                      ? FlowPayColors.darkTextTertiary
+                      : FlowPayColors.lightTextTertiary,
                 ),
               ),
             ],
@@ -130,7 +136,9 @@ class FlowPayAmountDisplay extends StatelessWidget {
           Text(
             secondaryAmount!,
             style: FlowPayTypography.caption.copyWith(
-              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+              color: isDark
+                  ? FlowPayColors.darkTextSecondary
+                  : FlowPayColors.lightTextSecondary,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),

@@ -33,7 +33,9 @@ class FlowPayDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
+      backgroundColor: isDark
+          ? FlowPayColors.darkSurfaceElevated
+          : FlowPayColors.lightSurface,
       shape: RoundedRectangleBorder(
         borderRadius: FlowPaySpacing.borderRadiusXl,
         side: BorderSide(
@@ -50,7 +52,10 @@ class FlowPayDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? (isDestructive ? FlowPayColors.error : FlowPayColors.primary))
+                  color: (iconColor ??
+                          (isDestructive
+                              ? FlowPayColors.error
+                              : FlowPayColors.primary))
                       .withAlpha(25),
                   shape: BoxShape.circle,
                 ),
@@ -58,7 +63,9 @@ class FlowPayDialog extends StatelessWidget {
                   icon,
                   size: 28,
                   color: iconColor ??
-                      (isDestructive ? FlowPayColors.error : FlowPayColors.primaryLight),
+                      (isDestructive
+                          ? FlowPayColors.error
+                          : FlowPayColors.primaryLight),
                 ),
               ),
               const SizedBox(height: FlowPaySpacing.lg),
@@ -66,7 +73,9 @@ class FlowPayDialog extends StatelessWidget {
             Text(
               title,
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -74,7 +83,9 @@ class FlowPayDialog extends StatelessWidget {
             Text(
               message,
               style: FlowPayTypography.bodyMd.copyWith(
-                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                color: isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),

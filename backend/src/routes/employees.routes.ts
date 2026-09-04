@@ -14,7 +14,6 @@ employeesRouter.get('/', async (req, res, next) => {
     next(err);
   }
 });
-
 // GET /api/employees/status/:status
 employeesRouter.get('/status/:status', async (req, res, next) => {
   try {
@@ -238,4 +237,3 @@ employeesRouter.post('/:id/onboarding/simulate-complete', async (req, res, next)
     next(err);
   }
 });
-

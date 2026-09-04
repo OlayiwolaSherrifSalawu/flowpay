@@ -1,10 +1,40 @@
 enum Currency {
-  usd(code: 'USD', symbol: '\$', decimals: 2, stablecoinToken: 'USDB', name: 'US Dollar'),
-  ngn(code: 'NGN', symbol: '₦', decimals: 2, stablecoinToken: 'CNGN', name: 'Nigerian Naira'),
-  mxn(code: 'MXN', symbol: 'Mex\$', decimals: 2, stablecoinToken: 'MEXe', name: 'Mexican Peso'),
-  eur(code: 'EUR', symbol: '€', decimals: 2, stablecoinToken: 'EURe', name: 'Euro'),
-  cad(code: 'CAD', symbol: 'CA\$', decimals: 2, stablecoinToken: 'CADC', name: 'Canadian Dollar'),
-  gbp(code: 'GBP', symbol: '£', decimals: 2, stablecoinToken: 'GBPe', name: 'British Pound');
+  usd(
+      code: 'USD',
+      symbol: '\$',
+      decimals: 2,
+      stablecoinToken: 'USDB',
+      name: 'US Dollar'),
+  ngn(
+      code: 'NGN',
+      symbol: '₦',
+      decimals: 2,
+      stablecoinToken: 'CNGN',
+      name: 'Nigerian Naira'),
+  mxn(
+      code: 'MXN',
+      symbol: 'Mex\$',
+      decimals: 2,
+      stablecoinToken: 'MEXe',
+      name: 'Mexican Peso'),
+  eur(
+      code: 'EUR',
+      symbol: '€',
+      decimals: 2,
+      stablecoinToken: 'EURe',
+      name: 'Euro'),
+  cad(
+      code: 'CAD',
+      symbol: 'CA\$',
+      decimals: 2,
+      stablecoinToken: 'CADC',
+      name: 'Canadian Dollar'),
+  gbp(
+      code: 'GBP',
+      symbol: '£',
+      decimals: 2,
+      stablecoinToken: 'GBPe',
+      name: 'British Pound');
 
   final String code;
   final String symbol;

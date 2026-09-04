@@ -71,7 +71,8 @@ class FlowPayTokens extends ThemeExtension<FlowPayTokens> {
   }
 
   @override
-  ThemeExtension<FlowPayTokens> lerp(ThemeExtension<FlowPayTokens>? other, double t) {
+  ThemeExtension<FlowPayTokens> lerp(
+      ThemeExtension<FlowPayTokens>? other, double t) {
     if (other is! FlowPayTokens) return this;
     return FlowPayTokens(
       ink: Color.lerp(ink, other.ink, t)!,
@@ -112,7 +113,8 @@ class FlowPayTheme {
         foregroundColor: FlowPayColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: FlowPayTypography.title(color: FlowPayColors.textPrimary),
+        titleTextStyle:
+            FlowPayTypography.title(color: FlowPayColors.textPrimary),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

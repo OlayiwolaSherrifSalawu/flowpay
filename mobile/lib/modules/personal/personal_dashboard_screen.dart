@@ -17,8 +17,11 @@ import 'components/ai_fx_conversion_modal.dart';
 import 'components/pending_approvals_card.dart';
 import 'money_missions_screen.dart';
 import 'personal_activity_screen.dart';
+import 'personal_shell.dart';
 import 'send_money_screen.dart';
+import 'wallet_provisioning_screen.dart';
 import 'wallets_screen.dart';
+import '../../core/navigation/personal_tab_provider.dart';
 
 /// FLOWPAY — PERSONAL DASHBOARD
 ///
@@ -40,7 +43,8 @@ class PersonalDashboardScreen extends StatefulWidget {
   const PersonalDashboardScreen({super.key, required this.appState});
 
   @override
-  State<PersonalDashboardScreen> createState() => _PersonalDashboardScreenState();
+  State<PersonalDashboardScreen> createState() =>
+      _PersonalDashboardScreenState();
 }
 
 class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
@@ -77,6 +81,22 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
     );
   }
 
+  void _navigateToTab(int tabIndex,
+      {required Widget fallbackScreen, required String routeName}) {
+    widget.appState.setPersonalTabIndex(tabIndex);
+    final hasShell =
+        context.findAncestorWidgetOfExactType<PersonalShell>() != null;
+    if (!hasShell) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => fallbackScreen,
+          settings: RouteSettings(name: routeName),
+        ),
+      );
+    }
+  }
+
   void _openSendMoneyScreen({String? initialAmount, String? initialRecipient}) {
     Navigator.push(
       context,
@@ -103,7 +123,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Action approved and signed on BMONI: ${approval.title}'),
+            content:
+                Text('Action approved and signed on BMONI: ${approval.title}'),
             backgroundColor: BMoniColors.brand500,
           ),
         );
@@ -111,7 +132,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: $e'), backgroundColor: BMoniColors.error400),
+        SnackBar(
+            content: Text('Failed: $e'), backgroundColor: BMoniColors.error400),
       );
     }
   }
@@ -133,7 +155,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       listenable: _provider,
       builder: (context, _) {
         final totalPortfolio = _provider.totalPortfolioUsd;
-        final totalFormatted = totalPortfolio.formatFormatted(includeSymbol: true);
+        final totalFormatted =
+            totalPortfolio.formatFormatted(includeSymbol: true);
         final wholePart = totalFormatted.split('.')[0];
         final decimalPart = '.${totalPortfolio.toMajorString().split('.')[1]}';
 
@@ -157,20 +180,26 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                              color: isDark
+                                  ? BMoniColors.grey50
+                                  : BMoniColors.grey950,
                             ),
                           ),
                           const SizedBox(width: 8),
                           // Clear Sandbox / Demo Indicator
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: BMoniColors.accent400.withAlpha(30),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: BMoniColors.accent400.withAlpha(70)),
+                              border: Border.all(
+                                  color: BMoniColors.accent400.withAlpha(70)),
                             ),
                             child: Text(
-                              widget.appState.isDemo ? 'Sandbox Demo' : 'BMONI Live Testnet',
+                              widget.appState.isDemo
+                                  ? 'Sandbox Demo'
+                                  : 'BMONI Live Testnet',
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -191,27 +220,40 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: BMoniColors.brand500.withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock_outline, size: 12, color: BMoniColors.brand400),
-                        SizedBox(width: 4),
-                        Text(
-                          'Self-Custody (B-Key)',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: BMoniColors.brand400,
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const WalletProvisioningScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: BMoniColors.brand500.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color: BMoniColors.brand500.withAlpha(80)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.lock_outline,
+                              size: 12, color: BMoniColors.brand400),
+                          SizedBox(width: 4),
+                          Text(
+                            'Self-Custody (B-Key)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: BMoniColors.brand400,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -248,7 +290,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.white.withAlpha(20),
                             borderRadius: BorderRadius.circular(6),
@@ -308,7 +351,14 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       icon: Icons.bolt,
                       label: 'Create Mission',
                       accentColor: BMoniColors.brand400,
-                      onPressed: () => _openAiAllocationModal(),
+                      onPressed: () {
+                        _navigateToTab(
+                          PersonalTab.missions,
+                          fallbackScreen:
+                              MoneyMissionsScreen(appState: widget.appState),
+                          routeName: AppRoutes.personalMissions,
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -327,12 +377,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       label: 'View Wallets',
                       accentColor: BMoniColors.success400,
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => WalletsScreen(appState: widget.appState),
-                            settings: const RouteSettings(name: AppRoutes.personalWallets),
-                          ),
+                        _navigateToTab(
+                          PersonalTab.wallets,
+                          fallbackScreen:
+                              WalletsScreen(appState: widget.appState),
+                          routeName: AppRoutes.personalWallets,
                         );
                       },
                     ),
@@ -344,12 +393,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               // 4. Money Missions Feature Card (Prominently displaying "Money Missions" & Tagline)
               InkWell(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MoneyMissionsScreen(appState: widget.appState),
-                      settings: const RouteSettings(name: AppRoutes.personalMissions),
-                    ),
+                  _navigateToTab(
+                    PersonalTab.missions,
+                    fallbackScreen:
+                        MoneyMissionsScreen(appState: widget.appState),
+                    routeName: AppRoutes.personalMissions,
                   );
                 },
                 borderRadius: BorderRadius.circular(16),
@@ -375,7 +423,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           color: BMoniColors.brand500.withAlpha(35),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.bolt, color: BMoniColors.brand400, size: 24),
+                        child: const Icon(Icons.bolt,
+                            color: BMoniColors.brand400, size: 24),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
@@ -401,7 +450,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: BMoniColors.grey400),
+                      const Icon(Icons.chevron_right,
+                          color: BMoniColors.grey400),
                     ],
                   ),
                 ),
@@ -446,12 +496,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => MoneyMissionsScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalMissions),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.missions,
+                      fallbackScreen:
+                          MoneyMissionsScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalMissions,
                     );
                   },
                   child: Text(
@@ -492,7 +541,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         child: Icon(
                           Icons.bolt,
                           size: 18,
-                          color: m.isActive ? BMoniColors.brand400 : BMoniColors.grey600,
+                          color: m.isActive
+                              ? BMoniColors.brand400
+                              : BMoniColors.grey600,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -505,7 +556,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : BMoniColors.grey950,
+                                color:
+                                    isDark ? Colors.white : BMoniColors.grey950,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -544,12 +596,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => WalletsScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalWallets),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.wallets,
+                      fallbackScreen: WalletsScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalWallets,
                     );
                   },
                   child: const Text(
@@ -573,7 +623,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     Clipboard.setData(ClipboardData(text: w.address));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Copied ${w.currency.code} address: ${w.address}'),
+                        content: Text(
+                            'Copied ${w.currency.code} address: ${w.address}'),
                         duration: const Duration(seconds: 2),
                       ),
                     );
@@ -595,12 +646,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PersonalActivityScreen(appState: widget.appState),
-                        settings: const RouteSettings(name: AppRoutes.personalActivity),
-                      ),
+                    _navigateToTab(
+                      PersonalTab.activity,
+                      fallbackScreen:
+                          PersonalActivityScreen(appState: widget.appState),
+                      routeName: AppRoutes.personalActivity,
                     );
                   },
                   child: const Text(
@@ -617,14 +667,23 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
 
               ..._provider.recentActivities.take(5).map((act) {
                 IconData catIcon = Icons.history;
-                if (act.category == ActivityCategory.mission) catIcon = Icons.bolt;
-                if (act.category == ActivityCategory.transfer) catIcon = Icons.arrow_outward;
-                if (act.category == ActivityCategory.card) catIcon = Icons.credit_card;
-                if (act.category == ActivityCategory.fx) catIcon = Icons.currency_exchange;
+                if (act.category == ActivityCategory.mission) {
+                  catIcon = Icons.bolt;
+                }
+                if (act.category == ActivityCategory.transfer) {
+                  catIcon = Icons.arrow_outward;
+                }
+                if (act.category == ActivityCategory.card) {
+                  catIcon = Icons.credit_card;
+                }
+                if (act.category == ActivityCategory.fx) {
+                  catIcon = Icons.currency_exchange;
+                }
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: isDark ? FlowPayColors.darkSurface : Colors.white,
                     borderRadius: BorderRadius.circular(14),
@@ -640,7 +699,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               : FlowPayColors.lightSurfaceElevated,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(catIcon, size: 16, color: FlowPayColors.primaryLight),
+                        child: Icon(catIcon,
+                            size: 16, color: FlowPayColors.primaryLight),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -652,7 +712,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : BMoniColors.grey950,
+                                color:
+                                    isDark ? Colors.white : BMoniColors.grey950,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -660,7 +721,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               act.description,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? BMoniColors.grey400 : BMoniColors.grey700,
+                                color: isDark
+                                    ? BMoniColors.grey400
+                                    : BMoniColors.grey700,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -681,7 +744,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             act.timeAgo,
                             style: TextStyle(
                               fontSize: 10,
-                              color: isDark ? BMoniColors.grey500 : BMoniColors.grey600,
+                              color: isDark
+                                  ? BMoniColors.grey500
+                                  : BMoniColors.grey600,
                             ),
                           ),
                         ],
@@ -816,7 +881,8 @@ class _WalletSummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.copy, size: 10, color: BMoniColors.grey400),
+                    const Icon(Icons.copy,
+                        size: 10, color: BMoniColors.grey400),
                   ],
                 ),
               ),

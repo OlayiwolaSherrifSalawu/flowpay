@@ -30,12 +30,15 @@ class FlowPayBottomSheet extends StatelessWidget {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
+            color: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurface,
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(FlowPaySpacing.radiusXl),
             ),
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
               width: 1,
             ),
           ),
@@ -50,7 +53,9 @@ class FlowPayBottomSheet extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isDark ? FlowPayColors.darkBorderLight : FlowPayColors.lightBorderLight,
+                    color: isDark
+                        ? FlowPayColors.darkBorderLight
+                        : FlowPayColors.lightBorderLight,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

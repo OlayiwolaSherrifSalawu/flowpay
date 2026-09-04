@@ -43,7 +43,8 @@ class _MockWalletService implements WalletService {
   Future<bool> matchPin(String pin) async => _pin == pin;
 
   @override
-  Future<void> changePin({required String currentPin, required String newPin}) async {
+  Future<void> changePin(
+      {required String currentPin, required String newPin}) async {
     _pin = newPin;
   }
 
@@ -292,7 +293,8 @@ void main() {
   // PIN AUTH SHEET — WIDGET TESTS
   // ---------------------------------------------------------------------------
   group('WalletPinAuthSheet — PIN entry UI', () {
-    testWidgets('Renders title, trust banner, keypad and cancel', (tester) async {
+    testWidgets('Renders title, trust banner, keypad and cancel',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -334,7 +336,8 @@ void main() {
       expect(find.byKey(const Key('wallet_pin_cancel_button')), findsOneWidget);
     });
 
-    testWidgets('Cancel button dismisses the sheet with null result', (tester) async {
+    testWidgets('Cancel button dismisses the sheet with null result',
+        (tester) async {
       String? result;
 
       await tester.pumpWidget(

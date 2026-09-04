@@ -22,7 +22,8 @@ abstract class EmbeddedFailure {
   int get hashCode => message.hashCode ^ statusCode.hashCode;
 
   @override
-  String toString() => '$runtimeType: $message (${statusCode ?? "no status code"})';
+  String toString() =>
+      '$runtimeType: $message (${statusCode ?? "no status code"})';
 }
 
 /// 5xx or unexpected server response
@@ -44,14 +45,16 @@ class EmbeddedNetworkFailure extends EmbeddedFailure {
 class EmbeddedValidationFailure extends EmbeddedFailure {
   final List<String>? errors;
 
-  const EmbeddedValidationFailure(super.message, {super.statusCode, super.cause, this.errors});
+  const EmbeddedValidationFailure(super.message,
+      {super.statusCode, super.cause, this.errors});
 }
 
 /// HTTP 429 Too Many Requests
 class EmbeddedRateLimitFailure extends EmbeddedFailure {
   final int? retryAfterSeconds;
 
-  const EmbeddedRateLimitFailure(super.message, {super.statusCode, super.cause, this.retryAfterSeconds});
+  const EmbeddedRateLimitFailure(super.message,
+      {super.statusCode, super.cause, this.retryAfterSeconds});
 }
 
 /// HTTP 404 Resource Not Found
@@ -61,10 +64,12 @@ class EmbeddedNotFoundFailure extends EmbeddedFailure {
 
 /// HTTP 401 Unauthorized / Token Expired
 class EmbeddedAuthenticationFailure extends EmbeddedFailure {
-  const EmbeddedAuthenticationFailure(super.message, {super.statusCode, super.cause});
+  const EmbeddedAuthenticationFailure(super.message,
+      {super.statusCode, super.cause});
 }
 
 /// HTTP 403 Forbidden / Insufficient Permissions
 class EmbeddedAuthorizationFailure extends EmbeddedFailure {
-  const EmbeddedAuthorizationFailure(super.message, {super.statusCode, super.cause});
+  const EmbeddedAuthorizationFailure(super.message,
+      {super.statusCode, super.cause});
 }

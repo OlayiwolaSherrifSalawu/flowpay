@@ -111,7 +111,8 @@ class BmoniWalletService implements WalletService {
 
   @override
   Future<void> initialize({int pinLength = 6, bool requirePin = true}) async {
-    await BmoniSdkService.initialize(pinLength: pinLength, requirePin: requirePin);
+    await BmoniSdkService.initialize(
+        pinLength: pinLength, requirePin: requirePin);
   }
 
   @override
@@ -150,7 +151,8 @@ class BmoniWalletService implements WalletService {
   }
 
   @override
-  Future<void> changePin({required String currentPin, required String newPin}) async {
+  Future<void> changePin(
+      {required String currentPin, required String newPin}) async {
     await BmoniSdkService.changePin(currentPin: currentPin, newPin: newPin);
   }
 
@@ -164,7 +166,8 @@ class BmoniWalletService implements WalletService {
 class WalletStateNotifier extends StateNotifier<WalletState> {
   final WalletService _walletService;
 
-  WalletStateNotifier(this._walletService) : super(const WalletState.noWallet()) {
+  WalletStateNotifier(this._walletService)
+      : super(const WalletState.noWallet()) {
     loadWalletState();
   }
 
@@ -240,7 +243,8 @@ final walletServiceProvider = Provider<WalletService>((ref) {
 });
 
 /// Riverpod provider for reactive [WalletState].
-final walletStateProvider = StateNotifierProvider<WalletStateNotifier, WalletState>((ref) {
+final walletStateProvider =
+    StateNotifierProvider<WalletStateNotifier, WalletState>((ref) {
   final service = ref.watch(walletServiceProvider);
   return WalletStateNotifier(service);
 });
