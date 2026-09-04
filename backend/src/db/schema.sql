@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS webhook_subscriptions (
   callback_url TEXT NOT NULL,
   secret_key TEXT,
   active BOOLEAN NOT NULL DEFAULT true,
-  events TEXT[] NOT NULL DEFAULT '{}',
+  events JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
