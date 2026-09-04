@@ -1,7 +1,6 @@
 import { prisma } from '../../db/index.js';
-import type { MoneyMission, Prisma } from '@prisma/client';
 
-export type { MoneyMission };
+export type MoneyMission = NonNullable<Awaited<ReturnType<typeof prisma.moneyMission.findFirst>>>;
 
 export class MoneyMissionService {
   static async listMissions(): Promise<MoneyMission[]> {
@@ -30,8 +29,8 @@ export class MoneyMissionService {
         title: data.title,
         description: data.description,
         ruleType: data.ruleType,
-        conditionJson: data.condition as Prisma.InputJsonValue,
-        actionJson: data.action as Prisma.InputJsonValue,
+        conditionJson: data.condition as any,
+        actionJson: data.action as any,
         isActive: true,
       },
     });

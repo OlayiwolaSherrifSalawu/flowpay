@@ -49,3 +49,11 @@ export class NotFoundError extends FlowPayError {
     this.name = 'NotFoundError';
   }
 }
+
+export class CardEnrollmentRequiredError extends FlowPayError {
+  constructor(message: string = 'Card owner is not enrolled for cards yet. 11-digit NIN is required.') {
+    super(message, 400, 'E101', { isEnrollmentRequired: true });
+    this.name = 'CardEnrollmentRequiredError';
+  }
+}
+

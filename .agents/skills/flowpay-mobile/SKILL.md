@@ -48,10 +48,23 @@ description: >-
 - [x] Dual Theme engine (`FlowPayTheme.dark()`, `FlowPayTheme.light()`) with accessible contrast and runtime toggling.
 - [x] Modular navigation architecture with unconfusing animated role switcher.
 - [x] Foundation screens for all 11 required screens across Personal and Business modules.
-- [x] FlowPay Business Employee Management:
+- [x] FlowPay Business Employee Management & Onboarding (Model B):
   - `AddEmployeeModal`: Rebuilt using `bkey_uikit` primitives: `BMoniTextFormField.filled`, `SelectorBottomSheet<CountryOption>` via `BMoniBottomSheet.show`, auto-resolving currency and default salary, `BMoniButton(variant: primary)`, and `BMoniToastOverlay`.
   - `EmployeesScreen`: Uses the shared `FlowPayEmptyState` for zero-employee states, plus per-row flag emojis, payroll currency and amounts, 6-stage lifecycle badges (`CREATED`, `WALLET_PENDING`, `KYC_PENDING`, `ONBOARDING`, `READY`, `FAILED`), and wallet/card status indicators.
-  - `EmployeeDetailScreen`: Built with Identity section, Financial section, BMONI on-chain linkage (`bmoniUserId`, EVM address), KYC compliance indicators (Pass/Fail/Pending — never exposes raw docs), and card freeze controls.
+  - `EmployeeOnboardingScreen`: Interactive multi-stage onboarding wizard (Stage 2 wallet provisioning with on-device PIN signing, Stage 3 Nigeria BVN/no-selfie vs Mexico CURP/RFC/Sumsub liveness selfie, Stage 4 Etherfuse agreements signing sheet modal & rail activation).
+  - `EmployeeDetailScreen`: Enhanced with 4-state Onboarding Progress card displaying actual stages (Stage 2, Stage 3, Stage 4), failed stage tracking, retry stage trigger, and refresh status controls.
+  - `EmployeeRepository`: Abstracted `OnboardingStageState`, `StageDetailModel`, `EmployeeOnboardingStatusModel`, `getOnboardingStatus`, `retryStage`, and `submitMexicoAgreements`.
+- [x] **FlowPay Business — Employee Wallet Control Center (`bmoni_embedded_wallets_cards`)**:
+  - `lib/core/wallets_cards/`: Embedded wallets & cards toolkit adhering to official package contract:
+    - `EmbeddedWalletReadDataSource`: `fetchWallets()`, `fetchWalletDetail(walletId)`, `fetchBalance(walletId)`, `fetchTransactions(walletId)`.
+    - `EmbeddedWalletStorage` & `InMemoryEmbeddedWalletStorage`.
+    - `EmbeddedWalletBalanceCache` & `InMemoryEmbeddedWalletBalanceCache`.
+    - Functional `Either<EmbeddedFailure, T>` with full typed failure hierarchy (`EmbeddedServerFailure`, `EmbeddedNetworkFailure`, `EmbeddedRateLimitFailure`, `EmbeddedNotFoundFailure`, `EmbeddedAuthenticationFailure`, `EmbeddedAuthorizationFailure`).
+    - Riverpod notifiers & providers: `EmbeddedWalletListNotifier` (`walletListProvider`), `EmbeddedWalletBalanceNotifier` (`walletBalancesProvider`), `EmbeddedWalletTransactionsNotifier` (`walletTransactionsProvider`).
+    - Model-aware `EmbeddedWalletCard`: wraps `BMoniWalletCard` with 6 built-in currency background art variants (`BMoniWalletType.ngn`, `BMoniWalletType.mxn`, `BMoniWalletType.usd`, `BMoniWalletType.cad`, `BMoniWalletType.eur`, `BMoniWalletType.gbp`) selected by employee payroll currency.
+    - Model-aware `EmbeddedWalletTransactionsSection`: composed recent-activity list with host-driven row builder applying `design.md` copy rules (never exposing raw event strings).
+  - Both `DemoWalletRepository` and `BmoniWalletRepository` satisfy the identical `EmbeddedWalletReadDataSource`, `EmbeddedWalletStorage`, and `EmbeddedWalletBalanceCache` contracts.
+  - `EmployeeDetailScreen` transformed into a dedicated Wallet Control Center with `View Wallet` (specification modal), `Transactions` (full history sheet), and `Issue Card` (virtual Mastercard issuance modal routing into Prompt 12).
 - [x] Automated widget and shell tests passing in `test/app_shell_test.dart` and `test/design_system_test.dart`.
 - [x] **Personal Financial Dashboard**:
   - `PersonalDashboardScreen` featuring portfolio valuation ($37,671.00 USD primary), available balances, privacy toggle, and sandbox demo indicator.
@@ -69,7 +82,7 @@ description: >-
 
 ## 4. What Needs to Be Done (Next Steps)
 - Personal track owner: Extend Money Missions builder and polish send animations.
-- Business track owner: Connect deep-link sharing for employee invites and spend limit controls.
+- Business track owner: Connect virtual card spend limit presets and PDF payslip exports.
 
 ---
 

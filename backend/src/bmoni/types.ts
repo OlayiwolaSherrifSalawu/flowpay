@@ -11,7 +11,8 @@ export interface BmoniUser {
 
 export interface OwnerProofChallenge {
   challengeId: string;
-  eip191Message: string;
+  message?: string;
+  eip191Message?: string;
   expiresAt?: string;
 }
 
@@ -59,6 +60,49 @@ export interface SignPayloadResponse {
   };
 }
 
+export interface CreateCardRequest {
+  cardName: string;
+  cardColor: string;
+  currency: 'NGN' | 'USD';
+  type: 'virtual' | 'physical';
+  smartWalletId: string;
+  nin?: string;
+}
+
+export interface CreateCardResponse {
+  flow?: string;
+  feeAmount?: string;
+  feeCurrency?: string;
+  proposalId?: string;
+  proposalStatus?: string;
+  signPayload?: Record<string, unknown> | string;
+  signPayloadPending?: boolean;
+  signPayloadHint?: string;
+  signPayloadError?: string;
+  migrationRequired?: boolean;
+  migrationHint?: string;
+  card?: BmoniCard;
+}
+
+export interface ProposalSignPayload {
+  hashToSign: string;
+  deadline?: string;
+  safeTxHash?: string;
+  userOpHash?: string;
+  typedData?: Record<string, unknown>;
+  isPending?: boolean;
+}
+
+export interface CardLedgerEntry {
+  id: string;
+  cardId: string;
+  amount: string; // Minor-unit string e.g. "250000" = ₦2,500.00
+  currency: string;
+  description?: string;
+  type?: string;
+  timestamp: string;
+}
+
 export interface BmoniCard {
   id: string;
   userId: string;
@@ -67,10 +111,27 @@ export interface BmoniCard {
   cardColor: string;
   currency: 'NGN' | 'USD';
   type: 'virtual' | 'physical';
-  status: 'active' | 'frozen' | 'pending_activation' | 'terminated';
+  status:
+    | 'active'
+    | 'frozen'
+    | 'ACTIVE'
+    | 'BLOCKED'
+    | 'RESERVED'
+    | 'pending'
+    | 'inactive'
+    | 'restricted'
+    | 'lost'
+    | 'stolen'
+    | 'pending_activation'
+    | 'terminated';
+  isReserved?: boolean;
+  proposalId?: string;
+  proposalStatus?: string;
   last4?: string;
   maskedPan?: string;
   expirationDate?: string;
+  balanceMinor?: string; // Minor-unit string e.g. "250000"
+  ledger?: CardLedgerEntry[];
   spendLimit?: {
     dailyMinor?: number;
     monthlyMinor?: number;
@@ -81,11 +142,12 @@ export interface BmoniCard {
 export interface CardTransaction {
   id: string;
   cardId: string;
-  amountMinor: number;
+  amount: number; // Major-unit number e.g. 25.5 = $25.50
+  amountMinor?: number; // Minor-unit compatibility fallback
   currency: string;
   merchantName: string;
   category?: string;
-  status: 'settled' | 'pending' | 'declined';
+  status: 'settled' | 'pending' | 'declined' | 'COMPLETED';
   timestamp: string;
 }
 
