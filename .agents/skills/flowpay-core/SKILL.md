@@ -228,6 +228,16 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **Independent Failure Isolation & Granular Retry**: Multi-employee payouts run concurrently but isolated; an error on one employee's proposal does not block or fail others, resulting in `PARTIALLY_COMPLETED`. Failed proposals feature a dedicated "Retry Payout via Approve" action calling `approve` on that specific proposal.
     * **Automated Test Coverage**: 48/48 backend tests passing (100%), including 5 new tests in `backend/src/modules/payroll/payroll.test.ts` (test vector, currency mapping, preview with fee comparison, failure isolation, and retry).
 
+  * **FlowPay Business — Payroll Activity & Corporate Audit (Prompts 10–13 Composition Layer)**:
+    * **Composition Over Duplication**: Aggregated data across Prompts 10–13 repositories (`PayrollRepository`, `CardRepository`, `WalletRepository`, `ActivityRepository`) without invoking any new BMONI endpoints.
+    * **Unified Canonical Model (`SharedTransactionModel`)**: Single model eliminating duplication across payroll runs, employee payments, virtual cards, and smart-wallet transfers, with tabular amount displays and secondary stablecoin currencies.
+    * **bkey_uikit Component Reuse**: `ActivitySectionCard` container and `StatusText` badge used consistently across all views and detail sheets for unified visual status chips (`Draft`, `Pending Approval`, `Processing`, `Completed`, `Partially Completed`, `Failed`).
+    * **Corporate Audit Screen (`BusinessActivityScreen`)**: 4-metric grid (Volume, Completed Runs, Active Cards, System Failures), 6 filter tabs (All, Payroll Runs, Employee Payments, Card Transactions, Wallet Operations, Failures), and fast search filtering.
+    * **Payroll Run Record & Drill-Down (`PayrollRunDetailSheet`)**: Surfaces Payroll ID, Date, Employee count, Countries, USD equivalent, Fees, Status chip, fee savings banner ($330 / 97%), 4-stage execution timeline, and individual employee payments with destination stablecoins (`CNGN`, `MEXe`).
+    * **Independent Failure Isolation & Granular Retry**: Isolates failed proposals, surfaces detailed error reasons, and provides an inline **"Retry Payout via Approve"** button invoking on-device B-Key PIN signing.
+    * **Strict Secret Sanitization**: Fully verified that `hashToSign`, `signature`, private key material, and webhook secret keys are never exposed in UI or debug payloads.
+    * **Automated Tests**: 54/54 backend tests passing (100%), including 5 dedicated tests in `backend/src/modules/payroll/audit.test.ts`.
+
 ---
 
 ## 🎯 4. What Needs to Be Done (Parallel Roadmap)
@@ -243,6 +253,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [x] Implement FlowPay Business Employee Onboarding (Model B) for Nigeria (`NG`) and Mexico (`MX`) across Stage 2, Stage 3, and Stage 4 with 4-state lifecycle.
 - [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
 - [x] Implement FlowPay Business Global Payroll ("One Employer. Many Countries. One Bill.") with 4-call proposal sequence, raw-hash signing, rail validation, 4-stage timeline, and granular retry.
+- [x] Implement FlowPay Business Corporate Payroll Activity & Audit subsystem with composed repositories, bkey_uikit ActivitySectionCard and StatusText, shared transaction models, and failure retry.
 - [ ] Add virtual card spend limit presets (Junior / Senior / Contractor dropdowns).
 - [ ] Add PDF export / receipt sharing for aggregate payroll disbursement runs.
 
