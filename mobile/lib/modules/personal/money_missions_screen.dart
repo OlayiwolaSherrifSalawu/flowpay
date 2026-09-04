@@ -164,7 +164,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         recipient: 'BMONI Settlement Rails',
         onAuthorize: (pin) async {
           // Hardware enclave signing via BMONI Embedded SDK
-          return await BmoniSdkService.signTransactionHash(hashToSign, pin: pin);
+          return await BmoniSdkService.signTransactionHash(hashToSign,
+              pin: pin);
         },
       );
 
@@ -184,12 +185,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
           ruleType: MissionRuleType.splitIncoming,
           isActive: true,
           status: MissionStatus.active,
-          stats: '\$${intent.triggerCondition.sourceAmount} scheduled • 3 rails settled',
+          stats:
+              '\$${intent.triggerCondition.sourceAmount} scheduled • 3 rails settled',
           conditionSummary: intent.triggerCondition.description,
           actionSummary: intent.explanation,
           allocations: intent.allocations,
           lastExecution: 'Just now',
-          nextExecution: 'On Incoming Transfer (\$${intent.triggerCondition.sourceAmount})',
+          nextExecution:
+              'On Incoming Transfer (\$${intent.triggerCondition.sourceAmount})',
           createdAt: DateTime.now(),
         );
 
@@ -216,7 +219,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
   void _showExecutionCelebrationDialog(
       MoneyMissionModel mission, Map<String, dynamic> result) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final txRef = result['transactionReference']?.toString() ?? 'bmoni_tx_active';
+    final txRef =
+        result['transactionReference']?.toString() ?? 'bmoni_tx_active';
 
     showDialog(
       context: context,
@@ -232,7 +236,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 color: BMoniColors.success400.withAlpha(30),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check, color: BMoniColors.success400, size: 36),
+              child: const Icon(Icons.check,
+                  color: BMoniColors.success400, size: 36),
             ),
             const SizedBox(height: 18),
             Text(
@@ -270,12 +275,15 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Signing Enclave',
-                          style: TextStyle(fontSize: 11, color: BMoniColors.grey400)),
+                          style: TextStyle(
+                              fontSize: 11, color: BMoniColors.grey400)),
                       Text('BMONI B-Key PIN Verified',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? BMoniColors.grey100 : BMoniColors.grey900)),
+                              color: isDark
+                                  ? BMoniColors.grey100
+                                  : BMoniColors.grey900)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -283,9 +291,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('BMONI Reference',
-                          style: TextStyle(fontSize: 11, color: BMoniColors.grey400)),
+                          style: TextStyle(
+                              fontSize: 11, color: BMoniColors.grey400)),
                       Text(
-                        txRef.length > 18 ? '${txRef.substring(0, 16)}...' : txRef,
+                        txRef.length > 18
+                            ? '${txRef.substring(0, 16)}...'
+                            : txRef,
                         style: const TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
@@ -299,7 +310,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Status',
-                          style: TextStyle(fontSize: 11, color: BMoniColors.grey400)),
+                          style: TextStyle(
+                              fontSize: 11, color: BMoniColors.grey400)),
                       Text('ACTIVE • Monitored',
                           style: TextStyle(
                               fontSize: 11,
@@ -379,7 +391,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     );
 
     if (signature != null && mounted) {
-      final updated = await widget.appState.missionRepo.triggerManualExecution(id);
+      final updated =
+          await widget.appState.missionRepo.triggerManualExecution(id);
       if (!mounted) return;
       setState(() {
         missions[idx] = updated;
@@ -387,7 +400,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚡ Mission triggered & executed successfully via BMONI rails!'),
+          content: const Text(
+              '⚡ Mission triggered & executed successfully via BMONI rails!'),
           backgroundColor: BMoniColors.success500,
           action: SnackBarAction(
             label: 'View Activity',
@@ -455,7 +469,9 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     border: Border.all(
                       color: isInterpreting
                           ? BMoniColors.brand400
-                          : (isDark ? BMoniColors.offbrand700 : BMoniColors.grey200),
+                          : (isDark
+                              ? BMoniColors.offbrand700
+                              : BMoniColors.grey200),
                       width: 1.5,
                     ),
                     boxShadow: [
@@ -479,14 +495,17 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           fontSize: 15,
                           height: 1.4,
                           fontWeight: FontWeight.w500,
-                          color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                          color:
+                              isDark ? BMoniColors.grey50 : BMoniColors.grey950,
                         ),
                         decoration: InputDecoration(
                           hintText:
                               'e.g. "Whenever I receive \$2,000, keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax."',
                           hintStyle: TextStyle(
                             fontSize: 14,
-                            color: isDark ? BMoniColors.grey500 : BMoniColors.grey400,
+                            color: isDark
+                                ? BMoniColors.grey500
+                                : BMoniColors.grey400,
                           ),
                           border: InputBorder.none,
                           isDense: true,
@@ -499,7 +518,9 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: BMoniButton(
-                          text: isInterpreting ? 'Structuring Plan...' : 'Interpret Directive',
+                          text: isInterpreting
+                              ? 'Structuring Plan...'
+                              : 'Interpret Directive',
                           icon: Icons.auto_awesome,
                           variant: BMoniButtonVariant.primary,
                           size: BMoniButtonSize.medium,
@@ -515,20 +536,24 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 if (errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: BMoniColors.error500.withAlpha(20),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: BMoniColors.error500.withAlpha(80)),
+                      border:
+                          Border.all(color: BMoniColors.error500.withAlpha(80)),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: BMoniColors.error400, size: 18),
+                        const Icon(Icons.error_outline,
+                            color: BMoniColors.error400, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             errorMessage!,
-                            style: const TextStyle(fontSize: 12, color: BMoniColors.error300),
+                            style: const TextStyle(
+                                fontSize: 12, color: BMoniColors.error300),
                           ),
                         ),
                       ],
@@ -542,16 +567,20 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: isDark ? BMoniColors.offbrand950 : BMoniColors.grey100,
+                      color: isDark
+                          ? BMoniColors.offbrand950
+                          : BMoniColors.grey100,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: BMoniColors.brand500.withAlpha(70)),
+                      border:
+                          Border.all(color: BMoniColors.brand500.withAlpha(70)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.psychology, size: 16, color: BMoniColors.brand400),
+                            Icon(Icons.psychology,
+                                size: 16, color: BMoniColors.brand400),
                             SizedBox(width: 6),
                             Text(
                               'Financial Safety AI Pipeline',
@@ -565,9 +594,11 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _buildStageRow('AI understood request', processingStage >= 1),
+                        _buildStageRow(
+                            'AI understood request', processingStage >= 1),
                         const SizedBox(height: 6),
-                        _buildStageRow('Plan created (structured intent)', processingStage >= 2),
+                        _buildStageRow('Plan created (structured intent)',
+                            processingStage >= 2),
                         const SizedBox(height: 6),
                         _buildStageRow(
                             'Deterministic validation passed (100% allocation)',
@@ -649,15 +680,18 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                        color:
+                            isDark ? BMoniColors.grey50 : BMoniColors.grey950,
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: BMoniColors.brand500.withAlpha(25),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: BMoniColors.brand400.withAlpha(60)),
+                        border: Border.all(
+                            color: BMoniColors.brand400.withAlpha(60)),
                       ),
                       child: Text(
                         '${missions.where((m) => m.isActive).length} Active',
@@ -681,7 +715,9 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       color: isDark ? BMoniColors.offbrand900 : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isDark ? BMoniColors.offbrand700 : BMoniColors.grey200,
+                        color: isDark
+                            ? BMoniColors.offbrand700
+                            : BMoniColors.grey200,
                       ),
                     ),
                     child: const Column(
@@ -699,7 +735,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         SizedBox(height: 4),
                         Text(
                           'Type a directive above to set your first autonomous financial plan.',
-                          style: TextStyle(fontSize: 12, color: BMoniColors.grey500),
+                          style: TextStyle(
+                              fontSize: 12, color: BMoniColors.grey500),
                           textAlign: TextAlign.center,
                         ),
                       ],

@@ -28,7 +28,8 @@ class DemoPayrollRepository implements PayrollRepository {
         usdAmount: i.usdAmount,
         exchangeRate: i.exchangeRate,
         status: 'SUCCESS',
-        proposalId: 'prop_demo_${i.country.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
+        proposalId:
+            'prop_demo_${i.country.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
         transactionHash: '0x7e81...demo_payroll_fanout_receipt',
       );
     }).toList();

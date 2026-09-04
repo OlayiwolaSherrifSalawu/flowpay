@@ -14,19 +14,30 @@ class BmoniMissionRepository implements MissionRepository {
       final res = await apiClient.get('/api/missions');
       if (res is List) {
         return res.map((m) {
-          final typeStr = (m['ruleType'] ?? m['rule_type'] ?? 'AUTO_SWEEP').toString().toUpperCase();
+          final typeStr = (m['ruleType'] ?? m['rule_type'] ?? 'AUTO_SWEEP')
+              .toString()
+              .toUpperCase();
           MissionRuleType rule = MissionRuleType.autoSweep;
-          if (typeStr == 'SPEND_CAP') rule = MissionRuleType.spendCap;
-          if (typeStr == 'EMERGENCY_RESERVE') rule = MissionRuleType.emergencyReserve;
-          if (typeStr == 'FX_TARGET') rule = MissionRuleType.fxTarget;
-          if (typeStr == 'SPLIT_INCOMING') rule = MissionRuleType.splitIncoming;
+          if (typeStr == 'SPEND_CAP') {
+            rule = MissionRuleType.spendCap;
+          }
+          if (typeStr == 'EMERGENCY_RESERVE') {
+            rule = MissionRuleType.emergencyReserve;
+          }
+          if (typeStr == 'FX_TARGET') {
+            rule = MissionRuleType.fxTarget;
+          }
+          if (typeStr == 'SPLIT_INCOMING') {
+            rule = MissionRuleType.splitIncoming;
+          }
 
           final statusStr = m['status']?.toString();
           final status = MissionStatus.fromString(statusStr);
 
           final rawAllocs = (m['allocations'] as List?) ?? [];
           final allocations = rawAllocs
-              .map((a) => MissionAllocation.fromJson(Map<String, dynamic>.from(a)))
+              .map((a) =>
+                  MissionAllocation.fromJson(Map<String, dynamic>.from(a)))
               .toList();
 
           return MoneyMissionModel(
@@ -37,13 +48,18 @@ class BmoniMissionRepository implements MissionRepository {
             isActive: m['isActive'] == true || m['is_active'] == true,
             status: status,
             stats: 'Active BMONI Rule',
-            conditionSummary: m['condition']?['description']?.toString() ?? 'When condition met',
-            actionSummary: m['description']?.toString() ?? 'Deterministic BMONI execution',
+            conditionSummary: m['condition']?['description']?.toString() ??
+                'When condition met',
+            actionSummary:
+                m['description']?.toString() ?? 'Deterministic BMONI execution',
             targetCurrency: Currency.usd,
             allocations: allocations,
             lastExecution: m['lastExecution']?.toString(),
-            nextExecution: m['nextExecution']?.toString() ?? 'Manual Trigger / On Incoming Transfer',
-            createdAt: m['createdAt'] != null ? DateTime.tryParse(m['createdAt'].toString()) : null,
+            nextExecution: m['nextExecution']?.toString() ??
+                'Manual Trigger / On Incoming Transfer',
+            createdAt: m['createdAt'] != null
+                ? DateTime.tryParse(m['createdAt'].toString())
+                : null,
           );
         }).toList();
       }
@@ -57,12 +73,22 @@ class BmoniMissionRepository implements MissionRepository {
   Future<MoneyMissionModel> toggleMission(String id) async {
     try {
       final res = await apiClient.patch('/api/missions/$id/toggle');
-      final typeStr = (res['ruleType'] ?? res['rule_type'] ?? 'AUTO_SWEEP').toString().toUpperCase();
+      final typeStr = (res['ruleType'] ?? res['rule_type'] ?? 'AUTO_SWEEP')
+          .toString()
+          .toUpperCase();
       MissionRuleType rule = MissionRuleType.autoSweep;
-      if (typeStr == 'SPEND_CAP') rule = MissionRuleType.spendCap;
-      if (typeStr == 'EMERGENCY_RESERVE') rule = MissionRuleType.emergencyReserve;
-      if (typeStr == 'FX_TARGET') rule = MissionRuleType.fxTarget;
-      if (typeStr == 'SPLIT_INCOMING') rule = MissionRuleType.splitIncoming;
+      if (typeStr == 'SPEND_CAP') {
+        rule = MissionRuleType.spendCap;
+      }
+      if (typeStr == 'EMERGENCY_RESERVE') {
+        rule = MissionRuleType.emergencyReserve;
+      }
+      if (typeStr == 'FX_TARGET') {
+        rule = MissionRuleType.fxTarget;
+      }
+      if (typeStr == 'SPLIT_INCOMING') {
+        rule = MissionRuleType.splitIncoming;
+      }
 
       final isAct = res['is_active'] == true || res['isActive'] == true;
       return MoneyMissionModel(
@@ -119,8 +145,10 @@ class BmoniMissionRepository implements MissionRepository {
       return MissionIntent.fromJson(Map<String, dynamic>.from(intentData));
     } catch (_) {
       // Offline / fallback parser for hackathon demo
-      final amtMatch = RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)').firstMatch(prompt);
-      final amtStr = amtMatch != null ? amtMatch.group(1)!.replaceAll(',', '') : '2000.00';
+      final amtMatch =
+          RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)').firstMatch(prompt);
+      final amtStr =
+          amtMatch != null ? amtMatch.group(1)!.replaceAll(',', '') : '2000.00';
       final totalMinor = ((double.tryParse(amtStr) ?? 2000.0) * 100).toInt();
 
       final usdMinor = (totalMinor * 30) ~/ 100;
@@ -181,7 +209,8 @@ class BmoniMissionRepository implements MissionRepository {
           'NGN': 'Main Naira Wallet',
           'TAX': 'Tax Escrow Reserve',
         },
-        explanation: 'Keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
+        explanation:
+            'Keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
         confidenceScore: 0.98,
         requiresExplicitApproval: true,
       );
@@ -199,8 +228,10 @@ class BmoniMissionRepository implements MissionRepository {
       return {
         'proposalId': 'bmoni_prop_${DateTime.now().millisecondsSinceEpoch}',
         'missionId': intent.intentId,
-        'hashToSign': '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
-        'signingInstructions': 'Authorize autonomous money mission via on-device BMONI B-Key PIN',
+        'hashToSign':
+            '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
+        'signingInstructions':
+            'Authorize autonomous money mission via on-device BMONI B-Key PIN',
         'allocations': intent.allocations.map((a) => a.toJson()).toList(),
       };
     }
@@ -213,7 +244,8 @@ class BmoniMissionRepository implements MissionRepository {
     bool pinValidated = true,
   }) async {
     try {
-      final res = await apiClient.post('/api/missions/$missionId/execute', body: {
+      final res =
+          await apiClient.post('/api/missions/$missionId/execute', body: {
         'signature': signature,
         'pinValidated': pinValidated,
       });
@@ -224,8 +256,10 @@ class BmoniMissionRepository implements MissionRepository {
         'missionId': missionId,
         'status': 'ACTIVE',
         'executedAt': DateTime.now().toIso8601String(),
-        'transactionReference': 'bmoni_tx_${DateTime.now().millisecondsSinceEpoch}',
-        'summary': 'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
+        'transactionReference':
+            'bmoni_tx_${DateTime.now().millisecondsSinceEpoch}',
+        'summary':
+            'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
       };
     }
   }
@@ -234,7 +268,8 @@ class BmoniMissionRepository implements MissionRepository {
   Future<MoneyMissionModel> triggerManualExecution(String id) async {
     final result = await executeMission(
       missionId: id,
-      signature: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1c',
+      signature:
+          '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1c',
       pinValidated: true,
     );
 

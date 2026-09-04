@@ -32,13 +32,16 @@ class TransferFundingOption {
   });
 
   factory TransferFundingOption.fromJson(Map<String, dynamic> json) {
-    final fundCur = Currency.fromCode(json['fundingCurrency']?.toString() ?? 'USD');
-    final targetCur = Currency.fromCode(json['targetCurrency']?.toString() ?? 'USD');
+    final fundCur =
+        Currency.fromCode(json['fundingCurrency']?.toString() ?? 'USD');
+    final targetCur =
+        Currency.fromCode(json['targetCurrency']?.toString() ?? 'USD');
 
     return TransferFundingOption(
       fundingWalletId: json['fundingWalletId']?.toString() ?? 'sw_default',
       fundingCurrency: fundCur,
-      fundingWalletName: json['fundingWalletName']?.toString() ?? '${fundCur.code} Smart Wallet',
+      fundingWalletName: json['fundingWalletName']?.toString() ??
+          '${fundCur.code} Smart Wallet',
       availableBalance: Money.fromMinor(
         json['availableBalanceMinor']?.toString() ?? '0',
         fundCur,
@@ -109,10 +112,12 @@ class BalanceInspectionResult {
   });
 
   factory BalanceInspectionResult.fromJson(Map<String, dynamic> json) {
-    final intent = TransferIntent.fromJson(Map<String, dynamic>.from(json['intent'] ?? {}));
+    final intent = TransferIntent.fromJson(
+        Map<String, dynamic>.from(json['intent'] ?? {}));
     final rawOptions = (json['allFundingOptions'] as List?) ?? [];
     final options = rawOptions
-        .map((o) => TransferFundingOption.fromJson(Map<String, dynamic>.from(o)))
+        .map(
+            (o) => TransferFundingOption.fromJson(Map<String, dynamic>.from(o)))
         .toList();
 
     TransferFundingOption? rec;

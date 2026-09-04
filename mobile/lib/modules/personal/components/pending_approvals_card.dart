@@ -15,7 +15,8 @@ class PendingApprovalsCard extends StatelessWidget {
     required this.onReject,
   });
 
-  void _showPinApprovalDialog(BuildContext context, PendingApprovalModel approval) {
+  void _showPinApprovalDialog(
+      BuildContext context, PendingApprovalModel approval) {
     final pinController = TextEditingController();
     bool isSubmitting = false;
 
@@ -24,14 +25,19 @@ class PendingApprovalsCard extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: FlowPayColors.darkSurfaceElevated,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.shield_outlined, color: BMoniColors.warning400, size: 22),
+              Icon(Icons.shield_outlined,
+                  color: BMoniColors.warning400, size: 22),
               SizedBox(width: 8),
               Text(
                 'Authorize Action',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
             ],
           ),
@@ -41,12 +47,16 @@ class PendingApprovalsCard extends StatelessWidget {
             children: [
               Text(
                 approval.title,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white),
               ),
               const SizedBox(height: 4),
               Text(
                 approval.description,
-                style: const TextStyle(fontSize: 12, color: BMoniColors.grey400),
+                style:
+                    const TextStyle(fontSize: 12, color: BMoniColors.grey400),
               ),
               const SizedBox(height: 16),
               Container(
@@ -59,10 +69,15 @@ class PendingApprovalsCard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Amount to Authorize', style: TextStyle(fontSize: 12, color: BMoniColors.grey400)),
+                    const Text('Amount to Authorize',
+                        style: TextStyle(
+                            fontSize: 12, color: BMoniColors.grey400)),
                     Text(
                       approval.amount.formatFormatted(includeSymbol: true),
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                   ],
                 ),
@@ -70,7 +85,10 @@ class PendingApprovalsCard extends StatelessWidget {
               const SizedBox(height: 16),
               const Text(
                 'Enter 6-Digit B-Key Signing PIN',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey300),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: BMoniColors.grey300),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -79,21 +97,28 @@ class PendingApprovalsCard extends StatelessWidget {
                 maxLength: 6,
                 obscureText: true,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, letterSpacing: 8, color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 20,
+                    letterSpacing: 8,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   hintText: '••••••',
-                  hintStyle: const TextStyle(color: BMoniColors.grey600, letterSpacing: 8),
+                  hintStyle: const TextStyle(
+                      color: BMoniColors.grey600, letterSpacing: 8),
                   counterText: '',
                   filled: true,
                   fillColor: FlowPayColors.darkSurface,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                    borderSide:
+                        const BorderSide(color: FlowPayColors.darkBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: BMoniColors.brand500, width: 1.5),
+                    borderSide: const BorderSide(
+                        color: BMoniColors.brand500, width: 1.5),
                   ),
                 ),
               ),
@@ -102,12 +127,14 @@ class PendingApprovalsCard extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: BMoniColors.grey400)),
+              child: const Text('Cancel',
+                  style: TextStyle(color: BMoniColors.grey400)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: BMoniColors.brand500,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
               onPressed: isSubmitting
                   ? null
@@ -120,8 +147,14 @@ class PendingApprovalsCard extends StatelessWidget {
                       }
                     },
               child: isSubmitting
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Sign & Execute', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Sign & Execute',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -167,7 +200,8 @@ class PendingApprovalsCard extends StatelessWidget {
                   color: BMoniColors.warning400.withAlpha(40),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.pending_actions, color: BMoniColors.warning400, size: 18),
+                child: const Icon(Icons.pending_actions,
+                    color: BMoniColors.warning400, size: 18),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -187,7 +221,8 @@ class PendingApprovalsCard extends StatelessWidget {
                       'Explicit authorization required prior to BMONI execution',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isDark ? BMoniColors.grey400 : BMoniColors.grey700,
+                        color:
+                            isDark ? BMoniColors.grey400 : BMoniColors.grey700,
                       ),
                     ),
                   ],
@@ -198,7 +233,8 @@ class PendingApprovalsCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: BMoniColors.warning400.withAlpha(30),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: BMoniColors.warning400.withAlpha(70)),
+                  border:
+                      Border.all(color: BMoniColors.warning400.withAlpha(70)),
                 ),
                 child: Text(
                   '${pendingApprovals.length} Pending',
@@ -283,12 +319,17 @@ class PendingApprovalsCard extends StatelessWidget {
                       TextButton(
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
                         ),
                         onPressed: () => onReject(appr),
                         child: Text(
                           'Reject',
-                          style: TextStyle(fontSize: 12, color: isDark ? BMoniColors.grey400 : BMoniColors.grey600),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? BMoniColors.grey400
+                                  : BMoniColors.grey600),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -296,14 +337,20 @@ class PendingApprovalsCard extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: BMoniColors.brand500,
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () => _showPinApprovalDialog(context, appr),
-                        icon: const Icon(Icons.lock_outline, size: 13, color: Colors.white),
+                        icon: const Icon(Icons.lock_outline,
+                            size: 13, color: Colors.white),
                         label: const Text(
                           'Approve (PIN)',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
                         ),
                       ),
                     ],

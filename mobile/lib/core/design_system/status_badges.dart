@@ -127,7 +127,8 @@ class FlowPayStatusBadge extends StatelessWidget {
     this.appStatus,
     this.status,
     this.showDot = true,
-  }) : assert(appStatus != null || status != null, 'Provide either appStatus or status');
+  }) : assert(appStatus != null || status != null,
+            'Provide either appStatus or status');
 
   @override
   Widget build(BuildContext context) {

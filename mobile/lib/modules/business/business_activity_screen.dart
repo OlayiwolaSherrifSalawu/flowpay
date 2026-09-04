@@ -57,7 +57,8 @@ class BusinessActivityScreen extends StatelessWidget {
                         : FlowPayColors.lightSurfaceElevated,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.corporate_fare, color: FlowPayColors.accentLight, size: 20),
+                  child: const Icon(Icons.corporate_fare,
+                      color: FlowPayColors.accentLight, size: 20),
                 ),
                 const SizedBox(width: FlowPaySpacing.md),
                 Expanded(

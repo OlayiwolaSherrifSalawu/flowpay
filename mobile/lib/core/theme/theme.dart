@@ -48,7 +48,8 @@ class FlowPayTheme {
         backgroundColor: FlowPayColors.darkSurfaceElevated,
         modalBackgroundColor: FlowPayColors.darkSurfaceElevated,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(FlowPaySpacing.radiusXl)),
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(FlowPaySpacing.radiusXl)),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -128,7 +129,8 @@ class FlowPayTheme {
         backgroundColor: FlowPayColors.lightSurface,
         modalBackgroundColor: FlowPayColors.lightSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(FlowPaySpacing.radiusXl)),
+          borderRadius: BorderRadius.vertical(
+              top: Radius.circular(FlowPaySpacing.radiusXl)),
         ),
       ),
       dialogTheme: DialogThemeData(

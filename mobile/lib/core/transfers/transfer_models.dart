@@ -90,7 +90,8 @@ class TransferExecutionResult {
       proposalId: json['proposalId']?.toString() ?? '',
       status: json['status']?.toString() ?? 'COMPLETED',
       transactionHash: json['transactionHash']?.toString() ?? '',
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
+      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
+          DateTime.now(),
       auditActivityId: json['auditActivityId']?.toString(),
     );
   }

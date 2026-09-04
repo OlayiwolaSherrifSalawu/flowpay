@@ -44,8 +44,10 @@ class BmoniPayrollRepository implements PayrollRepository {
         employeeName: i['name'] ?? '',
         country: i['country'] ?? 'NG',
         targetCurrency: cur,
-        targetAmount: Money.fromMajorString(i['targetAmountFormatted'] ?? '0.00', cur),
-        usdAmount: Money.fromMajorString(i['usdAmountFormatted'] ?? '0.00', Currency.usd),
+        targetAmount:
+            Money.fromMajorString(i['targetAmountFormatted'] ?? '0.00', cur),
+        usdAmount: Money.fromMajorString(
+            i['usdAmountFormatted'] ?? '0.00', Currency.usd),
         exchangeRate: (i['exchangeRate'] as num?)?.toDouble() ?? 1.0,
         status: i['status'] ?? 'SUCCESS',
         proposalId: i['proposalId'],
@@ -56,8 +58,10 @@ class BmoniPayrollRepository implements PayrollRepository {
     return PayrollRunModel(
       runId: json['runId'] ?? '',
       title: json['title'] ?? 'Global Payroll Run',
-      totalUsd: Money.fromMajorString(json['totalUsdFormatted'] ?? '0.00', Currency.usd),
-      totalFeeUsd: Money.fromMajorString(json['totalFeeUsdFormatted'] ?? '0.00', Currency.usd),
+      totalUsd: Money.fromMajorString(
+          json['totalUsdFormatted'] ?? '0.00', Currency.usd),
+      totalFeeUsd: Money.fromMajorString(
+          json['totalFeeUsdFormatted'] ?? '0.00', Currency.usd),
       employeeCount: json['employeeCount'] ?? mappedItems.length,
       countries: List<String>.from(json['countries'] ?? ['NG', 'MX']),
       currencies: List<String>.from(json['currencies'] ?? ['NGN', 'MXN']),

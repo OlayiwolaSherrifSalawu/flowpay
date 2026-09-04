@@ -22,7 +22,9 @@ description: >-
 - `src/core/money.ts`: Central `Money` abstraction. Guarantees integer minor-unit calculations with zero floating-point arithmetic.
 - `src/bmoni/client.ts`: Safe BMONI REST client handling timeouts, safe logging, structured error responses, `createEmployeeUser` (`POST /v1/users`), and `subscribeWebhook` (`POST /v1/webhooks/config`).
 - `src/bmoni/webhooks.ts`: Constant-time HMAC-SHA256 verification using raw Buffer request bodies, dispatching 6-stage lifecycle transitions (`onboarding.completed`, `onboarding.failed`, `kyc.action_required`, `employee.linked`, `employee.vba.registered`).
-- `src/modules/employees/`: Server-side validated employee creation (`POST /api/employees`) with 6-stage lifecycle, regex email validation, and country allowlisting.
+- `src/core/currencies.ts`: Canonical registry mapping fiat currency codes (`NGN`, `MXN`, `USD`, `CAD`) to BMONI stablecoins (`CNGN`, `MEXe`, `USDB`, `CADC`). Enforces that smart-wallet calls strictly take stablecoins.
+- `src/modules/employees/onboarding.service.ts`: End-to-end multi-stage orchestration for Employee Onboarding (Model B) across Stage 2 (owner proof challenges & managed wallet deployment), Stage 3 (country-specific KYC for Nigeria vs Mexico), Stage 4 (Mexico Etherfuse agreements & rail activation), and 4-state lifecycle calculation.
+- `src/routes/employees.routes.ts`: Exposes 11 onboarding REST endpoints for challenges, wallet creation, KYC options, document upload, submission, activation, Mexico agreements, rail activation, status, retry, and webhook simulation.
 - `src/modules/payroll/service.ts`: "One Employer, Many Countries, One Bill" aggregate payroll orchestrator.
 - `src/modules/ai/`: Natural language intent interpreter powered by Google Gemini (`@google/genai` with `gemini-2.5-flash`) using strict JSON Schema structured outputs, with deterministic fallback and financial safety validation. Includes `mission_interpreter.ts` for parsing money directives.
 - `src/modules/missions/`: Money Missions backend subsystem:
@@ -41,7 +43,14 @@ description: >-
 - [x] Multi-country payroll fanout service and relational persistence.
 - [x] Employee management engine with server-side validation and lifecycle status filtering.
 - [x] Money Missions backend engine with AI NL interpretation, deterministic validation, proposal generation with SHA-256 hash, and B-Key signature verification.
-- [x] 19 unit tests passing across Money math, HMAC verification, AI safety checks, employee validation, and Money Missions.
+- [x] Multi-stage Employee Onboarding Engine (`modules/employees/onboarding.service.ts`) for Nigeria (`NG`) and Mexico (`MX`):
+  - Canonical fiat-to-stablecoin mapping (`CNGN`, `MEXe`).
+  - Stage 2 smart wallet challenge and deployment proxy.
+  - Stage 3 country-branched KYC (BVN/EDD for NG, CURP/RFC/surnames/Sumsub selfie for MX).
+  - Stage 4 Etherfuse agreement launch & rail activation.
+  - 4-state status calculation (`Not Started`, `In Progress`, `Ready`, `Failed`), retry stage, and webhook simulation.
+- [x] Smart Wallets & Embedded Contracts endpoints (`GET /api/wallets/:walletId`, `GET /:walletId/balance`, `GET /:walletId/transactions`, `POST /issue-card`) adhering to BMONI standard routes and `design.md` copy rules.
+- [x] Automated backend coverage for Money math, HMAC verification, AI safety, employee validation, onboarding, Money Missions, transfers, smart wallets, and cards (`npm test`).
 
 ---
 

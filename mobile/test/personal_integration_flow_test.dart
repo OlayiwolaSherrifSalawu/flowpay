@@ -75,25 +75,30 @@ void main() {
 
       // 4. Test Bottom Navigation Bar switching to Missions tab
       final navBar = find.byType(NavigationBar);
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Missions')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Missions')));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.missions);
       expect(find.text('Active Missions'), findsWidgets);
 
       // 5. Switch to Activity tab
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Activity')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Activity')));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.activity);
-      expect(find.text('Search by recipient, merchant, or reference...'), findsOneWidget);
+      expect(find.text('Search by recipient, merchant, or reference...'),
+          findsOneWidget);
 
       // 6. Switch to Security tab
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Security')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Security')));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.security);
       expect(find.text('B-Key Hardware Enclave Active'), findsOneWidget);
 
       // 7. Switch back to Dashboard (Overview)
-      await tester.tap(find.descendant(of: navBar, matching: find.text('Overview')));
+      await tester
+          .tap(find.descendant(of: navBar, matching: find.text('Overview')));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.overview);
       expect(find.text('Personal Account'), findsOneWidget);
@@ -124,8 +129,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify text populated in controller
-      expect(
-          find.textContaining('Whenever I receive \$2,000, keep 30% in USD'), findsWidgets);
+      expect(find.textContaining('Whenever I receive \$2,000, keep 30% in USD'),
+          findsWidgets);
 
       // 3. Tap "Interpret Directive"
       await tester.tap(find.text('Interpret Directive'));
@@ -156,7 +161,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(appState.personalTabIndex, PersonalTab.activity);
-      expect(find.text('Search by recipient, merchant, or reference...'), findsOneWidget);
+      expect(find.text('Search by recipient, merchant, or reference...'),
+          findsOneWidget);
 
       // Verify that the mission entry appears in the Activity ledger
       expect(find.textContaining('Incoming 3-Way Split'), findsWidgets);
@@ -182,7 +188,8 @@ void main() {
       final walletsFuture = appState.walletRepo.getWallets();
       await tester.pump(const Duration(milliseconds: 150));
       final initialWallets = await walletsFuture;
-      final usdWallet = initialWallets.firstWhere((w) => w.currency == Currency.usd);
+      final usdWallet =
+          initialWallets.firstWhere((w) => w.currency == Currency.usd);
       final initialUsdMinor = usdWallet.balance.amountMinor;
 
       // 1. Tap "Send Money" quick action from Personal Dashboard
@@ -208,7 +215,8 @@ void main() {
       expect(find.text('my designer in Ghana'), findsOneWidget);
 
       // 3. Tap Review Transfer
-      final reviewButtonFinder = find.byKey(const Key('send_money_review_button'));
+      final reviewButtonFinder =
+          find.byKey(const Key('send_money_review_button'));
       expect(reviewButtonFinder, findsOneWidget);
       await tester.tap(reviewButtonFinder);
       await tester.pump();
@@ -247,15 +255,18 @@ void main() {
       final updatedWalletsFuture = appState.walletRepo.getWallets();
       await tester.pump(const Duration(milliseconds: 150));
       final updatedWallets = await updatedWalletsFuture;
-      final updatedUsdWallet = updatedWallets.firstWhere((w) => w.id == usdWallet.id);
+      final updatedUsdWallet =
+          updatedWallets.firstWhere((w) => w.id == usdWallet.id);
       expect(updatedUsdWallet.balance.amountMinor < initialUsdMinor, isTrue,
           reason: 'USD wallet balance should have been debited');
 
       // 10. Verify Activity repo records this transfer
-      final recentActivities = await appState.activityRepo.getRecentActivities();
+      final recentActivities =
+          await appState.activityRepo.getRecentActivities();
       final transferItem = recentActivities.firstWhere(
         (a) => a.counterparty == 'my designer in Ghana',
-        orElse: () => throw Exception('Transfer to my designer in Ghana not recorded in activity'),
+        orElse: () => throw Exception(
+            'Transfer to my designer in Ghana not recorded in activity'),
       );
       expect(transferItem.amount?.toMajorString(), '500.00');
     });

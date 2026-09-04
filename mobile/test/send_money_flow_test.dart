@@ -64,9 +64,11 @@ void main() {
       expect(revived.totalDebit.amountMinor, BigInt.parse('77693750'));
     });
 
-    test('DemoTransferRepository: natural language prompt interpretation', () async {
+    test('DemoTransferRepository: natural language prompt interpretation',
+        () async {
       final repo = DemoTransferRepository();
-      final intent = await repo.interpretPrompt('Send \$500 to my designer in Ghana.');
+      final intent =
+          await repo.interpretPrompt('Send \$500 to my designer in Ghana.');
 
       expect(intent.amount, '500.00');
       expect(intent.currency, Currency.usd);
@@ -74,7 +76,9 @@ void main() {
       expect(intent.requiresExplicitApproval, true);
     });
 
-    test('DemoTransferRepository: Balance-Aware inspection produces NGN funding with NGN->USD conversion', () async {
+    test(
+        'DemoTransferRepository: Balance-Aware inspection produces NGN funding with NGN->USD conversion',
+        () async {
       final repo = DemoTransferRepository();
       const intent = TransferIntent(
         intentId: 'tx_demo_01',
@@ -111,7 +115,8 @@ void main() {
       );
 
       expect(inspection.isPossible, true);
-      expect(inspection.isDirectFunded, false, reason: 'Direct USD balance is only \$300, insufficient for \$500');
+      expect(inspection.isDirectFunded, false,
+          reason: 'Direct USD balance is only \$300, insufficient for \$500');
       expect(inspection.recommendedFundingOption, isNotNull);
 
       final rec = inspection.recommendedFundingOption!;
@@ -121,7 +126,9 @@ void main() {
       expect(rec.exchangeRate, 1550.0);
     });
 
-    test('DemoTransferRepository: Proposal creation, on-device signing hash, and Activity logging', () async {
+    test(
+        'DemoTransferRepository: Proposal creation, on-device signing hash, and Activity logging',
+        () async {
       final activityRepo = DemoActivityRepository();
       final repo = DemoTransferRepository(activityRepo: activityRepo);
 
@@ -181,7 +188,9 @@ void main() {
       appState = AppState();
     });
 
-    testWidgets('Renders Send Money screen with natural language entry, chips, and form fields', (tester) async {
+    testWidgets(
+        'Renders Send Money screen with natural language entry, chips, and form fields',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(500, 1200));
 
       await tester.pumpWidget(
@@ -198,21 +207,26 @@ void main() {
 
       // Natural language text input
       expect(find.byKey(const Key('send_money_nl_input')), findsOneWidget);
-      expect(find.byKey(const Key('send_money_analyze_button')), findsOneWidget);
+      expect(
+          find.byKey(const Key('send_money_analyze_button')), findsOneWidget);
 
       // Suggestion chips
       expect(find.text('Send \$500 to my designer in Ghana'), findsOneWidget);
-      expect(find.text('Send \$150 to bunch.dillon@example.ng'), findsOneWidget);
+      expect(
+          find.text('Send \$150 to bunch.dillon@example.ng'), findsOneWidget);
 
       // Form fields
-      expect(find.byKey(const Key('send_money_recipient_field')), findsOneWidget);
+      expect(
+          find.byKey(const Key('send_money_recipient_field')), findsOneWidget);
       expect(find.byKey(const Key('send_money_amount_field')), findsOneWidget);
 
       // Review Transfer CTA button
       expect(find.byKey(const Key('send_money_review_button')), findsOneWidget);
     });
 
-    testWidgets('Tapping suggestion chip pre-fills fields and inspects balance-aware routing', (tester) async {
+    testWidgets(
+        'Tapping suggestion chip pre-fills fields and inspects balance-aware routing',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(500, 1200));
 
       await tester.pumpWidget(
@@ -224,14 +238,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap suggestion chip
-      final chipFinder = find.byKey(const Key('chip_Send_\$500_to_my_designer_in_Ghana'));
+      final chipFinder =
+          find.byKey(const Key('chip_Send_\$500_to_my_designer_in_Ghana'));
       expect(chipFinder, findsOneWidget);
       await tester.tap(chipFinder);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
       // Recipient should be populated
-      final recipientField = tester.widget<TextField>(find.byKey(const Key('send_money_recipient_field')));
+      final recipientField = tester.widget<TextField>(
+          find.byKey(const Key('send_money_recipient_field')));
       expect(recipientField.controller?.text, contains('designer'));
 
       // Amount should be 500.00
@@ -243,10 +259,13 @@ void main() {
       expect(amountField.controller?.text, '500.00');
 
       // Balance-Aware auto-funding card should be present
-      expect(find.byKey(const Key('balance_aware_funding_card')), findsOneWidget);
+      expect(
+          find.byKey(const Key('balance_aware_funding_card')), findsOneWidget);
     });
 
-    testWidgets('Full User Flow: Review Confirmation Modal -> "Nothing moves until you approve." -> Edit returns to form', (tester) async {
+    testWidgets(
+        'Full User Flow: Review Confirmation Modal -> "Nothing moves until you approve." -> Edit returns to form',
+        (tester) async {
       await tester.binding.setSurfaceSize(const Size(500, 1200));
 
       await tester.pumpWidget(
@@ -258,7 +277,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Enter recipient & amount
-      await tester.enterText(find.byKey(const Key('send_money_recipient_field')), 'my designer in Ghana');
+      await tester.enterText(
+          find.byKey(const Key('send_money_recipient_field')),
+          'my designer in Ghana');
       final amountFieldFinder = find.descendant(
         of: find.byKey(const Key('send_money_amount_field')),
         matching: find.byType(TextField),
@@ -268,11 +289,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Review Transfer button
-      final reviewButtonFinder = find.byKey(const Key('send_money_review_button'));
+      final reviewButtonFinder =
+          find.byKey(const Key('send_money_review_button'));
       await tester.tap(reviewButtonFinder);
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
-
 
       // Premium Confirmation Screen (TransferReviewModal)
       expect(find.byType(TransferReviewModal), findsOneWidget);
@@ -282,8 +303,10 @@ void main() {
       expect(find.text('Conversion'), findsOneWidget);
 
       // Verify Buttons: Edit and Approve & Send
-      expect(find.byKey(const Key('transfer_review_edit_button')), findsOneWidget);
-      expect(find.byKey(const Key('transfer_review_approve_button')), findsOneWidget);
+      expect(
+          find.byKey(const Key('transfer_review_edit_button')), findsOneWidget);
+      expect(find.byKey(const Key('transfer_review_approve_button')),
+          findsOneWidget);
 
       // Tap Edit -> should dismiss review modal and return to form
       await tester.tap(find.byKey(const Key('transfer_review_edit_button')));

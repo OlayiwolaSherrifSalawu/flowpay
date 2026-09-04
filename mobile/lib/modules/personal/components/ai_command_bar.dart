@@ -95,7 +95,9 @@ class _AiCommandBarState extends State<AiCommandBar> {
                     'What should your money do?',
                     style: FlowPayTypography.bodyLg.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                      color: isDark
+                          ? FlowPayColors.darkTextPrimary
+                          : FlowPayColors.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 1),
@@ -116,7 +118,9 @@ class _AiCommandBarState extends State<AiCommandBar> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+              color: isDark
+                  ? FlowPayColors.darkSurfaceElevated
+                  : FlowPayColors.lightSurfaceElevated,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: FlowPayColors.darkBorder),
             ),
@@ -127,13 +131,18 @@ class _AiCommandBarState extends State<AiCommandBar> {
                     controller: _controller,
                     onSubmitted: (_) => _handleSubmit(),
                     style: TextStyle(
-                      color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                      color: isDark
+                          ? FlowPayColors.darkTextPrimary
+                          : FlowPayColors.lightTextPrimary,
                       fontSize: 14,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'e.g. "Send \$150 to Samson" or "Sweep 20% to savings"',
+                      hintText:
+                          'e.g. "Send \$150 to Samson" or "Sweep 20% to savings"',
                       hintStyle: TextStyle(
-                        color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                        color: isDark
+                            ? FlowPayColors.darkTextTertiary
+                            : FlowPayColors.lightTextTertiary,
                         fontSize: 13,
                       ),
                       border: InputBorder.none,
@@ -170,7 +179,9 @@ class _AiCommandBarState extends State<AiCommandBar> {
               fontSize: 10,
               letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
-              color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+              color: isDark
+                  ? FlowPayColors.darkTextTertiary
+                  : FlowPayColors.lightTextTertiary,
             ),
           ),
           const SizedBox(height: 8),
@@ -245,7 +256,9 @@ class _SuggestionChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
             ),
           ],

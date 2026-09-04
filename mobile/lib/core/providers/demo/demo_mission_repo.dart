@@ -16,7 +16,8 @@ class DemoMissionRepository implements MissionRepository {
     MoneyMissionModel(
       id: 'm_flagship_split',
       title: 'Incoming 3-Way Split: USD, NGN & Tax',
-      tagline: 'Keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
+      tagline:
+          'Keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
       ruleType: MissionRuleType.splitIncoming,
       isActive: true,
       status: MissionStatus.active,
@@ -70,7 +71,8 @@ class DemoMissionRepository implements MissionRepository {
     MoneyMissionModel(
       id: 'm1',
       title: '20% Emergency Fund Auto-Sweep',
-      tagline: 'Auto-sweeps 20% of incoming international USD to high-yield NGN savings.',
+      tagline:
+          'Auto-sweeps 20% of incoming international USD to high-yield NGN savings.',
       ruleType: MissionRuleType.autoSweep,
       isActive: true,
       status: MissionStatus.active,
@@ -87,7 +89,8 @@ class DemoMissionRepository implements MissionRepository {
     MoneyMissionModel(
       id: 'm2',
       title: 'Contractor Card Monthly Cap',
-      tagline: 'Enforce a strict \$500/month spending ceiling on contractor virtual cards.',
+      tagline:
+          'Enforce a strict \$500/month spending ceiling on contractor virtual cards.',
       ruleType: MissionRuleType.spendCap,
       isActive: true,
       status: MissionStatus.active,
@@ -103,7 +106,8 @@ class DemoMissionRepository implements MissionRepository {
     MoneyMissionModel(
       id: 'm3',
       title: 'FX Rate Alert & Dip Conversion',
-      tagline: 'Auto-convert USD to MXN when exchange rate hits favorable threshold (>18.0).',
+      tagline:
+          'Auto-convert USD to MXN when exchange rate hits favorable threshold (>18.0).',
       ruleType: MissionRuleType.fxTarget,
       isActive: false,
       status: MissionStatus.paused,
@@ -152,8 +156,10 @@ class DemoMissionRepository implements MissionRepository {
     final intentId = 'mission_${DateTime.now().millisecondsSinceEpoch}';
 
     // Parse source amount (default $2,000)
-    final amtMatch = RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)').firstMatch(trimmed);
-    final amtStr = amtMatch != null ? amtMatch.group(1)!.replaceAll(',', '') : '2000.00';
+    final amtMatch =
+        RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)').firstMatch(trimmed);
+    final amtStr =
+        amtMatch != null ? amtMatch.group(1)!.replaceAll(',', '') : '2000.00';
     final amtDouble = double.tryParse(amtStr) ?? 2000.0;
     final totalMinor = (amtDouble * 100).toInt();
 
@@ -232,8 +238,10 @@ class DemoMissionRepository implements MissionRepository {
     return {
       'proposalId': 'bmoni_prop_${DateTime.now().millisecondsSinceEpoch}',
       'missionId': intent.intentId,
-      'hashToSign': '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
-      'signingInstructions': 'Authorize autonomous money mission via on-device BMONI B-Key PIN',
+      'hashToSign':
+          '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
+      'signingInstructions':
+          'Authorize autonomous money mission via on-device BMONI B-Key PIN',
       'allocations': intent.allocations.map((a) => a.toJson()).toList(),
     };
   }
@@ -260,12 +268,15 @@ class DemoMissionRepository implements MissionRepository {
     if (activityRepo != null) {
       try {
         final mission = (idx != -1) ? _missions[idx] : _missions.first;
-        final amt = mission.thresholdAmount ?? Money.fromMajorString('2000.00', Currency.usd);
+        final amt = mission.thresholdAmount ??
+            Money.fromMajorString('2000.00', Currency.usd);
         await activityRepo!.recordActivity(
           ActivityModel(
             id: 'act_msn_${DateTime.now().millisecondsSinceEpoch}',
             title: 'Mission Activated: ${mission.title}',
-            description: mission.tagline.isNotEmpty ? mission.tagline : 'Autonomous financial mission activated',
+            description: mission.tagline.isNotEmpty
+                ? mission.tagline
+                : 'Autonomous financial mission activated',
             amount: amt,
             currency: amt.currency,
             type: ActivityType.mission,
@@ -273,7 +284,8 @@ class DemoMissionRepository implements MissionRepository {
             counterparty: 'BMONI Autonomous Vaults',
             status: FlowPayAppStatus.completed,
             timestamp: DateTime.now(),
-            reference: 'FP-MSN-${missionId.length > 8 ? missionId.substring(missionId.length - 6).toUpperCase() : missionId}',
+            reference:
+                'FP-MSN-${missionId.length > 8 ? missionId.substring(missionId.length - 6).toUpperCase() : missionId}',
             source: 'Personal Smart Wallet (${amt.currency.code})',
             destination: 'BMONI Autonomous Vaults',
             fee: Money.zero(amt.currency),
@@ -295,7 +307,8 @@ class DemoMissionRepository implements MissionRepository {
       'status': 'ACTIVE',
       'executedAt': DateTime.now().toIso8601String(),
       'transactionReference': txRef,
-      'summary': 'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
+      'summary':
+          'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
     };
   }
 
@@ -313,7 +326,8 @@ class DemoMissionRepository implements MissionRepository {
       // Record into shared ActivityRepository if provided
       if (activityRepo != null) {
         try {
-          final amt = updated.thresholdAmount ?? Money.fromMajorString('2000.00', Currency.usd);
+          final amt = updated.thresholdAmount ??
+              Money.fromMajorString('2000.00', Currency.usd);
           await activityRepo!.recordActivity(
             ActivityModel(
               id: 'act_trig_${DateTime.now().millisecondsSinceEpoch}',
@@ -328,12 +342,14 @@ class DemoMissionRepository implements MissionRepository {
               counterparty: 'BMONI Settlement Rails',
               status: FlowPayAppStatus.completed,
               timestamp: DateTime.now(),
-              reference: 'FP-SWEEP-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+              reference:
+                  'FP-SWEEP-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
               source: 'Personal Smart Wallet (${amt.currency.code})',
               destination: 'USD Vault / CNGN / Tax Escrow',
               fee: Money.fromMinor(10, amt.currency),
               exchangeRate: '1 USD = 1,550.00 NGN',
-              bmoniReference: '0x88fbc921...${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+              bmoniReference:
+                  '0x88fbc921...${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
               metadata: {
                 'missionId': id,
                 'rule': updated.title,

@@ -66,7 +66,8 @@ final currentUserProfileProvider =
 });
 
 /// Fetches AccountCapabilities with secure storage caching & TTL invalidation
-final accountCapabilitiesProvider = FutureProvider<AccountCapabilities>((ref) async {
+final accountCapabilitiesProvider =
+    FutureProvider<AccountCapabilities>((ref) async {
   final storage = ref.watch(secureStorageServiceProvider);
 
   // 1. Try reading from secure storage cache (with 15m TTL)
@@ -96,9 +97,12 @@ final accountCapabilitiesProvider = FutureProvider<AccountCapabilities>((ref) as
 
   // 3. Fetch fresh capabilities from FlowPay backend
   try {
-    final bmoniUserId = await storage.getBmoniUserId() ?? 'usr_flowpay_sandbox_master';
-    final host = Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
-    final uri = Uri.parse('$host/api/auth/capabilities?bmoniUserId=$bmoniUserId');
+    final bmoniUserId =
+        await storage.getBmoniUserId() ?? 'usr_flowpay_sandbox_master';
+    final host =
+        Platform.isAndroid ? 'http://10.0.2.2:4000' : 'http://localhost:4000';
+    final uri =
+        Uri.parse('$host/api/auth/capabilities?bmoniUserId=$bmoniUserId');
 
     final response = await http.get(uri).timeout(const Duration(seconds: 4));
     if (response.statusCode == 200) {
@@ -216,7 +220,8 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     state = state.copyWith(
       isLocked: true,
       isSupported: canAuth,
-      showFallbackPin: !canAuth, // If no biometrics on device, show fallback PIN immediately
+      showFallbackPin:
+          !canAuth, // If no biometrics on device, show fallback PIN immediately
       activeMode: storedMode ?? AccountMode.personal,
       biometricLabel: bioLabel,
       hasFaceId: hasFace,
@@ -240,7 +245,8 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
 
   /// Set explicit auth expired state (e.g. on 401 Unauthorized API response)
   void setAuthExpired(bool expired) {
-    state = state.copyWith(isLocked: expired ? true : state.isLocked, isAuthExpired: expired);
+    state = state.copyWith(
+        isLocked: expired ? true : state.isLocked, isAuthExpired: expired);
   }
 
   /// Trigger biometric/passcode prompt
@@ -334,7 +340,8 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
   }
 }
 
-final appLockStateProvider = StateNotifierProvider<AppLockNotifier, AppLockState>((ref) {
+final appLockStateProvider =
+    StateNotifierProvider<AppLockNotifier, AppLockState>((ref) {
   final appLockService = ref.watch(appLockServiceProvider);
   final storage = ref.watch(secureStorageServiceProvider);
   return AppLockNotifier(

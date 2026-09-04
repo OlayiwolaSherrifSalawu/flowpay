@@ -12,7 +12,6 @@ import type {
 } from './types.js';
 import { MissionValidator } from './validator.js';
 
-export type { MoneyMission };
 
 export interface EnrichedMission {
   id: string;

@@ -10,4 +10,5 @@ class PersonalTab {
 }
 
 /// Global Riverpod provider for the active tab index in Personal account mode.
-final personalTabIndexProvider = StateProvider<int>((ref) => PersonalTab.overview);
+final personalTabIndexProvider =
+    StateProvider<int>((ref) => PersonalTab.overview);

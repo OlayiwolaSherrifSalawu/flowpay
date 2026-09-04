@@ -63,7 +63,8 @@ class TransferReceiptDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 color: BMoniColors.success400.withAlpha(30),
                 shape: BoxShape.circle,
-                border: Border.all(color: BMoniColors.success400.withAlpha(100), width: 2),
+                border: Border.all(
+                    color: BMoniColors.success400.withAlpha(100), width: 2),
               ),
               child: const Icon(
                 Icons.check_rounded,
@@ -100,21 +101,27 @@ class TransferReceiptDialog extends StatelessWidget {
               child: Column(
                 children: [
                   _buildSummaryRow('Beneficiary', intent.recipient),
-                  _buildSummaryRow('Delivered Amount', '${intent.amount} ${intent.currency.code}'),
-                  _buildSummaryRow('Funding Wallet', fundingOption.fundingWalletName),
+                  _buildSummaryRow('Delivered Amount',
+                      '${intent.amount} ${intent.currency.code}'),
+                  _buildSummaryRow(
+                      'Funding Wallet', fundingOption.fundingWalletName),
                   if (fundingOption.requiresConversion)
-                    _buildSummaryRow('Conversion', fundingOption.conversionLabel),
-                  _buildSummaryRow('Settlement Debit', fundingOption.totalDebit.formatFormatted()),
+                    _buildSummaryRow(
+                        'Conversion', fundingOption.conversionLabel),
+                  _buildSummaryRow('Settlement Debit',
+                      fundingOption.totalDebit.formatFormatted()),
                   const Divider(color: BMoniColors.offbrand700, height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'BMONI On-Chain Rail',
-                        style: TextStyle(fontSize: 12, color: BMoniColors.grey400),
+                        style:
+                            TextStyle(fontSize: 12, color: BMoniColors.grey400),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: BMoniColors.brand500.withAlpha(40),
                           borderRadius: BorderRadius.circular(6),
@@ -161,7 +168,8 @@ class TransferReceiptDialog extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () {
-                      Clipboard.setData(ClipboardData(text: result.transactionHash));
+                      Clipboard.setData(
+                          ClipboardData(text: result.transactionHash));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Transaction hash copied to clipboard'),
@@ -169,7 +177,8 @@ class TransferReceiptDialog extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Icon(Icons.copy, size: 14, color: BMoniColors.brand300),
+                    child: const Icon(Icons.copy,
+                        size: 14, color: BMoniColors.brand300),
                   ),
                 ],
               ),
@@ -216,7 +225,8 @@ class TransferReceiptDialog extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: BMoniColors.grey400)),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: BMoniColors.grey400)),
           Flexible(
             child: Text(
               value,

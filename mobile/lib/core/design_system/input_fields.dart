@@ -6,6 +6,7 @@ import '../theme/typography.dart';
 
 class FlowPayTextField extends StatelessWidget {
   final String? label;
+  final String? labelText;
   final String? hintText;
   final String? helperText;
   final String? errorText;
@@ -18,6 +19,7 @@ class FlowPayTextField extends StatelessWidget {
   final Widget? prefix;
   final Widget? suffix;
   final bool readOnly;
+  final bool disabled;
   final VoidCallback? onTap;
   final int maxLines;
   final List<TextInputFormatter>? inputFormatters;
@@ -25,6 +27,7 @@ class FlowPayTextField extends StatelessWidget {
   const FlowPayTextField({
     super.key,
     this.label,
+    this.labelText,
     this.hintText,
     this.helperText,
     this.errorText,
@@ -37,6 +40,7 @@ class FlowPayTextField extends StatelessWidget {
     this.prefix,
     this.suffix,
     this.readOnly = false,
+    this.disabled = false,
     this.onTap,
     this.maxLines = 1,
     this.inputFormatters,
@@ -50,11 +54,13 @@ class FlowPayTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
+        if ((label ?? labelText) != null) ...[
           Text(
-            label!,
+            label ?? labelText!,
             style: FlowPayTypography.caption.copyWith(
-              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+              color: isDark
+                  ? FlowPayColors.darkTextSecondary
+                  : FlowPayColors.lightTextSecondary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -67,25 +73,32 @@ class FlowPayTextField extends StatelessWidget {
           obscureText: obscureText,
           keyboardType: keyboardType,
           textInputAction: textInputAction,
-          readOnly: readOnly,
+          readOnly: readOnly || disabled,
+          enabled: !disabled,
           onTap: onTap,
           maxLines: maxLines,
           inputFormatters: inputFormatters,
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+            color: isDark
+                ? FlowPayColors.darkTextPrimary
+                : FlowPayColors.lightTextPrimary,
           ),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(
               fontSize: 14,
-              color: isDark ? FlowPayColors.darkTextMuted : FlowPayColors.lightTextMuted,
+              color: isDark
+                  ? FlowPayColors.darkTextMuted
+                  : FlowPayColors.lightTextMuted,
             ),
             helperText: helperText,
             helperStyle: TextStyle(
               fontSize: 12,
-              color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+              color: isDark
+                  ? FlowPayColors.darkTextTertiary
+                  : FlowPayColors.lightTextTertiary,
             ),
             errorText: errorText,
             errorStyle: const TextStyle(
@@ -95,7 +108,9 @@ class FlowPayTextField extends StatelessWidget {
             prefixIcon: prefix,
             suffixIcon: suffix,
             filled: true,
-            fillColor: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+            fillColor: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurfaceElevated,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: FlowPaySpacing.lg,
               vertical: FlowPaySpacing.md,
@@ -103,14 +118,18 @@ class FlowPayTextField extends StatelessWidget {
             border: OutlineInputBorder(
               borderRadius: FlowPaySpacing.borderRadiusMd,
               borderSide: BorderSide(
-                color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                color: isDark
+                    ? FlowPayColors.darkBorder
+                    : FlowPayColors.lightBorder,
                 width: 1,
               ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: FlowPaySpacing.borderRadiusMd,
               borderSide: BorderSide(
-                color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                color: isDark
+                    ? FlowPayColors.darkBorder
+                    : FlowPayColors.lightBorder,
                 width: 1,
               ),
             ),
@@ -172,12 +191,16 @@ class FlowPayAmountField extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+            color: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurfaceElevated,
             borderRadius: FlowPaySpacing.borderRadiusLg,
             border: Border.all(
               color: errorText != null
                   ? FlowPayColors.error
-                  : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
+                  : (isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.lightBorder),
               width: errorText != null ? 1.5 : 1,
             ),
           ),
@@ -188,12 +211,17 @@ class FlowPayAmountField extends StatelessWidget {
                 onTap: onCurrencyTap,
                 borderRadius: FlowPaySpacing.borderRadiusSm,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: isDark ? FlowPayColors.darkSurfaceSubtle : FlowPayColors.lightSurface,
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceSubtle
+                        : FlowPayColors.lightSurface,
                     borderRadius: FlowPaySpacing.borderRadiusSm,
                     border: Border.all(
-                      color: isDark ? FlowPayColors.darkBorderLight : FlowPayColors.lightBorder,
+                      color: isDark
+                          ? FlowPayColors.darkBorderLight
+                          : FlowPayColors.lightBorder,
                     ),
                   ),
                   child: Row(
@@ -201,12 +229,14 @@ class FlowPayAmountField extends StatelessWidget {
                     children: [
                       Text(
                         currencySymbol,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         currencyCode,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13),
                       ),
                       if (onCurrencyTap != null) ...[
                         const SizedBox(width: 4),
@@ -223,15 +253,20 @@ class FlowPayAmountField extends StatelessWidget {
                   controller: controller,
                   onChanged: onChanged,
                   autofocus: autoFocus,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   textAlign: TextAlign.right,
                   style: FlowPayTypography.financialLarge.copyWith(
-                    color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                    color: isDark
+                        ? FlowPayColors.darkTextPrimary
+                        : FlowPayColors.lightTextPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: '0.00',
                     hintStyle: FlowPayTypography.financialLarge.copyWith(
-                      color: isDark ? FlowPayColors.darkTextMuted : FlowPayColors.lightTextMuted,
+                      color: isDark
+                          ? FlowPayColors.darkTextMuted
+                          : FlowPayColors.lightTextMuted,
                     ),
                     border: InputBorder.none,
                     isDense: true,

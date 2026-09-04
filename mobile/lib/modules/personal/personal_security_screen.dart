@@ -72,14 +72,17 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     WalletPinAuthSheet.show(
       context: context,
       title: 'Test Device Signer',
-      subtitle: 'Authorizes test EIP-191 digest using on-device hardware keypair',
+      subtitle:
+          'Authorizes test EIP-191 digest using on-device hardware keypair',
       onAuthorize: (pin) async {
         try {
-          final sig = await BmoniSdkService.signMessage('FlowPay Security Test', pin: pin);
+          final sig = await BmoniSdkService.signMessage('FlowPay Security Test',
+              pin: pin);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Signature Verified! (${sig.substring(0, 10)}...${sig.substring(sig.length - 8)})'),
+                content: Text(
+                    'Signature Verified! (${sig.substring(0, 10)}...${sig.substring(sig.length - 8)})'),
                 backgroundColor: FlowPayColors.accent,
               ),
             );
@@ -106,7 +109,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     final canPop = Navigator.canPop(context);
 
     Widget content = _isLoading
-        ? const FlowPayLoadingState(message: 'Verifying Secure Enclave status...')
+        ? const FlowPayLoadingState(
+            message: 'Verifying Secure Enclave status...')
         : RefreshIndicator(
             onRefresh: _checkSecurityState,
             child: ListView(
@@ -241,7 +245,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             Text(
               '1. Wallet Security',
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
             ),
             FlowPayBadge(
@@ -255,7 +261,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         Text(
           'On-device hardware keypair isolation and public address mapping.',
           style: FlowPayTypography.caption.copyWith(
-            color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+            color: isDark
+                ? FlowPayColors.darkTextTertiary
+                : FlowPayColors.lightTextTertiary,
           ),
         ),
         const SizedBox(height: FlowPaySpacing.md),
@@ -282,28 +290,38 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 'On-Device EVM Public Address',
                 style: FlowPayTypography.caption.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                  color: isDark
+                      ? FlowPayColors.darkTextSecondary
+                      : FlowPayColors.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+                  color: isDark
+                      ? FlowPayColors.darkSurfaceElevated
+                      : FlowPayColors.lightSurfaceElevated,
                   borderRadius: FlowPaySpacing.borderRadiusSm,
                   border: Border.all(
-                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                    color: isDark
+                        ? FlowPayColors.darkBorder
+                        : FlowPayColors.lightBorder,
                   ),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: SelectableText(
-                        _walletAddress ?? '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
+                        _walletAddress ??
+                            '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
-                          color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                          color: isDark
+                              ? FlowPayColors.darkTextPrimary
+                              : FlowPayColors.lightTextPrimary,
                         ),
                       ),
                     ),
@@ -311,7 +329,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                       icon: const Icon(Icons.copy, size: 16),
                       tooltip: 'Copy Public Address',
                       onPressed: () => _copyToClipboard(
-                        _walletAddress ?? '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
+                        _walletAddress ??
+                            '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
                         'Public Address',
                       ),
                     ),
@@ -325,13 +344,16 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.check_circle_outline, size: 16, color: FlowPayColors.accent),
+                  const Icon(Icons.check_circle_outline,
+                      size: 16, color: FlowPayColors.accent),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Enclave Key Isolation: Hardware Keystore / Apple Secure Enclave. Private keys never leave the hardware sandbox.',
                       style: FlowPayTypography.caption.copyWith(
-                        color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                        color: isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.lightTextSecondary,
                       ),
                     ),
                   ),
@@ -346,9 +368,12 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 isFullWidth: true,
                 variant: FlowPayButtonVariant.secondary,
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const WalletProvisioningScreen()),
-                  ).then((_) => _checkSecurityState());
+                  Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                            builder: (_) => const WalletProvisioningScreen()),
+                      )
+                      .then((_) => _checkSecurityState());
                 },
               ),
             ],
@@ -369,12 +394,16 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             Text(
               '2. Signing Security',
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
             ),
             FlowPayBadge(
               label: _isSigningAvailable ? 'AVAILABLE & ACTIVE' : 'UNAVAILABLE',
-              color: _isSigningAvailable ? FlowPayColors.accent : FlowPayColors.error,
+              color: _isSigningAvailable
+                  ? FlowPayColors.accent
+                  : FlowPayColors.error,
               showDot: true,
             ),
           ],
@@ -383,7 +412,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         Text(
           'Cryptographic signature standards and hardware PIN authorization.',
           style: FlowPayTypography.caption.copyWith(
-            color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+            color: isDark
+                ? FlowPayColors.darkTextTertiary
+                : FlowPayColors.lightTextTertiary,
           ),
         ),
         const SizedBox(height: FlowPaySpacing.md),
@@ -423,7 +454,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Biometric App Gate',
-                subtitle: 'Local Authentication (Face ID / Fingerprint) enabled for app session lock',
+                subtitle:
+                    'Local Authentication (Face ID / Fingerprint) enabled for app session lock',
                 statusText: 'ENABLED',
                 isSuccess: true,
                 icon: Icons.lock_outline,
@@ -448,9 +480,13 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                       icon: Icons.pin,
                       variant: FlowPayButtonVariant.secondary,
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const WalletProvisioningScreen()),
-                        ).then((_) => _checkSecurityState());
+                        Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                      const WalletProvisioningScreen()),
+                            )
+                            .then((_) => _checkSecurityState());
                       },
                     ),
                   ),
@@ -474,7 +510,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             Text(
               '3. Approval Rules',
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
             ),
             const FlowPayBadge(
@@ -488,7 +526,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         Text(
           'Financial safety invariant pipeline and human authorization policy.',
           style: FlowPayTypography.caption.copyWith(
-            color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+            color: isDark
+                ? FlowPayColors.darkTextTertiary
+                : FlowPayColors.lightTextTertiary,
           ),
         ),
         const SizedBox(height: FlowPaySpacing.md),
@@ -502,7 +542,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 decoration: BoxDecoration(
                   color: FlowPayColors.warning.withAlpha(20),
                   borderRadius: FlowPaySpacing.borderRadiusMd,
-                  border: Border.all(color: FlowPayColors.warning.withAlpha(60)),
+                  border:
+                      Border.all(color: FlowPayColors.warning.withAlpha(60)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,7 +587,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 'The 4 Invariants of FlowPay Financial Safety',
                 style: FlowPayTypography.bodySm.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: FlowPaySpacing.sm),
@@ -554,25 +597,29 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildInvariantStep(
                 number: '1',
                 title: 'Structured Intent Interpretation',
-                description: 'AI converts user directives into structured, inspectable parameters.',
+                description:
+                    'AI converts user directives into structured, inspectable parameters.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '2',
                 title: 'Deterministic Rule Validation',
-                description: 'Percentages strictly sum to 100%, amounts must be positive integers, and currencies must exist in allowlist.',
+                description:
+                    'Percentages strictly sum to 100%, amounts must be positive integers, and currencies must exist in allowlist.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '3',
                 title: 'Mandatory Human Preview',
-                description: 'Review modal displays exact recipient, debit amounts, exchange rates, and network fees.',
+                description:
+                    'Review modal displays exact recipient, debit amounts, exchange rates, and network fees.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '4',
                 title: 'On-Device B-Key Hardware Signature',
-                description: '6-digit PIN authorizes local secp256k1 cryptographic signature inside hardware enclave.',
+                description:
+                    '6-digit PIN authorizes local secp256k1 cryptographic signature inside hardware enclave.',
                 isDark: isDark,
               ),
 
@@ -583,14 +630,20 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 'Approval Policy Thresholds',
                 style: FlowPayTypography.bodySm.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: FlowPaySpacing.sm),
-              _buildPolicyRow('Outbound Multi-Currency Transfers', 'Mandatory 6-Digit PIN', isDark),
-              _buildPolicyRow('Instant FX Conversions', 'Mandatory 6-Digit PIN', isDark),
-              _buildPolicyRow('Money Mission Allocations', 'Mandatory 6-Digit PIN', isDark),
-              _buildPolicyRow('Card Limit & Freeze Actions', 'Mandatory 6-Digit PIN', isDark),
+              _buildPolicyRow('Outbound Multi-Currency Transfers',
+                  'Mandatory 6-Digit PIN', isDark),
+              _buildPolicyRow(
+                  'Instant FX Conversions', 'Mandatory 6-Digit PIN', isDark),
+              _buildPolicyRow(
+                  'Money Mission Allocations', 'Mandatory 6-Digit PIN', isDark),
+              _buildPolicyRow('Card Limit & Freeze Actions',
+                  'Mandatory 6-Digit PIN', isDark),
 
               const SizedBox(height: FlowPaySpacing.md),
 
@@ -598,19 +651,24 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+                  color: isDark
+                      ? FlowPayColors.darkSurfaceElevated
+                      : FlowPayColors.lightSurfaceElevated,
                   borderRadius: FlowPaySpacing.borderRadiusSm,
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 16, color: FlowPayColors.primaryLight),
+                    const Icon(Icons.info_outline,
+                        size: 16, color: FlowPayColors.primaryLight),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Genuine Security Standard: FlowPay does not claim unsupported cloud MPC or autonomous AI spending. All security is backed by on-device hardware cryptography and BMONI embedded rails.',
                         style: FlowPayTypography.caption.copyWith(
                           fontSize: 11,
-                          color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                          color: isDark
+                              ? FlowPayColors.darkTextTertiary
+                              : FlowPayColors.lightTextTertiary,
                         ),
                       ),
                     ),
@@ -649,14 +707,18 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 title,
                 style: FlowPayTypography.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: FlowPayTypography.caption.copyWith(
-                  color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                  color: isDark
+                      ? FlowPayColors.darkTextSecondary
+                      : FlowPayColors.lightTextSecondary,
                 ),
               ),
             ],
@@ -710,13 +772,17 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   title,
                   style: FlowPayTypography.caption.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                    color: isDark
+                        ? FlowPayColors.darkTextPrimary
+                        : FlowPayColors.lightTextPrimary,
                   ),
                 ),
                 Text(
                   description,
                   style: FlowPayTypography.caption.copyWith(
-                    color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                    color: isDark
+                        ? FlowPayColors.darkTextTertiary
+                        : FlowPayColors.lightTextTertiary,
                   ),
                 ),
               ],
@@ -736,7 +802,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           Text(
             action,
             style: FlowPayTypography.caption.copyWith(
-              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+              color: isDark
+                  ? FlowPayColors.darkTextSecondary
+                  : FlowPayColors.lightTextSecondary,
             ),
           ),
           Text(

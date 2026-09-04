@@ -59,7 +59,9 @@ class MissionCard extends StatelessWidget {
                 child: Icon(
                   Icons.bolt,
                   size: 18,
-                  color: mission.isActive ? BMoniColors.brand300 : BMoniColors.grey400,
+                  color: mission.isActive
+                      ? BMoniColors.brand300
+                      : BMoniColors.grey400,
                 ),
               ),
               const SizedBox(width: 10),
@@ -72,7 +74,8 @@ class MissionCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                        color:
+                            isDark ? BMoniColors.grey50 : BMoniColors.grey950,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -107,7 +110,8 @@ class MissionCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.rule_folder_outlined, size: 14, color: BMoniColors.brand400),
+                const Icon(Icons.rule_folder_outlined,
+                    size: 14, color: BMoniColors.brand400),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -154,11 +158,13 @@ class MissionCard extends StatelessWidget {
                 }
 
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: chipBg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: chipText.withAlpha(60), width: 0.8),
+                    border:
+                        Border.all(color: chipText.withAlpha(60), width: 0.8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -207,7 +213,9 @@ class MissionCard extends StatelessWidget {
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: mission.isActive ? BMoniColors.success400 : BMoniColors.grey400,
+                        color: mission.isActive
+                            ? BMoniColors.success400
+                            : BMoniColors.grey400,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -216,7 +224,9 @@ class MissionCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: mission.isActive ? BMoniColors.success400 : BMoniColors.grey400,
+                        color: mission.isActive
+                            ? BMoniColors.success400
+                            : BMoniColors.grey400,
                       ),
                     ),
                   ],
@@ -240,7 +250,8 @@ class MissionCard extends StatelessWidget {
                 onTap: mission.isActive ? onTriggerManual : null,
                 borderRadius: BorderRadius.circular(8),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: mission.isActive
                         ? BMoniColors.brand500.withAlpha(30)
@@ -258,7 +269,9 @@ class MissionCard extends StatelessWidget {
                       Icon(
                         Icons.play_arrow_rounded,
                         size: 14,
-                        color: mission.isActive ? BMoniColors.brand300 : BMoniColors.grey500,
+                        color: mission.isActive
+                            ? BMoniColors.brand300
+                            : BMoniColors.grey500,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -266,7 +279,9 @@ class MissionCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: mission.isActive ? BMoniColors.brand300 : BMoniColors.grey500,
+                          color: mission.isActive
+                              ? BMoniColors.brand300
+                              : BMoniColors.grey500,
                         ),
                       ),
                     ],

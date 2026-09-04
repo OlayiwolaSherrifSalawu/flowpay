@@ -61,7 +61,8 @@ class HeroBillCard extends StatelessWidget {
                   children: [
                     Text(
                       'One Employer. Many Countries. One Bill.',
-                      style: FlowPayTypography.title(color: FlowPayColors.ink).copyWith(
+                      style: FlowPayTypography.title(color: FlowPayColors.ink)
+                          .copyWith(
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,
                       ),
@@ -69,7 +70,9 @@ class HeroBillCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       'Disburse international payroll to Nigeria, Mexico & Canada with instant virtual cards — settled in one aggregate USD bill.',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary).copyWith(
+                      style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textSecondary)
+                          .copyWith(
                         height: 1.4,
                       ),
                     ),
@@ -92,7 +95,9 @@ class HeroBillCard extends StatelessWidget {
                   children: [
                     Text(
                       'TOTAL AGGREGATE PAYROLL',
-                      style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                      style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.textTertiary)
+                          .copyWith(
                         letterSpacing: 0.8,
                         fontWeight: FontWeight.w600,
                       ),
@@ -100,7 +105,8 @@ class HeroBillCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       totalUsd.formatFormatted(),
-                      style: FlowPayTypography.display(color: FlowPayColors.ink).copyWith(
+                      style: FlowPayTypography.display(color: FlowPayColors.ink)
+                          .copyWith(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                       ),
@@ -109,7 +115,8 @@ class HeroBillCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: FlowPayColors.signal.withValues(alpha: 0.12),
                   borderRadius: FlowPayRadii.chip,
@@ -117,7 +124,8 @@ class HeroBillCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.arrow_downward_rounded, color: FlowPayColors.signal, size: 14),
+                    const Icon(Icons.arrow_downward_rounded,
+                        color: FlowPayColors.signal, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       'Saved ${savedUsd.formatFormatted()} ($savedPct%)',
@@ -139,12 +147,15 @@ class HeroBillCard extends StatelessWidget {
             children: [
               Text(
                 'BMONI Rail Fee: ${pending?.totalFeeUsd.formatFormatted() ?? "\$15.00"}',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textSecondary),
+                style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.textSecondary),
               ),
               const Spacer(),
               Text(
                 'Traditional Wire: ~\$510.00',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary).copyWith(
+                style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textTertiary)
+                    .copyWith(
                   decoration: TextDecoration.lineThrough,
                 ),
               ),

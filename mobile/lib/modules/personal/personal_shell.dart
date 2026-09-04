@@ -31,8 +31,10 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
   }
 
   void _onAppStateChanged() {
-    if (mounted && ref.read(personalTabIndexProvider) != _appState.personalTabIndex) {
-      ref.read(personalTabIndexProvider.notifier).state = _appState.personalTabIndex;
+    if (mounted &&
+        ref.read(personalTabIndexProvider) != _appState.personalTabIndex) {
+      ref.read(personalTabIndexProvider.notifier).state =
+          _appState.personalTabIndex;
     }
   }
 
@@ -63,7 +65,9 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
                     isPersonal: true,
                     onRoleChanged: (isPersonal) {
                       ref.read(appLockStateProvider.notifier).setAccountMode(
-                            isPersonal ? AccountMode.personal : AccountMode.business,
+                            isPersonal
+                                ? AccountMode.personal
+                                : AccountMode.business,
                           );
                     },
                   ),
@@ -75,7 +79,8 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.lock_outline, color: FlowPayColors.ink, size: 20),
+            icon: const Icon(Icons.lock_outline,
+                color: FlowPayColors.ink, size: 20),
             tooltip: 'Lock FlowPay',
             onPressed: () {
               ref.read(appLockStateProvider.notifier).lockApp();
@@ -118,7 +123,8 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
             ),
             NavigationDestination(
               icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon: Icon(Icons.account_balance_wallet, color: FlowPayColors.ink),
+              selectedIcon:
+                  Icon(Icons.account_balance_wallet, color: FlowPayColors.ink),
               label: 'Wallets',
             ),
             NavigationDestination(

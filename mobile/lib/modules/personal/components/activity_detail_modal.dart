@@ -60,8 +60,18 @@ class ActivityDetailModal extends StatelessWidget {
 
   String _formatTimestamp(DateTime dt) {
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     final m = months[dt.month - 1];
     final d = dt.day;
@@ -87,7 +97,8 @@ class ActivityDetailModal extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
           top: BorderSide(
-            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+            color:
+                isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
           ),
         ),
       ),
@@ -100,7 +111,8 @@ class ActivityDetailModal extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -163,7 +175,8 @@ class ActivityDetailModal extends StatelessWidget {
           // Scrollable Content
           Flexible(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: FlowPaySpacing.xl),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: FlowPaySpacing.xl),
               shrinkWrap: true,
               children: [
                 // Hero Amount & Status Card
@@ -193,7 +206,8 @@ class ActivityDetailModal extends StatelessWidget {
                       const SizedBox(height: FlowPaySpacing.md),
                       FlowPayAmountDisplay(
                         amount: activity.amount != null
-                            ? activity.amount!.formatFormatted(includeSymbol: false)
+                            ? activity.amount!
+                                .formatFormatted(includeSymbol: false)
                             : '0.00',
                         currencySymbol: activity.currency.symbol,
                         currencyCode: activity.currency.code,
@@ -259,7 +273,8 @@ class ActivityDetailModal extends StatelessWidget {
                       _buildDetailRow(
                         context,
                         label: 'Timestamp',
-                        value: '${_formatTimestamp(activity.timestamp)} (${activity.timeAgo})',
+                        value:
+                            '${_formatTimestamp(activity.timestamp)} (${activity.timeAgo})',
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
@@ -267,7 +282,8 @@ class ActivityDetailModal extends StatelessWidget {
                         label: 'FlowPay Reference',
                         value: activity.reference,
                         isCopyable: true,
-                        onCopy: () => _copyToClipboard(context, activity.reference, 'FlowPay Reference'),
+                        onCopy: () => _copyToClipboard(
+                            context, activity.reference, 'FlowPay Reference'),
                       ),
                       if (activity.bmoniReference != null) ...[
                         const Divider(height: 20),
@@ -276,7 +292,8 @@ class ActivityDetailModal extends StatelessWidget {
                           label: 'BMONI Reference',
                           value: activity.bmoniReference!,
                           isCopyable: true,
-                          onCopy: () => _copyToClipboard(context, activity.bmoniReference!, 'BMONI Reference'),
+                          onCopy: () => _copyToClipboard(context,
+                              activity.bmoniReference!, 'BMONI Reference'),
                         ),
                       ],
                     ],
@@ -291,7 +308,8 @@ class ActivityDetailModal extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: FlowPayColors.accent.withAlpha(20),
                     borderRadius: FlowPaySpacing.borderRadiusMd,
-                    border: Border.all(color: FlowPayColors.accent.withAlpha(60)),
+                    border:
+                        Border.all(color: FlowPayColors.accent.withAlpha(60)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,13 +361,16 @@ class ActivityDetailModal extends StatelessWidget {
                       WalletPinAuthSheet.show(
                         context: context,
                         title: 'Approve ${activity.type.label}',
-                        subtitle: 'Sign canonical BMONI proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
+                        subtitle:
+                            'Sign canonical BMONI proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
                         onAuthorize: (pin) async {
-                          final updated = activity.copyWith(status: FlowPayAppStatus.completed);
+                          final updated = activity.copyWith(
+                              status: FlowPayAppStatus.completed);
                           onApprove?.call(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Action approved & signed via B-Key: ${activity.reference}'),
+                              content: Text(
+                                  'Action approved & signed via B-Key: ${activity.reference}'),
                               backgroundColor: FlowPayColors.accent,
                             ),
                           );

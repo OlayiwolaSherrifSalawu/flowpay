@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Thrown when a signing operation is cancelled by the user.
 class SigningCancelledException implements Exception {
   final String message;
-  const SigningCancelledException([this.message = 'Signing was cancelled by the user.']);
+  const SigningCancelledException(
+      [this.message = 'Signing was cancelled by the user.']);
 
   @override
   String toString() => 'SigningCancelledException: $message';

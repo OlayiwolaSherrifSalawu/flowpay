@@ -46,7 +46,8 @@ class BusinessProvider extends ChangeNotifier {
   int get employeeCount => _employees.length;
 
   int get onboardedEmployeeCount => _employees
-      .where((e) => e.onboardingStatus == 'ONBOARDED' || e.onboardingStatus == 'ACTIVE')
+      .where((e) =>
+          e.onboardingStatus == 'ONBOARDED' || e.onboardingStatus == 'ACTIVE')
       .length;
 
   List<String> get uniqueCountryCodes =>
@@ -82,32 +83,46 @@ class BusinessProvider extends ChangeNotifier {
   /// Total number of provisioned smart wallets
   int get walletsProvisionedCount {
     if (_wallets.isNotEmpty) return _wallets.length;
-    return _employees.where((e) => e.walletStatus == 'PROVISIONED' || e.walletStatus == 'ACTIVE').length;
+    return _employees
+        .where((e) =>
+            e.walletStatus == 'PROVISIONED' || e.walletStatus == 'ACTIVE')
+        .length;
   }
 
   /// Total number of active corporate spend cards
   int get cardsActiveCount {
-    if (_cards.isNotEmpty) return _cards.where((c) => c.status == 'active').length;
-    return _employees.where((e) => e.cardStatus == 'ACTIVE' || e.cardStatus == 'ISSUED').length;
+    if (_cards.isNotEmpty) {
+      return _cards.where((c) => c.status == 'active').length;
+    }
+    return _employees
+        .where((e) => e.cardStatus == 'ACTIVE' || e.cardStatus == 'ISSUED')
+        .length;
   }
 
   /// Saved cross-border fees compared to traditional SWIFT/wire rails
   /// Traditional wire: ~$170 per destination country
   /// BMONI aggregate bill: ~$5 per country (96% savings)
   Money get savedFeeUsd {
-    final countryCount = uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
-    final traditionalWireTotal = countryCount * 17000; // $170 in cents per country
-    final bmoniRailTotal = _pendingPayroll?.totalFeeUsd.minorUnits ?? (countryCount * 500);
+    final countryCount =
+        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
+    final traditionalWireTotal =
+        countryCount * 17000; // $170 in cents per country
+    final bmoniRailTotal =
+        _pendingPayroll?.totalFeeUsd.minorUnits ?? (countryCount * 500);
     final savedMinor = traditionalWireTotal - bmoniRailTotal;
     return Money.fromMinor(savedMinor > 0 ? savedMinor : 32800, Currency.usd);
   }
 
   double get savedPercentage {
-    final countryCount = uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
+    final countryCount =
+        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
     final traditionalWireTotal = countryCount * 170.0;
-    final bmoniRailTotal = (_pendingPayroll?.totalFeeUsd.majorUnits ?? (countryCount * 5.0)).toDouble();
+    final bmoniRailTotal =
+        (_pendingPayroll?.totalFeeUsd.majorUnits ?? (countryCount * 5.0))
+            .toDouble();
     if (traditionalWireTotal <= 0) return 96.0;
-    final pct = ((traditionalWireTotal - bmoniRailTotal) / traditionalWireTotal) * 100;
+    final pct =
+        ((traditionalWireTotal - bmoniRailTotal) / traditionalWireTotal) * 100;
     return pct.clamp(80.0, 98.0);
   }
 
@@ -164,7 +179,8 @@ class BusinessProvider extends ChangeNotifier {
         country: country,
         countryName: countryName,
         targetCurrency: targetCurrency,
-        payrollAmount: payrollAmount ?? Money.fromMajorString('2000.00', targetCurrency),
+        payrollAmount:
+            payrollAmount ?? Money.fromMajorString('2000.00', targetCurrency),
         usdPayrollAmount: usdPayrollAmount,
       );
 

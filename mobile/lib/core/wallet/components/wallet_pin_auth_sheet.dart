@@ -102,7 +102,8 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
         if (mounted) {
           setState(() {
             _isAuthorizing = false;
-            _errorMessage = 'Incorrect PIN ($_failedAttempts/5 attempts). Please try again.';
+            _errorMessage =
+                'Incorrect PIN ($_failedAttempts/5 attempts). Please try again.';
             _pin = '';
           });
         }
@@ -186,7 +187,8 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
               ),
               IconButton(
                 key: const Key('wallet_pin_cancel_button'),
-                icon: const Icon(Icons.close, color: FlowPayColors.textSecondary),
+                icon:
+                    const Icon(Icons.close, color: FlowPayColors.textSecondary),
                 onPressed: _cancelSigning,
                 tooltip: 'Cancel Signing',
               ),
@@ -205,7 +207,8 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.lock_clock, size: 20, color: FlowPayColors.primary),
+                  const Icon(Icons.lock_clock,
+                      size: 20, color: FlowPayColors.primary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -251,7 +254,8 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.shield_outlined, size: 16, color: FlowPayColors.primary),
+                Icon(Icons.shield_outlined,
+                    size: 16, color: FlowPayColors.primary),
                 SizedBox(width: 8),
                 Flexible(
                   child: Text(
@@ -322,7 +326,8 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
             const SizedBox(height: 12),
             const Text(
               'Signing on-device with B-Key Secure Enclave...',
-              style: TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
+              style:
+                  TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
             ),
             const SizedBox(height: 32),
           ] else ...[
@@ -344,7 +349,9 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
         ]) ...[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: row.map((d) => _buildKey(d, onTap: () => _onDigitTapped(d))).toList(),
+            children: row
+                .map((d) => _buildKey(d, onTap: () => _onDigitTapped(d)))
+                .toList(),
           ),
           const SizedBox(height: 10),
         ],

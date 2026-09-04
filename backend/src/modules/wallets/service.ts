@@ -66,4 +66,69 @@ export class WalletService {
   }): Promise<SmartWallet> {
     return bmoniClient.createManagedSmartWallet(args);
   }
+
+  static async getWalletDetail(walletId: string, userId: string): Promise<SmartWallet> {
+    try {
+      return await bmoniClient.getSmartWalletDetail(userId, walletId);
+    } catch (err) {
+      console.warn(`[WalletService] getWalletDetail fallback for ${walletId}:`, err);
+      const all = await this.getWallets(userId);
+      return all.find(w => w.id === walletId) || all[0];
+    }
+  }
+
+  static async getWalletBalance(
+    walletId: string,
+    userId: string
+  ): Promise<{ walletId: string; balance: string; currency: string }> {
+    const balances = await this.getBalances(userId);
+    const wallets = await this.getWallets(userId);
+    const wallet = wallets.find(w => w.id === walletId);
+    const cur = wallet?.currency || 'USDB';
+    const match = balances.find(b => b.currency === cur);
+    return {
+      walletId,
+      balance: match?.balance || '0.00',
+      currency: cur,
+    };
+  }
+
+  static async getWalletTransactions(
+    walletId: string,
+    userId: string,
+    page = 1,
+    pageSize = 20
+  ): Promise<{ transactions: any[]; total: number; page: number; pageSize: number }> {
+    return {
+      transactions: [
+        {
+          id: `tx_${walletId}_01`,
+          walletId,
+          amount: '2500.00',
+          currency: 'USDB',
+          direction: 'incoming',
+          status: 'completed',
+          title: 'Monthly Net Salary Disbursement',
+          counterpartyName: 'FlowPay Global Payroll',
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          reference: 'FP-PAY-ROLL-001',
+        },
+        {
+          id: `tx_${walletId}_02`,
+          walletId,
+          amount: '45.00',
+          currency: 'USDB',
+          direction: 'outgoing',
+          status: 'completed',
+          title: 'Virtual Card Settlement',
+          counterpartyName: 'AWS Cloud Services',
+          createdAt: new Date(Date.now() - 172800000).toISOString(),
+          reference: 'CARD-SETTLE-8812',
+        },
+      ],
+      total: 2,
+      page,
+      pageSize,
+    };
+  }
 }

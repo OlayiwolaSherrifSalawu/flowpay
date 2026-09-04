@@ -18,7 +18,8 @@ void main() {
       await BmoniSdkService.setPin('123456');
     });
 
-    testWidgets('Renders all 3 core security sections and required indicators', (tester) async {
+    testWidgets('Renders all 3 core security sections and required indicators',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -38,23 +39,28 @@ void main() {
 
       // 1. Hero Trust Banner
       expect(find.text('B-Key Hardware Enclave Active'), findsOneWidget);
-      expect(find.text('On-Device Self-Custody • Zero Remote Private Keys'), findsOneWidget);
+      expect(find.text('On-Device Self-Custody • Zero Remote Private Keys'),
+          findsOneWidget);
       expect(find.text('SECURE'), findsOneWidget);
       expect(find.text('SECP256K1 HARDWARE'), findsOneWidget);
       expect(find.text('ZERO AI CUSTODY'), findsOneWidget);
 
       // 2. Section 1: Wallet Security
       expect(find.text('1. Wallet Security'), findsOneWidget);
-      expect(find.text('INITIALIZED'), findsWidgets); // Shows whether wallet is initialized
+      expect(find.text('INITIALIZED'),
+          findsWidgets); // Shows whether wallet is initialized
       expect(find.text('On-Device EVM Public Address'), findsOneWidget);
-      expect(find.textContaining('0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19'), findsOneWidget);
+      expect(find.textContaining('0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19'),
+          findsOneWidget);
       expect(find.text('Manage On-Device B-Key Wallet'), findsOneWidget);
 
       // 3. Section 2: Signing Security
       expect(find.text('2. Signing Security'), findsOneWidget);
-      expect(find.text('AVAILABLE & ACTIVE'), findsOneWidget); // Shows whether device signing is available
+      expect(find.text('AVAILABLE & ACTIVE'),
+          findsOneWidget); // Shows whether device signing is available
       expect(find.text('Device Hardware Signer'), findsOneWidget);
-      expect(find.text('6-Digit Security PIN Protection'), findsOneWidget); // Shows whether PIN protection is enabled
+      expect(find.text('6-Digit Security PIN Protection'),
+          findsOneWidget); // Shows whether PIN protection is enabled
       expect(find.text('CONFIGURED'), findsWidgets);
       expect(find.text('Biometric App Gate'), findsOneWidget);
       expect(find.text('Test Signer'), findsOneWidget);
@@ -63,11 +69,14 @@ void main() {
       expect(find.text('3. Approval Rules'), findsOneWidget);
       expect(find.text('ZERO AI EXECUTION'), findsOneWidget);
       // Explains: "Financial actions require your approval."
-      expect(find.text('"Financial actions require your approval."'), findsOneWidget);
-      expect(find.textContaining('AI models in FlowPay are strictly advisory'), findsOneWidget);
+      expect(find.text('"Financial actions require your approval."'),
+          findsOneWidget);
+      expect(find.textContaining('AI models in FlowPay are strictly advisory'),
+          findsOneWidget);
 
       // The 4 Invariants of FlowPay Financial Safety
-      expect(find.text('The 4 Invariants of FlowPay Financial Safety'), findsOneWidget);
+      expect(find.text('The 4 Invariants of FlowPay Financial Safety'),
+          findsOneWidget);
       expect(find.text('Structured Intent Interpretation'), findsOneWidget);
       expect(find.text('Deterministic Rule Validation'), findsOneWidget);
       expect(find.text('Mandatory Human Preview'), findsOneWidget);
@@ -81,10 +90,14 @@ void main() {
 
       // Honest disclosure (do not claim unsupported security features)
       expect(find.textContaining('Genuine Security Standard'), findsOneWidget);
-      expect(find.textContaining('FlowPay does not claim unsupported cloud MPC'), findsOneWidget);
+      expect(
+          find.textContaining('FlowPay does not claim unsupported cloud MPC'),
+          findsOneWidget);
     });
 
-    testWidgets('Tapping "Manage On-Device B-Key Wallet" navigates to WalletProvisioningScreen', (tester) async {
+    testWidgets(
+        'Tapping "Manage On-Device B-Key Wallet" navigates to WalletProvisioningScreen',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -108,7 +121,8 @@ void main() {
       expect(find.byType(WalletProvisioningScreen), findsOneWidget);
     });
 
-    testWidgets('Tapping "Test Signer" opens PIN authorization sheet', (tester) async {
+    testWidgets('Tapping "Test Signer" opens PIN authorization sheet',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -131,7 +145,8 @@ void main() {
 
       expect(find.byType(WalletPinAuthSheet), findsOneWidget);
       expect(find.text('Test Device Signer'), findsOneWidget);
-      expect(find.text('Your FlowPay wallet is secured on this device.'), findsOneWidget);
+      expect(find.text('Your FlowPay wallet is secured on this device.'),
+          findsOneWidget);
     });
   });
 }

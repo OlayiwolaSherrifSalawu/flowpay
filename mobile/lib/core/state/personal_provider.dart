@@ -44,8 +44,10 @@ class PersonalProvider extends ChangeNotifier {
 
   List<WalletAccount> get wallets => List.unmodifiable(_wallets);
   List<MoneyMissionModel> get missions => List.unmodifiable(_missions);
-  List<PendingApprovalModel> get pendingApprovals => List.unmodifiable(_pendingApprovals);
-  List<ActivityModel> get recentActivities => List.unmodifiable(_recentActivities);
+  List<PendingApprovalModel> get pendingApprovals =>
+      List.unmodifiable(_pendingApprovals);
+  List<ActivityModel> get recentActivities =>
+      List.unmodifiable(_recentActivities);
 
   int get activeMissionCount => _missions.where((m) => m.isActive).length;
   int get pendingApprovalCount => _pendingApprovals.length;
@@ -238,7 +240,8 @@ class PersonalProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final success = await approvalRepo.rejectAction(approvalId, reason: reason);
+      final success =
+          await approvalRepo.rejectAction(approvalId, reason: reason);
       if (success) {
         _pendingApprovals.removeWhere((a) => a.id == approvalId);
       }

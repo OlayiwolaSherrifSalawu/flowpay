@@ -60,7 +60,8 @@ void main() {
       expect(find.text('\$5,000.00'), findsOneWidget);
     });
 
-    testWidgets('Renders FlowPayTextField and FlowPayAmountField', (tester) async {
+    testWidgets('Renders FlowPayTextField and FlowPayAmountField',
+        (tester) async {
       final ctrl = TextEditingController();
 
       await tester.pumpWidget(
@@ -89,7 +90,8 @@ void main() {
       expect(find.text('\$'), findsOneWidget);
     });
 
-    testWidgets('Renders FlowPayStatusBadge across all 10 shared states', (tester) async {
+    testWidgets('Renders FlowPayStatusBadge across all 10 shared states',
+        (tester) async {
       const states = [
         FlowPayAppStatus.loading,
         FlowPayAppStatus.success,
@@ -108,7 +110,8 @@ void main() {
           theme: FlowPayTheme.dark(),
           home: Scaffold(
             body: Column(
-              children: states.map((s) => FlowPayStatusBadge(appStatus: s)).toList(),
+              children:
+                  states.map((s) => FlowPayStatusBadge(appStatus: s)).toList(),
             ),
           ),
         ),
@@ -119,7 +122,8 @@ void main() {
       }
     });
 
-    testWidgets('Renders FlowPayAmountDisplay with tabular figures', (tester) async {
+    testWidgets('Renders FlowPayAmountDisplay with tabular figures',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: FlowPayTheme.dark(),
@@ -142,7 +146,9 @@ void main() {
       expect(find.text('≈ ₦6,800,000 NGN'), findsOneWidget);
     });
 
-    testWidgets('Renders FlowPayCurrencyDisplay in both full and compact styles', (tester) async {
+    testWidgets(
+        'Renders FlowPayCurrencyDisplay in both full and compact styles',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: FlowPayTheme.dark(),
@@ -172,7 +178,8 @@ void main() {
       expect(find.text('USD'), findsOneWidget);
     });
 
-    testWidgets('Renders FlowPayStateView with universal states', (tester) async {
+    testWidgets('Renders FlowPayStateView with universal states',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: FlowPayTheme.dark(),

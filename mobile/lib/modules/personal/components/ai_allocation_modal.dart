@@ -32,7 +32,8 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: widget.initialAmount.majorUnits.toString());
+    _amountController =
+        TextEditingController(text: widget.initialAmount.majorUnits.toString());
   }
 
   @override
@@ -55,8 +56,10 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
     // Create new autonomous allocation mission
     final newMission = MoneyMissionModel(
       id: 'm_alloc_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Smart Portfolio Allocation (${_savingsPct.toInt()}/${_payrollPct.toInt()}/${_reservePct.toInt()})',
-      tagline: 'Auto-allocates \$$_currentAmount: ${_savingsPct.toInt()}% NGN Savings, ${_payrollPct.toInt()}% Payroll, ${_reservePct.toInt()}% Reserve',
+      title:
+          'Smart Portfolio Allocation (${_savingsPct.toInt()}/${_payrollPct.toInt()}/${_reservePct.toInt()})',
+      tagline:
+          'Auto-allocates \$$_currentAmount: ${_savingsPct.toInt()}% NGN Savings, ${_payrollPct.toInt()}% Payroll, ${_reservePct.toInt()}% Reserve',
       ruleType: MissionRuleType.autoSweep,
       isActive: true,
       stats: 'Active autonomous strategy',
@@ -73,7 +76,8 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Allocation mission activated! Auto-allocating \$$_currentAmount.'),
+        content: Text(
+            'Allocation mission activated! Auto-allocating \$$_currentAmount.'),
         backgroundColor: BMoniColors.brand500,
       ),
     );
@@ -95,7 +99,9 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
+        color: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -110,7 +116,8 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
                   color: BMoniColors.brand500.withAlpha(35),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.pie_chart_outline, color: BMoniColors.brand400, size: 20),
+                child: const Icon(Icons.pie_chart_outline,
+                    color: BMoniColors.brand400, size: 20),
               ),
               const SizedBox(width: 10),
               Column(
@@ -126,7 +133,10 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
                   ),
                   const Text(
                     'Task Workflow: Autonomous Split & Sweep',
-                    style: TextStyle(fontSize: 12, color: BMoniColors.brand400, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: BMoniColors.brand400,
+                        fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -140,24 +150,38 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
           const SizedBox(height: 16),
 
           // Amount to Allocate
-          const Text('Amount to Allocate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey400)),
+          const Text('Amount to Allocate',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BMoniColors.grey400)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
+              color: isDark
+                  ? FlowPayColors.darkSurface
+                  : FlowPayColors.lightSurfaceElevated,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: FlowPayColors.darkBorder),
             ),
             child: Row(
               children: [
-                const Text('\$', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text('\$',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
@@ -166,25 +190,35 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: BMoniColors.brand500.withAlpha(30),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text('USDB', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMoniColors.brand400)),
+                  child: const Text('USDB',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: BMoniColors.brand400)),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
 
-          const Text('Recommended Distribution', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey400)),
+          const Text('Recommended Distribution',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BMoniColors.grey400)),
           const SizedBox(height: 10),
 
           // Distribution breakdown cards
           _DistributionRow(
             label: 'High-Yield NGN Savings (${_savingsPct.toInt()}%)',
-            sublabel: 'Auto-convert to CNGN @ 1550 = ₦${(savingsAmt * 1550).round()}',
+            sublabel:
+                'Auto-convert to CNGN @ 1550 = ₦${(savingsAmt * 1550).round()}',
             amount: '\$${savingsAmt.toStringAsFixed(2)}',
             color: BMoniColors.success400,
             icon: Icons.savings_outlined,
@@ -252,13 +286,23 @@ class _DistributionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const SizedBox(height: 2),
-                Text(sublabel, style: const TextStyle(fontSize: 11, color: BMoniColors.grey400)),
+                Text(sublabel,
+                    style: const TextStyle(
+                        fontSize: 11, color: BMoniColors.grey400)),
               ],
             ),
           ),
-          Text(amount, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+          Text(amount,
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white)),
         ],
       ),
     );

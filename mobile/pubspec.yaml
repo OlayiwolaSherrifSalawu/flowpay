@@ -14,6 +14,9 @@ dependencies:
   # BMONI Flutter UI Kit (Theme, tokens, BMoniWalletCard, typography, components)
   bkey_uikit: ^0.0.1
 
+  # BMONI Embedded Wallets & Cards (EmbeddedWalletCard, Riverpod notifiers, data contracts)
+  bmoni_embedded_wallets_cards: ^0.0.1
+
   # State Management & DI
   flutter_riverpod: ^3.2.1
 

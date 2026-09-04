@@ -124,7 +124,8 @@ class MissionAllocation {
   final String sourceAmountMinor;
   final String sourceAmountFormatted;
   final String? targetAmountMinor;
-  final String? targetAmountFormatted; // e.g. "$1,000 equivalent" or "₦1,550,000.00"
+  final String?
+      targetAmountFormatted; // e.g. "$1,000 equivalent" or "₦1,550,000.00"
   final String destinationWalletTag; // e.g. "USD Smart Vault"
   final MissionActionType actionType;
   final String? recipientIdentifier;
@@ -149,16 +150,20 @@ class MissionAllocation {
     final pct = (json['percentage'] as num?)?.toDouble() ?? 0.0;
 
     return MissionAllocation(
-      id: json['id']?.toString() ?? 'alloc_${DateTime.now().millisecondsSinceEpoch}',
-      category: MissionAllocationCategory.fromString(json['category']?.toString()),
+      id: json['id']?.toString() ??
+          'alloc_${DateTime.now().millisecondsSinceEpoch}',
+      category:
+          MissionAllocationCategory.fromString(json['category']?.toString()),
       label: json['label']?.toString() ?? 'Allocation',
       percentage: pct,
       targetCurrency: Currency.fromCode(currencyStr),
       sourceAmountMinor: json['sourceAmountMinor']?.toString() ?? '0',
-      sourceAmountFormatted: json['sourceAmountFormatted']?.toString() ?? '\$0.00',
+      sourceAmountFormatted:
+          json['sourceAmountFormatted']?.toString() ?? '\$0.00',
       targetAmountMinor: json['targetAmountMinor']?.toString(),
       targetAmountFormatted: json['targetAmountFormatted']?.toString(),
-      destinationWalletTag: json['destinationWalletTag']?.toString() ?? 'Main Wallet',
+      destinationWalletTag:
+          json['destinationWalletTag']?.toString() ?? 'Main Wallet',
       actionType: MissionActionType.fromString(json['actionType']?.toString()),
       recipientIdentifier: json['recipientIdentifier']?.toString(),
     );
@@ -173,10 +178,12 @@ class MissionAllocation {
         'sourceAmountMinor': sourceAmountMinor,
         'sourceAmountFormatted': sourceAmountFormatted,
         if (targetAmountMinor != null) 'targetAmountMinor': targetAmountMinor,
-        if (targetAmountFormatted != null) 'targetAmountFormatted': targetAmountFormatted,
+        if (targetAmountFormatted != null)
+          'targetAmountFormatted': targetAmountFormatted,
         'destinationWalletTag': destinationWalletTag,
         'actionType': actionType.name.toUpperCase(),
-        if (recipientIdentifier != null) 'recipientIdentifier': recipientIdentifier,
+        if (recipientIdentifier != null)
+          'recipientIdentifier': recipientIdentifier,
       };
 }
 
@@ -198,10 +205,12 @@ class MissionTriggerCondition {
   factory MissionTriggerCondition.fromJson(Map<String, dynamic> json) {
     return MissionTriggerCondition(
       type: json['type']?.toString() ?? 'WHEN_RECEIVE',
-      sourceCurrency: Currency.fromCode(json['sourceCurrency']?.toString() ?? 'USD'),
+      sourceCurrency:
+          Currency.fromCode(json['sourceCurrency']?.toString() ?? 'USD'),
       sourceAmount: json['sourceAmount']?.toString() ?? '2000.00',
       sourceAmountMinor: json['sourceAmountMinor']?.toString() ?? '200000',
-      description: json['description']?.toString() ?? 'Whenever money is received',
+      description:
+          json['description']?.toString() ?? 'Whenever money is received',
     );
   }
 
@@ -255,7 +264,8 @@ class MissionIntent {
     }
 
     return MissionIntent(
-      intentId: json['intentId']?.toString() ?? 'mission_${DateTime.now().millisecondsSinceEpoch}',
+      intentId: json['intentId']?.toString() ??
+          'mission_${DateTime.now().millisecondsSinceEpoch}',
       originalPrompt: json['originalPrompt']?.toString() ?? '',
       intentType: MissionIntentType.fromString(json['intentType']?.toString()),
       ruleTitle: json['ruleTitle']?.toString() ?? 'Autonomous Money Mission',

@@ -7,7 +7,8 @@ import 'package:flowpay_mobile/modules/personal/money_missions_screen.dart';
 
 void main() {
   group('Money Missions Flagship Feature Tests', () {
-    testWidgets('Renders Money Missions screen with primary heading, input, and 5 suggestion chips',
+    testWidgets(
+        'Renders Money Missions screen with primary heading, input, and 5 suggestion chips',
         (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
@@ -47,7 +48,8 @@ void main() {
       expect(find.byType(MissionCard), findsWidgets);
     });
 
-    testWidgets('Tapping suggestion chips prefills the natural language input field',
+    testWidgets(
+        'Tapping suggestion chips prefills the natural language input field',
         (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
@@ -71,7 +73,8 @@ void main() {
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(
         textField.controller?.text,
-        contains('Whenever I receive \$1,500, save 25% into high-yield USD emergency vault.'),
+        contains(
+            'Whenever I receive \$1,500, save 25% into high-yield USD emergency vault.'),
       );
 
       // Tap "Split incoming payment"
@@ -155,7 +158,8 @@ void main() {
       // Invariant Reassurance Banner
       expect(find.text('Nothing moves until you approve.'), findsOneWidget);
       expect(
-        find.text('Requires explicit authorization with your on-device B-Key PIN.'),
+        find.text(
+            'Requires explicit authorization with your on-device B-Key PIN.'),
         findsOneWidget,
       );
 
@@ -169,7 +173,9 @@ void main() {
 
       // 4. Verify B-Key PIN Signing Sheet appears
       expect(find.text('Sign Money Mission'), findsOneWidget);
-      expect(find.textContaining('Your FlowPay wallet is secured on this device'), findsOneWidget);
+      expect(
+          find.textContaining('Your FlowPay wallet is secured on this device'),
+          findsOneWidget);
 
       // Enter 6-digit PIN: 123456
       await tester.tap(find.byKey(const Key('pin_key_1')));
@@ -195,11 +201,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // 6. Verify Mission appears in Active Missions list
-      expect(find.text('Incoming 3-Way Split: USD, NGN Expenses & Tax'), findsOneWidget);
+      expect(find.text('Incoming 3-Way Split: USD, NGN Expenses & Tax'),
+          findsOneWidget);
       expect(find.textContaining('⚡ Run Now'), findsWidgets);
     });
 
-    testWidgets('Manual trigger on Active Mission prompts PIN and updates execution',
+    testWidgets(
+        'Manual trigger on Active Mission prompts PIN and updates execution',
         (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -240,7 +248,8 @@ void main() {
 
       // Verify success snackbar
       expect(
-        find.textContaining('⚡ Mission triggered & executed successfully via BMONI rails!'),
+        find.textContaining(
+            '⚡ Mission triggered & executed successfully via BMONI rails!'),
         findsOneWidget,
       );
     });

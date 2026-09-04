@@ -31,7 +31,8 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: widget.initialAmount.majorUnits.toString());
+    _amountController =
+        TextEditingController(text: widget.initialAmount.majorUnits.toString());
   }
 
   @override
@@ -71,8 +72,10 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
       final activity = ActivityModel(
         id: 'act_fx_${DateTime.now().millisecondsSinceEpoch}',
         title: 'FX Conversion: USD → NGN',
-        description: 'Converted \$$_usdAmount USD to ₦${_ngnAmount.round()} NGN @ $_exchangeRate',
-        amount: Money.fromMajorString(_usdAmount.toStringAsFixed(2), Currency.usd),
+        description:
+            'Converted \$$_usdAmount USD to ₦${_ngnAmount.round()} NGN @ $_exchangeRate',
+        amount:
+            Money.fromMajorString(_usdAmount.toStringAsFixed(2), Currency.usd),
         category: ActivityCategory.fx,
         status: FlowPayAppStatus.completed,
         timestamp: DateTime.now(),
@@ -87,7 +90,8 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Instant FX settled! ₦${_ngnAmount.round()} credited to your NGN smart wallet.'),
+            content: Text(
+                'Instant FX settled! ₦${_ngnAmount.round()} credited to your NGN smart wallet.'),
             backgroundColor: BMoniColors.brand500,
           ),
         );
@@ -95,7 +99,9 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Conversion failed: $e'), backgroundColor: BMoniColors.error400),
+          SnackBar(
+              content: Text('Conversion failed: $e'),
+              backgroundColor: BMoniColors.error400),
         );
       }
     } finally {
@@ -115,7 +121,9 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
+        color: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
@@ -130,7 +138,8 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
                   color: BMoniColors.success400.withAlpha(35),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.currency_exchange, color: BMoniColors.success400, size: 20),
+                child: const Icon(Icons.currency_exchange,
+                    color: BMoniColors.success400, size: 20),
               ),
               const SizedBox(width: 10),
               Column(
@@ -146,7 +155,10 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
                   ),
                   const Text(
                     'Task Workflow: Zero-Spread BMONI Rail',
-                    style: TextStyle(fontSize: 12, color: BMoniColors.success400, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: BMoniColors.success400,
+                        fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
@@ -160,29 +172,48 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
           const SizedBox(height: 16),
 
           // Source Input
-          const Text('You Convert (USD)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey400)),
+          const Text('You Convert (USD)',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BMoniColors.grey400)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
+              color: isDark
+                  ? FlowPayColors.darkSurface
+                  : FlowPayColors.lightSurfaceElevated,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: FlowPayColors.darkBorder),
             ),
             child: Row(
               children: [
-                const Text('\$', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text('\$',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                    decoration: const InputDecoration(
+                        border: InputBorder.none, isDense: true),
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
-                const Text('USDB', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMoniColors.brand400)),
+                const Text('USDB',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: BMoniColors.brand400)),
               ],
             ),
           ),
@@ -199,25 +230,38 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
               ),
               child: Text(
                 '1 USD = ${_exchangeRate.toStringAsFixed(2)} NGN • Real-Time Rail Rate',
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: BMoniColors.brand300),
+                style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: BMoniColors.brand300),
               ),
             ),
           ),
           const SizedBox(height: 12),
 
           // Target Output
-          const Text('You Receive (NGN)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey400)),
+          const Text('You Receive (NGN)',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BMoniColors.grey400)),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
+              color: isDark
+                  ? FlowPayColors.darkSurface
+                  : FlowPayColors.lightSurfaceElevated,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: FlowPayColors.darkBorder),
             ),
             child: Row(
               children: [
-                const Text('₦', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text('₦',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -225,10 +269,17 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
                           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                           (Match m) => '${m[1]},',
                         ),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: BMoniColors.success400),
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: BMoniColors.success400),
                   ),
                 ),
-                const Text('CNGN', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: BMoniColors.success400)),
+                const Text('CNGN',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: BMoniColors.success400)),
               ],
             ),
           ),
@@ -238,13 +289,17 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('BMONI Rail Network Fee', style: TextStyle(fontSize: 12, color: BMoniColors.grey400)),
+              Text('BMONI Rail Network Fee',
+                  style: TextStyle(fontSize: 12, color: BMoniColors.grey400)),
               SizedBox(width: 8),
               Flexible(
                 child: Text(
                   '\$0.05 USDB (99.8% saved)',
                   textAlign: TextAlign.end,
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.brand300),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: BMoniColors.brand300),
                 ),
               ),
             ],
@@ -252,7 +307,11 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
           const SizedBox(height: 16),
 
           // PIN Input
-          const Text('Enter 6-Digit B-Key PIN to Authorize', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: BMoniColors.grey300)),
+          const Text('Enter 6-Digit B-Key PIN to Authorize',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BMoniColors.grey300)),
           const SizedBox(height: 6),
           TextField(
             controller: _pinController,
@@ -260,14 +319,24 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
             maxLength: 6,
             obscureText: true,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 18, letterSpacing: 8, color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                fontSize: 18,
+                letterSpacing: 8,
+                color: Colors.white,
+                fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               hintText: '••••••',
               counterText: '',
               filled: true,
               fillColor: FlowPayColors.darkSurface,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: FlowPayColors.darkBorder)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: BMoniColors.brand500, width: 1.5)),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: FlowPayColors.darkBorder)),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                      color: BMoniColors.brand500, width: 1.5)),
             ),
           ),
           const SizedBox(height: 18),

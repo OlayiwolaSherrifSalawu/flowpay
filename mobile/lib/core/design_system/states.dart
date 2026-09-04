@@ -42,7 +42,9 @@ class FlowPayLoadingState extends StatelessWidget {
               Text(
                 message!,
                 style: FlowPayTypography.bodyMd.copyWith(
-                  color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                  color: isDark
+                      ? FlowPayColors.darkTextSecondary
+                      : FlowPayColors.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -94,7 +96,9 @@ class FlowPayErrorState extends StatelessWidget {
             Text(
               title,
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -102,7 +106,9 @@ class FlowPayErrorState extends StatelessWidget {
             Text(
               message,
               style: FlowPayTypography.bodyMd.copyWith(
-                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                color: isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -153,23 +159,31 @@ class FlowPayEmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.lightBorder,
                 ),
               ),
               child: Icon(
                 icon,
                 size: 36,
-                color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                color: isDark
+                    ? FlowPayColors.darkTextTertiary
+                    : FlowPayColors.lightTextTertiary,
               ),
             ),
             const SizedBox(height: FlowPaySpacing.lg),
             Text(
               title,
               style: FlowPayTypography.headingSm.copyWith(
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -177,7 +191,9 @@ class FlowPayEmptyState extends StatelessWidget {
             Text(
               description,
               style: FlowPayTypography.bodyMd.copyWith(
-                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                color: isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -230,7 +246,9 @@ class FlowPayStateView extends StatelessWidget {
       case FlowPayAppStatus.processing:
         return FlowPayLoadingState(
           message: loadingMessage ??
-              (status == FlowPayAppStatus.processing ? 'Processing on-chain...' : 'Loading...'),
+              (status == FlowPayAppStatus.processing
+                  ? 'Processing on-chain...'
+                  : 'Loading...'),
         );
       case FlowPayAppStatus.error:
       case FlowPayAppStatus.failed:

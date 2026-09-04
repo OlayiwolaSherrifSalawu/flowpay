@@ -43,7 +43,9 @@ class FlowPayCurrencyDisplay extends StatelessWidget {
           color: _getBadgeColor(),
           borderRadius: FlowPaySpacing.borderRadiusSm,
           border: Border.all(
-            color: isDark ? FlowPayColors.darkBorderLight : FlowPayColors.lightBorder,
+            color: isDark
+                ? FlowPayColors.darkBorderLight
+                : FlowPayColors.lightBorder,
           ),
         ),
         child: Row(
@@ -95,14 +97,18 @@ class FlowPayCurrencyDisplay extends StatelessWidget {
               name,
               style: FlowPayTypography.bodyMd.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                color: isDark
+                    ? FlowPayColors.darkTextPrimary
+                    : FlowPayColors.lightTextPrimary,
               ),
             ),
             if (tokenName != null)
               Text(
                 tokenName!,
                 style: FlowPayTypography.caption.copyWith(
-                  color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                  color: isDark
+                      ? FlowPayColors.darkTextTertiary
+                      : FlowPayColors.lightTextTertiary,
                 ),
               ),
           ],

@@ -96,7 +96,8 @@ class TransferReviewModal extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.shield_outlined, color: BMoniColors.brand400, size: 22),
+                  Icon(Icons.shield_outlined,
+                      color: BMoniColors.brand400, size: 22),
                   SizedBox(width: 8),
                   Text(
                     'Review Transfer',
@@ -109,7 +110,8 @@ class TransferReviewModal extends StatelessWidget {
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close, color: BMoniColors.grey400, size: 20),
+                icon: const Icon(Icons.close,
+                    color: BMoniColors.grey400, size: 20),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -122,226 +124,250 @@ class TransferReviewModal extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                // 1. Amount & Recipient Hero Card
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: BMoniColors.offbrand900,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: BMoniColors.offbrand700),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Total to Send',
-                        style: TextStyle(fontSize: 13, color: BMoniColors.grey400),
-                      ),
-                      const SizedBox(height: 6),
-                      FlowPayAmountDisplay(
-                        amount: intent.amount,
-                        currencySymbol: intent.currency.symbol,
-                        currencyCode: intent.currency.code,
-                        size: AmountDisplaySize.large,
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: BMoniColors.offbrand800,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: BMoniColors.offbrand700),
+                  // 1. Amount & Recipient Hero Card
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: BMoniColors.offbrand900,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: BMoniColors.offbrand700),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Total to Send',
+                          style: TextStyle(
+                              fontSize: 13, color: BMoniColors.grey400),
                         ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 16,
-                              backgroundColor: BMoniColors.brand500.withAlpha(50),
-                              child: Text(
-                                intent.recipient.isNotEmpty ? intent.recipient[0].toUpperCase() : 'B',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: BMoniColors.brand300,
+                        const SizedBox(height: 6),
+                        FlowPayAmountDisplay(
+                          amount: intent.amount,
+                          currencySymbol: intent.currency.symbol,
+                          currencyCode: intent.currency.code,
+                          size: AmountDisplaySize.large,
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: BMoniColors.offbrand800,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: BMoniColors.offbrand700),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor:
+                                    BMoniColors.brand500.withAlpha(50),
+                                child: Text(
+                                  intent.recipient.isNotEmpty
+                                      ? intent.recipient[0].toUpperCase()
+                                      : 'B',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: BMoniColors.brand300,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    intent.recipient,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: BMoniColors.grey50,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (intent.purpose != null && intent.purpose!.isNotEmpty)
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      intent.purpose!,
-                                      style: const TextStyle(fontSize: 12, color: BMoniColors.grey400),
+                                      intent.recipient,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: BMoniColors.grey50,
+                                        fontSize: 14,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                    if (intent.purpose != null &&
+                                        intent.purpose!.isNotEmpty)
+                                      Text(
+                                        intent.purpose!,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: BMoniColors.grey400),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 2. Transfer Breakdown Details Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: BMoniColors.offbrand900,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: BMoniColors.offbrand700),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildRow('Recipient', intent.recipient),
+                        _buildRow('Amount',
+                            '${intent.amount} ${intent.currency.code}'),
+                        _buildRow('Currency',
+                            '${intent.currency.name} (${intent.currency.code})'),
+                        _buildRow(
+                            'Funding Source', fundingOption.fundingWalletName),
+                        const Divider(
+                            color: BMoniColors.offbrand700, height: 18),
+
+                        // Conversion & Exchange Rate Section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Conversion',
+                                style: TextStyle(
+                                    color: BMoniColors.grey400, fontSize: 13)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: fundingOption.requiresConversion
+                                    ? BMoniColors.brand500.withAlpha(40)
+                                    : BMoniColors.success400.withAlpha(30),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: fundingOption.requiresConversion
+                                      ? BMoniColors.brand500.withAlpha(80)
+                                      : BMoniColors.success400.withAlpha(80),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (fundingOption.requiresConversion)
+                                    const Icon(Icons.currency_exchange,
+                                        size: 12, color: BMoniColors.brand300),
+                                  if (fundingOption.requiresConversion)
+                                    const SizedBox(width: 4),
+                                  Text(
+                                    fundingOption.conversionLabel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: fundingOption.requiresConversion
+                                          ? BMoniColors.brand300
+                                          : BMoniColors.success400,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
+                        const SizedBox(height: 8),
 
-                // 2. Transfer Breakdown Details Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: BMoniColors.offbrand900,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: BMoniColors.offbrand700),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildRow('Recipient', intent.recipient),
-                      _buildRow('Amount', '${intent.amount} ${intent.currency.code}'),
-                      _buildRow('Currency', '${intent.currency.name} (${intent.currency.code})'),
-                      _buildRow('Funding Source', fundingOption.fundingWalletName),
-                      const Divider(color: BMoniColors.offbrand700, height: 18),
-
-                      // Conversion & Exchange Rate Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Conversion', style: TextStyle(color: BMoniColors.grey400, fontSize: 13)),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: fundingOption.requiresConversion
-                                  ? BMoniColors.brand500.withAlpha(40)
-                                  : BMoniColors.success400.withAlpha(30),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: fundingOption.requiresConversion
-                                    ? BMoniColors.brand500.withAlpha(80)
-                                    : BMoniColors.success400.withAlpha(80),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (fundingOption.requiresConversion)
-                                  const Icon(Icons.currency_exchange, size: 12, color: BMoniColors.brand300),
-                                if (fundingOption.requiresConversion)
-                                  const SizedBox(width: 4),
-                                Text(
-                                  fundingOption.conversionLabel,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: fundingOption.requiresConversion
-                                        ? BMoniColors.brand300
-                                        : BMoniColors.success400,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        if (fundingOption.exchangeRate != null)
+                          _buildRow(
+                            'Exchange Rate',
+                            fundingOption.fundingCurrency == intent.currency
+                                ? '1.00'
+                                : '1 ${intent.currency.code} = ${fundingOption.exchangeRate!.toStringAsFixed(2)} ${fundingOption.fundingCurrency.code}',
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
 
-                      if (fundingOption.exchangeRate != null)
-                        _buildRow(
-                          'Exchange Rate',
-                          fundingOption.fundingCurrency == intent.currency
-                              ? '1.00'
-                              : '1 ${intent.currency.code} = ${fundingOption.exchangeRate!.toStringAsFixed(2)} ${fundingOption.fundingCurrency.code}',
-                        ),
-
-                      if (fundingOption.requiresConversion)
-                        _buildRow(
-                          'Converted Principal',
-                          fundingOption.convertedDebit.formatFormatted(),
-                        ),
-
-                      _buildRow('Network & Rail Fee', fundingOption.networkFee.formatFormatted()),
-
-                      if (fundingOption.requiresConversion && fundingOption.fxFee.amountMinor > BigInt.zero)
-                        _buildRow('Conversion Fee (15 bps)', fundingOption.fxFee.formatFormatted()),
-
-                      const Divider(color: BMoniColors.offbrand700, height: 18),
-
-                      // Total Settlement
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Total Settlement',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: BMoniColors.grey50,
-                            ),
+                        if (fundingOption.requiresConversion)
+                          _buildRow(
+                            'Converted Principal',
+                            fundingOption.convertedDebit.formatFormatted(),
                           ),
-                          Text(
-                            fundingOption.totalDebit.formatFormatted(),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: BMoniColors.brand300,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
 
-                // 3. Reassurance Banner: "Nothing moves until you approve."
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: BMoniColors.brand500.withAlpha(20),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.lock_outline, color: BMoniColors.brand300, size: 22),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        _buildRow('Network & Rail Fee',
+                            fundingOption.networkFee.formatFormatted()),
+
+                        if (fundingOption.requiresConversion &&
+                            fundingOption.fxFee.amountMinor > BigInt.zero)
+                          _buildRow('Conversion Fee (15 bps)',
+                              fundingOption.fxFee.formatFormatted()),
+
+                        const Divider(
+                            color: BMoniColors.offbrand700, height: 18),
+
+                        // Total Settlement
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Nothing moves until you approve.',
+                            const Text(
+                              'Total Settlement',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: BMoniColors.grey50,
                               ),
                             ),
-                            SizedBox(height: 2),
                             Text(
-                              'Zero AI money movement • On-device B-Key hardware PIN signature required',
-                              style: TextStyle(fontSize: 11, color: BMoniColors.grey400),
+                              fundingOption.totalDebit.formatFormatted(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: BMoniColors.brand300,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 14),
+
+                  // 3. Reassurance Banner: "Nothing moves until you approve."
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: BMoniColors.brand500.withAlpha(20),
+                      borderRadius: BorderRadius.circular(14),
+                      border:
+                          Border.all(color: BMoniColors.brand500.withAlpha(80)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.lock_outline,
+                            color: BMoniColors.brand300, size: 22),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nothing moves until you approve.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: BMoniColors.grey50,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Zero AI money movement • On-device B-Key hardware PIN signature required',
+                                style: TextStyle(
+                                    fontSize: 11, color: BMoniColors.grey400),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
           const SizedBox(height: 16),
 
           // 4. Action Buttons: Edit and Approve & Send
@@ -382,7 +408,8 @@ class TransferReviewModal extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: BMoniColors.grey400, fontSize: 13)),
+          Text(label,
+              style: const TextStyle(color: BMoniColors.grey400, fontSize: 13)),
           Flexible(
             child: Text(
               value,

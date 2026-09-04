@@ -28,7 +28,8 @@ class TransferIntent {
   factory TransferIntent.fromJson(Map<String, dynamic> json) {
     final curStr = json['currency']?.toString() ?? 'USD';
     return TransferIntent(
-      intentId: json['intentId']?.toString() ?? 'tx_intent_${DateTime.now().millisecondsSinceEpoch}',
+      intentId: json['intentId']?.toString() ??
+          'tx_intent_${DateTime.now().millisecondsSinceEpoch}',
       originalPrompt: json['originalPrompt']?.toString() ?? '',
       recipient: json['recipient']?.toString() ?? 'Beneficiary',
       amount: json['amount']?.toString() ?? '0.00',

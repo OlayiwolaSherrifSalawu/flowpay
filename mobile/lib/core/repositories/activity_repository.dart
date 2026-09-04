@@ -101,13 +101,19 @@ class ActivityModel {
     if (cat == ActivityCategory.mission) return ActivityType.mission;
     if (cat == ActivityCategory.card) return ActivityType.card;
     final lower = title.toLowerCase();
-    if (lower.contains('transfer') || lower.contains('sent') || lower.contains('paid')) {
+    if (lower.contains('transfer') ||
+        lower.contains('sent') ||
+        lower.contains('paid')) {
       return ActivityType.transfer;
     }
-    if (lower.contains('fx') || lower.contains('conversion') || lower.contains('convert')) {
+    if (lower.contains('fx') ||
+        lower.contains('conversion') ||
+        lower.contains('convert')) {
       return ActivityType.conversion;
     }
-    if (lower.contains('mission') || lower.contains('sweep') || lower.contains('rule')) {
+    if (lower.contains('mission') ||
+        lower.contains('sweep') ||
+        lower.contains('rule')) {
       return ActivityType.mission;
     }
     if (lower.contains('card')) return ActivityType.card;

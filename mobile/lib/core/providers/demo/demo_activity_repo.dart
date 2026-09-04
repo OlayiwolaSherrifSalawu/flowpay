@@ -9,7 +9,8 @@ class DemoActivityRepository implements ActivityRepository {
     ActivityModel(
       id: 'act_demo_01',
       title: 'Transfer to Designer in Ghana',
-      description: 'Transfer of \$500.00 USD awaiting on-device B-Key PIN approval',
+      description:
+          'Transfer of \$500.00 USD awaiting on-device B-Key PIN approval',
       amount: Money.fromMajorString('500.00', Currency.usd),
       currency: Currency.usd,
       type: ActivityType.transfer,
@@ -23,7 +24,11 @@ class DemoActivityRepository implements ActivityRepository {
       fee: Money.fromMajorString('0.50', Currency.usd),
       exchangeRate: 'N/A (Direct Currency)',
       bmoniReference: 'prop_bmoni_0428',
-      metadata: {'recipient': 'kofi.mensah@example.gh', 'rail': 'USDB', 'proposalId': 'prop_bmoni_0428'},
+      metadata: {
+        'recipient': 'kofi.mensah@example.gh',
+        'rail': 'USDB',
+        'proposalId': 'prop_bmoni_0428'
+      },
     ),
     ActivityModel(
       id: 'act_demo_02',
@@ -150,7 +155,8 @@ class DemoActivityRepository implements ActivityRepository {
     ActivityModel(
       id: 'act_demo_08',
       title: 'Virtual Card: AWS Cloud Services',
-      description: 'Card •••• 5510 authorized \$24.50 recurring cloud subscription',
+      description:
+          'Card •••• 5510 authorized \$24.50 recurring cloud subscription',
       amount: Money.fromMajorString('24.50', Currency.usd),
       currency: Currency.usd,
       type: ActivityType.card,
@@ -183,14 +189,18 @@ class DemoActivityRepository implements ActivityRepository {
       fee: Money.fromMajorString('0.00', Currency.usd),
       exchangeRate: 'N/A',
       bmoniReference: 'void_crd_0041',
-      metadata: {'merchant': 'Hilton Worldwide', 'reason': 'Customer Cancellation'},
+      metadata: {
+        'merchant': 'Hilton Worldwide',
+        'reason': 'Customer Cancellation'
+      },
     ),
 
     // 6. Wallet Operations
     ActivityModel(
       id: 'act_demo_10',
       title: 'Smart Wallet Provisioning',
-      description: 'B-Key on-device keypair initialized and registered with BMONI',
+      description:
+          'B-Key on-device keypair initialized and registered with BMONI',
       amount: Money.fromMajorString('0.00', Currency.usd),
       currency: Currency.usd,
       type: ActivityType.wallet,
@@ -211,7 +221,8 @@ class DemoActivityRepository implements ActivityRepository {
     ActivityModel(
       id: 'act_demo_11',
       title: 'Contractor Card Cap Exceeded',
-      description: 'Transaction declined: Attempted \$650.00 spend exceeded \$500 monthly cap',
+      description:
+          'Transaction declined: Attempted \$650.00 spend exceeded \$500 monthly cap',
       amount: Money.fromMajorString('650.00', Currency.usd),
       currency: Currency.usd,
       type: ActivityType.card,
@@ -225,12 +236,16 @@ class DemoActivityRepository implements ActivityRepository {
       fee: Money.fromMajorString('0.00', Currency.usd),
       exchangeRate: 'N/A',
       bmoniReference: 'decl_crd_9012_limit',
-      metadata: {'reason': 'Monthly spend cap (\$500.00) exceeded', 'merchant': 'Apple Store'},
+      metadata: {
+        'reason': 'Monthly spend cap (\$500.00) exceeded',
+        'merchant': 'Apple Store'
+      },
     ),
     ActivityModel(
       id: 'act_demo_12',
       title: 'Transfer to Vendor Failed',
-      description: 'Transfer failed: Target routing account temporarily unreachable',
+      description:
+          'Transfer failed: Target routing account temporarily unreachable',
       amount: Money.fromMajorString('250.00', Currency.usd),
       currency: Currency.usd,
       type: ActivityType.transfer,
@@ -244,7 +259,10 @@ class DemoActivityRepository implements ActivityRepository {
       fee: Money.fromMajorString('0.00', Currency.usd),
       exchangeRate: 'N/A',
       bmoniReference: 'err_rail_unreachable',
-      metadata: {'reason': 'Target rail network timeout', 'recipient': 'Apex Global'},
+      metadata: {
+        'reason': 'Target rail network timeout',
+        'recipient': 'Apex Global'
+      },
     ),
   ];
 
@@ -266,7 +284,9 @@ class DemoActivityRepository implements ActivityRepository {
   @override
   Future<ActivityModel> recordActivity(ActivityModel activity) async {
     final idx = _activities.indexWhere(
-      (a) => a.id == activity.id || (a.reference.isNotEmpty && a.reference == activity.reference),
+      (a) =>
+          a.id == activity.id ||
+          (a.reference.isNotEmpty && a.reference == activity.reference),
     );
     if (idx != -1) {
       _activities[idx] = activity;

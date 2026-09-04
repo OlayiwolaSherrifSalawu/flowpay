@@ -112,7 +112,9 @@ class BmoniTransferRepository implements TransferRepository {
     });
 
     return TransferResult(
-      proposalId: res['proposalId'] ?? res['id'] ?? 'prop_${DateTime.now().millisecondsSinceEpoch}',
+      proposalId: res['proposalId'] ??
+          res['id'] ??
+          'prop_${DateTime.now().millisecondsSinceEpoch}',
       status: 'EXECUTED',
       transactionHash: '0x_bmoni_onchain_settled',
       isDemo: false,

@@ -98,7 +98,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
 
   Future<void> _loadActivities() async {
     setState(() => _isLoading = true);
-    final acts = await widget.appState.activityRepo.getRecentActivities(limit: 50);
+    final acts =
+        await widget.appState.activityRepo.getRecentActivities(limit: 50);
     if (mounted) {
       setState(() {
         _activities = acts;
@@ -158,7 +159,10 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
         final matchesTitle = a.title.toLowerCase().contains(q);
         final matchesRef = a.reference.toLowerCase().contains(q);
         final matchesCurrency = a.currency.code.toLowerCase().contains(q);
-        return matchesRecipient || matchesTitle || matchesRef || matchesCurrency;
+        return matchesRecipient ||
+            matchesTitle ||
+            matchesRef ||
+            matchesCurrency;
       }
 
       return true;
@@ -202,7 +206,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                       description: _searchQuery.isNotEmpty
                           ? 'No activity matches "$_searchQuery" in ${_selectedFilter.label}.'
                           : 'No activity found under ${_selectedFilter.label}.',
-                      actionText: _selectedFilter != ActivityFilter.all || _searchQuery.isNotEmpty
+                      actionText: _selectedFilter != ActivityFilter.all ||
+                              _searchQuery.isNotEmpty
                           ? 'Reset Filters'
                           : null,
                       onAction: () {
@@ -215,7 +220,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                     ),
                   )
                 else
-                  ...filtered.map((activity) => _buildActivityCard(context, activity, isDark)),
+                  ...filtered.map((activity) =>
+                      _buildActivityCard(context, activity, isDark)),
               ],
             ),
           );
@@ -241,10 +247,13 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated,
+            color: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurfaceElevated,
             borderRadius: FlowPaySpacing.borderRadiusMd,
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
           ),
           child: Row(
@@ -252,19 +261,25 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
               Icon(
                 Icons.search,
                 size: 20,
-                color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                color: isDark
+                    ? FlowPayColors.darkTextTertiary
+                    : FlowPayColors.lightTextTertiary,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _searchController,
                   style: FlowPayTypography.bodyMd.copyWith(
-                    color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                    color: isDark
+                        ? FlowPayColors.darkTextPrimary
+                        : FlowPayColors.lightTextPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Search by recipient, merchant, or reference...',
                     hintStyle: FlowPayTypography.bodySm.copyWith(
-                      color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+                      color: isDark
+                          ? FlowPayColors.darkTextTertiary
+                          : FlowPayColors.lightTextTertiary,
                     ),
                     border: InputBorder.none,
                     isDense: true,
@@ -293,7 +308,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
             children: ActivityFilter.values.map((filter) {
               final isSelected = _selectedFilter == filter;
               int? count;
-              if (filter == ActivityFilter.pendingApprovals && _awaitingCount > 0) {
+              if (filter == ActivityFilter.pendingApprovals &&
+                  _awaitingCount > 0) {
                 count = _awaitingCount;
               }
 
@@ -308,14 +324,17 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                         size: 14,
                         color: isSelected
                             ? Colors.white
-                            : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
+                            : (isDark
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary),
                       ),
                       const SizedBox(width: 6),
                       Text(filter.label),
                       if (count != null) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
                             color: FlowPayColors.warning,
                             borderRadius: BorderRadius.circular(10),
@@ -334,18 +353,24 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   ),
                   selected: isSelected,
                   selectedColor: FlowPayColors.primary,
-                  backgroundColor: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+                  backgroundColor: isDark
+                      ? FlowPayColors.darkSurface
+                      : FlowPayColors.lightSurface,
                   labelStyle: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected
                         ? Colors.white
-                        : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
+                        : (isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.lightTextSecondary),
                   ),
                   side: BorderSide(
                     color: isSelected
                         ? FlowPayColors.primary
-                        : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
+                        : (isDark
+                            ? FlowPayColors.darkBorder
+                            : FlowPayColors.lightBorder),
                   ),
                   onSelected: (selected) {
                     if (selected) {
@@ -369,12 +394,16 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
           '${_filteredActivities.length} Activity Items',
           style: FlowPayTypography.caption.copyWith(
             fontWeight: FontWeight.w600,
-            color: isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary,
+            color: isDark
+                ? FlowPayColors.darkTextTertiary
+                : FlowPayColors.lightTextTertiary,
           ),
         ),
-        if (_awaitingCount > 0 && _selectedFilter != ActivityFilter.pendingApprovals)
+        if (_awaitingCount > 0 &&
+            _selectedFilter != ActivityFilter.pendingApprovals)
           InkWell(
-            onTap: () => setState(() => _selectedFilter = ActivityFilter.pendingApprovals),
+            onTap: () => setState(
+                () => _selectedFilter = ActivityFilter.pendingApprovals),
             borderRadius: FlowPaySpacing.borderRadiusSm,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -385,7 +414,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 14, color: FlowPayColors.warning),
+                  const Icon(Icons.warning_amber_rounded,
+                      size: 14, color: FlowPayColors.warning),
                   const SizedBox(width: 4),
                   Text(
                     '$_awaitingCount Awaiting Approval',
@@ -403,7 +433,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
     );
   }
 
-  Widget _buildActivityCard(BuildContext context, ActivityModel a, bool isDark) {
+  Widget _buildActivityCard(
+      BuildContext context, ActivityModel a, bool isDark) {
     final isAwaiting = a.status == FlowPayAppStatus.awaitingApproval;
 
     return Padding(
@@ -430,7 +461,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                         : FlowPayColors.lightSurfaceElevated,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(a.type.icon, color: FlowPayColors.primaryLight, size: 20),
+                  child: Icon(a.type.icon,
+                      color: FlowPayColors.primaryLight, size: 20),
                 ),
                 const SizedBox(width: FlowPaySpacing.md),
 
@@ -541,13 +573,16 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                       WalletPinAuthSheet.show(
                         context: context,
                         title: 'Approve ${a.type.label}',
-                        subtitle: 'Sign canonical BMONI proposal for ${a.amount?.formatFormatted() ?? a.reference}',
+                        subtitle:
+                            'Sign canonical BMONI proposal for ${a.amount?.formatFormatted() ?? a.reference}',
                         onAuthorize: (pin) async {
-                          final updated = a.copyWith(status: FlowPayAppStatus.completed);
+                          final updated =
+                              a.copyWith(status: FlowPayAppStatus.completed);
                           _onActivityApproved(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Action approved and signed via B-Key: ${a.reference}'),
+                              content: Text(
+                                  'Action approved and signed via B-Key: ${a.reference}'),
                               backgroundColor: FlowPayColors.accent,
                             ),
                           );

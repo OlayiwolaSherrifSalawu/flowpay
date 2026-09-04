@@ -30,7 +30,8 @@ class MissionPreviewModal extends StatelessWidget {
         color: isDark ? BMoniColors.offbrand950 : Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border.all(
-          color: isDark ? BMoniColors.brand500.withAlpha(60) : BMoniColors.grey200,
+          color:
+              isDark ? BMoniColors.brand500.withAlpha(60) : BMoniColors.grey200,
           width: 1.2,
         ),
       ),
@@ -60,7 +61,8 @@ class MissionPreviewModal extends StatelessWidget {
                   color: BMoniColors.brand500.withAlpha(35),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.auto_awesome, color: BMoniColors.brand400, size: 20),
+                child: const Icon(Icons.auto_awesome,
+                    color: BMoniColors.brand400, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -72,7 +74,8 @@ class MissionPreviewModal extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                        color:
+                            isDark ? BMoniColors.grey50 : BMoniColors.grey950,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -80,14 +83,16 @@ class MissionPreviewModal extends StatelessWidget {
                       'AI structured • Deterministically validated',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? BMoniColors.grey400 : BMoniColors.grey600,
+                        color:
+                            isDark ? BMoniColors.grey400 : BMoniColors.grey600,
                       ),
                     ),
                   ],
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close, size: 20, color: BMoniColors.grey400),
+                icon: const Icon(Icons.close,
+                    size: 20, color: BMoniColors.grey400),
                 onPressed: onEdit,
               ),
             ],
@@ -123,18 +128,22 @@ class MissionPreviewModal extends StatelessWidget {
                           fontSize: 11,
                           letterSpacing: 0.8,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? BMoniColors.brand300 : BMoniColors.brand700,
+                          color: isDark
+                              ? BMoniColors.brand300
+                              : BMoniColors.brand700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        sourceAmountStr.contains('2000') || sourceAmountStr == '2000.00'
+                        sourceAmountStr.contains('2000') ||
+                                sourceAmountStr == '2000.00'
                             ? '\$2,000 incoming'
                             : '\$$sourceAmountStr incoming',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
-                          color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                          color:
+                              isDark ? BMoniColors.grey50 : BMoniColors.grey950,
                         ),
                       ),
                     ],
@@ -142,7 +151,8 @@ class MissionPreviewModal extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: BMoniColors.brand500.withAlpha(40),
                     borderRadius: BorderRadius.circular(12),
@@ -150,14 +160,17 @@ class MissionPreviewModal extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.check_circle, size: 14, color: BMoniColors.brand300),
+                      const Icon(Icons.check_circle,
+                          size: 14, color: BMoniColors.brand300),
                       const SizedBox(width: 6),
                       Text(
                         '100% Allocated',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? BMoniColors.brand200 : BMoniColors.brand700,
+                          color: isDark
+                              ? BMoniColors.brand200
+                              : BMoniColors.brand700,
                         ),
                       ),
                     ],
@@ -202,7 +215,8 @@ class MissionPreviewModal extends StatelessWidget {
                   alloc.targetCurrency.code != 'USD') {
                 return alloc.targetAmountFormatted!;
               }
-              final parsed = double.tryParse(alloc.sourceAmountFormatted) ?? 0.0;
+              final parsed =
+                  double.tryParse(alloc.sourceAmountFormatted) ?? 0.0;
               if (parsed == parsed.roundToDouble() && parsed > 0) {
                 return '\$${parsed.toInt()}';
               }
@@ -239,7 +253,9 @@ class MissionPreviewModal extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                            color: isDark
+                                ? BMoniColors.grey50
+                                : BMoniColors.grey950,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -257,7 +273,8 @@ class MissionPreviewModal extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: pillColor,
                           borderRadius: BorderRadius.circular(6),
@@ -277,7 +294,9 @@ class MissionPreviewModal extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: isDark ? BMoniColors.grey100 : BMoniColors.grey900,
+                          color: isDark
+                              ? BMoniColors.grey100
+                              : BMoniColors.grey900,
                         ),
                       ),
                     ],
@@ -302,7 +321,8 @@ class MissionPreviewModal extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.lock_outline, size: 16, color: BMoniColors.brand400),
+                const Icon(Icons.lock_outline,
+                    size: 16, color: BMoniColors.brand400),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -313,7 +333,9 @@ class MissionPreviewModal extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? BMoniColors.grey100 : BMoniColors.grey900,
+                          color: isDark
+                              ? BMoniColors.grey100
+                              : BMoniColors.grey900,
                         ),
                       ),
                       const SizedBox(height: 1),

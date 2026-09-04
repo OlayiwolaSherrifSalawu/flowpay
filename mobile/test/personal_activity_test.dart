@@ -15,7 +15,9 @@ void main() {
       appState = AppState();
     });
 
-    testWidgets('Renders Personal Activity Screen with all required items and attributes', (tester) async {
+    testWidgets(
+        'Renders Personal Activity Screen with all required items and attributes',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -121,7 +123,8 @@ void main() {
       expect(find.text('Transfer to Bunch Dillon'), findsNothing);
     });
 
-    testWidgets('Searching filters items by counterparty or reference', (tester) async {
+    testWidgets('Searching filters items by counterparty or reference',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -152,7 +155,9 @@ void main() {
       expect(find.text('Transfer to Bunch Dillon'), findsNothing);
     });
 
-    testWidgets('Tapping activity item opens ActivityDetailModal with all required fields and privacy guarantee', (tester) async {
+    testWidgets(
+        'Tapping activity item opens ActivityDetailModal with all required fields and privacy guarantee',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -211,7 +216,9 @@ void main() {
       expect(find.byType(ActivityDetailModal), findsNothing);
     });
 
-    testWidgets('Approving a pending item via PIN authorizes and updates status to completed', (tester) async {
+    testWidgets(
+        'Approving a pending item via PIN authorizes and updates status to completed',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -235,7 +242,8 @@ void main() {
 
       // PIN authorization sheet is displayed
       expect(find.byType(WalletPinAuthSheet), findsOneWidget);
-      expect(find.text('Your FlowPay wallet is secured on this device.'), findsOneWidget);
+      expect(find.text('Your FlowPay wallet is secured on this device.'),
+          findsOneWidget);
 
       // Enter 6 digits on the PIN pad (123456)
       for (final digit in ['1', '2', '3', '4', '5', '6']) {
@@ -245,7 +253,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify success snackbar / completion
-      expect(find.textContaining('Action approved and signed via B-Key'), findsOneWidget);
+      expect(find.textContaining('Action approved and signed via B-Key'),
+          findsOneWidget);
     });
   });
 }

@@ -40,7 +40,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
 
   // Pipeline execution state
   bool _isAnalyzing = false;
-  String? _analysisStep; // 'Interpreting intent...', 'Inspecting balances...', etc.
+  String?
+      _analysisStep; // 'Interpreting intent...', 'Inspecting balances...', etc.
   BalanceInspectionResult? _inspectionResult;
   TransferFundingOption? _selectedFundingOption;
   String? _errorMessage;
@@ -147,7 +148,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
           amount: amountMoney.toMajorString(),
           amountMinor: amountMoney.amountMinor.toString(),
           currency: _selectedCurrency,
-          purpose: _purposeController.text.trim().isNotEmpty ? _purposeController.text.trim() : null,
+          purpose: _purposeController.text.trim().isNotEmpty
+              ? _purposeController.text.trim()
+              : null,
           confidenceScore: 0.95,
           requiresExplicitApproval: true,
         );
@@ -185,7 +188,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     final amountVal = double.tryParse(amountText);
     if (amountVal == null || amountVal <= 0) {
       setState(() {
-        _errorMessage = 'Please enter a valid transfer amount greater than zero.';
+        _errorMessage =
+            'Please enter a valid transfer amount greater than zero.';
       });
       return;
     }
@@ -194,7 +198,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       await _runBalanceInspection();
     }
 
-    if (_inspectionResult == null || !_inspectionResult!.isPossible || _selectedFundingOption == null) {
+    if (_inspectionResult == null ||
+        !_inspectionResult!.isPossible ||
+        _selectedFundingOption == null) {
       setState(() {
         _errorMessage = _inspectionResult?.reason ??
             TransferErrorCode.insufficientFunds.humanReadableMessage;
@@ -210,7 +216,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       amount: amountMoney.toMajorString(),
       amountMinor: amountMoney.amountMinor.toString(),
       currency: _selectedCurrency,
-      purpose: _purposeController.text.trim().isNotEmpty ? _purposeController.text.trim() : null,
+      purpose: _purposeController.text.trim().isNotEmpty
+          ? _purposeController.text.trim()
+          : null,
       confidenceScore: 0.95,
       requiresExplicitApproval: true,
     );
@@ -353,13 +361,15 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     final canPop = Navigator.of(context).canPop();
 
     Widget bodyContent = _isLoadingWallets
-        ? const Center(child: CircularProgressIndicator(color: BMoniColors.brand500))
+        ? const Center(
+            child: CircularProgressIndicator(color: BMoniColors.brand500))
         : ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             children: [
               // BMONI Security Rail Header
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF38103A), Color(0xFF1E0720)],
@@ -371,7 +381,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shield_outlined, color: BMoniColors.brand400, size: 20),
+                    const Icon(Icons.shield_outlined,
+                        color: BMoniColors.brand400, size: 20),
                     const SizedBox(width: 10),
                     const Expanded(
                       child: Column(
@@ -387,13 +398,15 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           ),
                           Text(
                             'Balance-Aware • AI Extracts • Hardware PIN Signed',
-                            style: TextStyle(fontSize: 11, color: BMoniColors.grey400),
+                            style: TextStyle(
+                                fontSize: 11, color: BMoniColors.grey400),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: BMoniColors.brand500.withAlpha(40),
                         borderRadius: BorderRadius.circular(8),
@@ -425,7 +438,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.auto_awesome, color: BMoniColors.brand400, size: 18),
+                        Icon(Icons.auto_awesome,
+                            color: BMoniColors.brand400, size: 18),
                         SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -442,36 +456,45 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                     const SizedBox(height: 4),
                     const Text(
                       'Tell FlowPay where and how much you want to send in plain words.',
-                      style: TextStyle(fontSize: 12, color: BMoniColors.grey400),
+                      style:
+                          TextStyle(fontSize: 12, color: BMoniColors.grey400),
                     ),
                     const SizedBox(height: 12),
 
                     TextField(
                       key: const Key('send_money_nl_input'),
                       controller: _nlController,
-                      style: const TextStyle(color: BMoniColors.grey50, fontSize: 14),
+                      style: const TextStyle(
+                          color: BMoniColors.grey50, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'e.g. "Send \$500 to my designer in Ghana."',
-                        hintStyle: const TextStyle(color: BMoniColors.grey600, fontSize: 13),
+                        hintStyle: const TextStyle(
+                            color: BMoniColors.grey600, fontSize: 13),
                         filled: true,
                         fillColor: BMoniColors.offbrand800,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.brand500, width: 1.5),
+                          borderSide: const BorderSide(
+                              color: BMoniColors.brand500, width: 1.5),
                         ),
                         suffixIcon: IconButton(
                           key: const Key('send_money_analyze_button'),
-                          icon: const Icon(Icons.arrow_forward_rounded, color: BMoniColors.brand300),
-                          onPressed: () => _handleAnalyzeNaturalLanguage(_nlController.text),
+                          icon: const Icon(Icons.arrow_forward_rounded,
+                              color: BMoniColors.brand300),
+                          onPressed: () =>
+                              _handleAnalyzeNaturalLanguage(_nlController.text),
                           tooltip: 'Analyze',
                         ),
                       ),
@@ -486,18 +509,21 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       runSpacing: 6,
                       children: _suggestionChips.map((chip) {
                         return InkWell(
-                          key: Key('chip_${chip.replaceAll(RegExp(r'\s+'), '_')}'),
+                          key: Key(
+                              'chip_${chip.replaceAll(RegExp(r'\s+'), '_')}'),
                           onTap: () {
                             _nlController.text = chip;
                             _handleAnalyzeNaturalLanguage(chip);
                           },
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: BMoniColors.offbrand800,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: BMoniColors.offbrand700),
+                              border:
+                                  Border.all(color: BMoniColors.offbrand700),
                             ),
                             child: Text(
                               chip,
@@ -523,14 +549,16 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                   decoration: BoxDecoration(
                     color: BMoniColors.brand500.withAlpha(20),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: BMoniColors.brand500.withAlpha(60)),
+                    border:
+                        Border.all(color: BMoniColors.brand500.withAlpha(60)),
                   ),
                   child: Row(
                     children: [
                       const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: BMoniColors.brand400),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: BMoniColors.brand400),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -556,11 +584,13 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                   decoration: BoxDecoration(
                     color: BMoniColors.error400.withAlpha(20),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: BMoniColors.error400.withAlpha(80)),
+                    border:
+                        Border.all(color: BMoniColors.error400.withAlpha(80)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: BMoniColors.error400, size: 20),
+                      const Icon(Icons.error_outline,
+                          color: BMoniColors.error400, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -602,32 +632,38 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                     TextField(
                       key: const Key('send_money_recipient_field'),
                       controller: _recipientController,
-                      style: const TextStyle(color: BMoniColors.grey50, fontSize: 14),
+                      style: const TextStyle(
+                          color: BMoniColors.grey50, fontSize: 14),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.person_search_outlined, color: BMoniColors.brand400, size: 20),
-                        hintText: 'e.g. my designer in Ghana or name@example.com',
-                        hintStyle: const TextStyle(color: BMoniColors.grey600, fontSize: 13),
+                        prefixIcon: const Icon(Icons.person_search_outlined,
+                            color: BMoniColors.brand400, size: 20),
+                        hintText:
+                            'e.g. my designer in Ghana or name@example.com',
+                        hintStyle: const TextStyle(
+                            color: BMoniColors.grey600, fontSize: 13),
                         filled: true,
                         fillColor: BMoniColors.offbrand800,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.brand500, width: 1.5),
+                          borderSide: const BorderSide(
+                              color: BMoniColors.brand500, width: 1.5),
                         ),
                       ),
                       onChanged: (_) => _runBalanceInspection(),
                     ),
-
                     const SizedBox(height: 18),
-
                     const Text(
                       'Transfer Amount',
                       style: TextStyle(
@@ -637,7 +673,6 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     FlowPayAmountField(
                       key: const Key('send_money_amount_field'),
                       controller: _amountController,
@@ -649,7 +684,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           context: context,
                           backgroundColor: BMoniColors.offbrand900,
                           shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(24)),
                           ),
                           builder: (ctx) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -666,7 +702,13 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                ...[Currency.usd, Currency.ngn, Currency.mxn, Currency.cad, Currency.eur].map((c) {
+                                ...[
+                                  Currency.usd,
+                                  Currency.ngn,
+                                  Currency.mxn,
+                                  Currency.cad,
+                                  Currency.eur
+                                ].map((c) {
                                   return ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: BMoniColors.offbrand800,
@@ -687,10 +729,13 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                     ),
                                     subtitle: Text(
                                       'BMONI ${c.stablecoinToken}',
-                                      style: const TextStyle(color: BMoniColors.grey400, fontSize: 12),
+                                      style: const TextStyle(
+                                          color: BMoniColors.grey400,
+                                          fontSize: 12),
                                     ),
                                     trailing: _selectedCurrency == c
-                                        ? const Icon(Icons.check_circle, color: BMoniColors.brand400)
+                                        ? const Icon(Icons.check_circle,
+                                            color: BMoniColors.brand400)
                                         : null,
                                     onTap: () {
                                       setState(() => _selectedCurrency = c);
@@ -705,9 +750,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         );
                       },
                     ),
-
                     const SizedBox(height: 18),
-
                     const Text(
                       'Purpose / Memo (Optional)',
                       style: TextStyle(
@@ -717,27 +760,32 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     TextField(
                       controller: _purposeController,
-                      style: const TextStyle(color: BMoniColors.grey50, fontSize: 14),
+                      style: const TextStyle(
+                          color: BMoniColors.grey50, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'e.g. Design services, contractor payment',
-                        hintStyle: const TextStyle(color: BMoniColors.grey600, fontSize: 13),
+                        hintStyle: const TextStyle(
+                            color: BMoniColors.grey600, fontSize: 13),
                         filled: true,
                         fillColor: BMoniColors.offbrand800,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.offbrand700),
+                          borderSide:
+                              const BorderSide(color: BMoniColors.offbrand700),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: BMoniColors.brand500, width: 1.5),
+                          borderSide: const BorderSide(
+                              color: BMoniColors.brand500, width: 1.5),
                         ),
                       ),
                     ),
@@ -770,7 +818,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           const Expanded(
                             child: Row(
                               children: [
-                                Icon(Icons.account_balance_wallet_outlined, color: BMoniColors.brand400, size: 18),
+                                Icon(Icons.account_balance_wallet_outlined,
+                                    color: BMoniColors.brand400, size: 18),
                                 SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
@@ -787,13 +836,16 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          if (_selectedFundingOption?.requiresConversion == true)
+                          if (_selectedFundingOption?.requiresConversion ==
+                              true)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: BMoniColors.brand500.withAlpha(40),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
+                                border: Border.all(
+                                    color: BMoniColors.brand500.withAlpha(80)),
                               ),
                               child: Text(
                                 _selectedFundingOption!.conversionLabel,
@@ -809,17 +861,21 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       const SizedBox(height: 10),
 
                       // Conversion notice if direct balance was insufficient
-                      if (!_inspectionResult!.isDirectFunded && _selectedFundingOption != null) ...[
+                      if (!_inspectionResult!.isDirectFunded &&
+                          _selectedFundingOption != null) ...[
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             color: BMoniColors.brand500.withAlpha(20),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: BMoniColors.brand500.withAlpha(50)),
+                            border: Border.all(
+                                color: BMoniColors.brand500.withAlpha(50)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.lightbulb_outline, size: 16, color: BMoniColors.brand300),
+                              const Icon(Icons.lightbulb_outline,
+                                  size: 16, color: BMoniColors.brand300),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -841,11 +897,14 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       if (_inspectionResult!.allFundingOptions.length > 1) ...[
                         const Text(
                           'Choose Funding Wallet:',
-                          style: TextStyle(fontSize: 12, color: BMoniColors.grey400),
+                          style: TextStyle(
+                              fontSize: 12, color: BMoniColors.grey400),
                         ),
                         const SizedBox(height: 6),
                         ..._inspectionResult!.allFundingOptions.map((opt) {
-                          final isSelected = _selectedFundingOption?.fundingWalletId == opt.fundingWalletId;
+                          final isSelected =
+                              _selectedFundingOption?.fundingWalletId ==
+                                  opt.fundingWalletId;
                           return InkWell(
                             onTap: () {
                               setState(() => _selectedFundingOption = opt);
@@ -853,24 +912,34 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             borderRadius: BorderRadius.circular(10),
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 6),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
-                                color: isSelected ? BMoniColors.offbrand800 : Colors.transparent,
+                                color: isSelected
+                                    ? BMoniColors.offbrand800
+                                    : Colors.transparent,
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: isSelected ? BMoniColors.brand500 : BMoniColors.offbrand700,
+                                  color: isSelected
+                                      ? BMoniColors.brand500
+                                      : BMoniColors.offbrand700,
                                 ),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Row(
                                       children: [
                                         Icon(
-                                          isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                          isSelected
+                                              ? Icons.radio_button_checked
+                                              : Icons.radio_button_off,
                                           size: 16,
-                                          color: isSelected ? BMoniColors.brand400 : BMoniColors.grey500,
+                                          color: isSelected
+                                              ? BMoniColors.brand400
+                                              : BMoniColors.grey500,
                                         ),
                                         const SizedBox(width: 8),
                                         Flexible(
@@ -879,7 +948,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
                                               fontSize: 13,
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                              fontWeight: isSelected
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w500,
                                               color: BMoniColors.grey50,
                                             ),
                                           ),
@@ -908,14 +979,18 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             Expanded(
                               child: Text(
                                 _selectedFundingOption!.fundingWalletName,
-                                style: const TextStyle(fontSize: 13, color: BMoniColors.grey300),
+                                style: const TextStyle(
+                                    fontSize: 13, color: BMoniColors.grey300),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '${_selectedFundingOption!.availableBalance.formatFormatted()} available',
-                              style: const TextStyle(fontSize: 13, color: BMoniColors.brand300, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  color: BMoniColors.brand300,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -925,7 +1000,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         const SizedBox(height: 6),
                         Text(
                           'Exchange Rate: 1 ${_selectedCurrency.code} = ${_selectedFundingOption!.exchangeRate!.toStringAsFixed(2)} ${_selectedFundingOption!.fundingCurrency.code}',
-                          style: const TextStyle(fontSize: 11, color: BMoniColors.grey400),
+                          style: const TextStyle(
+                              fontSize: 11, color: BMoniColors.grey400),
                         ),
                       ],
                     ],
@@ -955,10 +1031,12 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
           elevation: 0,
           title: const Text(
             'Send Money',
-            style: TextStyle(color: BMoniColors.grey50, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: BMoniColors.grey50, fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: BMoniColors.grey50, size: 18),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: BMoniColors.grey50, size: 18),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),

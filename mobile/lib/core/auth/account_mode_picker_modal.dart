@@ -97,7 +97,8 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
             _buildModeTile(
               mode: AccountMode.personal,
               title: 'Personal Account',
-              subtitle: 'Multi-currency smart wallets, virtual spend cards, and automated money missions.',
+              subtitle:
+                  'Multi-currency smart wallets, virtual spend cards, and automated money missions.',
               icon: Icons.person_outline,
               badgeText: 'Active',
               isEnabled: widget.capabilities.hasPersonalWallet,
@@ -108,7 +109,8 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
             _buildModeTile(
               mode: AccountMode.business,
               title: 'Business Account',
-              subtitle: 'One Employer. Many Countries. One Bill. Multi-country payroll and team card limits.',
+              subtitle:
+                  'One Employer. Many Countries. One Bill. Multi-country payroll and team card limits.',
               icon: Icons.business_center_outlined,
               badgeText: widget.capabilities.companyRole ?? 'Admin',
               companyName: widget.capabilities.companyName,
@@ -162,7 +164,8 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isSelected ? FlowPayColors.ink : FlowPayColors.surfaceAlt,
+                color:
+                    isSelected ? FlowPayColors.ink : FlowPayColors.surfaceAlt,
                 borderRadius: FlowPayRadii.avatar,
               ),
               child: Icon(
@@ -225,7 +228,9 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? FlowPayColors.ink : FlowPayColors.textTertiary,
+                  color: isSelected
+                      ? FlowPayColors.ink
+                      : FlowPayColors.textTertiary,
                   width: 2,
                 ),
               ),

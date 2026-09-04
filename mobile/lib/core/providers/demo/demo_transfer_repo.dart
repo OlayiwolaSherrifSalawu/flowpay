@@ -58,14 +58,19 @@ class DemoTransferRepository implements TransferRepository {
     String recipient = 'Beneficiary';
     String? purpose;
 
-    final toMatch = RegExp(r'(?:to|for)\s+([^,.;]+?)(?:\s+(?:for|via|as|in)\s+([^,.;]+))?$', caseSensitive: false).firstMatch(trimmed);
+    final toMatch = RegExp(
+            r'(?:to|for)\s+([^,.;]+?)(?:\s+(?:for|via|as|in)\s+([^,.;]+))?$',
+            caseSensitive: false)
+        .firstMatch(trimmed);
     if (toMatch != null && toMatch.group(1) != null) {
       recipient = toMatch.group(1)!.trim();
       if (toMatch.group(2) != null) {
         purpose = toMatch.group(2)!.trim();
       }
     } else {
-      final emailMatch = RegExp(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)').firstMatch(trimmed);
+      final emailMatch =
+          RegExp(r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)')
+              .firstMatch(trimmed);
       if (emailMatch != null) {
         recipient = emailMatch.group(1)!;
       }
@@ -104,11 +109,14 @@ class DemoTransferRepository implements TransferRepository {
 
     // Find direct wallet
     final directWallet = wallets.cast<WalletAccount?>().firstWhere(
-          (w) => w?.currency.code.toUpperCase() == targetCurrency.code.toUpperCase(),
+          (w) =>
+              w?.currency.code.toUpperCase() ==
+              targetCurrency.code.toUpperCase(),
           orElse: () => null,
         );
 
-    final directBalanceMinor = directWallet != null ? directWallet.balance.amountMinor : BigInt.zero;
+    final directBalanceMinor =
+        directWallet != null ? directWallet.balance.amountMinor : BigInt.zero;
     final hasDirectFunds = directBalanceMinor >= targetAmountMinor;
 
     final allOptions = <TransferFundingOption>[];
@@ -151,11 +159,14 @@ class DemoTransferRepository implements TransferRepository {
       double rate = 1.0;
       if (alt.currency == Currency.ngn && targetCurrency == Currency.usd) {
         rate = 1 / 1550.0;
-      } else if (alt.currency == Currency.usd && targetCurrency == Currency.ngn) {
+      } else if (alt.currency == Currency.usd &&
+          targetCurrency == Currency.ngn) {
         rate = 1550.0;
-      } else if (alt.currency == Currency.mxn && targetCurrency == Currency.usd) {
+      } else if (alt.currency == Currency.mxn &&
+          targetCurrency == Currency.usd) {
         rate = 1 / 17.5;
-      } else if (alt.currency == Currency.cad && targetCurrency == Currency.usd) {
+      } else if (alt.currency == Currency.cad &&
+          targetCurrency == Currency.usd) {
         rate = 1 / 1.375;
       }
 
@@ -178,8 +189,9 @@ class DemoTransferRepository implements TransferRepository {
         alt.currency,
       );
 
-      final totalDebitMinor =
-          convertedAltMoney.amountMinor + netFeeMoney.amountMinor + fxFeeMoney.amountMinor;
+      final totalDebitMinor = convertedAltMoney.amountMinor +
+          netFeeMoney.amountMinor +
+          fxFeeMoney.amountMinor;
       final totalDebitMoney = Money.fromMinor(totalDebitMinor, alt.currency);
 
       final hasSuffAlt = alt.balance.amountMinor >= totalDebitMinor;
@@ -211,7 +223,8 @@ class DemoTransferRepository implements TransferRepository {
       recOption = allOptions.firstWhere((o) => !o.requiresConversion);
       isPossible = true;
     } else {
-      final validAlts = allOptions.where((o) => o.availableBalance.amountMinor >= o.totalDebit.amountMinor);
+      final validAlts = allOptions.where(
+          (o) => o.availableBalance.amountMinor >= o.totalDebit.amountMinor);
       if (validAlts.isNotEmpty) {
         recOption = validAlts.first;
         isPossible = true;
@@ -269,7 +282,8 @@ class DemoTransferRepository implements TransferRepository {
     required TransferProposal proposal,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    final txHash = '0x${sha256.convert(utf8.encode('${proposalId}_$signature')).toString()}';
+    final txHash =
+        '0x${sha256.convert(utf8.encode('${proposalId}_$signature')).toString()}';
     final now = DateTime.now();
 
     // 1. Debit funding wallet if walletRepo is provided
@@ -299,18 +313,24 @@ class DemoTransferRepository implements TransferRepository {
                 : 'Paid ${proposal.intent.amount} ${proposal.intent.currency.code} from ${proposal.fundingOption.fundingWalletName}',
             amount: amountMoney,
             currency: proposal.intent.currency,
-            type: proposal.fundingOption.requiresConversion ? ActivityType.conversion : ActivityType.transfer,
-            category: proposal.fundingOption.requiresConversion ? ActivityCategory.fx : ActivityCategory.transfer,
+            type: proposal.fundingOption.requiresConversion
+                ? ActivityType.conversion
+                : ActivityType.transfer,
+            category: proposal.fundingOption.requiresConversion
+                ? ActivityCategory.fx
+                : ActivityCategory.transfer,
             counterparty: proposal.intent.recipient,
             source: proposal.fundingOption.fundingWalletName,
             destination: proposal.intent.recipient,
-            fee: proposal.fundingOption.networkFee.add(proposal.fundingOption.fxFee),
+            fee: proposal.fundingOption.networkFee
+                .add(proposal.fundingOption.fxFee),
             exchangeRate: proposal.fundingOption.requiresConversion
                 ? '1 ${proposal.intent.currency.code} = ${proposal.fundingOption.exchangeRate?.toStringAsFixed(2) ?? "1.00"} ${proposal.fundingOption.fundingCurrency.code}'
                 : 'N/A (Direct ${proposal.intent.currency.code})',
             status: FlowPayAppStatus.completed,
             timestamp: now,
-            reference: 'FP-TXN-${proposalId.length > 8 ? proposalId.substring(proposalId.length - 6).toUpperCase() : proposalId}',
+            reference:
+                'FP-TXN-${proposalId.length > 8 ? proposalId.substring(proposalId.length - 6).toUpperCase() : proposalId}',
             bmoniReference: txHash,
             metadata: {
               'proposalId': proposalId,
