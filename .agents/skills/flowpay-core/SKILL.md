@@ -33,7 +33,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 | :--- | :--- | :--- |
 | **Frontend (Mobile)** | Flutter (Dart), `bmoni_embedded_sdk: ^0.0.2`, `bkey_uikit: ^0.0.1`, `bmoni_embedded_wallets_cards: ^0.0.1`, Riverpod | Shared Foundation complete in `mobile/` |
 | **Backend / API** | Node.js (v20+), Express, TypeScript (ESM) | Complete modular backend in `backend/` |
-| **Database** | PostgreSQL via **Prisma ORM** (v6.19.3, `@prisma/client`) | Schema in `backend/prisma/schema.prisma`; client generated to `node_modules/@prisma/client` |
+| **Database** | Supabase PostgreSQL (`mxjbzexlnenooclmaawe`) via Prisma ORM (`@prisma/client`) & Supabase MCP | Tables, indexes, and RLS deployed to live Supabase project |
 | **Infrastructure** | BMONI Embedded REST Sandbox (`https://embedded-dev.bmoni.com`), Origin-only base URL | Integrated with client & raw HMAC webhooks |
 | **BMONI Docs & Specs** | [bkey.mintlify.app](https://bkey.mintlify.app/) (LLM Index: [/llms.txt](https://bkey.mintlify.app/llms.txt)) | Official docs & API specs; prompt user for any required keys |
 | **Provider Layer** | `DemoProvider` & `BMONIProvider` conforming to shared interfaces | Active with instant sandbox test personas |
@@ -117,7 +117,15 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Backend capabilities endpoints: `GET /api/auth/capabilities` and `GET /api/auth/users/:bmoniUserId/capabilities` active on port 4000.
   * Mode picker: `AccountModePickerModal` conforming to `design.md` §4.4 and `bkey_uikit` style with custom branded radio selectors.
   * Two independent navigation shells: `PersonalShell` (5 destinations: Overview, Wallets, Missions, Activity, Security) and `BusinessShell` (4 destinations: Dashboard, Team, Payroll, Audit) driven by Riverpod `currentAccountModeProvider`.
-  * Full test suite passing: 13/13 mobile tests passed (100%), 11/11 backend tests passed (100%), with 0 analyzer lints.
+    * Full test suite passing: 13/13 mobile tests passed (100%), 11/11 backend tests passed (100%), with 0 analyzer lints.
+* [x] **Supabase Cloud Database & MCP Integration**:
+  * Authorized and linked to live Supabase project `mxjbzexlnenooclmaawe` via Supabase MCP.
+  * Successfully deployed full relational schema: `employees`, `payroll_runs`, `payroll_items`, `money_missions`, `audit_activity`, `webhook_events`, `webhook_subscriptions`.
+  * Enabled Row Level Security (RLS) across 100% of tables with backend `service_role` and `authenticated` access policies.
+  * Verified performance indexes on foreign keys and search paths.
+  * Verified Supabase Security Advisors (0 security warnings / 0 lints).
+  * Seeded pre-verified BMONI sandbox personas (Bunch Dillon 🇳🇬, Samson Jabo 🇲🇽) and default Money Missions.
+  * Auto-generated TypeScript types at `backend/src/db/supabase.types.ts` directly from Supabase schema.
 * [x] **Signup Screen, Context-Aware KYC, and Personal vs Business Separation**:
   * **Onboarding & Signup Screen (`mobile/lib/modules/auth/signup_screen.dart`)**:
     * Clean BMoni Dark Obsidian aesthetic (`BMoniColors.offbrand950`, `brand500` magenta accents).
