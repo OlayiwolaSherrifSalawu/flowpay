@@ -245,35 +245,80 @@ export class BmoniClient {
 
   // --- Proposals & Transfers ---
 
+  /**
+   * 1. Create a transfer proposal
+   * Official BMONI spec: POST /v1/users/{userId}/smart-wallets/{smartWalletId}/proposals
+   */
   async createTransferProposal(args: {
     userId: string;
-    walletId: string;
-    toUserId: string;
-    sourceSmartWalletId: string;
-    token: string;
-    fromAmount: string; // Minor units or formatted decimal per endpoint
+    smartWalletId: string;
+    toUserId?: string;
+    toAddress?: string;
+    amount: string; // decimal string e.g. "2000.00"
+    currency: string; // stablecoin token code e.g. "CNGN", "MEXe", "USDB"
+    description?: string;
   }): Promise<Proposal> {
-    return this.request<Proposal>(
-      `/v1/users/${args.userId}/smart-wallets/${args.walletId}/proposals`,
+    const res = await this.request<{ proposal?: Proposal } | { data?: { proposal?: Proposal } } | Proposal>(
+      `/v1/users/${args.userId}/smart-wallets/${args.smartWalletId}/proposals`,
       {
         method: 'POST',
         body: {
-          toUserId: args.toUserId,
-          sourceSmartWalletId: args.sourceSmartWalletId,
-          token: args.token,
-          fromAmount: args.fromAmount,
+          proposal: {
+            type: 'TRANSFER',
+            ...(args.toUserId ? { toUserId: args.toUserId } : {}),
+            ...(args.toAddress ? { toAddress: args.toAddress } : {}),
+            amount: args.amount,
+            currency: args.currency,
+            description: args.description || 'FlowPay Global Payroll',
+          },
         },
+      }
+    );
+    const rawProposal = (res as any)?.data?.proposal || (res as any)?.proposal || res;
+    return {
+      ...rawProposal,
+      id: rawProposal.id || rawProposal.proposalId,
+      proposalId: rawProposal.proposalId || rawProposal.id,
+      status: rawProposal.status || 'PENDING_APPROVALS',
+    };
+  }
+
+  /**
+   * 2. Approve proposal
+   * Official BMONI spec: POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/approve
+   */
+  async approveProposal(args: {
+    userId: string;
+    proposalId: string;
+  }): Promise<{ success: boolean; status?: string }> {
+    return this.request<{ success: boolean; status?: string }>(
+      `/v1/users/${args.userId}/smart-wallets/proposals/${args.proposalId}/approve`,
+      {
+        method: 'POST',
       }
     );
   }
 
+  /**
+   * Retry a failed proposal (per docs: calling approve again restarts the workflow)
+   */
+  async retryFailedProposal(args: {
+    userId: string;
+    proposalId: string;
+  }): Promise<{ success: boolean; status?: string }> {
+    return this.approveProposal(args);
+  }
 
+  /**
+   * Sign proposal (submits raw secp256k1 signature)
+   * Official BMONI spec: POST /v1/users/{userId}/smart-wallets/proposals/{proposalId}/sign
+   */
   async signProposal(args: {
     userId: string;
     proposalId: string;
     signature: string;
-  }): Promise<{ success: boolean; status: string }> {
-    return this.request<{ success: boolean; status: string }>(
+  }): Promise<{ success: boolean; status: string; transactionHash?: string }> {
+    return this.request<{ success: boolean; status: string; transactionHash?: string }>(
       `/v1/users/${args.userId}/smart-wallets/proposals/${args.proposalId}/sign`,
       {
         method: 'POST',
@@ -282,10 +327,22 @@ export class BmoniClient {
     );
   }
 
+  /**
+   * Read one proposal status
+   * Official BMONI spec: GET /v1/users/{userId}/smart-wallets/proposals/{proposalId}
+   */
   async getProposal(args: { userId: string; proposalId: string }): Promise<Proposal> {
-    return this.request<Proposal>(
+    const res = await this.request<{ proposal?: Proposal } | Proposal>(
       `/v1/users/${args.userId}/smart-wallets/proposals/${args.proposalId}`
     );
+    return (res as any)?.proposal || res;
+  }
+
+  /**
+   * Read or set approval policy
+   */
+  async getApprovalPolicy(userId: string): Promise<any> {
+    return this.request(`/v1/users/${userId}/smart-wallets/account/approval-policy`);
   }
 
   // --- Cards & Transactions (Verified against BMONI Cards API) ---
@@ -315,18 +372,31 @@ export class BmoniClient {
     );
   }
 
+  /**
+   * 3. Fetch the signing payload
+   * Official BMONI spec: GET /v1/users/{userId}/smart-wallets/proposals/{proposalId}/sign-payload
+   * Per docs: 404 means approval threshold not yet reached; 409 means payload preparing.
+   */
   async getProposalSignPayload(args: {
     userId: string;
     proposalId: string;
   }): Promise<ProposalSignPayload> {
     try {
-      const res = await this.request<ProposalSignPayload>(
+      const res = await this.request<any>(
         `/v1/users/${args.userId}/smart-wallets/proposals/${args.proposalId}/sign-payload`
       );
-      return res;
+      const data = res?.data || res;
+      return {
+        hashToSign: data.hashToSign || data.payload || '',
+        deadline: data.deadline,
+        safeTxHash: data.safeTxHash,
+        userOpHash: data.userOpHash,
+        typedData: data.typedData,
+        isPending: false,
+      };
     } catch (err) {
-      if (err instanceof BmoniApiError && err.statusCode === 409) {
-        // 409 means "not ready yet", return pending status for client polling
+      if (err instanceof BmoniApiError && (err.statusCode === 404 || err.statusCode === 409)) {
+        // 404/409 means "not ready yet" / "threshold pending", return pending status for polling
         return {
           hashToSign: '',
           isPending: true,
@@ -334,6 +404,32 @@ export class BmoniClient {
       }
       throw err;
     }
+  }
+
+  /**
+   * Poll sign payload until proposal reaches PENDING_SIGNATURES with valid hashToSign
+   */
+  async pollProposalSignPayload(args: {
+    userId: string;
+    proposalId: string;
+    maxAttempts?: number;
+    delayMs?: number;
+  }): Promise<ProposalSignPayload> {
+    const maxAttempts = args.maxAttempts ?? 8;
+    const delayMs = args.delayMs ?? 1000;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const payload = await this.getProposalSignPayload(args);
+      if (!payload.isPending && payload.hashToSign) {
+        return payload;
+      }
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+    throw new BmoniApiError(
+      `Proposal ${args.proposalId} sign-payload pending threshold after ${maxAttempts} attempts.`,
+      408
+    );
   }
 
   async submitProposalSignature(args: {

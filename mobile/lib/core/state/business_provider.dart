@@ -190,7 +190,7 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Sign on device via BMONI SDK
+      // 1. Sign 32-byte digest on device via BMONI SDK (raw secp256k1, no EIP-191 prefix)
       final sig = await BmoniSdkService.signTransactionHash(
         '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
         pin: pin,
@@ -206,6 +206,50 @@ class BusinessProvider extends ChangeNotifier {
       return completed;
     } catch (e) {
       _errorMessage = 'Payroll execution failed: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Retry a single failed payroll proposal
+  /// Per BMONI docs: "A FAILED proposal can be retried by calling approve again, restarting the workflow."
+  Future<PayrollItemModel> retryPayrollProposal({
+    required String proposalId,
+    required String employeeId,
+    required String pin,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final updatedItem = await payrollRepo.retryFailedProposal(
+        proposalId: proposalId,
+        employeeId: employeeId,
+        pin: pin,
+      );
+
+      // Update item in lastExecutedPayroll if present
+      if (_lastExecutedPayroll != null) {
+        final updatedItems = _lastExecutedPayroll!.items.map((item) {
+          if (item.proposalId == proposalId || item.employeeId == employeeId) {
+            return updatedItem;
+          }
+          return item;
+        }).toList();
+
+        final allSucceeded = updatedItems.every((i) => i.status == 'SUCCESS' || i.status == 'COMPLETED');
+
+        _lastExecutedPayroll = _lastExecutedPayroll!.copyWith(
+          status: allSucceeded ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
+          items: updatedItems,
+        );
+      }
+
+      return updatedItem;
+    } catch (e) {
+      _errorMessage = 'Proposal retry failed: $e';
       rethrow;
     } finally {
       _isLoading = false;

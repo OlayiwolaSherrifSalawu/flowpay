@@ -215,6 +215,19 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * **Card Action Sheets**: `IssueVirtualCardSheet` (issuance with PIN signing) and `CardDetailSheet` (unmask sensitive details with 30s auto-hide timer, transaction list, and freeze/unfreeze toggle).
     * **Automated Test Coverage**: 43/43 backend unit & integration tests passing (100%), including 12 dedicated tests in `backend/src/modules/cards/cards.test.ts`.
 
+  * **FlowPay Business — Global Payroll ("One Employer. Many Countries. One Bill.")**:
+    * **Transfer Primitives Orchestration**: Payroll is custom FlowPay orchestration over BMONI's 4-call transfer proposal primitives (`transfers.md`):
+      1. `POST /v1/users/{employerUserId}/smart-wallets/{smartWalletId}/proposals` with `{ proposal: { type: "TRANSFER", toUserId, amount, currency, description } }`.
+      2. `POST /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/approve`.
+      3. `GET /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/sign-payload` (polled: handles 404 for threshold pending and 409 for asynchronous preparation).
+      4. `POST /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/sign` with `{ signature: "0x..." }`.
+    * **Raw-Hash secp256k1 Signing Requirement**: Validated against official BMONI test vector. Strictly signs raw 32-byte digest (`hashToSign`), never `typedData`, and never with EIP-191 personal sign prefix (`\x19Ethereum Signed Message:\n32`). Verified in unit tests using `ethers.SigningKey`.
+    * **Recipient Rail Pre-Validation**: Pre-validates each employee's smart-wallet active rail status for their country's stablecoin (`CNGN` for Nigeria, `MEXe` for Mexico) and validates employer USD source wallet balance before allowing "Run Payroll".
+    * **Cost Transparency & Review Confirmation**: Provides aggregate payroll preview showing employee count, distinct country count, total USD amount, and a 97% savings comparison ($10 BMONI fee vs $340 traditional SWIFT/wire fee). Requires explicit review confirmation sheet before triggering PIN authorization.
+    * **4-Stage Timeline Stepper**: Visual execution progress through `Validated → Approved → Processing → Completed`. Live mode maps from BMONI proposal states (`PENDING_APPROVALS` → `PENDING_SIGNATURES` → `COMPLETED`); Demo mode executes deterministic progression across the 4 stages.
+    * **Independent Failure Isolation & Granular Retry**: Multi-employee payouts run concurrently but isolated; an error on one employee's proposal does not block or fail others, resulting in `PARTIALLY_COMPLETED`. Failed proposals feature a dedicated "Retry Payout via Approve" action calling `approve` on that specific proposal.
+    * **Automated Test Coverage**: 48/48 backend tests passing (100%), including 5 new tests in `backend/src/modules/payroll/payroll.test.ts` (test vector, currency mapping, preview with fee comparison, failure isolation, and retry).
+
 ---
 
 ## 🎯 4. What Needs to Be Done (Parallel Roadmap)
@@ -229,6 +242,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 ### Business Track Owner
 - [x] Implement FlowPay Business Employee Onboarding (Model B) for Nigeria (`NG`) and Mexico (`MX`) across Stage 2, Stage 3, and Stage 4 with 4-state lifecycle.
 - [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
+- [x] Implement FlowPay Business Global Payroll ("One Employer. Many Countries. One Bill.") with 4-call proposal sequence, raw-hash signing, rail validation, 4-stage timeline, and granular retry.
 - [ ] Add virtual card spend limit presets (Junior / Senior / Contractor dropdowns).
 - [ ] Add PDF export / receipt sharing for aggregate payroll disbursement runs.
 
