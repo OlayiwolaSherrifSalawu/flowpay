@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../network/api_client.dart';
 import '../providers/bmoni/bmoni_activity_repo.dart';
 import '../providers/bmoni/bmoni_approval_repo.dart';
+import '../providers/bmoni/bmoni_business_audit_repo.dart';
 import '../providers/bmoni/bmoni_card_repo.dart';
 import '../providers/bmoni/bmoni_employee_repo.dart';
 import '../providers/bmoni/bmoni_mission_repo.dart';
@@ -10,6 +11,7 @@ import '../providers/bmoni/bmoni_transfer_repo.dart';
 import '../providers/bmoni/bmoni_wallet_repo.dart';
 import '../providers/demo/demo_activity_repo.dart';
 import '../providers/demo/demo_approval_repo.dart';
+import '../providers/demo/demo_business_audit_repo.dart';
 import '../providers/demo/demo_card_repo.dart';
 import '../providers/demo/demo_employee_repo.dart';
 import '../providers/demo/demo_mission_repo.dart';
@@ -18,6 +20,7 @@ import '../providers/demo/demo_transfer_repo.dart';
 import '../providers/demo/demo_wallet_repo.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/approval_repository.dart';
+import '../repositories/business_audit_repository.dart';
 import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
 import '../repositories/mission_repository.dart';
@@ -46,6 +49,12 @@ class AppState extends ChangeNotifier {
   final DemoActivityRepository _demoActivity = DemoActivityRepository();
   final DemoMissionRepository _demoMission = DemoMissionRepository();
   final DemoApprovalRepository _demoApproval = DemoApprovalRepository();
+  late final DemoBusinessAuditRepository _demoAudit = DemoBusinessAuditRepository(
+    payrollRepo: _demoPayroll,
+    cardRepo: _demoCard,
+    walletRepo: _demoWallet,
+    activityRepo: _demoActivity,
+  );
 
   // BMONI Live Repositories
   late final BmoniWalletRepository _bmoniWallet = BmoniWalletRepository(apiClient: _apiClient);
@@ -56,6 +65,12 @@ class AppState extends ChangeNotifier {
   late final BmoniActivityRepository _bmoniActivity = BmoniActivityRepository(apiClient: _apiClient);
   late final BmoniMissionRepository _bmoniMission = BmoniMissionRepository(apiClient: _apiClient);
   late final BmoniApprovalRepository _bmoniApproval = BmoniApprovalRepository(apiClient: _apiClient);
+  late final BmoniBusinessAuditRepository _bmoniAudit = BmoniBusinessAuditRepository(
+    payrollRepo: _bmoniPayroll,
+    cardRepo: _bmoniCard,
+    walletRepo: _bmoniWallet,
+    activityRepo: _bmoniActivity,
+  );
 
   // Business Providers
   late final BusinessProvider _demoBusinessProvider = BusinessProvider(
@@ -63,6 +78,7 @@ class AppState extends ChangeNotifier {
     payrollRepo: _demoPayroll,
     walletRepo: _demoWallet,
     cardRepo: _demoCard,
+    auditRepo: _demoAudit,
   );
 
   late final BusinessProvider _bmoniBusinessProvider = BusinessProvider(
@@ -70,6 +86,7 @@ class AppState extends ChangeNotifier {
     payrollRepo: _bmoniPayroll,
     walletRepo: _bmoniWallet,
     cardRepo: _bmoniCard,
+    auditRepo: _bmoniAudit,
   );
 
   // Personal Providers
@@ -104,6 +121,7 @@ class AppState extends ChangeNotifier {
   ActivityRepository get activityRepo => isDemo ? _demoActivity : _bmoniActivity;
   MissionRepository get missionRepo => isDemo ? _demoMission : _bmoniMission;
   ApprovalRepository get approvalRepo => isDemo ? _demoApproval : _bmoniApproval;
+  BusinessAuditRepository get auditRepo => isDemo ? _demoAudit : _bmoniAudit;
 
   // Active Providers
   BusinessProvider get businessProvider => isDemo ? _demoBusinessProvider : _bmoniBusinessProvider;

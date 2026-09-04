@@ -201,10 +201,13 @@ class DemoData {
       employeeName: 'Bunch Dillon',
       country: 'NG',
       targetCurrency: Currency.ngn,
+      destinationStablecoin: 'CNGN',
       targetAmount: Money.fromMajorString('3100000.00', Currency.ngn), // ₦3,100,000
       usdAmount: Money.fromMajorString('2000.00', Currency.usd),        // $2,000
       exchangeRate: 1550.0,
       status: 'PENDING',
+      isRailActive: true,
+      railValidationMessage: 'CNGN Rail Active & Verified',
     );
 
     final item2 = PayrollItemModel(
@@ -212,10 +215,13 @@ class DemoData {
       employeeName: 'Samson Jabo',
       country: 'MX',
       targetCurrency: Currency.mxn,
+      destinationStablecoin: 'MEXe',
       targetAmount: Money.fromMajorString('35000.00', Currency.mxn),   // $35,000 MXN
       usdAmount: Money.fromMajorString('2000.00', Currency.usd),        // $2,000
       exchangeRate: 17.5,
       status: 'PENDING',
+      isRailActive: true,
+      railValidationMessage: 'MEXe Rail Active & Verified',
     );
 
     final item3 = PayrollItemModel(
@@ -223,10 +229,13 @@ class DemoData {
       employeeName: 'Liam Tremblay',
       country: 'CA',
       targetCurrency: Currency.cad,
+      destinationStablecoin: 'CADC',
       targetAmount: Money.fromMajorString('2750.00', Currency.cad),    // CA$2,750 CAD
       usdAmount: Money.fromMajorString('2000.00', Currency.usd),        // $2,000
       exchangeRate: 1.375,
       status: 'PENDING',
+      isRailActive: true,
+      railValidationMessage: 'CADC Rail Active',
     );
 
     return PayrollRunModel(
@@ -234,6 +243,10 @@ class DemoData {
       title: 'Global Engineering & Design Payroll',
       totalUsd: Money.fromMajorString('6000.00', Currency.usd),
       totalFeeUsd: Money.fromMajorString('15.00', Currency.usd), // $15 vs $510 wire fee
+      totalSavedFeeUsd: Money.fromMajorString('495.00', Currency.usd),
+      savedPercentage: 97.0,
+      employerBalanceUsd: Money.fromMajorString('24500.00', Currency.usd),
+      isBalanceSufficient: true,
       employeeCount: 3,
       countries: ['NG', 'MX', 'CA'],
       currencies: ['NGN', 'MXN', 'CAD'],
