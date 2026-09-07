@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
@@ -124,8 +123,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content:
-                Text('Action approved and signed on BMONI: ${approval.title}'),
-            backgroundColor: BMoniColors.brand500,
+                Text('Action approved and signed: ${approval.title}'),
+            backgroundColor: FlowPayColors.primary,
           ),
         );
       }
@@ -133,7 +132,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Failed: $e'), backgroundColor: BMoniColors.error400),
+            content: Text('Failed: $e'), backgroundColor: FlowPayColors.error),
       );
     }
   }
@@ -162,64 +161,71 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
 
         Widget content = RefreshIndicator(
           onRefresh: _provider.refresh,
-          color: BMoniColors.brand500,
+          color: FlowPayColors.primary,
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             children: [
               // 1. Header Subtitle & Status Row
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Personal Account',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? BMoniColors.grey50
-                                  : BMoniColors.grey950,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Clear Sandbox / Demo Indicator
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: BMoniColors.accent400.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: BMoniColors.accent400.withAlpha(70)),
-                            ),
-                            child: Text(
-                              widget.appState.isDemo
-                                  ? 'Sandbox Demo'
-                                  : 'BMONI Live Testnet',
-                              style: const TextStyle(
-                                fontSize: 10,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            Text(
+                              'Personal Account',
+                              style: TextStyle(
+                                fontSize: 17,
                                 fontWeight: FontWeight.bold,
-                                color: BMoniColors.accent400,
+                                color: isDark
+                                    ? Colors.white
+                                    : FlowPayColors.lightTextPrimary,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      const Text(
-                        'Your money. Your rules. AI executes.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: BMoniColors.brand400,
+                            // Clear Sandbox / Demo Indicator
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: FlowPayColors.primary.withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: FlowPayColors.primary.withAlpha(70)),
+                              ),
+                              child: Text(
+                                widget.appState.isDemo
+                                    ? 'Sandbox Demo'
+                                    : 'Live Network',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: FlowPayColors.primaryLight,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Your money. Your rules. AI executes.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: FlowPayColors.primaryLight,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: () {
                       Navigator.push(
@@ -231,25 +237,25 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: BMoniColors.brand500.withAlpha(30),
+                        color: FlowPayColors.primary.withAlpha(30),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: BMoniColors.brand500.withAlpha(80)),
+                            color: FlowPayColors.primary.withAlpha(80)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.lock_outline,
-                              size: 12, color: BMoniColors.brand400),
+                              size: 12, color: FlowPayColors.primaryLight),
                           SizedBox(width: 4),
                           Text(
-                            'Self-Custody (B-Key)',
+                            'B-Key Vault',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: BMoniColors.brand400,
+                              color: FlowPayColors.primaryLight,
                             ),
                           ),
                         ],
@@ -260,15 +266,15 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Premium Portfolio Section (BMoniWalletCard)
+              // 2. Premium Portfolio Section (FlowPayHeroCard)
               BMoniWalletCard(
-                height: 200,
+                height: 240,
                 background: const BMoniWalletCardBackground.gradient(
                   LinearGradient(
                     colors: [
-                      Color(0xFF4A0E4E),
-                      Color(0xFF28092B),
-                      Color(0xFF160418),
+                      Color(0xFF181B26),
+                      Color(0xFF12141C),
+                      Color(0xFF090A0F),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -286,7 +292,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: BMoniColors.grey400,
+                            color: FlowPayColors.darkTextSecondary,
                           ),
                         ),
                         Container(
@@ -301,7 +307,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: BMoniColors.brand200,
+                              color: FlowPayColors.primaryLight,
                             ),
                           ),
                         ),
@@ -314,7 +320,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       isHidden: _provider.isBalanceHidden,
                       onToggleHidden: _provider.toggleBalanceVisibility,
                       balanceColor: Colors.white,
-                      decimalColor: BMoniColors.brand200,
+                      decimalColor: FlowPayColors.primaryLight,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -325,7 +331,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: BMoniColors.brand300,
+                            color: FlowPayColors.primaryLight,
                           ),
                         ),
                         Text(
@@ -333,7 +339,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: BMoniColors.grey400,
+                            color: FlowPayColors.darkTextSecondary,
                           ),
                         ),
                       ],
@@ -350,7 +356,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     child: _QuickActionButton(
                       icon: Icons.bolt,
                       label: 'Create Mission',
-                      accentColor: BMoniColors.brand400,
+                      accentColor: FlowPayColors.primary,
                       onPressed: () {
                         _navigateToTab(
                           PersonalTab.missions,
@@ -366,7 +372,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     child: _QuickActionButton(
                       icon: Icons.arrow_outward,
                       label: 'Send Money',
-                      accentColor: BMoniColors.accent400,
+                      accentColor: FlowPayColors.primaryLight,
                       onPressed: () => _openSendMoneyScreen(),
                     ),
                   ),
@@ -375,7 +381,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     child: _QuickActionButton(
                       icon: Icons.account_balance_wallet_outlined,
                       label: 'View Wallets',
-                      accentColor: BMoniColors.success400,
+                      accentColor: FlowPayColors.primary,
                       onPressed: () {
                         _navigateToTab(
                           PersonalTab.wallets,
@@ -404,15 +410,15 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [
-                        BMoniColors.offbrand900,
-                        BMoniColors.brand950.withAlpha(200),
+                        FlowPayColors.darkSurfaceElevated,
+                        FlowPayColors.darkSurface,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: BMoniColors.brand500.withAlpha(70),
+                      color: FlowPayColors.primary.withAlpha(60),
                     ),
                   ),
                   child: Row(
@@ -420,11 +426,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: BMoniColors.brand500.withAlpha(35),
+                          color: FlowPayColors.primary.withAlpha(35),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.bolt,
-                            color: BMoniColors.brand400, size: 24),
+                            color: FlowPayColors.primaryLight, size: 24),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
@@ -436,7 +442,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: BMoniColors.grey50,
+                                color: Colors.white,
                               ),
                             ),
                             SizedBox(height: 2),
@@ -444,14 +450,14 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               '"Your money. Your rules. AI executes."',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: BMoniColors.grey400,
+                                color: FlowPayColors.darkTextSecondary,
                               ),
                             ),
                           ],
                         ),
                       ),
                       const Icon(Icons.chevron_right,
-                          color: BMoniColors.grey400),
+                          color: FlowPayColors.darkTextSecondary),
                     ],
                   ),
                 ),
@@ -492,7 +498,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 titleStyle: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                  color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                 ),
                 trailing: TextButton(
                   onPressed: () {
@@ -508,7 +514,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: BMoniColors.brand400,
+                      color: FlowPayColors.primaryLight,
                     ),
                   ),
                 ),
@@ -524,7 +530,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: m.isActive
-                          ? BMoniColors.brand500.withAlpha(80)
+                          ? FlowPayColors.primary.withAlpha(80)
                           : FlowPayColors.darkBorder,
                     ),
                   ),
@@ -534,7 +540,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: m.isActive
-                              ? BMoniColors.brand500.withAlpha(30)
+                              ? FlowPayColors.primary.withAlpha(30)
                               : FlowPayColors.darkSurfaceElevated,
                           shape: BoxShape.circle,
                         ),
@@ -542,8 +548,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           Icons.bolt,
                           size: 18,
                           color: m.isActive
-                              ? BMoniColors.brand400
-                              : BMoniColors.grey600,
+                              ? FlowPayColors.primaryLight
+                              : FlowPayColors.darkTextSecondary,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -557,7 +563,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color:
-                                    isDark ? Colors.white : BMoniColors.grey950,
+                                    isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -566,7 +572,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: BMoniColors.brand300,
+                                color: FlowPayColors.primaryLight,
                               ),
                             ),
                           ],
@@ -574,7 +580,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       ),
                       Switch(
                         value: m.isActive,
-                        activeThumbColor: BMoniColors.brand500,
+                        activeThumbColor: FlowPayColors.primary,
                         onChanged: (_) => _provider.toggleMission(m.id),
                       ),
                     ],
@@ -592,7 +598,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 titleStyle: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                  color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                 ),
                 trailing: TextButton(
                   onPressed: () {
@@ -607,7 +613,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: BMoniColors.brand400,
+                      color: FlowPayColors.primaryLight,
                     ),
                   ),
                 ),
@@ -642,7 +648,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 titleStyle: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                  color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                 ),
                 trailing: TextButton(
                   onPressed: () {
@@ -658,7 +664,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: BMoniColors.brand400,
+                      color: FlowPayColors.primaryLight,
                     ),
                   ),
                 ),
@@ -713,7 +719,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                                 color:
-                                    isDark ? Colors.white : BMoniColors.grey950,
+                                    isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -722,8 +728,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 color: isDark
-                                    ? BMoniColors.grey400
-                                    : BMoniColors.grey700,
+                                    ? FlowPayColors.darkTextSecondary
+                                    : FlowPayColors.lightTextSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -745,8 +751,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             style: TextStyle(
                               fontSize: 10,
                               color: isDark
-                                  ? BMoniColors.grey500
-                                  : BMoniColors.grey600,
+                                  ? FlowPayColors.darkTextSecondary
+                                  : FlowPayColors.lightTextSecondary,
                             ),
                           ),
                         ],
@@ -819,7 +825,7 @@ class _QuickActionButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : BMoniColors.grey950,
+                color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
               ),
             ),
           ],
@@ -852,13 +858,15 @@ class _WalletSummaryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          FlowPayCurrencyDisplay(
-            code: wallet.currency.code,
-            symbol: wallet.currency.symbol,
-            name: wallet.currency.name,
-            tokenName: 'BMONI ${wallet.stablecoinToken}',
+          Expanded(
+            child: FlowPayCurrencyDisplay(
+              code: wallet.currency.code,
+              symbol: wallet.currency.symbol,
+              name: wallet.currency.name,
+              tokenName: '${wallet.stablecoinToken} Rail',
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -877,12 +885,12 @@ class _WalletSummaryCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 10,
                         fontFamily: 'monospace',
-                        color: BMoniColors.grey400,
+                        color: FlowPayColors.darkTextSecondary,
                       ),
                     ),
                     const SizedBox(width: 4),
                     const Icon(Icons.copy,
-                        size: 10, color: BMoniColors.grey400),
+                        size: 10, color: FlowPayColors.darkTextSecondary),
                   ],
                 ),
               ),

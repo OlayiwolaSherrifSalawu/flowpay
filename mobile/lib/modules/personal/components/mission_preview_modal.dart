@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import '../../../core/design_system/buttons.dart';
 import '../../../core/missions/mission_intent.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
+import '../../../core/theme/typography.dart';
 
 class MissionPreviewModal extends StatelessWidget {
   final MissionIntent intent;
@@ -27,359 +30,345 @@ class MissionPreviewModal extends StatelessWidget {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
-        color: isDark ? BMoniColors.offbrand950 : Colors.white,
+        color: isDark ? FlowPayColors.darkBackground : FlowPayColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border.all(
-          color:
-              isDark ? BMoniColors.brand500.withAlpha(60) : BMoniColors.grey200,
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
           width: 1.2,
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Drag Handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? BMoniColors.grey700 : BMoniColors.grey300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // Title & Sparkle Icon
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                  color: BMoniColors.brand500.withAlpha(35),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.auto_awesome,
-                    color: BMoniColors.brand400, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Mission Plan Preview',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isDark ? BMoniColors.grey50 : BMoniColors.grey950,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'AI structured • Deterministically validated',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            isDark ? BMoniColors.grey400 : BMoniColors.grey600,
-                      ),
-                    ),
-                  ],
+                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close,
-                    size: 20, color: BMoniColors.grey400),
-                onPressed: onEdit,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Incoming Trigger Header: e.g. "$2,000 incoming"
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF3B0D3F), const Color(0xFF1E0720)]
-                    : [const Color(0xFFF3E8F4), const Color(0xFFEADBEC)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: BMoniColors.brand500.withAlpha(90)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 18),
+
+            // Title & Sparkle Icon
+            Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.primary.withAlpha(35),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome,
+                      color: FlowPayColors.primary, size: 20),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'TRIGGER CONDITION',
-                        style: TextStyle(
-                          fontSize: 11,
-                          letterSpacing: 0.8,
+                        'Mission Plan Preview',
+                        style: FlowPayTypography.titleMedium.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark
-                              ? BMoniColors.brand300
-                              : BMoniColors.brand700,
+                              ? FlowPayColors.darkTextPrimary
+                              : FlowPayColors.lightTextPrimary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        sourceAmountStr.contains('2000') ||
-                                sourceAmountStr == '2000.00'
-                            ? '\$2,000 incoming'
-                            : '\$$sourceAmountStr incoming',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color:
-                              isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                        'AI structured • Deterministically validated',
+                        style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.darkTextSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: BMoniColors.brand500.withAlpha(40),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.check_circle,
-                          size: 14, color: BMoniColors.brand300),
-                      const SizedBox(width: 6),
-                      Text(
-                        '100% Allocated',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? BMoniColors.brand200
-                              : BMoniColors.brand700,
-                        ),
-                      ),
-                    ],
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.close,
+                      size: 20, color: FlowPayColors.darkTextSecondary),
+                  onPressed: onEdit,
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 16),
-
-          // Allocation Cards List
-          ...intent.allocations.map((alloc) {
-            Color pillColor;
-            Color pillTextColor;
-            IconData iconData;
-
-            switch (alloc.category) {
-              case MissionAllocationCategory.reserve:
-                pillColor = BMoniColors.brand500.withAlpha(30);
-                pillTextColor = BMoniColors.brand300;
-                iconData = Icons.shield_outlined;
-                break;
-              case MissionAllocationCategory.expenses:
-                pillColor = BMoniColors.success400.withAlpha(30);
-                pillTextColor = BMoniColors.success400;
-                iconData = Icons.currency_exchange;
-                break;
-              case MissionAllocationCategory.tax:
-                pillColor = BMoniColors.accent400.withAlpha(30);
-                pillTextColor = BMoniColors.accent400;
-                iconData = Icons.account_balance_outlined;
-                break;
-              default:
-                pillColor = BMoniColors.offbrand700;
-                pillTextColor = BMoniColors.grey300;
-                iconData = Icons.savings_outlined;
-            }
-
-            final amountDisplay = () {
-              if (alloc.targetAmountFormatted != null &&
-                  alloc.targetCurrency.code != 'USD') {
-                return alloc.targetAmountFormatted!;
-              }
-              final parsed =
-                  double.tryParse(alloc.sourceAmountFormatted) ?? 0.0;
-              if (parsed == parsed.roundToDouble() && parsed > 0) {
-                return '\$${parsed.toInt()}';
-              }
-              return '\$${alloc.sourceAmountFormatted}';
-            }();
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            // Source Trigger Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: isDark ? BMoniColors.offbrand900 : BMoniColors.grey50,
-                borderRadius: BorderRadius.circular(14),
+                color: isDark
+                    ? FlowPayColors.darkSurface
+                    : FlowPayColors.lightSurfaceElevated,
+                borderRadius: FlowPaySpacing.borderRadiusLg,
                 border: Border.all(
-                  color: isDark ? BMoniColors.offbrand700 : BMoniColors.grey200,
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.lightBorder,
                 ),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: pillColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(iconData, size: 18, color: pillTextColor),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          alloc.label,
+                        const Text(
+                          'WHEN PAYMENT ARRIVES',
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? BMoniColors.grey50
-                                : BMoniColors.grey950,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: FlowPayColors.darkTextSecondary,
+                            letterSpacing: 0.8,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
-                          'Destination: ${alloc.destinationWalletTag}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: BMoniColors.grey400,
+                          sourceAmountStr.contains('2000') ||
+                                  sourceAmountStr == '2000.00'
+                              ? '\$2,000 incoming'
+                              : (sourceAmountStr.isNotEmpty
+                                  ? '\$$sourceAmountStr incoming'
+                                  : 'Any incoming'),
+                          style: FlowPayTypography.amount(
+                            color: isDark
+                                ? FlowPayColors.darkTextPrimary
+                                : FlowPayColors.lightTextPrimary,
+                          ).copyWith(fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Trigger: ${intent.triggerCondition.type.toUpperCase()}',
+                          style: FlowPayTypography.captionStyle(
+                            color: FlowPayColors.primaryLight,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: pillColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${alloc.percentage.toInt()}%',
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.primary.withAlpha(40),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle,
+                            size: 14, color: FlowPayColors.primaryLight),
+                        SizedBox(width: 6),
+                        Text(
+                          '100% Allocated',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: pillTextColor,
+                            color: FlowPayColors.primaryLight,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        amountDisplay,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? BMoniColors.grey100
-                              : BMoniColors.grey900,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
-            );
-          }),
+            ),
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 12),
-
-          // Reassurance Banner: "Nothing moves until you approve."
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isDark ? BMoniColors.offbrand800 : BMoniColors.grey100,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? BMoniColors.offbrand600 : BMoniColors.grey300,
+            const Text(
+              'ALLOCATION BREAKDOWN',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: FlowPayColors.darkTextSecondary,
+                letterSpacing: 0.8,
               ),
             ),
-            child: Row(
+            const SizedBox(height: 8),
+
+            // Allocations List
+            ...intent.allocations.map((alloc) {
+              final amountDisplay = () {
+                if (alloc.targetAmountFormatted != null &&
+                    alloc.targetAmountFormatted!.isNotEmpty) {
+                  return alloc.targetAmountFormatted!;
+                }
+                final parsed = double.tryParse(alloc.sourceAmountFormatted
+                    .replaceAll(RegExp(r'[^0-9.]'), ''));
+                if (parsed != null &&
+                    parsed == parsed.roundToDouble() &&
+                    parsed > 0) {
+                  return '\$${parsed.toInt()}';
+                }
+                return alloc.sourceAmountFormatted;
+              }();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.darkSurface
+                      : FlowPayColors.lightSurface,
+                  borderRadius: FlowPaySpacing.borderRadiusMd,
+                  border: Border.all(
+                    color: isDark
+                        ? FlowPayColors.darkBorder
+                        : FlowPayColors.lightBorder,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: FlowPayColors.primary.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${alloc.percentage.toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: FlowPayColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            alloc.label,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? FlowPayColors.darkTextPrimary
+                                  : FlowPayColors.lightTextPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Destination: ${alloc.destinationWalletTag}',
+                            style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.darkTextSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          amountDisplay,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? FlowPayColors.darkTextPrimary
+                                : FlowPayColors.lightTextPrimary,
+                          ),
+                        ),
+                        Text(
+                          alloc.targetCurrency.code,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: FlowPayColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+            const SizedBox(height: 12),
+
+            // Reassurance Banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: FlowPayColors.surfaceAlt,
+                borderRadius: FlowPaySpacing.borderRadiusMd,
+                border: Border.all(color: FlowPayColors.hairline),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.lock_outline,
+                      size: 16, color: FlowPayColors.primaryLight),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nothing moves until you approve.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: FlowPayColors.ink,
+                          ),
+                        ),
+                        Text(
+                          'Requires explicit authorization with your on-device B-Key PIN.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: FlowPayColors.darkTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Buttons: Edit and Approve Mission
+            Row(
               children: [
-                const Icon(Icons.lock_outline,
-                    size: 16, color: BMoniColors.brand400),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Nothing moves until you approve.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? BMoniColors.grey100
-                              : BMoniColors.grey900,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      const Text(
-                        'Requires explicit authorization with your on-device B-Key PIN.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: BMoniColors.grey400,
-                        ),
-                      ),
-                    ],
+                  flex: 1,
+                  child: FlowPayButton(
+                    text: 'Edit',
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.large,
+                    onPressed: onEdit,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: FlowPayButton(
+                    text: 'Approve Mission',
+                    variant: FlowPayButtonVariant.primary,
+                    size: FlowPayButtonSize.large,
+                    onPressed: onApprove,
                   ),
                 ),
               ],
             ),
-          ),
-
-          const SizedBox(height: 18),
-
-          // Buttons: Edit and Approve Mission
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: BMoniButton(
-                  text: 'Edit',
-                  variant: BMoniButtonVariant.secondary,
-                  size: BMoniButtonSize.large,
-                  onPressed: onEdit,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: BMoniButton(
-                  text: 'Approve Mission',
-                  variant: BMoniButtonVariant.primary,
-                  size: BMoniButtonSize.large,
-                  onPressed: onApprove,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

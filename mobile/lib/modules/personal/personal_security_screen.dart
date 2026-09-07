@@ -73,7 +73,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
       context: context,
       title: 'Test Device Signer',
       subtitle:
-          'Authorizes test EIP-191 digest using on-device hardware keypair',
+          'Authorizes secure cryptographic verification using your on-device PIN',
       onAuthorize: (pin) async {
         try {
           final sig = await BmoniSdkService.signMessage('FlowPay Security Test',
@@ -427,7 +427,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 isDark,
                 title: 'Device Hardware Signer',
                 subtitle: _isSigningAvailable
-                    ? 'Available • EIP-191 & EIP-712 cryptographic engine ready'
+                    ? 'Available • Secure Hardware Enclave Signing Engine Ready'
                     : 'Device signing unavailable',
                 statusText: _isSigningAvailable ? 'ACTIVE' : 'INACTIVE',
                 isSuccess: _isSigningAvailable,
@@ -441,7 +441,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 isDark,
                 title: '6-Digit Security PIN Protection',
                 subtitle: _hasPin
-                    ? 'Enabled • Salted PBKDF2-HMAC-SHA256 digest verified'
+                    ? 'Enabled • Hardware-backed key derivation & PIN protection active'
                     : 'Not configured • Set PIN to protect operations',
                 statusText: _hasPin ? 'CONFIGURED' : 'NOT SET',
                 isSuccess: _hasPin,

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import '../../../core/design_system/design_system.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
 import '../../../core/state/business_provider.dart';
-import '../../../core/theme/colors.dart';
-import '../../../core/theme/radii.dart';
-import '../../../core/theme/typography.dart';
 
 class CountryOption {
   final String code;
@@ -24,7 +21,7 @@ class CountryOption {
 }
 
 /// Add Employee Modal
-/// Powered by bkey_uikit design system:
+/// FlowPay Business Design System:
 /// - BMoniTextFormField.filled for input fields
 /// - SelectorBottomSheet<CountryOption> via BMoniBottomSheet.show for country & rail selection
 /// - BMoniButton(variant: BMoniButtonVariant.primary) for submission
@@ -221,17 +218,21 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: FlowPayColors.surface,
-        borderRadius: FlowPayRadii.sheet,
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: bottomInset + 24,
-      ),
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        decoration: const BoxDecoration(
+          color: FlowPayColors.surface,
+          borderRadius: FlowPayRadii.sheet,
+        ),
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: bottomInset + 24,
+        ),
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -447,6 +448,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

@@ -1,26 +1,37 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class FlowPayApiClient {
   final String baseUrl;
   final http.Client _client;
+  String? _userId;
 
   FlowPayApiClient({
     String? baseUrl,
     http.Client? client,
-  })  : baseUrl = baseUrl ??
-            (const String.fromEnvironment('FLOWPAY_API_URL').isNotEmpty
-                ? const String.fromEnvironment('FLOWPAY_API_URL')
-                : (Platform.isAndroid
-                    ? 'http://10.0.2.2:4000'
-                    : 'http://localhost:4000')),
-        _client = client ?? http.Client();
+    String? userId,
+  })  : baseUrl = baseUrl ?? ApiConfig.baseUrl,
+        _client = client ?? http.Client(),
+        _userId = userId;
+
+  void setUserId(String? userId) {
+    _userId = userId;
+  }
+
+  Map<String, String> _buildHeaders([Map<String, String>? extra]) {
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      if (_userId != null && _userId!.isNotEmpty) 'x-user-id': _userId!,
+    };
+    if (extra != null) headers.addAll(extra);
+    return headers;
+  }
 
   Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
     final uri =
         Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-    final res = await _client.get(uri, headers: {'Accept': 'application/json'});
+    final res = await _client.get(uri, headers: _buildHeaders());
     return _handleResponse(res);
   }
 
@@ -28,10 +39,7 @@ class FlowPayApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final res = await _client.post(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: _buildHeaders({'Content-Type': 'application/json'}),
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);
@@ -41,10 +49,7 @@ class FlowPayApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final res = await _client.patch(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: _buildHeaders({'Content-Type': 'application/json'}),
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);
@@ -54,10 +59,7 @@ class FlowPayApiClient {
     final uri = Uri.parse('$baseUrl$path');
     final res = await _client.put(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: _buildHeaders({'Content-Type': 'application/json'}),
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);

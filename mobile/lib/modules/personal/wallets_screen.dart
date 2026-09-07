@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/money/money.dart';
 import '../../core/repositories/wallet_repository.dart';
 import '../../core/state/app_state.dart';
+import 'send_money_screen.dart';
 import 'wallet_provisioning_screen.dart';
 
 class WalletsScreen extends StatefulWidget {
@@ -48,17 +49,83 @@ class _WalletsScreenState extends State<WalletsScreen> {
     }
   }
 
+  void _handleSend(WalletAccount wallet) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SendMoneyScreen(appState: widget.appState),
+      ),
+    );
+  }
+
+  void _handleReceive(WalletAccount wallet) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: FlowPayColors.darkSurfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Receive ${wallet.currency.code}',
+              style: FlowPayTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Share your FlowPay account address to receive funds directly into your ${wallet.currency.name} wallet.',
+              textAlign: TextAlign.center,
+              style: FlowPayTypography.captionStyle(
+                color: FlowPayColors.darkTextSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: FlowPayColors.darkSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: FlowPayColors.darkBorder),
+              ),
+              child: SelectableText(
+                wallet.address,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  color: FlowPayColors.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            FlowPayButton(
+              text: 'Done',
+              isFullWidth: true,
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleConvert(WalletAccount wallet) {
+    widget.appState.setPersonalTabIndex(0); // Switch to dashboard FX
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canPop = Navigator.canPop(context);
 
     Widget content = isLoading
-        ? const FlowPayLoadingState(
-            message: 'Querying B-Key wallet registry...')
+        ? const FlowPayLoadingState(message: 'Loading wallets...')
         : RefreshIndicator(
             onRefresh: _load,
-            color: BMoniColors.brand500,
+            color: FlowPayColors.primary,
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               children: [
@@ -74,180 +141,92 @@ class _WalletsScreenState extends State<WalletsScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF38103A), Color(0xFF1E0720)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+                      color: isDark
+                          ? FlowPayColors.darkSurface
+                          : FlowPayColors.lightSurface,
+                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      border: Border.all(
+                        color: FlowPayColors.primary.withAlpha(80),
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: BMoniColors.brand500.withAlpha(80)),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.shield_outlined,
-                            color: BMoniColors.brand400, size: 28),
-                        SizedBox(width: 14),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.primary.withAlpha(25),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.shield_outlined,
+                              color: FlowPayColors.primary, size: 24),
+                        ),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Secure Hardware Isolation',
-                                style: TextStyle(
-                                  fontSize: 15,
+                                style: FlowPayTypography.bodyMd.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: BMoniColors.grey50,
+                                  color: isDark
+                                      ? FlowPayColors.darkTextPrimary
+                                      : FlowPayColors.lightTextPrimary,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
-                                'Your FlowPay wallet is secured on this device. Tap to manage.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: BMoniColors.grey400,
+                                'Keys sealed on this device. Tap to inspect security enclave.',
+                                style: FlowPayTypography.captionStyle(
+                                  color: FlowPayColors.darkTextSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right, color: BMoniColors.brand400),
+                        const Icon(Icons.chevron_right,
+                            color: FlowPayColors.darkTextSecondary),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-                SectionHeader(
-                  title: 'Configured Multi-Currency Wallets',
-                  backgroundColor: Colors.transparent,
-                  showBottomDivider: false,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                  titleStyle: TextStyle(
-                    fontSize: 15,
+                Text(
+                  'Configured Multi-Currency Wallets',
+                  style: FlowPayTypography.titleMedium.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                    color: isDark
+                        ? FlowPayColors.darkTextPrimary
+                        : FlowPayColors.lightTextPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
                 ...wallets.map((w) {
-                  final wholePart = w.balance
-                      .formatFormatted(includeSymbol: true)
-                      .split('.')[0];
-                  final decimalPart =
-                      '.${w.balance.toMajorString().split('.')[1]}';
+                  // Calculate available vs reserved breakdown
+                  final totalBal = w.balance;
+                  final reservedMajor = (totalBal.majorUnits * 0.15); // mock active mission reserve
+                  final availableBal = Money.fromMajorString(
+                    (totalBal.majorUnits - reservedMajor).toStringAsFixed(2),
+                    w.currency,
+                  );
+                  final reservedBal = Money.fromMajorString(
+                    reservedMajor.toStringAsFixed(2),
+                    w.currency,
+                  );
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: BMoniColors.offbrand900,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: BMoniColors.offbrand700),
-                    ),
-                    child: Column(
-                      children: [
-                        // Card Top Header
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          child: Row(
-                            children: [
-                              FlowPayCurrencyDisplay(
-                                code: w.currency.code,
-                                symbol: w.currency.symbol,
-                                name: w.currency.name,
-                                isCompact: true,
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: BMoniColors.brand500.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                      color:
-                                          BMoniColors.brand500.withAlpha(60)),
-                                ),
-                                child: Text(
-                                  w.status,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: BMoniColors.brand400,
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                '$wholePart$decimalPart',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: BMoniColors.grey50,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Divider(
-                            color: BMoniColors.offbrand800, height: 1),
-                        // Card Address & Rail Details
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Contract Address',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: BMoniColors.grey400),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    'BMONI ${w.stablecoinToken}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: BMoniColors.brand300,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: BMoniColors.offbrand800,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: SelectableText(
-                                        w.address,
-                                        style: const TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 11,
-                                          color: BMoniColors.grey300,
-                                        ),
-                                      ),
-                                    ),
-                                    const Icon(Icons.copy,
-                                        size: 14, color: BMoniColors.grey400),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                  return FlowPayWalletCard(
+                    walletName: '${w.currency.name} Wallet',
+                    currency: w.currency,
+                    balance: totalBal,
+                    availableBalance: availableBal,
+                    reservedBalance: reservedBal,
+                    accountOrAddress: w.address,
+                    status: w.status,
+                    onSend: () => _handleSend(w),
+                    onReceive: () => _handleReceive(w),
+                    onConvert: () => _handleConvert(w),
                   );
                 }),
               ],

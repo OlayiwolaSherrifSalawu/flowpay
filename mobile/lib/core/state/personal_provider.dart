@@ -68,7 +68,7 @@ class PersonalProvider extends ChangeNotifier {
     if (pw != null && pw.currency == Currency.usd) {
       return pw.balance;
     }
-    return Money.fromMajorString('24500.00', Currency.usd);
+    return Money.zero(Currency.usd);
   }
 
   /// Aggregate multi-currency portfolio valuation in USD.
@@ -79,7 +79,7 @@ class PersonalProvider extends ChangeNotifier {
   /// - CADC (CAD): 1.375 CAD per USD
   Money get totalPortfolioUsd {
     if (_wallets.isEmpty) {
-      return Money.fromMajorString('37671.43', Currency.usd);
+      return Money.zero(Currency.usd);
     }
 
     int totalUsdCents = 0;
@@ -254,4 +254,25 @@ class PersonalProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Record an auditable activity directly
+  Future<void> addActivity(ActivityModel activity) async {
+    try {
+      await activityRepo.recordActivity(activity);
+    } catch (_) {}
+    _recentActivities.insert(0, activity);
+    notifyListeners();
+  }
+
+  /// Add a new money mission
+  Future<void> addMission(MoneyMissionModel mission) async {
+    try {
+      final created = await missionRepo.createMission(mission);
+      _missions.insert(0, created);
+    } catch (_) {
+      _missions.insert(0, mission);
+    }
+    notifyListeners();
+  }
 }
+

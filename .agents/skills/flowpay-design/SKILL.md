@@ -1,100 +1,107 @@
 ---
 name: flowpay-design
 description: >-
-  Establishes the FlowPay Design System powered by the official BMoni UI Kit (bkey_uikit).
-  Consult this skill for all UI development, styling standards, color tokens, typography,
-  and component usage rules to maintain strict BMoni visual consistency across the entire app.
+  Establishes the FlowPay Design System — an independent, dark-mode first, premium
+  fintech visual identity. Consult this skill for all UI development, styling standards,
+  color tokens, typography, and component usage rules.
 ---
 
-# FlowPay Design System & BMoni UI Kit Standards
+# FlowPay Design System Standards
 
 ## 1. Overview & Visual Identity
-FlowPay is built on the official **BMoni UI Kit (`bkey_uikit`)** ecosystem. All screens and components must adhere to the high-contrast, dark-plum obsidian aesthetic of BMONI.
+
+FlowPay is an AI-powered financial operating system designed with an independent, premium fintech visual identity.
+
+> [!IMPORTANT]
+> **Zero BMONI UI Kit Dependency**: FlowPay does NOT depend on `bkey_uikit` or BMONI's visual design language. The BMONI SDK (`bmoni_embedded_sdk`) is utilized strictly as an unstyled, on-device cryptographic PIN/hardware enclave driver.
 
 ### Core Visual Principles:
-- **Palette**: Deep Obsidian/Plum dark mode (`BMoniColors.offbrand950` `#1C0C1C`), elevated surfaces (`offbrand900` `#240D24`, `offbrand800` `#351835`), and signature magenta brand accents (`BMoniColors.brand500` `#B001B0`, `brand400` `#C94CD7`).
-- **Typography**: Clean, readable sans-serif typography via `BMoniTextStyles` with explicit hierarchy (d1–d6 display, h1–h6 headings, p1–p4 body, l1–l4 labels). Numbers representing balances and financial amounts must use tabular alignment.
-- **Elevation & Surfaces**: Frosted glass effects, thin borders (`offbrand700` `#4C274C` / `offbrand800`), 16px corner radii for cards, and 24px corner radii for modals and section containers.
-- **Interactivity**: Micro-animations on press, tactile feedback on monetary actions, and clear loading/disabled states.
+- **Obsidian Palette**: Deep Obsidian Slate dark background (`#090A0F`), high-contrast dark surfaces (`#12141C`, `#181B26`), and subtle hairline borders (`#232838`).
+- **Signature Accents**: FlowPay Electric Emerald (`#00E599`) for primary actions, autonomous AI executions, and positive cash flow; Vivid Cyan (`#00D2FF`) for multi-currency routing; Warm Amber (`#FFB020`) for security approvals; Rose (`#FF4D4D`) for risk/rejection.
+- **Financial Typography**: Google Fonts Inter with explicit hierarchy. All monetary values, balances, and exchange rates use tabular figure formatting (`FontFeature.tabularFigures()`) to prevent numeral jitter during real-time balance shifts.
+- **Glassmorphism & Surfaces**: Frosted glass cards (`FlowPayGlassCard`), subtle radial gradients, 16px corner radii for cards, and 24px corner radii for modals and sheets.
+- **Tactile Interactivity**: Smooth micro-animations, clear loading indicators, and dedicated reassurance banners ("Nothing moves until you approve.").
 
 ---
 
-## 2. Color Tokens (`BMoniColors`)
+## 2. Color Tokens (`FlowPayColors`)
 
 | Token | Hex / Value | Usage |
 | :--- | :--- | :--- |
-| `BMoniColors.offbrand950` | `#1C0C1C` | Primary Scaffold dark background |
-| `BMoniColors.offbrand900` | `#240D24` | Default Card / Surface background |
-| `BMoniColors.offbrand800` | `#351835` | Elevated surfaces, sheets, popovers |
-| `BMoniColors.offbrand700` | `#4C274C` | Borders, dividers, subtle outlines |
-| `BMoniColors.brand500` | `#B001B0` | Primary brand CTA, active tabs, buttons |
-| `BMoniColors.brand400` | `#C94CD7` | Hover / focus / highlighted brand accents |
-| `BMoniColors.brand700` | `#690669` | Pressed state / dark brand accents |
-| `BMoniColors.accent400` | `#2B88D1` | Secondary accents, informational badges |
-| `BMoniColors.success400` | `#00E676` | Positive balance growth, success states |
-| `BMoniColors.warning400` | `#FFB300` | Approvals needed, pending actions |
-| `BMoniColors.error400` | `#FF5252` | Error states, dangerous actions, rejection |
-| `BMoniColors.grey50` | `#F9F9FA` | Primary high-contrast text |
-| `BMoniColors.grey400` | `#9E9EA4` | Secondary / muted text labels |
+| `FlowPayColors.darkBackground` | `#090A0F` | Primary Scaffold dark background |
+| `FlowPayColors.darkSurface` | `#12141C` | Default Card / Surface background |
+| `FlowPayColors.darkSurfaceElevated` | `#181B26` | Elevated cards, sheets, dialogs, popovers |
+| `FlowPayColors.darkBorder` | `#232838` | Structural card borders and dividers |
+| `FlowPayColors.primary` | `#00E599` | FlowPay Electric Emerald — Primary CTA & highlights |
+| `FlowPayColors.primaryLight` | `#33EAB0` | Hover states, active icons, status accents |
+| `FlowPayColors.accent` | `#00D2FF` | Vivid Cyan — Cross-currency FX & AI routing |
+| `FlowPayColors.amber` | `#FFB020` | Security approvals, pending signatures |
+| `FlowPayColors.error` | `#FF4D4D` | Danger actions, errors, rejections |
+| `FlowPayColors.darkTextPrimary` | `#F3F4F6` | High-contrast readable body & headings |
+| `FlowPayColors.darkTextSecondary` | `#9CA3AF` | Secondary labels, descriptions, timestamps |
+| `FlowPayColors.darkTextMuted` | `#6B7280` | Placeholder text, subtle metadata |
 
 ---
 
-## 3. UI Kit Components (`bkey_uikit`)
+## 3. Component Architecture (`lib/core/design_system/`)
 
-### 1. BMoniWalletCard & BMoniWalletCardBalance
-Used for all multi-currency smart wallet displays (USD, NGN, MXN, EUR).
+### 1. Buttons (`FlowPayButton`)
+Primary action button supporting `primary`, `secondary`, `outline`, `ghost`, and `danger` variants, multiple sizes, loading states, and icon decorations.
 ```dart
-import 'package:bkey_uikit/bkey_uikit.dart';
-
-BMoniWalletCard(
-  background: BMoniWalletCardBackground.gradient(
-    const LinearGradient(
-      colors: [Color(0xFF3D003D), Color(0xFF1C0C1C)],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-    ),
-  ),
-  balanceChild: BMoniWalletCardBalance(
-    wholePart: '12,450',
-    decimalPart: '.80',
-    isHidden: false,
-    onToggleHidden: () => setState(() => isHidden = !isHidden),
-    balanceColor: BMoniColors.grey50,
-  ),
-)
-```
-
-### 2. BMoniButton
-Standard action button with built-in loading and disabled states:
-```dart
-BMoniButton(
-  text: 'Send Payment',
-  variant: BMoniButtonVariant.primary,
-  size: BMoniButtonSize.large,
+FlowPayButton(
+  text: 'Approve & Send',
+  icon: Icons.lock_outline,
+  size: FlowPayButtonSize.large,
   isLoading: isProcessing,
-  onPressed: handleSend,
+  onPressed: handleApprove,
 )
 ```
+*Backward-compatibility aliases are provided: `BMoniButton = FlowPayButton`.*
 
-### 3. SectionHeader
-Used to demarcate major screen sections with standard BMoni typography and dividers:
+### 2. Wallet Cards (`FlowPayWalletCard`)
+Multi-currency smart wallet presentation cards featuring gradient overlays, privacy hide/reveal toggles, currency badges, and balance displays.
 ```dart
-SectionHeader(
-  title: 'Recent Activity',
-  backgroundColor: Colors.transparent,
-  showBottomDivider: true,
-  trailing: TextButton(onPressed: viewAll, child: Text('See All')),
+FlowPayWalletCard(
+  currency: 'USD',
+  balance: '$12,450.80',
+  walletName: 'USD Smart Vault',
+  isLocked: false,
+  onTap: () => viewWalletDetails(),
+)
+```
+*Backward-compatibility aliases: `BMoniWalletCard`, `BMoniWalletCardBalance`.*
+
+### 3. Financial Typography & Amount Display (`FlowPayAmount`, `FlowPayTypography`)
+Splits amounts into large whole parts and smaller superscript/subscript decimal parts with tabular numerals.
+```dart
+FlowPayAmount(
+  amount: '$2,450.00',
+  isPositive: true,
+  size: FlowPayAmountSize.large,
 )
 ```
 
-### 4. Custom Inputs & Amount Display
-- Input cards must use `BMoniColors.offbrand900` background with `BMoniColors.offbrand700` border.
-- Monetary amount displays must split the integer and fractional parts with tabular numerals.
+### 4. Modals & Sheets (`FlowPayBottomSheet`, `FlowPayDialog`)
+Dark-surfaced bottom sheets and dialogs with drag handles, rounded corners (24dp), and clear approval hierarchy.
+```dart
+showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: FlowPayColors.darkBackground,
+  builder: (_) => TransferReviewModal(...),
+);
+```
+
+### 5. Reassurance Banners
+All AI-suggested or automated money movements must feature the security trust banner:
+> **"Nothing moves until you approve."**
+> *Requires on-device PIN signature • Zero unauthorized movement*
 
 ---
 
-## 4. UI Invariants (Strict Rules)
-1. **Never use generic blue/slate colors (`#0B0F17`, `#6366F1`)** — all surfaces must use `BMoniColors` tokens (`offbrand950`, `offbrand900`, `brand500`).
-2. **Never create raw, unstyled buttons** — wrap or use `BMoniButton`.
-3. **Always use BMoni wallet cards** for balance displays rather than plain flat boxes.
-4. **Preserve dual role switching** (`FlowPayRoleSwitcher`) with smooth animated transitions.
+## 4. UI Directives & Safety Rules
+
+1. **No BMONI UI Kit imports** (`import 'package:bkey_uikit/...'` is strictly prohibited).
+2. **On-Device Cryptographic Enclave**: The BMONI SDK is accessed solely via `BmoniSdkService` for on-device cryptographic PIN signing and key isolation.
+3. **Strict Tabular Figures**: Use `FlowPayTypography.tabularFigures` for all live financial balances and conversion displays.
+4. **Adaptive Dual Role Architecture**: Preserve the smooth animated role switcher (`FlowPayRoleSwitcher`) between Personal and Business modes.

@@ -291,3 +291,197 @@ class FlowPayAmountField extends StatelessWidget {
     );
   }
 }
+
+/// Size variant for FlowPay / BMoni form fields
+enum BMoniTextFieldSize { small, medium, large }
+
+/// Backwards compatibility wrapper for form fields styled with FlowPay tokens
+class BMoniTextFormField extends StatelessWidget {
+  final TextEditingController? controller;
+  final String? label;
+  final String? labelText;
+  final String? hintText;
+  final String? helperText;
+  final String? errorText;
+  final BMoniTextFieldSize size;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+  final String? prefixText;
+  final String? suffixText;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final List<TextInputFormatter>? inputFormatters;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onChanged;
+  final bool obscureText;
+  final bool readOnly;
+  final bool enabled;
+  final int maxLines;
+  final VoidCallback? onTap;
+  final bool autofocus;
+  final FocusNode? focusNode;
+
+  const BMoniTextFormField({
+    super.key,
+    this.controller,
+    this.label,
+    this.labelText,
+    this.hintText,
+    this.helperText,
+    this.errorText,
+    this.size = BMoniTextFieldSize.medium,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.prefixText,
+    this.suffixText,
+    this.keyboardType,
+    this.textInputAction,
+    this.inputFormatters,
+    this.validator,
+    this.onChanged,
+    this.obscureText = false,
+    this.readOnly = false,
+    this.enabled = true,
+    this.maxLines = 1,
+    this.onTap,
+    this.autofocus = false,
+    this.focusNode,
+  });
+
+  const BMoniTextFormField.filled({
+    super.key,
+    this.controller,
+    this.label,
+    this.labelText,
+    this.hintText,
+    this.helperText,
+    this.errorText,
+    this.size = BMoniTextFieldSize.medium,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.prefixText,
+    this.suffixText,
+    this.keyboardType,
+    this.textInputAction,
+    this.inputFormatters,
+    this.validator,
+    this.onChanged,
+    this.obscureText = false,
+    this.readOnly = false,
+    this.enabled = true,
+    this.maxLines = 1,
+    this.onTap,
+    this.autofocus = false,
+    this.focusNode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final displayLabel = label ?? labelText;
+
+    double verticalPadding;
+    switch (size) {
+      case BMoniTextFieldSize.small:
+        verticalPadding = 10;
+        break;
+      case BMoniTextFieldSize.large:
+        verticalPadding = 18;
+        break;
+      case BMoniTextFieldSize.medium:
+        verticalPadding = 14;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (displayLabel != null) ...[
+          Text(
+            displayLabel,
+            style: FlowPayTypography.caption.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isDark
+                  ? FlowPayColors.darkTextSecondary
+                  : FlowPayColors.lightTextSecondary,
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+        TextFormField(
+          controller: controller,
+          validator: validator,
+          onChanged: onChanged,
+          obscureText: obscureText,
+          readOnly: readOnly,
+          enabled: enabled,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          inputFormatters: inputFormatters,
+          onTap: onTap,
+          autofocus: autofocus,
+          focusNode: focusNode,
+          style: FlowPayTypography.bodyMd.copyWith(
+            color: isDark
+                ? FlowPayColors.darkTextPrimary
+                : FlowPayColors.lightTextPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: hintText,
+            helperText: helperText,
+            errorText: errorText,
+            prefixIcon: prefixIcon,
+            suffixIcon: suffixIcon,
+            prefixText: prefixText,
+            suffixText: suffixText,
+            filled: true,
+            fillColor: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurface,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: verticalPadding,
+            ),
+            hintStyle: FlowPayTypography.bodyMd.copyWith(
+              color: isDark
+                  ? FlowPayColors.darkTextMuted
+                  : FlowPayColors.lightTextMuted,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: isDark
+                    ? FlowPayColors.darkBorder
+                    : FlowPayColors.lightBorder,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: isDark
+                    ? FlowPayColors.darkBorder
+                    : FlowPayColors.lightBorder,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: FlowPayColors.primary,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: FlowPayColors.error,
+                width: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

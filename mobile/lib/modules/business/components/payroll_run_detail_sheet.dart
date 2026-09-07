@@ -12,7 +12,7 @@ import '../../../core/wallet/components/wallet_pin_auth_sheet.dart';
 /// Conforms strictly to FlowPay safety directives:
 /// - Never surfaces hashToSign, signature, private key material, or webhook secrets.
 /// - Surfaces public/audit references (FlowPay reference, BMONI proposal ID, tx hash).
-/// - Uses bkey_uikit's ActivitySectionCard and StatusText components.
+/// - Uses FlowPay ActivitySectionCard and StatusText components.
 /// - Supports granular retry of failed proposal items via on-device PIN authorization.
 class PayrollRunDetailSheet extends StatefulWidget {
   final PayrollRunModel run;

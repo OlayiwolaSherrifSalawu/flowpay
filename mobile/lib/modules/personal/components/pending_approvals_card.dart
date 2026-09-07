@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import '../../../core/design_system/buttons.dart';
 import '../../../core/repositories/approval_repository.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
+import '../../../core/theme/typography.dart';
 
 class PendingApprovalsCard extends StatelessWidget {
   final List<PendingApprovalModel> pendingApprovals;
@@ -25,12 +27,14 @@ class PendingApprovalsCard extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: FlowPayColors.darkSurfaceElevated,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: FlowPaySpacing.borderRadiusXl,
+            side: const BorderSide(color: FlowPayColors.darkBorder),
+          ),
           title: const Row(
             children: [
               Icon(Icons.shield_outlined,
-                  color: BMoniColors.warning400, size: 22),
+                  color: FlowPayColors.amber, size: 22),
               SizedBox(width: 8),
               Text(
                 'Authorize Action',
@@ -48,77 +52,54 @@ class PendingApprovalsCard extends StatelessWidget {
               Text(
                 approval.title,
                 style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 approval.description,
-                style:
-                    const TextStyle(fontSize: 12, color: BMoniColors.grey400),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: FlowPayColors.darkSurface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: FlowPayColors.darkBorder),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Amount to Authorize',
-                        style: TextStyle(
-                            fontSize: 12, color: BMoniColors.grey400)),
-                    Text(
-                      approval.amount.formatFormatted(includeSymbol: true),
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                  ],
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: FlowPayColors.darkTextSecondary,
                 ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Enter 6-Digit B-Key Signing PIN',
                 style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: BMoniColors.grey300),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: FlowPayColors.darkTextSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
                 controller: pinController,
+                obscureText: true,
                 keyboardType: TextInputType.number,
                 maxLength: 6,
-                obscureText: true,
-                textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontSize: 20,
-                    letterSpacing: 8,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  letterSpacing: 8,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
                 decoration: InputDecoration(
                   hintText: '••••••',
                   hintStyle: const TextStyle(
-                      color: BMoniColors.grey600, letterSpacing: 8),
+                      color: FlowPayColors.darkTextMuted, letterSpacing: 8),
                   counterText: '',
                   filled: true,
                   fillColor: FlowPayColors.darkSurface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: FlowPayColors.darkBorder),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: FlowPayColors.darkBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: BMoniColors.brand500, width: 1.5),
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: FlowPayColors.primary),
                   ),
                 ),
               ),
@@ -128,33 +109,20 @@ class PendingApprovalsCard extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel',
-                  style: TextStyle(color: BMoniColors.grey400)),
+                  style: TextStyle(color: FlowPayColors.darkTextSecondary)),
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BMoniColors.brand500,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: isSubmitting
-                  ? null
-                  : () async {
-                      final pin = pinController.text.trim();
-                      if (pin.length == 6) {
-                        setDialogState(() => isSubmitting = true);
-                        Navigator.pop(ctx);
-                        onApprove(approval, pin);
-                      }
-                    },
-              child: isSubmitting
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Sign & Execute',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+            FlowPayButton(
+              text: 'Sign & Execute',
+              icon: Icons.check,
+              isLoading: isSubmitting,
+              size: FlowPayButtonSize.small,
+              onPressed: () async {
+                if (pinController.text.length == 6) {
+                  setDialogState(() => isSubmitting = true);
+                  Navigator.pop(ctx);
+                  onApprove(approval, pinController.text);
+                }
+              },
             ),
           ],
         ),
@@ -164,194 +132,132 @@ class PendingApprovalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (pendingApprovals.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (pendingApprovals.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF26180B) : const Color(0xFFFFF8E7),
-        borderRadius: BorderRadius.circular(18),
+        color: FlowPayColors.amber.withAlpha(18),
+        borderRadius: FlowPaySpacing.borderRadiusXl,
         border: Border.all(
-          color: BMoniColors.warning400.withAlpha(120),
+          color: FlowPayColors.amber.withAlpha(90),
           width: 1.2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: BMoniColors.warning400.withAlpha(15),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: BMoniColors.warning400.withAlpha(40),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.pending_actions,
-                    color: BMoniColors.warning400, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Actions Awaiting Your Approval',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : BMoniColors.grey950,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Explicit authorization required prior to BMONI execution',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color:
-                            isDark ? BMoniColors.grey400 : BMoniColors.grey700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: BMoniColors.warning400.withAlpha(30),
-                  borderRadius: BorderRadius.circular(10),
-                  border:
-                      Border.all(color: BMoniColors.warning400.withAlpha(70)),
-                ),
-                child: Text(
-                  '${pendingApprovals.length} Pending',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: BMoniColors.warning400,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.amber.withAlpha(40),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(Icons.shield_outlined,
+                      size: 16, color: FlowPayColors.amber),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Items List
-          ...pendingApprovals.map((appr) {
-            IconData typeIcon = Icons.bolt;
-            Color typeColor = BMoniColors.brand400;
-            if (appr.type == ApprovalType.transfer) {
-              typeIcon = Icons.arrow_outward;
-              typeColor = BMoniColors.accent400;
-            } else if (appr.type == ApprovalType.fxConversion) {
-              typeIcon = Icons.currency_exchange;
-              typeColor = BMoniColors.success400;
-            }
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isDark ? FlowPayColors.darkSurface : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: FlowPayColors.darkBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: typeColor.withAlpha(30),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(typeIcon, size: 14, color: typeColor),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          appr.title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : BMoniColors.grey950,
-                          ),
-                        ),
-                      ),
                       Text(
-                        appr.amount.formatFormatted(includeSymbol: true),
+                        'Actions Awaiting Your Approval',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : BMoniColors.grey950,
+                          color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      const Text(
+                        'Explicit authorization required prior to BMONI execution',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: FlowPayColors.amber,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    appr.description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? BMoniColors.grey400 : BMoniColors.grey700,
-                      height: 1.3,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.amber.withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: FlowPayColors.amber.withAlpha(70)),
+                  ),
+                  child: Text(
+                    '${pendingApprovals.length} Pending',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: FlowPayColors.amber,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: FlowPayColors.hairline),
+          ...pendingApprovals.map((approval) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          approval.title,
+                          style: FlowPayTypography.bodyMd.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? FlowPayColors.darkTextPrimary
+                                : FlowPayColors.lightTextPrimary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        approval.amount.formatted,
+                        style: FlowPayTypography.amount(
+                          color: FlowPayColors.amber,
+                        ).copyWith(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    approval.description,
+                    style: FlowPayTypography.captionStyle(
+                      color: FlowPayColors.darkTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        style: TextButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 4),
-                        ),
-                        onPressed: () => onReject(appr),
-                        child: Text(
-                          'Reject',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? BMoniColors.grey400
-                                  : BMoniColors.grey600),
-                        ),
+                        onPressed: () => onReject(approval),
+                        child: const Text('Reject',
+                            style: TextStyle(
+                                color: FlowPayColors.error, fontSize: 13)),
                       ),
                       const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: BMoniColors.brand500,
-                          visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: () => _showPinApprovalDialog(context, appr),
-                        icon: const Icon(Icons.lock_outline,
-                            size: 13, color: Colors.white),
-                        label: const Text(
-                          'Approve (PIN)',
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
+                      FlowPayButton(
+                        text: 'Approve (PIN)',
+                        icon: Icons.key_rounded,
+                        size: FlowPayButtonSize.small,
+                        onPressed: () =>
+                            _showPinApprovalDialog(context, approval),
                       ),
                     ],
                   ),

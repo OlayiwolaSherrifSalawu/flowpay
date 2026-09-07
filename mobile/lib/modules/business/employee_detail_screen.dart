@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
-import '../../core/theme/components.dart';
 import '../../core/repositories/card_repository.dart';
 import '../../core/wallets_cards/bmoni_embedded_wallets_cards.dart';
 import 'components/card_detail_sheet.dart';
@@ -13,7 +11,7 @@ import 'components/issue_virtual_card_sheet.dart';
 import 'employee_onboarding_screen.dart';
 
 /// Employee Detail Screen — Wallet Control Center
-/// Extended with bmoni_embedded_wallets_cards and bkey_uikit primitives:
+/// Extended with bmoni_embedded_wallets_cards and FlowPay design primitives:
 /// - Wallet Control Center: EmbeddedWalletCard with currency background art variants
 /// - Riverpod State Management: EmbeddedWalletListNotifier, EmbeddedWalletBalanceNotifier, EmbeddedWalletTransactionsNotifier
 /// - BMONI Security Note: On-device B-Key signer model (Keystore / Secure Enclave)
@@ -379,7 +377,7 @@ class _EmployeeDetailContentState
                         ],
                       ),
                     ),
-                    _StatusPill(status: widget.employee.status),
+                    FlowPayStatusBadge(status: widget.employee.status),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -1391,54 +1389,6 @@ class _FailureStateBanner extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  final String status;
-
-  const _StatusPill({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final upper = status.toUpperCase();
-    Color bg;
-    Color fg;
-
-    switch (upper) {
-      case 'READY':
-      case 'ACTIVE':
-        bg = FlowPayColors.signal.withValues(alpha: 0.15);
-        fg = FlowPayColors.signal;
-        break;
-      case 'FAILED':
-        bg = FlowPayColors.error.withValues(alpha: 0.15);
-        fg = FlowPayColors.error;
-        break;
-      case 'KYC_PENDING':
-      case 'ONBOARDING':
-        bg = Colors.amber.withValues(alpha: 0.15);
-        fg = Colors.amber[700] ?? Colors.amber;
-        break;
-      default:
-        bg = Colors.blue.withValues(alpha: 0.15);
-        fg = Colors.blueAccent;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Text(
-        upper,
-        style: TextStyle(
-          color: fg,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
-        ),
       ),
     );
   }

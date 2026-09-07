@@ -178,25 +178,41 @@ class FlowPayIconButton extends StatelessWidget {
             ? FlowPayColors.darkTextPrimary
             : FlowPayColors.lightTextPrimary);
 
-    return Tooltip(
-      message: tooltip ?? '',
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(size / 2),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: bg,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color:
-                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+    return Semantics(
+      button: true,
+      label: tooltip ?? 'Action button',
+      child: Tooltip(
+        message: tooltip ?? '',
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Center(
+            child: InkWell(
+              onTap: onPressed,
+              borderRadius: BorderRadius.circular(size / 2),
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: bg,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark
+                        ? FlowPayColors.darkBorder
+                        : FlowPayColors.lightBorder,
+                  ),
+                ),
+                child: Icon(icon, size: size * 0.5, color: fg),
+              ),
             ),
           ),
-          child: Icon(icon, size: size * 0.5, color: fg),
         ),
       ),
     );
   }
 }
+
+// Backward-compatibility aliases during UI revamp migration
+typedef BMoniButton = FlowPayButton;
+typedef BMoniButtonVariant = FlowPayButtonVariant;
+typedef BMoniButtonSize = FlowPayButtonSize;
+

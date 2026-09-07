@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
 import '../../../core/theme/typography.dart';
+import '../../../core/design_system/buttons.dart';
 
-/// FlowPay Primary AI Interaction
+/// FlowPay AI Financial Command Center
 /// "What should your money do?"
 ///
 /// Directives:
-/// 1. This is NOT a chatbot.
-/// 2. It is an entry point into task-specific financial workflows.
-/// 3. Provides 3 instant task suggestions:
-///    - "Allocate my $2,000"
-///    - "Send $500 to my designer"
-///    - "Convert $1,000 to Naira"
+/// 1. This is NOT a chatbot. It turns plain English intentions into structured financial actions.
+/// 2. Primary command center interface with quick action suggestions:
+///    - "Send $500 to Mom"
+///    - "Keep $300 aside for tax"
+///    - "Split my next payment between savings and expenses"
+///    - "How much can I safely spend this month?"
+///    - "Pay my designer $500"
 class AiCommandBar extends StatefulWidget {
   final ValueChanged<String> onCommandSubmit;
   final VoidCallback onAllocateTap;
@@ -33,6 +35,7 @@ class AiCommandBar extends StatefulWidget {
 
 class _AiCommandBarState extends State<AiCommandBar> {
   final TextEditingController _controller = TextEditingController();
+  bool _isFocused = false;
 
   @override
   void dispose() {
@@ -53,18 +56,22 @@ class _AiCommandBarState extends State<AiCommandBar> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: FlowPaySpacing.borderRadiusXl,
         border: Border.all(
-          color: FlowPayColors.primary.withAlpha(80),
-          width: 1.2,
+          color: _isFocused
+              ? FlowPayColors.primary.withAlpha(150)
+              : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
+          width: _isFocused ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: FlowPayColors.primary.withAlpha(20),
-            blurRadius: 16,
+            color: _isFocused
+                ? FlowPayColors.primary.withAlpha(20)
+                : const Color(0x0C000000),
+            blurRadius: 20,
             offset: const Offset(0, 4),
           ),
         ],
@@ -72,120 +79,120 @@ class _AiCommandBarState extends State<AiCommandBar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
+          // Header: AI Operator Glow + Headline
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.primary.withAlpha(35),
+                  color: FlowPayColors.primary.withAlpha(30),
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: FlowPayColors.primary.withAlpha(60),
+                    width: 1,
+                  ),
                 ),
                 child: const Icon(
                   Icons.auto_awesome,
-                  color: FlowPayColors.primaryLight,
+                  color: FlowPayColors.primary,
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'What should your money do?',
-                    style: FlowPayTypography.bodyLg.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? FlowPayColors.darkTextPrimary
-                          : FlowPayColors.lightTextPrimary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What should your money do?',
+                      style: FlowPayTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        color: isDark
+                            ? FlowPayColors.darkTextPrimary
+                            : FlowPayColors.lightTextPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    'Task-specific autonomous execution • Strictly PIN-signed',
-                    style: FlowPayTypography.caption.copyWith(
-                      color: FlowPayColors.primaryLight,
-                      fontWeight: FontWeight.w500,
+                    const SizedBox(height: 2),
+                    Text(
+                      'Tell FlowPay what you want in plain English.',
+                      style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.darkTextSecondary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Command Input Field with Action Button
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? FlowPayColors.darkSurfaceElevated
-                  : FlowPayColors.lightSurfaceElevated,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: FlowPayColors.darkBorder),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    onSubmitted: (_) => _handleSubmit(),
-                    style: TextStyle(
-                      color: isDark
-                          ? FlowPayColors.darkTextPrimary
-                          : FlowPayColors.lightTextPrimary,
-                      fontSize: 14,
-                    ),
-                    decoration: InputDecoration(
-                      hintText:
-                          'e.g. "Send \$150 to Samson" or "Sweep 20% to savings"',
-                      hintStyle: TextStyle(
+          // Command Input Box
+          Focus(
+            onFocusChange: (focused) => setState(() => _isFocused = focused),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
+                borderRadius: FlowPaySpacing.borderRadiusLg,
+                border: Border.all(
+                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.terminal_rounded,
+                      size: 18, color: FlowPayColors.darkTextSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      style: TextStyle(
+                        fontSize: 14,
                         color: isDark
-                            ? FlowPayColors.darkTextTertiary
-                            : FlowPayColors.lightTextTertiary,
-                        fontSize: 13,
+                            ? FlowPayColors.darkTextPrimary
+                            : FlowPayColors.lightTextPrimary,
+                        fontWeight: FontWeight.w500,
                       ),
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. "Send \$500 to Mom"',
+                        hintStyle: TextStyle(
+                          color: FlowPayColors.darkTextMuted,
+                          fontSize: 14,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onSubmitted: (_) => _handleSubmit(),
                     ),
                   ),
-                ),
-                InkWell(
-                  onTap: _handleSubmit,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: FlowPayColors.primary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_forward,
-                      size: 16,
-                      color: Colors.white,
-                    ),
+                  const SizedBox(width: 8),
+                  FlowPayButton(
+                    text: 'Execute',
+                    icon: Icons.arrow_forward_rounded,
+                    size: FlowPayButtonSize.small,
+                    onPressed: _handleSubmit,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // Task-specific quick suggestions
-          Text(
-            'QUICK FINANCIAL ACTIONS',
-            style: FlowPayTypography.caption.copyWith(
+          // Suggestion Chips
+          const Text(
+            'SUGGESTED ACTIONS',
+            style: TextStyle(
               fontSize: 10,
-              letterSpacing: 0.8,
               fontWeight: FontWeight.w700,
-              color: isDark
-                  ? FlowPayColors.darkTextTertiary
-                  : FlowPayColors.lightTextTertiary,
+              color: FlowPayColors.darkTextMuted,
+              letterSpacing: 0.8,
             ),
           ),
           const SizedBox(height: 8),
-
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -193,21 +200,21 @@ class _AiCommandBarState extends State<AiCommandBar> {
                 _SuggestionChip(
                   icon: Icons.pie_chart_outline,
                   label: 'Allocate my \$2,000',
-                  accentColor: BMoniColors.brand400,
+                  accentColor: FlowPayColors.primary,
                   onTap: widget.onAllocateTap,
                 ),
                 const SizedBox(width: 8),
                 _SuggestionChip(
                   icon: Icons.send_outlined,
                   label: 'Send \$500 to my designer',
-                  accentColor: BMoniColors.accent400,
+                  accentColor: FlowPayColors.accent,
                   onTap: widget.onSendMoneyTap,
                 ),
                 const SizedBox(width: 8),
                 _SuggestionChip(
                   icon: Icons.currency_exchange,
                   label: 'Convert \$1,000 to Naira',
-                  accentColor: BMoniColors.success400,
+                  accentColor: FlowPayColors.primaryLight,
                   onTap: widget.onConvertTap,
                 ),
               ],
@@ -236,32 +243,40 @@ class _SuggestionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: accentColor.withAlpha(25),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: accentColor.withAlpha(70)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: accentColor),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? FlowPayColors.darkTextPrimary
-                    : FlowPayColors.lightTextPrimary,
-              ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark
+                ? FlowPayColors.darkSurfaceElevated
+                : FlowPayColors.lightSurfaceElevated,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isDark
+                  ? FlowPayColors.darkBorder
+                  : FlowPayColors.lightBorder,
+              width: 1,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: accentColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: FlowPayTypography.captionStyle(
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
+                ).copyWith(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
         ),
       ),
     );

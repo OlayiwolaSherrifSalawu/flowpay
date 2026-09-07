@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import '../../../core/design_system/buttons.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/transfers/transfer_funding.dart';
 import '../../../core/transfers/transfer_intent.dart';
 import '../../../core/transfers/transfer_models.dart';
@@ -44,145 +47,152 @@ class TransferReceiptDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Dialog(
-      backgroundColor: BMoniColors.offbrand900,
+      backgroundColor: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: const BorderSide(color: BMoniColors.offbrand700),
+        borderRadius: FlowPaySpacing.borderRadiusXl,
+        side: BorderSide(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+        ),
       ),
       insetPadding: const EdgeInsets.symmetric(horizontal: 20),
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Celebration Icon
             Container(
-              width: 60,
-              height: 60,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: BMoniColors.success400.withAlpha(30),
+                color: FlowPayColors.primary.withAlpha(35),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: BMoniColors.success400.withAlpha(100), width: 2),
+                  color: FlowPayColors.primary.withAlpha(80),
+                  width: 1.5,
+                ),
               ),
               child: const Icon(
                 Icons.check_rounded,
-                color: BMoniColors.success400,
-                size: 36,
+                color: FlowPayColors.primary,
+                size: 32,
               ),
             ),
             const SizedBox(height: 14),
 
-            const Text(
+            Text(
               'Transfer Settled',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: BMoniColors.grey50,
+              style: FlowPayTypography.headingSm.copyWith(
+                fontWeight: FontWeight.w800,
+                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Successfully delivered ${intent.amount} ${intent.currency.code}',
-              style: const TextStyle(fontSize: 13, color: BMoniColors.grey400),
-              textAlign: TextAlign.center,
+              'Settled & recorded to activity timeline',
+              style: FlowPayTypography.captionStyle(
+                color: FlowPayColors.darkTextSecondary,
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
-            // Summary Card
+            // Amount summary card
             Container(
-              padding: const EdgeInsets.all(14),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: BMoniColors.offbrand800,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: BMoniColors.offbrand700),
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
+                borderRadius: FlowPaySpacing.borderRadiusLg,
+                border: Border.all(
+                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                ),
               ),
               child: Column(
                 children: [
-                  _buildSummaryRow('Beneficiary', intent.recipient),
-                  _buildSummaryRow('Delivered Amount',
-                      '${intent.amount} ${intent.currency.code}'),
-                  _buildSummaryRow(
-                      'Funding Wallet', fundingOption.fundingWalletName),
-                  if (fundingOption.requiresConversion)
-                    _buildSummaryRow(
-                        'Conversion', fundingOption.conversionLabel),
-                  _buildSummaryRow('Settlement Debit',
-                      fundingOption.totalDebit.formatFormatted()),
-                  const Divider(color: BMoniColors.offbrand700, height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'BMONI On-Chain Rail',
-                        style:
-                            TextStyle(fontSize: 12, color: BMoniColors.grey400),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: BMoniColors.brand500.withAlpha(40),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Verified & Logged',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: BMoniColors.brand300,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '${intent.amount} ${intent.currency.code}',
+                    style: FlowPayTypography.amount(
+                      color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                    ).copyWith(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'to ${intent.recipient}',
+                    style: FlowPayTypography.captionStyle(
+                      color: FlowPayColors.darkTextSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 14),
 
-            // Transaction Hash with Copy Button
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: BMoniColors.offbrand950,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: BMoniColors.offbrand700),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.tag, size: 14, color: BMoniColors.grey400),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      result.transactionHash,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontFamily: 'Courier',
-                        color: BMoniColors.grey400,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+            // Key details
+            _buildSummaryRow('Beneficiary', intent.recipient, isDark),
+            _buildSummaryRow(
+                'Funding Source', fundingOption.fundingWalletName, isDark),
+            if (fundingOption.requiresConversion)
+              _buildSummaryRow(
+                  'Conversion', fundingOption.conversionLabel, isDark),
+            _buildSummaryRow(
+                'Total Debited',
+                fundingOption.totalDebit.formattedWithSymbol,
+                isDark),
+            _buildSummaryRow(
+                'Timestamp',
+                DateTime.now().toLocal().toString().substring(0, 16),
+                isDark),
+
+            const SizedBox(height: 12),
+
+            // Reference hash pill
+            if (result.transactionHash.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                   ),
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(
-                          ClipboardData(text: result.transactionHash));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Transaction hash copied to clipboard'),
-                          duration: Duration(seconds: 2),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.tag, size: 14, color: FlowPayColors.darkTextSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Ref: ${result.transactionHash}',
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: FlowPayColors.darkTextSecondary,
                         ),
-                      );
-                    },
-                    child: const Icon(Icons.copy,
-                        size: 14, color: BMoniColors.brand300),
-                  ),
-                ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: result.transactionHash));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Transaction reference copied'),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.copy,
+                          size: 14, color: FlowPayColors.primary),
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 18),
 
             // Buttons
@@ -190,9 +200,9 @@ class TransferReceiptDialog extends StatelessWidget {
               children: [
                 if (onViewActivity != null)
                   Expanded(
-                    child: BMoniButton(
+                    child: FlowPayButton(
                       text: 'Activity',
-                      variant: BMoniButtonVariant.secondary,
+                      variant: FlowPayButtonVariant.secondary,
                       onPressed: () {
                         Navigator.of(context).pop();
                         onViewActivity!();
@@ -201,10 +211,10 @@ class TransferReceiptDialog extends StatelessWidget {
                   ),
                 if (onViewActivity != null) const SizedBox(width: 10),
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     key: const Key('transfer_receipt_done_button'),
                     text: 'Done',
-                    variant: BMoniButtonVariant.primary,
+                    variant: FlowPayButtonVariant.primary,
                     onPressed: () {
                       Navigator.of(context).pop();
                       onDone();
@@ -219,22 +229,23 @@ class TransferReceiptDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(fontSize: 12, color: BMoniColors.grey400)),
+              style: const TextStyle(
+                  fontSize: 12, color: FlowPayColors.darkTextSecondary)),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: BMoniColors.grey50,
+                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
               ),
               overflow: TextOverflow.ellipsis,
             ),
