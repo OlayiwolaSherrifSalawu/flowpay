@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/repositories/card_repository.dart';
-import '../../../core/theme/components.dart';
 
 /// Interactive Card Management Bottom Sheet.
 /// Features:

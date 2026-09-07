@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
-import '../../core/theme/components.dart';
 import '../../core/repositories/card_repository.dart';
 import '../../core/wallets_cards/bmoni_embedded_wallets_cards.dart';
 import 'components/card_detail_sheet.dart';
@@ -13,7 +11,7 @@ import 'components/issue_virtual_card_sheet.dart';
 import 'employee_onboarding_screen.dart';
 
 /// Employee Detail Screen — Wallet Control Center
-/// Extended with bmoni_embedded_wallets_cards and bkey_uikit primitives:
+/// Extended with bmoni_embedded_wallets_cards and FlowPay design primitives:
 /// - Wallet Control Center: EmbeddedWalletCard with currency background art variants
 /// - Riverpod State Management: EmbeddedWalletListNotifier, EmbeddedWalletBalanceNotifier, EmbeddedWalletTransactionsNotifier
 /// - BMONI Security Note: On-device B-Key signer model (Keystore / Secure Enclave)

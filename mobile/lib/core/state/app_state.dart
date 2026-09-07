@@ -18,6 +18,7 @@ import '../providers/demo/demo_mission_repo.dart';
 import '../providers/demo/demo_payroll_repo.dart';
 import '../providers/demo/demo_transfer_repo.dart';
 import '../providers/demo/demo_wallet_repo.dart';
+import '../beneficiaries/beneficiary_repository.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/approval_repository.dart';
 import '../repositories/business_audit_repository.dart';
@@ -57,6 +58,7 @@ class AppState extends ChangeNotifier {
     walletRepo: _demoWallet,
   );
   final DemoApprovalRepository _demoApproval = DemoApprovalRepository();
+  final DemoBeneficiaryRepository _demoBeneficiary = DemoBeneficiaryRepository();
   late final DemoBusinessAuditRepository _demoAudit =
       DemoBusinessAuditRepository(
     payrollRepo: _demoPayroll,
@@ -154,6 +156,7 @@ class AppState extends ChangeNotifier {
   ApprovalRepository get approvalRepo =>
       isDemo ? _demoApproval : _bmoniApproval;
   BusinessAuditRepository get auditRepo => isDemo ? _demoAudit : _bmoniAudit;
+  BeneficiaryRepository get beneficiaryRepo => _demoBeneficiary;
 
   // Active Providers
   BusinessProvider get businessProvider =>

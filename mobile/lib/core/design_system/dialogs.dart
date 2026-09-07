@@ -148,3 +148,97 @@ Future<bool?> showFlowPayConfirmDialog({
     ),
   );
 }
+
+/// FlowPay Toast Feedback Utility
+class FlowPayToast {
+  static void showSuccess(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: FlowPayColors.primary, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ],
+        ),
+        backgroundColor: FlowPayColors.darkSurfaceElevated,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  static void showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: FlowPayColors.error, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ],
+        ),
+        backgroundColor: FlowPayColors.darkSurfaceElevated,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  static void showInfo(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.info_outline, color: FlowPayColors.info, size: 18),
+            const SizedBox(width: 10),
+            Expanded(child: Text(message, style: const TextStyle(fontWeight: FontWeight.w600))),
+          ],
+        ),
+        backgroundColor: FlowPayColors.darkSurfaceElevated,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+}
+
+/// Backwards compatibility wrapper for toast notifications
+class BMoniToastOverlay {
+  static void showSuccess({
+    required BuildContext context,
+    required String title,
+    String? message,
+  }) {
+    FlowPayToast.showSuccess(
+      context,
+      message != null && message.isNotEmpty ? '$title: $message' : title,
+    );
+  }
+
+  static void showError({
+    required BuildContext context,
+    required String title,
+    String? message,
+  }) {
+    FlowPayToast.showError(
+      context,
+      message != null && message.isNotEmpty ? '$title: $message' : title,
+    );
+  }
+
+  static void showInfo({
+    required BuildContext context,
+    required String title,
+    String? message,
+  }) {
+    FlowPayToast.showInfo(
+      context,
+      message != null && message.isNotEmpty ? '$title: $message' : title,
+    );
+  }
+}
+

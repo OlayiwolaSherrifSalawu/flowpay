@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
-import '../../core/design_system/states.dart';
+import '../../core/design_system/design_system.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
 import '../../core/repositories/mission_repository.dart';
@@ -155,13 +154,13 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
       if (!mounted) return;
 
-      // 2. Open BMONI B-Key PIN Signing Sheet
+      // 2. Open B-Key PIN Signing Sheet
       final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Sign Money Mission',
         subtitle: 'Authorize autonomous execution of "${intent.ruleTitle}"',
         amountDisplay: '\$${intent.triggerCondition.sourceAmount}',
-        recipient: 'BMONI Settlement Rails',
+        recipient: 'Settlement Rails',
         onAuthorize: (pin) async {
           // Hardware enclave signing via BMONI Embedded SDK
           return await BmoniSdkService.signTransactionHash(hashToSign,
@@ -209,7 +208,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Signing cancelled or failed: $err'),
-            backgroundColor: BMoniColors.error500,
+            backgroundColor: FlowPayColors.error,
           ),
         );
       }
@@ -220,12 +219,13 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       MoneyMissionModel mission, Map<String, dynamic> result) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final txRef =
-        result['transactionReference']?.toString() ?? 'bmoni_tx_active';
+        result['transactionReference']?.toString() ?? 'rail_tx_active';
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? BMoniColors.offbrand950 : Colors.white,
+        backgroundColor:
+            isDark ? FlowPayColors.darkSurface : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -233,11 +233,11 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: BMoniColors.success400.withAlpha(30),
+                color: FlowPayColors.primary.withAlpha(30),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check,
-                  color: BMoniColors.success400, size: 36),
+                  color: FlowPayColors.primaryLight, size: 36),
             ),
             const SizedBox(height: 18),
             Text(
@@ -245,16 +245,18 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'FlowPay will autonomously monitor incoming funds and execute deterministic BMONI operations according to your plan.',
+              'FlowPay will autonomously monitor incoming funds and execute deterministic operations according to your plan.',
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? BMoniColors.grey300 : BMoniColors.grey700,
+                color: isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -263,10 +265,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? BMoniColors.offbrand900 : BMoniColors.grey100,
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? BMoniColors.offbrand700 : BMoniColors.grey300,
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.lightBorder,
                 ),
               ),
               child: Column(
@@ -276,7 +282,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     children: [
                       const Text('Signing Enclave',
                           style: TextStyle(
-                              fontSize: 11, color: BMoniColors.grey400)),
+                              fontSize: 11,
+                              color: FlowPayColors.darkTextSecondary)),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -285,8 +292,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: isDark
-                                  ? BMoniColors.grey100
-                                  : BMoniColors.grey900),
+                                  ? Colors.white
+                                  : FlowPayColors.lightTextPrimary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -296,9 +303,10 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('BMONI Reference',
+                      const Text('Execution Ref',
                           style: TextStyle(
-                              fontSize: 11, color: BMoniColors.grey400)),
+                              fontSize: 11,
+                              color: FlowPayColors.darkTextSecondary)),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -308,7 +316,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontFamily: 'monospace',
-                            color: BMoniColors.brand300,
+                            color: FlowPayColors.primaryLight,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -321,7 +329,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     children: [
                       Text('Status',
                           style: TextStyle(
-                              fontSize: 11, color: BMoniColors.grey400)),
+                              fontSize: 11,
+                              color: FlowPayColors.darkTextSecondary)),
                       SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -329,7 +338,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: BMoniColors.success400),
+                              color: FlowPayColors.primaryLight),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -343,20 +352,19 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               children: [
                 SizedBox(
                   width: double.infinity,
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: 'View Active Missions',
-                    variant: BMoniButtonVariant.primary,
-                    size: BMoniButtonSize.large,
+                    size: FlowPayButtonSize.large,
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: 'View in Activity',
-                    variant: BMoniButtonVariant.secondary,
-                    size: BMoniButtonSize.medium,
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.medium,
                     onPressed: () {
                       Navigator.pop(ctx);
                       if (Navigator.canPop(context)) {
@@ -397,7 +405,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       title: 'Manual Test Execution',
       subtitle: 'Simulate incoming payment trigger for "${mission.title}"',
       amountDisplay: mission.thresholdAmount?.formatFormatted() ?? '\$2,000.00',
-      recipient: 'BMONI Settlement Rails',
+      recipient: 'Settlement Rails',
       onAuthorize: (pin) async {
         return await BmoniSdkService.signTransactionHash(
           '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
@@ -418,7 +426,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         SnackBar(
           content: const Text(
               '⚡ Mission triggered & executed successfully via BMONI rails!'),
-          backgroundColor: BMoniColors.success500,
+          backgroundColor: FlowPayColors.primary,
           action: SnackBarAction(
             label: 'View Activity',
             textColor: Colors.white,
@@ -460,7 +468,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.5,
-                              color: isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                              color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -469,16 +477,16 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: BMoniColors.brand300,
+                              color: FlowPayColors.primaryLight,
                               letterSpacing: 0.2,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Set autonomous directives in plain English. FlowPay structures the rules; execution is strictly gated behind your on-device B-Key PIN.',
+                            'Set autonomous directives in plain English. FlowPay structures the rules; execution is strictly gated behind your on-device PIN.',
                             style: TextStyle(
                               fontSize: 13,
-                              color: isDark ? BMoniColors.grey400 : BMoniColors.grey600,
+                              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
                               height: 1.4,
                             ),
                           ),
@@ -493,10 +501,10 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isDark ? BMoniColors.offbrand900 : BMoniColors.grey100,
+                    color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isDark ? BMoniColors.offbrand700 : BMoniColors.grey300,
+                      color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                     ),
                   ),
                   child: FittedBox(
@@ -511,7 +519,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                               height: 7,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: BMoniColors.success400,
+                                color: FlowPayColors.primary,
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -520,7 +528,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isDark ? BMoniColors.grey200 : BMoniColors.grey800,
+                                color: isDark ? Colors.white70 : FlowPayColors.lightTextPrimary,
                               ),
                             ),
                           ],
@@ -529,14 +537,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         Row(
                           children: [
                             const Icon(Icons.shield_outlined,
-                                size: 13, color: BMoniColors.brand400),
+                                size: 13, color: FlowPayColors.primaryLight),
                             const SizedBox(width: 4),
                             Text(
-                              'B-Key Guard',
+                              'Hardware Guard',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? BMoniColors.grey300 : BMoniColors.grey700,
+                                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
                               ),
                             ),
                           ],
@@ -545,14 +553,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         Row(
                           children: [
                             const Icon(Icons.bolt,
-                                size: 13, color: BMoniColors.accent400),
+                                size: 13, color: FlowPayColors.primaryLight),
                             const SizedBox(width: 4),
                             Text(
                               'Deterministic',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? BMoniColors.grey300 : BMoniColors.grey700,
+                                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
                               ),
                             ),
                           ],
@@ -567,20 +575,20 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? BMoniColors.offbrand900 : Colors.white,
+                    color: isDark ? FlowPayColors.darkSurface : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isInterpreting
-                          ? BMoniColors.brand400
+                          ? FlowPayColors.primary
                           : (isDark
-                              ? BMoniColors.offbrand700
-                              : BMoniColors.grey200),
+                              ? FlowPayColors.darkBorder
+                              : FlowPayColors.lightBorder),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
                         color: isInterpreting
-                            ? BMoniColors.brand500.withAlpha(25)
+                            ? FlowPayColors.primary.withAlpha(25)
                             : Colors.black.withAlpha(8),
                         blurRadius: 18,
                         offset: const Offset(0, 4),
@@ -597,14 +605,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: BMoniColors.brand500.withAlpha(30),
+                              color: FlowPayColors.primary.withAlpha(30),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.terminal_rounded,
-                                    size: 12, color: BMoniColors.brand400),
+                                    size: 12, color: FlowPayColors.primaryLight),
                                 SizedBox(width: 4),
                                 Text(
                                   'COMMAND DIRECTIVE',
@@ -612,7 +620,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.8,
-                                    color: BMoniColors.brand400,
+                                    color: FlowPayColors.primaryLight,
                                   ),
                                 ),
                               ],
@@ -627,8 +635,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                                 color: isDark
-                                    ? BMoniColors.grey400
-                                    : BMoniColors.grey600,
+                                    ? FlowPayColors.darkTextSecondary
+                                    : FlowPayColors.lightTextSecondary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -646,7 +654,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           height: 1.4,
                           fontWeight: FontWeight.w500,
                           color:
-                              isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                              isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                         ),
                         decoration: InputDecoration(
                           hintText:
@@ -654,8 +662,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           hintStyle: TextStyle(
                             fontSize: 14,
                             color: isDark
-                                ? BMoniColors.grey500
-                                : BMoniColors.grey400,
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary,
                           ),
                           border: InputBorder.none,
                           isDense: true,
@@ -670,23 +678,22 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Strictly PIN-authorized on BMONI',
+                              'Strictly PIN-authorized on-device',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? BMoniColors.grey400 : BMoniColors.grey600,
+                                color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
-                          BMoniButton(
+                          FlowPayButton(
                             text: isInterpreting
                                 ? 'Structuring Plan...'
                                 : 'Interpret Directive',
                             icon: Icons.auto_awesome,
-                            variant: BMoniButtonVariant.primary,
-                            size: BMoniButtonSize.medium,
+                            size: FlowPayButtonSize.medium,
                             isLoading: isInterpreting,
                             onPressed: isInterpreting ? null : _handleInterpret,
                           ),
@@ -703,21 +710,21 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: BMoniColors.error500.withAlpha(20),
+                      color: FlowPayColors.error.withAlpha(20),
                       borderRadius: BorderRadius.circular(12),
                       border:
-                          Border.all(color: BMoniColors.error500.withAlpha(80)),
+                          Border.all(color: FlowPayColors.error.withAlpha(80)),
                     ),
                     child: Row(
                       children: [
                         const Icon(Icons.error_outline,
-                            color: BMoniColors.error400, size: 18),
+                            color: FlowPayColors.error, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             errorMessage!,
                             style: const TextStyle(
-                                fontSize: 12, color: BMoniColors.error300),
+                                fontSize: 12, color: FlowPayColors.error),
                           ),
                         ),
                       ],
@@ -732,11 +739,11 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? BMoniColors.offbrand950
-                          : BMoniColors.grey100,
+                          ? FlowPayColors.darkSurfaceElevated
+                          : FlowPayColors.lightSurfaceElevated,
                       borderRadius: BorderRadius.circular(14),
                       border:
-                          Border.all(color: BMoniColors.brand500.withAlpha(70)),
+                          Border.all(color: FlowPayColors.primary.withAlpha(70)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +751,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         const Row(
                           children: [
                             Icon(Icons.psychology,
-                                size: 16, color: BMoniColors.brand400),
+                                size: 16, color: FlowPayColors.primaryLight),
                             SizedBox(width: 6),
                             Text(
                               'Financial Safety AI Pipeline',
@@ -752,7 +759,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.6,
-                                color: BMoniColors.brand300,
+                                color: FlowPayColors.primaryLight,
                               ),
                             ),
                           ],
@@ -781,7 +788,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     fontSize: 11,
                     letterSpacing: 0.8,
                     fontWeight: FontWeight.bold,
-                    color: isDark ? BMoniColors.grey400 : BMoniColors.grey600,
+                    color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -793,7 +800,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.pie_chart_outline,
                         label: 'Split incoming payment',
-                        color: BMoniColors.brand400,
+                        color: FlowPayColors.primaryLight,
                         prompt:
                             'Whenever I receive \$2,000, keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
                       ),
@@ -801,7 +808,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.savings_outlined,
                         label: 'Save for a goal',
-                        color: BMoniColors.success400,
+                        color: FlowPayColors.primary,
                         prompt:
                             'Whenever I receive \$1,500, save 25% into high-yield USD emergency vault.',
                       ),
@@ -809,7 +816,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.currency_exchange,
                         label: 'Convert currency',
-                        color: BMoniColors.accent400,
+                        color: FlowPayColors.primaryLight,
                         prompt:
                             'Convert \$1,000 to Naira whenever received for monthly payroll expenses.',
                       ),
@@ -845,24 +852,24 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color:
-                            isDark ? BMoniColors.grey50 : BMoniColors.grey950,
+                            isDark ? Colors.white : FlowPayColors.lightTextPrimary,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: BMoniColors.brand500.withAlpha(25),
+                        color: FlowPayColors.primary.withAlpha(25),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: BMoniColors.brand400.withAlpha(60)),
+                            color: FlowPayColors.primary.withAlpha(60)),
                       ),
                       child: Text(
                         '${missions.where((m) => m.isActive).length} Active',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: BMoniColors.brand300,
+                          color: FlowPayColors.primaryLight,
                         ),
                       ),
                     ),
@@ -876,31 +883,31 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     padding: const EdgeInsets.all(24),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isDark ? BMoniColors.offbrand900 : Colors.white,
+                      color: isDark ? FlowPayColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isDark
-                            ? BMoniColors.offbrand700
-                            : BMoniColors.grey200,
+                            ? FlowPayColors.darkBorder
+                            : FlowPayColors.lightBorder,
                       ),
                     ),
                     child: const Column(
                       children: [
-                        Icon(Icons.bolt, size: 36, color: BMoniColors.grey500),
+                        Icon(Icons.bolt, size: 36, color: FlowPayColors.darkTextSecondary),
                         SizedBox(height: 8),
                         Text(
                           'No Active Missions Yet',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: BMoniColors.grey300,
+                            color: Colors.white70,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
                           'Type a directive above to set your first autonomous financial plan.',
                           style: TextStyle(
-                              fontSize: 12, color: BMoniColors.grey500),
+                              fontSize: 12, color: FlowPayColors.darkTextSecondary),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -936,7 +943,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         Icon(
           isCompleted ? Icons.check_circle : Icons.circle_outlined,
           size: 15,
-          color: isCompleted ? BMoniColors.success400 : BMoniColors.grey500,
+          color: isCompleted ? FlowPayColors.primary : FlowPayColors.darkTextSecondary,
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -945,7 +952,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isCompleted ? FontWeight.w600 : FontWeight.normal,
-              color: isCompleted ? BMoniColors.grey100 : BMoniColors.grey500,
+              color: isCompleted ? Colors.white : FlowPayColors.darkTextSecondary,
             ),
           ),
         ),
@@ -981,7 +988,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? BMoniColors.grey100 : BMoniColors.grey900,
+                color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
               ),
             ),
           ],
@@ -990,3 +997,4 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     );
   }
 }
+

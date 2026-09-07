@@ -31,7 +31,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 
 | Layer | Technology | Status / Details |
 | :--- | :--- | :--- |
-| **Frontend (Mobile)** | Flutter (Dart), `bmoni_embedded_sdk: ^0.0.2`, `bkey_uikit: ^0.0.1`, `bmoni_embedded_wallets_cards: ^0.0.1`, Riverpod | Shared Foundation complete in `mobile/` |
+| **Frontend (Mobile)** | Flutter (Dart), FlowPay Design System (Zero `bkey_uikit`), `bmoni_embedded_sdk: ^0.0.2` (strictly unstyled on-device crypto driver), Riverpod | Complete independent UI revamp in `mobile/` |
 | **Backend / API** | Node.js (v20+), Express, TypeScript (ESM) | Complete modular backend in `backend/` — Live Deployed at `https://flowpay-k2wn.onrender.com` |
 | **Database** | Supabase PostgreSQL (`mxjbzexlnenooclmaawe`) via Prisma ORM (`@prisma/client`) & Supabase MCP | Tables, indexes, and RLS deployed to live Supabase project |
 | **Infrastructure** | BMONI Embedded REST Sandbox (`https://embedded-dev.bmoni.com`), Origin-only base URL | Integrated with client & raw HMAC webhooks |
@@ -398,6 +398,11 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * In `FlowPayApiClient`, added `setUserId(String?)` and automatic injection of the `x-user-id` header on all outgoing HTTP requests.
       * Wired `appState.setUserId(profile.userId)` on successful login and KYC completion.
       * Configured `main.dart` entrypoint with `FlowPayApp(appState: AppState(providerMode: ProviderMode.bmoniSandbox))` and `SecureStorageService.isTestEnv = false` for production runs directly connected to the live backend and Supabase DB.
+    * **FlowPay Independent Frontend UI/UX Revamp (Zero `bkey_uikit`)**:
+      * **Complete Dependency Elimination**: Removed `bkey_uikit` completely from all `pubspec.yaml` files and dependency trees. The BMONI SDK is strictly utilized as an unstyled on-device hardware enclave cryptographic driver.
+      * **FlowPay Design System Architecture (`lib/core/design_system/`)**: Built dark-mode first Obsidian Slate (`#090A0F`, `#12141C`, `#181B26`) visual identity with FlowPay Electric Emerald (`#00E599`), Vivid Cyan (`#00D2FF`), and tabular typography.
+      * **Custom Primitives & Backward Compatibility**: Created `FlowPayButton`, `FlowPayWalletCard`, `FlowPayAmount`, `FlowPayBalance`, `FlowPayHeroCard`, `FlowPayStatus`, `FlowPayDialog`, `FlowPayBottomSheet`, `FlowPayToast`, and seamless aliases (`BMoniButton`, `BMoniWalletCardBalance`, etc.).
+      * **Multi-Modal Flow Overhaul**: Revamped `PersonalDashboardScreen`, `AiCommandBar`, `PendingApprovalsCard`, `MoneyMissionsScreen`, `SendMoneyScreen`, `TransferReviewModal`, `TransferReceiptDialog`, `WalletsScreen`, and `BusinessDashboardScreen`.
     * **Verification Status**:
       * **105/105 Flutter unit, widget, and flow tests passing (100%)**.
       * **69/69 backend test suites passing (100%)**.

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../bmoni_sdk/bmoni_sdk_service.dart';
 import '../../theme/colors.dart';
 import '../../theme/radii.dart';
@@ -152,7 +151,7 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         decoration: BoxDecoration(
-          color: isDark ? FlowPayColors.canvas : BMoniColors.grey50,
+          color: isDark ? FlowPayColors.canvas : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           border: Border.all(color: FlowPayColors.hairline),
         ),

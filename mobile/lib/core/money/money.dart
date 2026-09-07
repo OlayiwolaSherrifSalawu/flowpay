@@ -119,6 +119,7 @@ class Money {
   }
 
   String get formatted => formatFormatted();
+  String get formattedWithSymbol => formatted;
 
   /// Minor units as string for BMONI endpoints expecting integer minor string (e.g. "1050")
   String toBmoniMinorString() => amountMinor.toString();

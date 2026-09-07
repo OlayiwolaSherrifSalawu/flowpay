@@ -254,4 +254,25 @@ class PersonalProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Record an auditable activity directly
+  Future<void> addActivity(ActivityModel activity) async {
+    try {
+      await activityRepo.recordActivity(activity);
+    } catch (_) {}
+    _recentActivities.insert(0, activity);
+    notifyListeners();
+  }
+
+  /// Add a new money mission
+  Future<void> addMission(MoneyMissionModel mission) async {
+    try {
+      final created = await missionRepo.createMission(mission);
+      _missions.insert(0, created);
+    } catch (_) {
+      _missions.insert(0, mission);
+    }
+    notifyListeners();
+  }
 }
+

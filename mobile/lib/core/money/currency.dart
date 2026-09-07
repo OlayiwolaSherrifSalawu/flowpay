@@ -63,4 +63,23 @@ enum Currency {
       orElse: () => Currency.usd,
     );
   }
+
+  String get flagEmoji {
+    switch (this) {
+      case Currency.usd:
+        return '🇺🇸';
+      case Currency.ngn:
+        return '🇳🇬';
+      case Currency.mxn:
+        return '🇲🇽';
+      case Currency.eur:
+        return '🇪🇺';
+      case Currency.cad:
+        return '🇨🇦';
+      case Currency.gbp:
+        return '🇬🇧';
+    }
+  }
+
+  String get flag => flagEmoji;
 }

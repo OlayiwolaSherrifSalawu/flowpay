@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../../core/design_system/amount_display.dart';
+import '../../../core/design_system/buttons.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/transfers/transfer_funding.dart';
 import '../../../core/transfers/transfer_intent.dart';
 
 /// Premium Confirmation Screen for FlowPay Transfers
-/// Shows:
-/// - Recipient
-/// - Amount
-/// - Currency
+/// Directives:
+/// - Recipient identity & destination
 /// - Funding source
-/// - Conversion
-/// - Exchange rate where available
-/// - Fee
-/// - Total
-/// - "Nothing moves until you approve."
-/// - Buttons: Edit, Approve & Send
+/// - Conversion details & exchange rate
+/// - Fee breakdown & total debit
+/// - Clear consequence section: "After this payment" balance impact
+/// - Security reassurance: "Nothing moves until you approve."
+/// - Primary Action: "Approve & Continue", Secondary: "Edit"
 class TransferReviewModal extends StatelessWidget {
   final TransferIntent intent;
   final TransferFundingOption fundingOption;
@@ -43,7 +43,7 @@ class TransferReviewModal extends StatelessWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: BMoniColors.offbrand950,
+      backgroundColor: FlowPayColors.darkBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -59,14 +59,26 @@ class TransferReviewModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Calculate before and after balance estimates
+    final currentBal = fundingOption.availableBalance.formatted;
+    final afterBalDouble = (fundingOption.availableBalance.majorUnits -
+            fundingOption.totalDebit.majorUnits)
+        .clamp(0.0, double.infinity);
+    final afterBal =
+        '${fundingOption.totalDebit.currency.symbol}${afterBalDouble.toStringAsFixed(2)}';
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: BoxDecoration(
-        color: BMoniColors.offbrand950,
+        color: isDark ? FlowPayColors.darkBackground : FlowPayColors.lightSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: BMoniColors.offbrand700),
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+        ),
       ),
       padding: EdgeInsets.only(
         left: 20,
@@ -83,7 +95,7 @@ class TransferReviewModal extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: BMoniColors.offbrand700,
+                color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -94,24 +106,32 @@ class TransferReviewModal extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.shield_outlined,
-                      color: BMoniColors.brand400, size: 22),
-                  SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.primary.withAlpha(30),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.shield_outlined,
+                        color: FlowPayColors.primary, size: 18),
+                  ),
+                  const SizedBox(width: 10),
                   Text(
-                    'Review Transfer',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: BMoniColors.grey50,
+                    'Ready to Send',
+                    style: FlowPayTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: isDark
+                          ? FlowPayColors.darkTextPrimary
+                          : FlowPayColors.lightTextPrimary,
                     ),
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close,
-                    color: BMoniColors.grey400, size: 20),
+                icon: const Icon(Icons.close, size: 20),
+                color: FlowPayColors.darkTextSecondary,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -126,18 +146,24 @@ class TransferReviewModal extends StatelessWidget {
                 children: [
                   // 1. Amount & Recipient Hero Card
                   Container(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: BMoniColors.offbrand900,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: BMoniColors.offbrand700),
+                      color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+                      borderRadius: FlowPaySpacing.borderRadiusXl,
+                      border: Border.all(
+                        color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                      ),
                     ),
                     child: Column(
                       children: [
                         const Text(
-                          'Total to Send',
+                          'TRANSFER AMOUNT',
                           style: TextStyle(
-                              fontSize: 13, color: BMoniColors.grey400),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            color: FlowPayColors.darkTextSecondary,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         FlowPayAmountDisplay(
@@ -149,38 +175,43 @@ class TransferReviewModal extends StatelessWidget {
                         const SizedBox(height: 14),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                              horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: BMoniColors.offbrand800,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: BMoniColors.offbrand700),
+                            color: isDark
+                                ? FlowPayColors.darkSurfaceElevated
+                                : FlowPayColors.lightSurfaceElevated,
+                            borderRadius: FlowPaySpacing.borderRadiusMd,
+                            border: Border.all(
+                              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                            ),
                           ),
                           child: Row(
                             children: [
                               CircleAvatar(
-                                radius: 16,
-                                backgroundColor:
-                                    BMoniColors.brand500.withAlpha(50),
+                                radius: 18,
+                                backgroundColor: FlowPayColors.primary.withAlpha(35),
                                 child: Text(
                                   intent.recipient.isNotEmpty
                                       ? intent.recipient[0].toUpperCase()
                                       : 'B',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: BMoniColors.brand300,
+                                    fontWeight: FontWeight.w800,
+                                    color: FlowPayColors.primary,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       intent.recipient,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: BMoniColors.grey50,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? FlowPayColors.darkTextPrimary
+                                            : FlowPayColors.lightTextPrimary,
                                         fontSize: 14,
                                       ),
                                       maxLines: 1,
@@ -190,9 +221,9 @@ class TransferReviewModal extends StatelessWidget {
                                         intent.purpose!.isNotEmpty)
                                       Text(
                                         intent.purpose!,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: BMoniColors.grey400),
+                                        style: FlowPayTypography.captionStyle(
+                                          color: FlowPayColors.darkTextSecondary,
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -211,21 +242,22 @@ class TransferReviewModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: BMoniColors.offbrand900,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: BMoniColors.offbrand700),
+                      color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      border: Border.all(
+                        color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                      ),
                     ),
                     child: Column(
                       children: [
-                        _buildRow('Recipient', intent.recipient),
+                        _buildRow('Recipient', intent.recipient, isDark),
                         _buildRow('Amount',
-                            '${intent.amount} ${intent.currency.code}'),
+                            '${intent.amount} ${intent.currency.code}', isDark),
                         _buildRow('Currency',
-                            '${intent.currency.name} (${intent.currency.code})'),
+                            '${intent.currency.name} (${intent.currency.code})', isDark),
                         _buildRow(
-                            'Funding Source', fundingOption.fundingWalletName),
-                        const Divider(
-                            color: BMoniColors.offbrand700, height: 18),
+                            'Funding Source', fundingOption.fundingWalletName, isDark),
+                        const Divider(color: FlowPayColors.hairline, height: 18),
 
                         // Conversion & Exchange Rate Section
                         Row(
@@ -233,89 +265,145 @@ class TransferReviewModal extends StatelessWidget {
                           children: [
                             const Text('Conversion',
                                 style: TextStyle(
-                                    color: BMoniColors.grey400, fontSize: 13)),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: fundingOption.requiresConversion
-                                    ? BMoniColors.brand500.withAlpha(40)
-                                    : BMoniColors.success400.withAlpha(30),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
+                                    color: FlowPayColors.darkTextSecondary, fontSize: 13)),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
                                   color: fundingOption.requiresConversion
-                                      ? BMoniColors.brand500.withAlpha(80)
-                                      : BMoniColors.success400.withAlpha(80),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (fundingOption.requiresConversion)
-                                    const Icon(Icons.currency_exchange,
-                                        size: 12, color: BMoniColors.brand300),
-                                  if (fundingOption.requiresConversion)
-                                    const SizedBox(width: 4),
-                                  Text(
-                                    fundingOption.conversionLabel,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: fundingOption.requiresConversion
-                                          ? BMoniColors.brand300
-                                          : BMoniColors.success400,
-                                    ),
+                                      ? FlowPayColors.accent.withAlpha(35)
+                                      : FlowPayColors.primary.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: fundingOption.requiresConversion
+                                        ? FlowPayColors.accent.withAlpha(80)
+                                        : FlowPayColors.primary.withAlpha(70),
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (fundingOption.requiresConversion)
+                                      const Icon(Icons.currency_exchange,
+                                          size: 12, color: FlowPayColors.accentLight),
+                                    if (fundingOption.requiresConversion)
+                                      const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        fundingOption.conversionLabel,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: fundingOption.requiresConversion
+                                              ? FlowPayColors.accentLight
+                                              : FlowPayColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-
-                        if (fundingOption.exchangeRate != null)
-                          _buildRow(
-                            'Exchange Rate',
-                            fundingOption.fundingCurrency == intent.currency
-                                ? '1.00'
-                                : '1 ${intent.currency.code} = ${fundingOption.exchangeRate!.toStringAsFixed(2)} ${fundingOption.fundingCurrency.code}',
-                          ),
-
-                        if (fundingOption.requiresConversion)
-                          _buildRow(
-                            'Converted Principal',
-                            fundingOption.convertedDebit.formatFormatted(),
-                          ),
-
-                        _buildRow('Network & Rail Fee',
-                            fundingOption.networkFee.formatFormatted()),
 
                         if (fundingOption.requiresConversion &&
-                            fundingOption.fxFee.amountMinor > BigInt.zero)
-                          _buildRow('Conversion Fee (15 bps)',
-                              fundingOption.fxFee.formatFormatted()),
+                            fundingOption.exchangeRate != null) ...[
+                          const SizedBox(height: 8),
+                          _buildRow(
+                            'Exchange Rate',
+                            '1 ${intent.currency.code} = ${fundingOption.exchangeRate!.toStringAsFixed(2)} ${fundingOption.fundingCurrency.code}',
+                            isDark,
+                          ),
+                        ],
 
-                        const Divider(
-                            color: BMoniColors.offbrand700, height: 18),
+                        const Divider(color: FlowPayColors.hairline, height: 18),
 
-                        // Total Settlement
+                        // Fees & Debit
+                        _buildRow(
+                            'Network Fee',
+                            fundingOption.networkFee.formatted,
+                            isDark),
+                        if (fundingOption.requiresConversion)
+                          _buildRow(
+                              'FX Conversion Fee',
+                              fundingOption.fxFee.formatted,
+                              isDark),
+                        const Divider(color: FlowPayColors.hairline, height: 18),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Total Settlement',
+                              'Total Debit',
                               style: TextStyle(
+                                fontWeight: FontWeight.w700,
                                 fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: BMoniColors.grey50,
+                                color: FlowPayColors.ink,
                               ),
                             ),
                             Text(
-                              fundingOption.totalDebit.formatFormatted(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: BMoniColors.brand300,
+                              fundingOption.totalDebit.formatted,
+                              style: FlowPayTypography.amount(
+                                color: FlowPayColors.primary,
+                              ).copyWith(fontSize: 17, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Clear Consequence Block: "After this payment"
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.surfaceAlt,
+                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      border: Border.all(color: FlowPayColors.hairline),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.analytics_outlined,
+                                size: 16, color: FlowPayColors.primaryLight),
+                            SizedBox(width: 8),
+                            Text(
+                              'AFTER THIS PAYMENT',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: FlowPayColors.primaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${fundingOption.fundingCurrency.code} Balance:',
+                                style: FlowPayTypography.bodyMd.copyWith(
+                                  color: FlowPayColors.darkTextSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                '$currentBal → $afterBal',
+                                textAlign: TextAlign.right,
+                                style: FlowPayTypography.amount(
+                                  color: FlowPayColors.ink,
+                                ).copyWith(fontWeight: FontWeight.w700, fontSize: 14),
                               ),
                             ),
                           ],
@@ -323,40 +411,41 @@ class TransferReviewModal extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
 
-                  // 3. Reassurance Banner: "Nothing moves until you approve."
+                  // 4. Security Reassurance Banner
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: BMoniColors.brand500.withAlpha(20),
-                      borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: BMoniColors.brand500.withAlpha(80)),
+                      color: FlowPayColors.primary.withAlpha(20),
+                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      border: Border.all(
+                        color: FlowPayColors.primary.withAlpha(70),
+                        width: 1,
+                      ),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.lock_outline,
-                            color: BMoniColors.brand300, size: 22),
-                        SizedBox(width: 10),
+                        const Icon(Icons.verified_user_outlined,
+                            size: 20, color: FlowPayColors.primary),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Nothing moves until you approve.',
                                 style: TextStyle(
-                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: BMoniColors.grey50,
+                                  fontSize: 13,
+                                  color: FlowPayColors.ink,
                                 ),
                               ),
-                              SizedBox(height: 2),
                               Text(
-                                'Zero AI money movement • On-device B-Key hardware PIN signature required',
-                                style: TextStyle(
-                                    fontSize: 11, color: BMoniColors.grey400),
+                                'Requires on-device PIN signature • Zero unauthorized movement',
+                                style: FlowPayTypography.captionStyle(
+                                  color: FlowPayColors.darkTextSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -364,33 +453,32 @@ class TransferReviewModal extends StatelessWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 14),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
 
-          // 4. Action Buttons: Edit and Approve & Send
+          // Action Buttons: Primary Approve & Send / Secondary Edit
           Row(
             children: [
               Expanded(
-                flex: 1,
-                child: BMoniButton(
+                child: FlowPayButton(
                   key: const Key('transfer_review_edit_button'),
                   text: 'Edit',
-                  variant: BMoniButtonVariant.secondary,
-                  size: BMoniButtonSize.large,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.medium,
                   onPressed: isProcessing ? null : onEdit,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: BMoniButton(
+                child: FlowPayButton(
                   key: const Key('transfer_review_approve_button'),
                   text: 'Approve & Send',
-                  variant: BMoniButtonVariant.primary,
-                  size: BMoniButtonSize.large,
+                  icon: Icons.lock_outline,
+                  size: FlowPayButtonSize.medium,
                   isLoading: isProcessing,
                   onPressed: isProcessing ? null : onApproveAndSend,
                 ),
@@ -402,24 +490,30 @@ class TransferReviewModal extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(String label, String value) {
+  Widget _buildRow(String label, String value, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(color: BMoniColors.grey400, fontSize: 13)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: FlowPayColors.darkTextSecondary,
+              fontSize: 13,
+            ),
+          ),
           Flexible(
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: BMoniColors.grey50,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+              ),
             ),
           ),
         ],

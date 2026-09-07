@@ -97,7 +97,7 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                     ),
                     const SizedBox(width: 5),
                     const Text(
-                      'BMONI Global Rails Active',
+                      'Global Rails Active',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,

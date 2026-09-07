@@ -6,7 +6,7 @@ import 'components/add_employee_modal.dart';
 import 'employee_detail_screen.dart';
 
 /// Global Team Screen
-/// Conforms to FlowPay Design System & bkey_uikit specifications:
+/// Conforms to FlowPay Design System specifications:
 /// - Full employee rows with: Name, Flag, Payroll Currency & Amount, Onboarding Stage, Wallet & Card badges
 /// - Shared FlowPay empty state when there are no employees
 /// - Pull-to-refresh & instant detail navigation
