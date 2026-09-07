@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import '../../../core/design_system/buttons.dart';
+import '../../../core/missions/mission_intent.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
 import '../../../core/repositories/mission_repository.dart';
 import '../../../core/state/personal_provider.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/theme/spacing.dart';
+import '../../../core/theme/typography.dart';
 
 class AiAllocationModal extends StatefulWidget {
   final PersonalProvider personalProvider;
@@ -48,216 +51,260 @@ class _AiAllocationModalState extends State<AiAllocationModal> {
 
   Future<void> _handleExecuteAllocation() async {
     setState(() => _isExecuting = true);
+    final amt = _currentAmount;
 
-    await Future.delayed(const Duration(milliseconds: 600));
-
-    if (!mounted) return;
-
-    // Create new autonomous allocation mission
-    final newMission = MoneyMissionModel(
-      id: 'm_alloc_${DateTime.now().millisecondsSinceEpoch}',
-      title:
-          'Smart Portfolio Allocation (${_savingsPct.toInt()}/${_payrollPct.toInt()}/${_reservePct.toInt()})',
+    final rule = MoneyMissionModel(
+      id: 'mission_ai_split_${DateTime.now().millisecondsSinceEpoch}',
+      title: 'Incoming Split: \$${amt.toStringAsFixed(0)}',
       tagline:
-          'Auto-allocates \$$_currentAmount: ${_savingsPct.toInt()}% NGN Savings, ${_payrollPct.toInt()}% Payroll, ${_reservePct.toInt()}% Reserve',
-      ruleType: MissionRuleType.autoSweep,
+          '${_savingsPct.toInt()}% Savings, ${_payrollPct.toInt()}% Expenses, ${_reservePct.toInt()}% Tax Reserve',
+      ruleType: MissionRuleType.splitIncoming,
       isActive: true,
-      stats: 'Active autonomous strategy',
-      conditionSummary: 'Incoming wires >= \$$_currentAmount',
-      actionSummary: 'Distribute across savings and operational vaults',
-      targetCurrency: Currency.ngn,
+      stats: 'Executed 0 times • Autonomous',
+      conditionSummary: 'Incoming transfers > \$${amt.toStringAsFixed(0)}',
+      actionSummary: 'Split into Savings, Expenses, and Tax Reserve',
+      thresholdAmount:
+          Money.fromMajorString(amt.toStringAsFixed(2), Currency.usd),
+      targetCurrency: Currency.usd,
       percentage: _savingsPct,
+      createdAt: DateTime.now(),
+      allocations: [
+        MissionAllocation(
+          id: 'alloc_savings_${DateTime.now().millisecondsSinceEpoch}',
+          category: MissionAllocationCategory.savings,
+          label: 'High-Yield Savings',
+          percentage: _savingsPct,
+          targetCurrency: Currency.usd,
+          sourceAmountMinor: '${(amt * _savingsPct).toInt() * 100}',
+          sourceAmountFormatted:
+              '\$${(amt * _savingsPct / 100).toStringAsFixed(2)}',
+          destinationWalletTag: 'USD Savings Vault',
+          actionType: MissionActionType.sweepVault,
+        ),
+        MissionAllocation(
+          id: 'alloc_expenses_${DateTime.now().millisecondsSinceEpoch}',
+          category: MissionAllocationCategory.expenses,
+          label: 'Local Expenses (NGN)',
+          percentage: _payrollPct,
+          targetCurrency: Currency.ngn,
+          sourceAmountMinor: '${(amt * _payrollPct).toInt() * 100}',
+          sourceAmountFormatted:
+              '\$${(amt * _payrollPct / 100).toStringAsFixed(2)}',
+          destinationWalletTag: 'NGN Expenses Vault',
+          actionType: MissionActionType.convertFx,
+        ),
+        MissionAllocation(
+          id: 'alloc_tax_${DateTime.now().millisecondsSinceEpoch}',
+          category: MissionAllocationCategory.tax,
+          label: 'Tax Reserve',
+          percentage: _reservePct,
+          targetCurrency: Currency.usd,
+          sourceAmountMinor: '${(amt * _reservePct).toInt() * 100}',
+          sourceAmountFormatted:
+              '\$${(amt * _reservePct / 100).toStringAsFixed(2)}',
+          destinationWalletTag: 'USD Tax Reserve',
+          actionType: MissionActionType.sweepVault,
+        ),
+      ],
     );
 
-    await widget.personalProvider.missionRepo.createMission(newMission);
-    await widget.personalProvider.refresh();
-
-    if (!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-            'Allocation mission activated! Auto-allocating \$$_currentAmount.'),
-        backgroundColor: BMoniColors.brand500,
-      ),
-    );
+    try {
+      await widget.personalProvider.addMission(rule);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Allocation Rule "${rule.title}" activated!'),
+            backgroundColor: FlowPayColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isExecuting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to activate rule: $e'),
+            backgroundColor: FlowPayColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final amt = _currentAmount;
+    final savingsAmt = amt * (_savingsPct / 100);
+    final expensesAmt = amt * (_payrollPct / 100);
+    final reserveAmt = amt * (_reservePct / 100);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final total = _currentAmount;
-    final savingsAmt = total * (_savingsPct / 100);
-    final payrollAmt = total * (_payrollPct / 100);
-    final reserveAmt = total * (_reservePct / 100);
 
-    return SafeArea(
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        left: 20,
+        right: 20,
+        top: 20,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? FlowPayColors.darkBackground : FlowPayColors.lightSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
-        padding: EdgeInsets.only(
-          top: 20,
-          left: 20,
-          right: 20,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        decoration: BoxDecoration(
-          color: isDark
-              ? FlowPayColors.darkSurfaceElevated
-              : FlowPayColors.lightSurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+      ),
+      child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: BMoniColors.brand500.withAlpha(35),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.pie_chart_outline,
-                    color: BMoniColors.brand400, size: 20),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Smart Capital Allocation',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : BMoniColors.grey950,
-                    ),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.darkBorder,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const Text(
-                    'Task Workflow: Autonomous Split & Sweep',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: BMoniColors.brand400,
-                        fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.primary.withAlpha(35),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.pie_chart_outline,
+                        color: FlowPayColors.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Smart Capital Allocation',
+                        style: FlowPayTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                        ),
+                      ),
+                      const Text(
+                        'Task Workflow: Autonomous Split & Sweep',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: FlowPayColors.darkTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
+              const SizedBox(height: 6),
+              Text(
+                'AI autonomously executes this distribution whenever new funds arrive into your wallet.',
+                style: FlowPayTypography.captionStyle(
+                  color: FlowPayColors.darkTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Amount Input Field
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
+                  borderRadius: FlowPaySpacing.borderRadiusMd,
+                  border: Border.all(
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Text('\$',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: FlowPayColors.primary)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '2000.00',
+                          isDense: true,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const Text('USD Inflow',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: FlowPayColors.darkTextSecondary)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              Text('DISTRIBUTION PREVIEW',
+                  style: FlowPayTypography.caption.copyWith(
+                      letterSpacing: 0.8, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+
+              _DistributionRow(
+                label: 'High-Yield Savings (${_savingsPct.toInt()}%)',
+                sublabel: 'Autonomous treasury reserve',
+                amount: '\$${savingsAmt.toStringAsFixed(2)}',
+                color: FlowPayColors.primary,
+                icon: Icons.savings_outlined,
+              ),
+              const SizedBox(height: 8),
+
+              _DistributionRow(
+                label: 'Operating Expenses (${_payrollPct.toInt()}%)',
+                sublabel: 'Converted to local NGN liquidity',
+                amount: '\$${expensesAmt.toStringAsFixed(2)}',
+                color: FlowPayColors.accent,
+                icon: Icons.currency_exchange,
+              ),
+              const SizedBox(height: 8),
+
+              _DistributionRow(
+                label: 'Tax Reserve (${_reservePct.toInt()}%)',
+                sublabel: 'Secure locked tax buffer',
+                amount: '\$${reserveAmt.toStringAsFixed(2)}',
+                color: FlowPayColors.amber,
+                icon: Icons.shield_outlined,
+              ),
+              const SizedBox(height: 20),
+
+              FlowPayButton(
+                text: 'Activate Allocation Rule',
+                icon: Icons.bolt,
+                isFullWidth: true,
+                size: FlowPayButtonSize.large,
+                isLoading: _isExecuting,
+                onPressed: _handleExecuteAllocation,
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Amount to Allocate
-          const Text('Amount to Allocate',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: BMoniColors.grey400)),
-          const SizedBox(height: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? FlowPayColors.darkSurface
-                  : FlowPayColors.lightSurfaceElevated,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: FlowPayColors.darkBorder),
-            ),
-            child: Row(
-              children: [
-                const Text('\$',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: BMoniColors.brand500.withAlpha(30),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('USDB',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: BMoniColors.brand400)),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          const Text('Recommended Distribution',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: BMoniColors.grey400)),
-          const SizedBox(height: 10),
-
-          // Distribution breakdown cards
-          _DistributionRow(
-            label: 'High-Yield NGN Savings (${_savingsPct.toInt()}%)',
-            sublabel:
-                'Auto-convert to CNGN @ 1550 = ₦${(savingsAmt * 1550).round()}',
-            amount: '\$${savingsAmt.toStringAsFixed(2)}',
-            color: BMoniColors.success400,
-            icon: Icons.savings_outlined,
-          ),
-          const SizedBox(height: 8),
-          _DistributionRow(
-            label: 'Contractor Payroll Pool (${_payrollPct.toInt()}%)',
-            sublabel: 'Reserved for remote disbursements (Nigeria, Mexico)',
-            amount: '\$${payrollAmt.toStringAsFixed(2)}',
-            color: BMoniColors.accent400,
-            icon: Icons.groups_outlined,
-          ),
-          const SizedBox(height: 8),
-          _DistributionRow(
-            label: 'Emergency Reserve (${_reservePct.toInt()}%)',
-            sublabel: 'Secure USDB hardware buffer',
-            amount: '\$${reserveAmt.toStringAsFixed(2)}',
-            color: BMoniColors.brand400,
-            icon: Icons.shield_outlined,
-          ),
-          const SizedBox(height: 20),
-
-          BMoniButton(
-            text: 'Activate Allocation Rule',
-            variant: BMoniButtonVariant.primary,
-            size: BMoniButtonSize.large,
-            isLoading: _isExecuting,
-            onPressed: _handleExecuteAllocation,
-          ),
-        ],
+        ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
 
@@ -278,38 +325,49 @@ class _DistributionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: FlowPayColors.darkSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: FlowPayColors.darkBorder),
+        color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+        borderRadius: FlowPaySpacing.borderRadiusMd,
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+        ),
       ),
       child: Row(
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(sublabel,
-                    style: const TextStyle(
-                        fontSize: 11, color: BMoniColors.grey400)),
+                Text(
+                  sublabel,
+                  style: FlowPayTypography.captionStyle(
+                    color: FlowPayColors.darkTextSecondary,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(amount,
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white)),
+          Text(
+            amount,
+            style: FlowPayTypography.amount(
+              color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+            ).copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );

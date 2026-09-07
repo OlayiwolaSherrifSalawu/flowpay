@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import 'package:flowpay_mobile/app.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/modules/personal/components/ai_allocation_modal.dart';

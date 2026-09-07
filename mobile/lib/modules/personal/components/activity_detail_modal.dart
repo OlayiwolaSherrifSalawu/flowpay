@@ -151,12 +151,11 @@ class ActivityDetailModal extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        'FlowPay • BMONI Embedded Rails',
-                        style: FlowPayTypography.caption.copyWith(
-                          color: isDark
-                              ? FlowPayColors.darkTextTertiary
-                              : FlowPayColors.lightTextTertiary,
+                      const Text(
+                        'FlowPay • Global Payment Rails',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: FlowPayColors.textSecondary,
                         ),
                       ),
                     ],
@@ -306,17 +305,17 @@ class ActivityDetailModal extends StatelessWidget {
                 Container(
                   padding: FlowPaySpacing.insetMd,
                   decoration: BoxDecoration(
-                    color: FlowPayColors.accent.withAlpha(20),
+                    color: FlowPayColors.primary.withAlpha(20),
                     borderRadius: FlowPaySpacing.borderRadiusMd,
                     border:
-                        Border.all(color: FlowPayColors.accent.withAlpha(60)),
+                        Border.all(color: FlowPayColors.primary.withAlpha(60)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(
                         Icons.shield_outlined,
-                        color: FlowPayColors.accentLight,
+                        color: FlowPayColors.primary,
                         size: 20,
                       ),
                       const SizedBox(width: FlowPaySpacing.sm),
@@ -362,7 +361,7 @@ class ActivityDetailModal extends StatelessWidget {
                         context: context,
                         title: 'Approve ${activity.type.label}',
                         subtitle:
-                            'Sign canonical BMONI proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
+                            'Sign transfer proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
                         onAuthorize: (pin) async {
                           final updated = activity.copyWith(
                               status: FlowPayAppStatus.completed);
@@ -370,12 +369,12 @@ class ActivityDetailModal extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  'Action approved & signed via B-Key: ${activity.reference}'),
-                              backgroundColor: FlowPayColors.accent,
+                                  'Action approved & signed: ${activity.reference}'),
+                              backgroundColor: FlowPayColors.primary,
                             ),
                           );
                           Navigator.of(context).pop(); // dismiss details modal
-                          return '0x_signed_bmoni_proposal';
+                          return '0x_signed_transfer_proposal';
                         },
                       );
                     },

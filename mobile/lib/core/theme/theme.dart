@@ -1,24 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 import 'spacing.dart';
 import 'typography.dart';
 
 /// FlowPay Theme Configuration
-/// Integrates the BMoni UI Kit (`bkey_uikit`) design system and typography,
-/// delivering a high-polish, premium fintech aesthetic in both Dark and Light modes.
+/// Independent, premium fintech design system and typography delivering
+/// an ultra-polished, Linear-level aesthetic in both Dark and Light modes.
 class FlowPayTheme {
   // Dark Theme Definition
   static ThemeData dark() {
+    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: FlowPayColors.darkBackground,
       primaryColor: FlowPayColors.primary,
-      textTheme: BMoniTheme.textTheme,
+      textTheme: baseTextTheme.copyWith(
+        displayLarge: FlowPayTypography.headingLg.copyWith(color: FlowPayColors.darkTextPrimary),
+        displayMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.darkTextPrimary),
+        displaySmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
+        headlineMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.darkTextPrimary),
+        headlineSmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
+        titleLarge: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
+        titleMedium: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        bodyLarge: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.darkTextPrimary),
+        bodyMedium: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.darkTextSecondary),
+        bodySmall: FlowPayTypography.bodySm.copyWith(color: FlowPayColors.darkTextSecondary),
+        labelLarge: FlowPayTypography.caption.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        labelMedium: FlowPayTypography.caption.copyWith(color: FlowPayColors.darkTextSecondary),
+        labelSmall: FlowPayTypography.overline.copyWith(color: FlowPayColors.darkTextMuted),
+      ),
       colorScheme: const ColorScheme.dark(
         primary: FlowPayColors.primary,
-        onPrimary: Colors.white,
+        onPrimary: Color(0xFF090A0F),
         secondary: FlowPayColors.accent,
         onSecondary: Colors.white,
         surface: FlowPayColors.darkSurface,
@@ -66,7 +83,7 @@ class FlowPayTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: FlowPayColors.darkSurface,
-        indicatorColor: FlowPayColors.primary.withAlpha(50),
+        indicatorColor: FlowPayColors.primary.withAlpha(40),
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -88,13 +105,31 @@ class FlowPayTheme {
 
   // Light Theme Definition
   static ThemeData light() {
+    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.light().textTheme);
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: FlowPayColors.lightBackground,
-      primaryColor: FlowPayColors.primary,
+      primaryColor: FlowPayColors.primaryDark,
+      textTheme: baseTextTheme.copyWith(
+        displayLarge: FlowPayTypography.headingLg.copyWith(color: FlowPayColors.lightTextPrimary),
+        displayMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.lightTextPrimary),
+        displaySmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
+        headlineMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.lightTextPrimary),
+        headlineSmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
+        titleLarge: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
+        titleMedium: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        bodyLarge: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.lightTextPrimary),
+        bodyMedium: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.lightTextSecondary),
+        bodySmall: FlowPayTypography.bodySm.copyWith(color: FlowPayColors.lightTextSecondary),
+        labelLarge: FlowPayTypography.caption.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        labelMedium: FlowPayTypography.caption.copyWith(color: FlowPayColors.lightTextSecondary),
+        labelSmall: FlowPayTypography.overline.copyWith(color: FlowPayColors.lightTextMuted),
+      ),
       colorScheme: const ColorScheme.light(
-        primary: FlowPayColors.primary,
+        primary: FlowPayColors.primaryDark,
         onPrimary: Colors.white,
         secondary: FlowPayColors.accent,
         onSecondary: Colors.white,

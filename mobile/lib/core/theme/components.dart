@@ -8,9 +8,9 @@ export '../design_system/cards.dart';
 export '../design_system/states.dart';
 export '../design_system/status_badges.dart';
 
-/// Powered By BMoni Indicator Badge
-class PoweredByBmoniBadge extends StatelessWidget {
-  const PoweredByBmoniBadge({super.key});
+/// FlowPay Autonomous Engine Indicator Badge
+class FlowPayBrandBadge extends StatelessWidget {
+  const FlowPayBrandBadge({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,14 +25,14 @@ class PoweredByBmoniBadge extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.bolt, size: 12, color: FlowPayColors.primary),
-          SizedBox(width: 4),
+          SizedBox(width: 5),
           Text(
-            'Powered by BMoni',
+            'FLOWPAY AI',
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
               color: FlowPayColors.ink,
-              letterSpacing: 0.3,
+              letterSpacing: 0.8,
             ),
           ),
         ],
@@ -40,6 +40,9 @@ class PoweredByBmoniBadge extends StatelessWidget {
     );
   }
 }
+
+// Backward-compatible alias for existing callers
+typedef PoweredByBmoniBadge = FlowPayBrandBadge;
 
 /// Revolut-style Segmented Role Switch [ Personal | Business ]
 /// Conforms to design.md §2.4 & §4.4: Universal pill container and active segment.
@@ -99,7 +102,7 @@ class SegmentedRoleSwitch extends StatelessWidget {
 /// Aspect ratio 1.586, FlowPay Amber fill, masked PAN, Mastercard logo,
 /// Virtual Card as an Object
 /// Built strictly to design.md §4.5:
-/// - FlowPay Amber (#F4B740) surface (not default bkey_uikit plum)
+/// - FlowPay Amber (#F4B740) surface
 /// - Soft physical shadow (Color(0x1A0D2E2A), blur 24, offset (0, 8))
 /// - Tabular numbers with wide letter-spacing
 /// - Distinct visual state ("Issuing...") for reserved card proposals (isReserved: true)
@@ -419,8 +422,8 @@ extension StatusTypeX on StatusType {
   }
 }
 
-/// Official BMoni UI Kit StatusText component
-/// Renders a coloured status badge string adhering strictly to bkey_uikit standards:
+/// StatusText component
+/// Renders a coloured status badge string:
 /// StatusText('Pending',  status: StatusType.warning)
 /// StatusText('Active',   status: StatusType.success)
 /// StatusText('Failed',   status: StatusType.error)
@@ -557,13 +560,15 @@ class StatusText extends StatelessWidget {
   }
 }
 
-/// Official BMoni UI Kit SectionHeader component
+/// SectionHeader component
 class SectionHeader extends StatelessWidget {
   final String title;
   final Widget? trailing;
   final Widget? subtitle;
   final EdgeInsetsGeometry padding;
   final bool showBottomDivider;
+  final Color? backgroundColor;
+  final TextStyle? titleStyle;
 
   const SectionHeader({
     super.key,
@@ -572,48 +577,54 @@ class SectionHeader extends StatelessWidget {
     this.subtitle,
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     this.showBottomDivider = false,
+    this.backgroundColor,
+    this.titleStyle,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: padding,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: FlowPayTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: FlowPayColors.ink,
+    return Container(
+      color: backgroundColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: padding,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: titleStyle ??
+                            FlowPayTypography.titleMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: FlowPayColors.ink,
+                            ),
                       ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      subtitle!,
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        subtitle!,
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              if (trailing != null) trailing!,
-            ],
+                if (trailing != null) trailing!,
+              ],
+            ),
           ),
-        ),
-        if (showBottomDivider)
-          const Divider(
-            height: 1,
-            thickness: 1,
-            color: FlowPayColors.hairline,
-          ),
-      ],
+          if (showBottomDivider)
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: FlowPayColors.hairline,
+            ),
+        ],
+      ),
     );
   }
 }

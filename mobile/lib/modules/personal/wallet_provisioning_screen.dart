@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
-import '../../core/theme/radii.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../core/wallet/wallet_service.dart';
 
@@ -358,17 +356,20 @@ class _WalletProvisioningScreenState
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF38103A), Color(0xFF1E0720)],
+              colors: [
+                FlowPayColors.darkSurfaceElevated,
+                FlowPayColors.darkSurface,
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: FlowPayRadii.card,
-            border: Border.all(color: BMoniColors.brand500.withAlpha(80)),
+            border: Border.all(color: FlowPayColors.primary.withAlpha(50)),
           ),
           child: Row(
             children: [
               const Icon(Icons.verified_user,
-                  color: BMoniColors.brand400, size: 36),
+                  color: FlowPayColors.primaryLight, size: 36),
               const SizedBox(width: 14),
               const Expanded(
                 child: Column(
@@ -379,7 +380,7 @@ class _WalletProvisioningScreenState
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: BMoniColors.grey50,
+                        color: Colors.white,
                       ),
                     ),
                     SizedBox(height: 4),
@@ -388,7 +389,7 @@ class _WalletProvisioningScreenState
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: BMoniColors.brand300,
+                        color: FlowPayColors.primaryLight,
                       ),
                     ),
                   ],

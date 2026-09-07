@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 import '../../design_system/design_system.dart';
 import '../models/embedded_wallet.dart';
 
-/// EmbeddedWalletCard wraps the bkey_uikit BMoniWalletCard primitive with
+enum FlowPayWalletType { usd, ngn, mxn, eur, gbp, cad }
+typedef BMoniWalletType = FlowPayWalletType;
+
+/// EmbeddedWalletCard wraps the FlowPayWalletCard primitive with
 /// currency formatting, 6 background art variants per currency (USD/NGN/EUR/GBP/CAD/MXN),
 /// and live balance state wired to the EmbeddedWallet model.
 class EmbeddedWalletCard extends StatelessWidget {

@@ -1,77 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:bkey_uikit/bkey_uikit.dart';
 
 /// FlowPay Design System Colors
-/// Integrates the official BMoni UI Kit (`bkey_uikit`) color system
-/// providing high-contrast, accessible palettes for both Dark and Light themes.
+/// Independent, premium fintech palette featuring obsidian slate surfaces,
+/// FlowPay Electric Emerald brand accents, and high-contrast accessible typography.
 class FlowPayColors {
-  // Brand Accents (Official BMoni Brand Magenta & Accents)
-  static const Color primary =
-      BMoniColors.brand500; // BMoni Brand Magenta (#B001B0)
+  // Brand Accents — FlowPay Electric Emerald (#00E599) & Accents
+  static const Color primary = Color(0xFF00E599);
   static const Color brand = primary;
   static const Color brand500 = primary;
-  static const Color brand400 = BMoniColors.brand400;
-  static const Color primaryLight =
-      BMoniColors.brand400; // Vibrant Highlight (#C94CD7)
-  static const Color primaryDark = BMoniColors.brand700; // Deep Brand (#690669)
+  static const Color brand400 = Color(0xFF33EAB0);
+  static const Color primaryLight = Color(0xFF33EAB0);
+  static const Color primaryDark = Color(0xFF00B377);
 
-  static const Color accent =
-      BMoniColors.accent400; // Electric Accent Blue (#2B88D1)
-  static const Color accentLight = BMoniColors.accent300;
-  static const Color accentDark = BMoniColors.accent600;
+  // Secondary Accents — Hyper Iris & Slate
+  static const Color accent = Color(0xFF6366F1);
+  static const Color accentLight = Color(0xFF818CF8);
+  static const Color accentDark = Color(0xFF4F46E5);
 
-  static const Color warning = BMoniColors.warning400; // Amber
+  // Semantic Colors
+  static const Color warning = Color(0xFFF59E0B); // Amber
   static const Color signalCaution = warning;
-  static const Color warningLight = BMoniColors.warning300;
+  static const Color warningLight = Color(0xFFFBBF24);
 
-  static const Color error = BMoniColors.error400; // Coral Red
-  static const Color errorLight = BMoniColors.error300;
+  static const Color error = Color(0xFFEF4444); // Crimson
+  static const Color errorLight = Color(0xFFF87171);
 
-  static const Color info = BMoniColors.accent400; // Info Ocean Blue
-  static const Color infoLight = BMoniColors.accent300;
+  static const Color info = Color(0xFF38BDF8); // Ocean Cyan
+  static const Color infoLight = Color(0xFF7DD3FC);
 
-  static const Color purple = BMoniColors.brand400; // AI / Missions Violet
+  static const Color purple = Color(0xFF8B5CF6); // AI / Missions Violet
 
-  // Upstream Fintech Design Aliases (Harmonized with BMoni UI Kit)
-  static const Color ink =
-      BMoniColors.grey50; // High-contrast readable white on obsidian
-  static const Color signal = BMoniColors.accent400;
-  static const Color amber = BMoniColors.warning400;
-  static const Color canvas = BMoniColors.offbrand950;
-  static const Color surfaceAlt = BMoniColors.offbrand800;
-  static const Color hairline = BMoniColors.offbrand700;
+  // Upstream Fintech Design Aliases
+  static const Color ink = Color(0xFFF8FAFC); // Crisp high-contrast readable white
+  static const Color signal = Color(0xFF00E599); // Electric Emerald execution indicator
+  static const Color amber = Color(0xFFF59E0B);
+  static const Color canvas = Color(0xFF090A0F);
+  static const Color surfaceAlt = Color(0xFF181B26);
+  static const Color hairline = Color(0xFF282D3D);
 
-  static const Color stateSuccess = BMoniColors.success400;
+  static const Color stateSuccess = Color(0xFF00E599);
   static const Color success = stateSuccess;
-  static const Color statePending = BMoniColors.warning400;
-  static const Color stateError = BMoniColors.error400;
-  static const Color stateInfo = BMoniColors.accent400;
+  static const Color statePending = Color(0xFFF59E0B);
+  static const Color stateError = Color(0xFFEF4444);
+  static const Color stateInfo = Color(0xFF38BDF8);
 
-  // Dark Theme Palette (BMoni Obsidian/Plum Dark System)
-  static const Color darkBackground = BMoniColors.offbrand950; // #1C0C1C
-  static const Color darkSurface = BMoniColors.offbrand900; // #240D24
-  static const Color darkSurfaceElevated = BMoniColors.offbrand800; // #351835
-  static const Color darkSurfaceSubtle = BMoniColors.offbrand700; // #4C274C
-  static const Color darkBorder = BMoniColors.offbrand700; // #4C274C
-  static const Color darkBorderLight = BMoniColors.offbrand600; // #693C69
+  // Dark Theme Palette (Obsidian Slate System)
+  static const Color darkBackground = Color(0xFF090A0F);
+  static const Color darkSurface = Color(0xFF12141C);
+  static const Color darkSurfaceElevated = Color(0xFF181B26);
+  static const Color darkSurfaceSubtle = Color(0xFF1F2330);
+  static const Color darkBorder = Color(0xFF282D3D);
+  static const Color darkBorderLight = Color(0xFF383F54);
 
-  static const Color darkTextPrimary = BMoniColors.grey50; // #F9F9FA
-  static const Color darkTextSecondary = BMoniColors.grey400; // #9E9EA4
-  static const Color darkTextTertiary = BMoniColors.grey600; // #5E5E66
-  static const Color darkTextMuted = BMoniColors.grey700; // #45454C
+  static const Color darkTextPrimary = Color(0xFFF8FAFC);
+  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  static const Color darkTextTertiary = Color(0xFF64748B);
+  static const Color darkTextMuted = Color(0xFF475569);
 
-  // Light Theme Palette
-  static const Color lightBackground = BMoniColors.offbrand25;
-  static const Color lightSurface = BMoniColors.offbrand50;
-  static const Color lightSurfaceElevated = BMoniColors.offbrand100;
-  static const Color lightSurfaceSubtle = BMoniColors.offbrand200;
-  static const Color lightBorder = BMoniColors.offbrand200;
-  static const Color lightBorderLight = BMoniColors.offbrand300;
+  // Light Theme Palette (Crisp Ceramic System)
+  static const Color lightBackground = Color(0xFFF8F9FA);
+  static const Color lightSurface = Color(0xFFFFFFFF);
+  static const Color lightSurfaceElevated = Color(0xFFF1F3F5);
+  static const Color lightSurfaceSubtle = Color(0xFFE2E8F0);
+  static const Color lightBorder = Color(0xFFE2E8F0);
+  static const Color lightBorderLight = Color(0xFFCBD5E1);
 
-  static const Color lightTextPrimary = BMoniColors.grey950;
-  static const Color lightTextSecondary = BMoniColors.grey700;
-  static const Color lightTextTertiary = BMoniColors.grey600;
-  static const Color lightTextMuted = BMoniColors.grey400;
+  static const Color lightTextPrimary = Color(0xFF0F172A);
+  static const Color lightTextSecondary = Color(0xFF475569);
+  static const Color lightTextTertiary = Color(0xFF64748B);
+  static const Color lightTextMuted = Color(0xFF94A3B8);
 
   // Default backward-compatible aliases (defaults to Dark Mode aesthetic)
   static const Color background = darkBackground;
@@ -88,10 +85,10 @@ class FlowPayColors {
   // Currency Badge Colors
   static const Color usdBadge = Color(0xFF1E293B);
   static const Color ngnBadge = Color(0xFF064E3B);
-  static const Color mxnBadge = Color(0xFF701A75);
-  static const Color eurBadge = Color(0xFF1E3A8A);
+  static const Color mxnBadge = Color(0xFF451A03);
+  static const Color eurBadge = Color(0xFF1E1B4B);
   static const Color gbpBadge = Color(0xFF312E81);
-  static const Color cadBadge = Color(0xFF831843);
+  static const Color cadBadge = Color(0xFF450A0A);
 
   // Context-aware color resolution
   static Color surfaceOf(BuildContext context) {
