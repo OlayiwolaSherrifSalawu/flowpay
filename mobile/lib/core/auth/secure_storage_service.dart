@@ -15,6 +15,7 @@ class SecureStorageService {
   static const String _keyUserProfile = 'flowpay_user_profile';
   static const String _keyKycCompleted = 'flowpay_kyc_completed';
   static const String _keyLastAuthTimestamp = 'flowpay_last_auth_ts';
+  static const String _keyAuthToken = 'flowpay_auth_token';
 
   // 15-minute TTL for cached account capabilities
   static const Duration _cacheTtl = Duration(minutes: 15);
@@ -77,6 +78,16 @@ class SecureStorageService {
   /// Get active bmoniUserId
   Future<String?> getBmoniUserId() async {
     return await _safeRead(_keyBmoniUserId);
+  }
+
+  /// Get active authentication JWT/session token
+  Future<String?> getAuthToken() async {
+    return await _safeRead(_keyAuthToken);
+  }
+
+  /// Save active authentication JWT/session token
+  Future<void> saveAuthToken(String token) async {
+    await _safeWrite(_keyAuthToken, token);
   }
 
   /// Save session on successful onboarding or login

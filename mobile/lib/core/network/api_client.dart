@@ -28,38 +28,44 @@ class FlowPayApiClient {
     return headers;
   }
 
-  Future<dynamic> get(String path, {Map<String, String>? queryParams}) async {
+  Future<dynamic> get(String path, {Map<String, String>? queryParams, Map<String, String>? headers}) async {
     final uri =
         Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-    final res = await _client.get(uri, headers: _buildHeaders());
+    final res = await _client.get(uri, headers: _buildHeaders(headers));
     return _handleResponse(res);
   }
 
-  Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
+  Future<dynamic> post(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$path');
+    final allHeaders = _buildHeaders({'Content-Type': 'application/json'});
+    if (headers != null) allHeaders.addAll(headers);
     final res = await _client.post(
       uri,
-      headers: _buildHeaders({'Content-Type': 'application/json'}),
+      headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);
   }
 
-  Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
+  Future<dynamic> patch(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$path');
+    final allHeaders = _buildHeaders({'Content-Type': 'application/json'});
+    if (headers != null) allHeaders.addAll(headers);
     final res = await _client.patch(
       uri,
-      headers: _buildHeaders({'Content-Type': 'application/json'}),
+      headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);
   }
 
-  Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
+  Future<dynamic> put(String path, {Map<String, dynamic>? body, Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$path');
+    final allHeaders = _buildHeaders({'Content-Type': 'application/json'});
+    if (headers != null) allHeaders.addAll(headers);
     final res = await _client.put(
       uri,
-      headers: _buildHeaders({'Content-Type': 'application/json'}),
+      headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
     );
     return _handleResponse(res);

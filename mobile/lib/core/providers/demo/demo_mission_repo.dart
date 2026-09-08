@@ -238,18 +238,41 @@ class DemoMissionRepository implements MissionRepository {
   Future<MoneyMissionModel> triggerManualExecution(String id) async {
     final idx = _missions.indexWhere((m) => m.id == id);
     if (idx != -1) {
-      final updated = _missions[idx].copyWith(
+      final current = _missions[idx];
+      final amt = current.thresholdAmount ??
+          Money.fromMajorString('2000.00', current.targetCurrency ?? Currency.usd);
+      final newCount = current.executionCount + 1;
+      final newExecuted =
+          (current.executedAmount ?? Money.zero(amt.currency)).add(amt);
+
+      final updated = current.copyWith(
         isActive: true,
         status: MissionStatus.active,
+        executionCount: newCount,
+        executedAmount: newExecuted,
+        stats:
+            '$newCount execution(s) • ${newExecuted.toFormattedString()} settled',
         lastExecution: 'Just now',
       );
       _missions[idx] = updated;
 
+      // Update wallet balance so real money movement reflects in the user's balances
+      if (walletRepo != null) {
+        try {
+          final wallets = await walletRepo!.getWallets();
+          final matchingWallet = wallets.firstWhere(
+            (w) => w.currency == amt.currency,
+            orElse: () => wallets.first,
+          );
+          if (matchingWallet.balance.minorUnits >= amt.minorUnits) {
+            await walletRepo!.debitWallet(walletId: matchingWallet.id, amount: amt);
+          }
+        } catch (_) {}
+      }
+
       // Record into shared ActivityRepository if provided
       if (activityRepo != null) {
         try {
-          final amt = updated.thresholdAmount ??
-              Money.fromMajorString('2000.00', Currency.usd);
           await activityRepo!.recordActivity(
             ActivityModel(
               id: 'act_trig_${DateTime.now().millisecondsSinceEpoch}',

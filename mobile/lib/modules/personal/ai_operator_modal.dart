@@ -509,6 +509,14 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                 isExecuting: _isSigning,
                 onApprove: () => _handleApprovePlan(msg.plan!),
                 onCancel: () => _operator.cancelSession(),
+                onOverrideRoute: (curr) {
+                  _inputController.text = 'Use $curr instead';
+                  _handleSubmit();
+                },
+                onAskWhy: () {
+                  _inputController.text = 'Why did you use my EUR?';
+                  _handleSubmit();
+                },
               ),
             ],
 
@@ -559,7 +567,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Total Debited: ${receipt['totalDebit']} • Actions Executed: ${receipt['actionsCount']}',
+            'Settled Actions: ${receipt['settledActions']} item(s)',
             style: FlowPayTypography.captionStyle(
               color: FlowPayColors.darkTextSecondary,
             ),
@@ -586,12 +594,17 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         child: Row(
           children: [
             _buildSuggestionPill(
-              'Send 500 usd to mom, keep 300 usd for tax',
+              'Send \$500 USD to Mom and pay my designer \$2,000 USD',
               isDark,
             ),
             const SizedBox(width: 8),
             _buildSuggestionPill(
-              'I just got paid \$2,000. Keep 30% for tax, send \$500 to Mom and put the rest in savings',
+              'Make sure I have \$2,000 in USD',
+              isDark,
+            ),
+            const SizedBox(width: 8),
+            _buildSuggestionPill(
+              'Send 500 usd to mom, keep 300 usd for tax',
               isDark,
             ),
             const SizedBox(width: 8),

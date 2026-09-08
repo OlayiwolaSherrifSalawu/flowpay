@@ -69,7 +69,7 @@ class FakeWalletRepository implements WalletRepository {
 
 class FakeCardRepository implements CardRepository {
   @override
-  Future<List<VirtualCardModel>> getCards() async => [];
+  Future<List<VirtualCardModel>> getCards({String? smartWalletId, String? userId}) async => [];
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

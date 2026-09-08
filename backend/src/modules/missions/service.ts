@@ -205,6 +205,7 @@ export class MoneyMissionService {
           orderBy: { createdAt: 'desc' },
         });
 
+        if (records.length > 0) {
           return records.map((m) => {
             const condition = parseJsonField(m.conditionJson);
             const action = parseJsonField(m.actionJson);
@@ -285,17 +286,16 @@ export class MoneyMissionService {
               createdAt: createdDate.toISOString(),
             };
           });
-        return [];
+        }
       } catch (err) {
         console.warn(
           '[MoneyMissionService] listMissions DB notice:',
           (err as any)?.message || err
         );
-        return [];
       }
     }
 
-    return [];
+    return Array.from(inMemoryMissions.values());
   }
 
   /**

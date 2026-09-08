@@ -199,23 +199,48 @@ class FinancialIntentEngine {
   static ActionIntent _parseSendClause(String clause, String actionId) {
     final amountEntity = _extractAmount(clause);
 
-    // Extract recipient: e.g. "to Mom", "to Mary Fashola", "to my designer"
+    // Extract recipient: e.g. "to Mom", "to Mary Fashola", "to my designer", "pay my designer $2,000"
     String? recipient;
-    final toMatch = RegExp(r'(?:to|for)\s+([A-Za-z0-9._%+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?|[A-Za-z]+(?:\s+[A-Za-z]+)?)', caseSensitive: false)
+
+    // 1. Check for "to/for (my )?<recipient>" (e.g. "Send $500 to Mom", "send 80 usd to my sister")
+    final toMatch = RegExp(
+            r'(?:to|for)\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)',
+            caseSensitive: false)
         .firstMatch(clause);
 
     if (toMatch != null) {
       final raw = toMatch.group(1)!.trim();
       // Avoid capturing words like "tax" or "savings" as recipient
-      if (!['tax', 'savings', 'emergency', 'reserve', 'wallet'].contains(raw.toLowerCase())) {
-        recipient = raw.replaceFirst(RegExp(r'^(?:my\s+)', caseSensitive: false), '');
+      if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
+          .contains(raw.toLowerCase())) {
+        recipient = raw
+            .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+            .trim();
+      }
+    }
+
+    // 2. If not matched, check for "pay (my )?<recipient> <amount>" (e.g. "pay my designer $2,000 USD")
+    if (recipient == null) {
+      final payMatch = RegExp(
+              r'pay\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(?:[\$₦€£GH₵]?[0-9]+|\$[0-9]+)',
+              caseSensitive: false)
+          .firstMatch(clause);
+      if (payMatch != null) {
+        final raw = payMatch.group(1)!.trim();
+        if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
+            .contains(raw.toLowerCase())) {
+          recipient = raw
+              .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+              .trim();
+        }
       }
     }
 
     final person = recipient != null
         ? PersonEntity(
             rawInput: recipient,
-            knowledgeState: EntityKnowledgeState.unknown, // Unresolved until ContextResolver
+            knowledgeState:
+                EntityKnowledgeState.unknown, // Unresolved until ContextResolver
           )
         : null;
 
@@ -224,7 +249,8 @@ class FinancialIntentEngine {
       intentType: FinancialIntentType.sendMoney,
       person: person,
       amount: amountEntity,
-      description: 'Send ${amountEntity.formattedDisplay} to ${recipient ?? 'recipient'}',
+      description:
+          'Send ${amountEntity.formattedDisplay} to ${recipient ?? 'recipient'}',
     );
   }
 
@@ -386,6 +412,9 @@ class FinancialIntentEngine {
     }
     if (combined.contains('cad')) {
       return Currency.cad;
+    }
+    if (combined.contains('ghs') || combined.contains('cedi') || combined.contains('gh₵')) {
+      return Currency.ghs;
     }
     // Default to USD for $, dollars, or general numbers
     return Currency.usd;

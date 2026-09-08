@@ -24,6 +24,8 @@ class MoneyMissionModel {
   final double? percentage;
   final Money? thresholdAmount;
   final List<MissionAllocation> allocations;
+  final Money? executedAmount;
+  final int executionCount;
   final String? lastExecution;
   final String? nextExecution;
   final DateTime? createdAt;
@@ -42,6 +44,8 @@ class MoneyMissionModel {
     this.percentage,
     this.thresholdAmount,
     this.allocations = const [],
+    this.executedAmount,
+    this.executionCount = 0,
     this.lastExecution,
     this.nextExecution,
     this.createdAt,
@@ -61,6 +65,8 @@ class MoneyMissionModel {
     double? percentage,
     Money? thresholdAmount,
     List<MissionAllocation>? allocations,
+    Money? executedAmount,
+    int? executionCount,
     String? lastExecution,
     String? nextExecution,
     DateTime? createdAt,
@@ -79,6 +85,8 @@ class MoneyMissionModel {
       percentage: percentage ?? this.percentage,
       thresholdAmount: thresholdAmount ?? this.thresholdAmount,
       allocations: allocations ?? this.allocations,
+      executedAmount: executedAmount ?? this.executedAmount,
+      executionCount: executionCount ?? this.executionCount,
       lastExecution: lastExecution ?? this.lastExecution,
       nextExecution: nextExecution ?? this.nextExecution,
       createdAt: createdAt ?? this.createdAt,

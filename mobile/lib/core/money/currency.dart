@@ -34,7 +34,13 @@ enum Currency {
       symbol: '£',
       decimals: 2,
       stablecoinToken: 'GBPe',
-      name: 'British Pound');
+      name: 'British Pound'),
+  ghs(
+      code: 'GHS',
+      symbol: 'GH₵',
+      decimals: 2,
+      stablecoinToken: 'GHS',
+      name: 'Ghanaian Cedi');
 
   final String code;
   final String symbol;
@@ -78,6 +84,8 @@ enum Currency {
         return '🇨🇦';
       case Currency.gbp:
         return '🇬🇧';
+      case Currency.ghs:
+        return '🇬🇭';
     }
   }
 

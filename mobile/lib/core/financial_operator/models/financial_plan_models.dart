@@ -86,6 +86,10 @@ class PlannedFinancialAction {
   final String description;
   final String? fxRate;
   final Money fee;
+  final Money? destinationAmount; // e.g. ₦775,000.00 NGN
+  final Currency? destinationCurrency;
+  final String? destinationRail;
+  final Currency? fundingCurrency;
 
   const PlannedFinancialAction({
     required this.id,
@@ -100,6 +104,10 @@ class PlannedFinancialAction {
     required this.description,
     this.fxRate,
     required this.fee,
+    this.destinationAmount,
+    this.destinationCurrency,
+    this.destinationRail,
+    this.fundingCurrency,
   });
 }
 
@@ -119,6 +127,11 @@ class FinancialPlan {
   final DateTime createdAt;
   final String executionState; // DRAFT, READY_FOR_REVIEW, APPROVED, EXECUTING, COMPLETED, FAILED
   final String? txHash;
+  final String? routeExplanation; // e.g. "Why did you use my EUR?"
+  final List<String> availableRouteOverrides;
+  final Currency? selectedFundingCurrency;
+  final DateTime? quoteExpiresAt;
+  final Money? shortfall;
 
   const FinancialPlan({
     required this.planId,
@@ -133,7 +146,23 @@ class FinancialPlan {
     required this.createdAt,
     this.executionState = 'READY_FOR_REVIEW',
     this.txHash,
+    this.routeExplanation,
+    this.availableRouteOverrides = const [],
+    this.selectedFundingCurrency,
+    this.quoteExpiresAt,
+    this.shortfall,
   });
+
+  bool get isQuoteExpired =>
+      quoteExpiresAt != null && DateTime.now().isAfter(quoteExpiresAt!);
+
+  Money get totalRequested {
+    if (actions.isEmpty) return totalDebit;
+    return actions.fold(
+      Money.zero(actions.first.amount.currency),
+      (sum, act) => sum.add(act.amount),
+    );
+  }
 
   FinancialPlan copyWith({
     String? planId,
@@ -148,6 +177,11 @@ class FinancialPlan {
     DateTime? createdAt,
     String? executionState,
     String? txHash,
+    String? routeExplanation,
+    List<String>? availableRouteOverrides,
+    Currency? selectedFundingCurrency,
+    DateTime? quoteExpiresAt,
+    Money? shortfall,
   }) {
     return FinancialPlan(
       planId: planId ?? this.planId,
@@ -163,6 +197,13 @@ class FinancialPlan {
       createdAt: createdAt ?? this.createdAt,
       executionState: executionState ?? this.executionState,
       txHash: txHash ?? this.txHash,
+      routeExplanation: routeExplanation ?? this.routeExplanation,
+      availableRouteOverrides:
+          availableRouteOverrides ?? this.availableRouteOverrides,
+      selectedFundingCurrency:
+          selectedFundingCurrency ?? this.selectedFundingCurrency,
+      quoteExpiresAt: quoteExpiresAt ?? this.quoteExpiresAt,
+      shortfall: shortfall ?? this.shortfall,
     );
   }
 }

@@ -1,4 +1,5 @@
 import '../../design_system/states.dart';
+import '../../money/money.dart';
 import '../../repositories/activity_repository.dart';
 import '../../repositories/wallet_repository.dart';
 import '../models/financial_plan_models.dart';
@@ -65,14 +66,30 @@ class DemoFinancialExecutionProvider implements FinancialExecutionProvider {
           plan.planId, 'Authorization PIN is required for execution.');
     }
 
+    if (plan.isQuoteExpired) {
+      return ExecutionResult.failed(
+          plan.planId, 'Payment quote has expired. Please refresh to get current rates.');
+    }
+
     try {
-      // 1. Debit funding wallet for total amount
-      for (final act in plan.actions) {
-        if (act.type == PlannedActionType.send) {
-          await walletRepo.debitWallet(
-            walletId: act.sourceWalletId,
-            amount: act.amount,
-          );
+      // 1. Debit wallets according to balance impacts
+      if (plan.expectedBalanceChanges.isNotEmpty) {
+        for (final impact in plan.expectedBalanceChanges) {
+          if (impact.isDebit) {
+            await walletRepo.debitWallet(
+              walletId: impact.walletId,
+              amount: Money.fromMinor(impact.delta.minorUnits.abs(), impact.currency),
+            );
+          }
+        }
+      } else {
+        for (final act in plan.actions) {
+          if (act.type == PlannedActionType.send) {
+            await walletRepo.debitWallet(
+              walletId: act.sourceWalletId,
+              amount: act.amount,
+            );
+          }
         }
       }
 

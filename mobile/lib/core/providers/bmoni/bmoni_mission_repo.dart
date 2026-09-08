@@ -1,6 +1,7 @@
 import '../../missions/client_mission_interpreter.dart';
 import '../../missions/mission_intent.dart';
 import '../../money/currency.dart';
+import '../../money/money.dart';
 import '../../network/api_client.dart';
 import '../../repositories/mission_repository.dart';
 
@@ -41,6 +42,26 @@ class BmoniMissionRepository implements MissionRepository {
                   MissionAllocation.fromJson(Map<String, dynamic>.from(a)))
               .toList();
 
+          final cond = (m['condition'] as Map?) ?? {};
+          final srcCurrStr = (cond['sourceCurrency'] ?? cond['currency'] ?? 'USD')
+              .toString()
+              .toUpperCase();
+          Currency targetCurr = Currency.usd;
+          if (srcCurrStr == 'NGN') targetCurr = Currency.ngn;
+          if (srcCurrStr == 'MXN') targetCurr = Currency.mxn;
+          if (srcCurrStr == 'EUR') targetCurr = Currency.eur;
+          if (srcCurrStr == 'CAD') targetCurr = Currency.cad;
+
+          Money? threshold;
+          final srcAmt = cond['sourceAmount']?.toString();
+          if (srcAmt != null && double.tryParse(srcAmt) != null) {
+            threshold = Money.fromMajorString(srcAmt, targetCurr);
+          } else if (cond['sourceAmountMinor'] != null) {
+            threshold = Money.fromMinor(
+                int.tryParse(cond['sourceAmountMinor'].toString()) ?? 0,
+                targetCurr);
+          }
+
           return MoneyMissionModel(
             id: m['id']?.toString() ?? 'm_unknown',
             title: m['title']?.toString() ?? 'Autonomous Mission',
@@ -48,12 +69,15 @@ class BmoniMissionRepository implements MissionRepository {
             ruleType: rule,
             isActive: m['isActive'] == true || m['is_active'] == true,
             status: status,
-            stats: 'Active BMONI Rule',
+            stats: threshold != null
+                ? '${threshold.toFormattedString()} scheduled'
+                : 'Active BMONI Rule',
             conditionSummary: m['condition']?['description']?.toString() ??
                 'When condition met',
             actionSummary:
                 m['description']?.toString() ?? 'Deterministic BMONI execution',
-            targetCurrency: Currency.usd,
+            targetCurrency: targetCurr,
+            thresholdAmount: threshold,
             allocations: allocations,
             lastExecution: m['lastExecution']?.toString(),
             nextExecution: m['nextExecution']?.toString() ??
@@ -99,19 +123,18 @@ class BmoniMissionRepository implements MissionRepository {
         ruleType: rule,
         isActive: isAct,
         status: isAct ? MissionStatus.active : MissionStatus.paused,
-        stats: 'Updated state',
+        stats: isAct ? 'Active' : 'Paused',
         conditionSummary: '',
         actionSummary: '',
       );
     } catch (_) {
       return MoneyMissionModel(
         id: id,
-        title: 'Mission $id',
+        title: 'Mission',
         tagline: '',
         ruleType: MissionRuleType.autoSweep,
         isActive: true,
-        status: MissionStatus.active,
-        stats: 'Status toggled',
+        stats: 'Active',
         conditionSummary: '',
         actionSummary: '',
       );
@@ -125,7 +148,11 @@ class BmoniMissionRepository implements MissionRepository {
         'title': mission.title,
         'description': mission.tagline,
         'ruleType': mission.ruleType.name.toUpperCase(),
-        'condition': {'summary': mission.conditionSummary},
+        'condition': {
+          'summary': mission.conditionSummary,
+          'sourceAmount': mission.thresholdAmount?.toMajorString() ?? '2000.00',
+          'sourceCurrency': (mission.targetCurrency ?? Currency.usd).code,
+        },
         'action': {'summary': mission.actionSummary},
       });
 
@@ -178,46 +205,51 @@ class BmoniMissionRepository implements MissionRepository {
     required String signature,
     bool pinValidated = true,
   }) async {
-    try {
-      final res =
-          await apiClient.post('/api/missions/$missionId/execute', body: {
-        'signature': signature,
-        'pinValidated': pinValidated,
-      });
-      return Map<String, dynamic>.from(res['data'] ?? res);
-    } catch (_) {
-      return {
-        'success': true,
-        'missionId': missionId,
-        'status': 'ACTIVE',
-        'executedAt': DateTime.now().toIso8601String(),
-        'transactionReference':
-            'bmoni_tx_${DateTime.now().millisecondsSinceEpoch}',
-        'summary':
-            'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
-      };
-    }
+    final res =
+        await apiClient.post('/api/missions/$missionId/execute', body: {
+      'signature': signature,
+      'pinValidated': pinValidated,
+    });
+    return Map<String, dynamic>.from(res['data'] ?? res);
   }
 
   @override
   Future<MoneyMissionModel> triggerManualExecution(String id) async {
-    final result = await executeMission(
+    final missions = await getMissions();
+    final mission = missions.firstWhere(
+      (m) => m.id == id,
+      orElse: () => MoneyMissionModel(
+        id: id,
+        title: 'Active Mission',
+        tagline: 'Autonomous money mission',
+        ruleType: MissionRuleType.splitIncoming,
+        isActive: true,
+        stats: 'Active',
+        conditionSummary: 'Condition active',
+        actionSummary: 'BMONI rails settled',
+      ),
+    );
+
+    await executeMission(
       missionId: id,
       signature:
           '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1c',
       pinValidated: true,
     );
 
-    return MoneyMissionModel(
-      id: id,
-      title: 'Active Mission',
-      tagline: result['summary'] ?? '',
-      ruleType: MissionRuleType.splitIncoming,
+    final newCount = mission.executionCount + 1;
+    final amt = mission.thresholdAmount ??
+        Money.fromMajorString('2000.00', mission.targetCurrency ?? Currency.usd);
+    final newExecuted =
+        (mission.executedAmount ?? Money.zero(amt.currency)).add(amt);
+
+    return mission.copyWith(
       isActive: true,
       status: MissionStatus.active,
-      stats: 'Executed just now',
-      conditionSummary: 'Condition active',
-      actionSummary: 'BMONI rails settled',
+      executionCount: newCount,
+      executedAmount: newExecuted,
+      stats:
+          '$newCount execution(s) • ${newExecuted.toFormattedString()} settled',
       lastExecution: 'Just now',
     );
   }
