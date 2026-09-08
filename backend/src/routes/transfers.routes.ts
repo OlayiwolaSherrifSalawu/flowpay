@@ -91,7 +91,11 @@ transfersRouter.post('/propose', async (req, res, next) => {
 // Step 4: Submit on-device B-Key signature, verify BMONI execution, log to Activity
 transfersRouter.post('/execute', async (req, res, next) => {
   try {
-    const parseResult = TransferExecuteSchema.safeParse(req.body);
+    const payloadWithUser = {
+      userId: req.body.userId || 'usr_flowpay_sandbox_master',
+      ...req.body,
+    };
+    const parseResult = TransferExecuteSchema.safeParse(payloadWithUser);
     if (!parseResult.success) {
       return res.status(400).json({
         success: false,

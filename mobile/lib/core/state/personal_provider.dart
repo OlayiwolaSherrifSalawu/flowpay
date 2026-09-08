@@ -274,5 +274,15 @@ class PersonalProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// Delete a money mission
+  Future<bool> deleteMission(String missionId) async {
+    try {
+      await missionRepo.deleteMission(missionId);
+    } catch (_) {}
+    _missions.removeWhere((m) => m.id == missionId);
+    notifyListeners();
+    return true;
+  }
 }
 

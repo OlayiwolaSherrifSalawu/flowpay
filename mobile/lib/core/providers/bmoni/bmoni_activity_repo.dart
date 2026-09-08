@@ -44,9 +44,13 @@ class BmoniActivityRepository implements ActivityRepository {
             timestamp: item['created_at'] != null
                 ? DateTime.tryParse(item['created_at'].toString()) ??
                     DateTime.now()
-                : DateTime.now(),
+                : (item['createdAt'] != null
+                    ? DateTime.tryParse(item['createdAt'].toString()) ??
+                        DateTime.now()
+                    : DateTime.now()),
             reference: item['id']?.toString(),
-            metadata: item['details_json'] as Map<String, dynamic>?,
+            metadata: (item['details_json'] ?? item['detailsJson'])
+                as Map<String, dynamic>?,
           );
         }).toList();
       }

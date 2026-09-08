@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// Central API configuration for FlowPay mobile app.
@@ -25,8 +26,17 @@ class ApiConfig {
       return _runtimeOverrideUrl!;
     }
     const envUrl = String.fromEnvironment('FLOWPAY_API_URL');
-    if (envUrl.isNotEmpty) return envUrl;
-    return liveBackendUrl;
+    String target = envUrl.isNotEmpty ? envUrl : localBackendUrl;
+
+    // In web, if accessing via local network IP (e.g. 192.168.x.x on mobile phone),
+    // automatically adapt localhost to the hosting IP so the phone can reach the backend.
+    if (kIsWeb && target.contains('localhost')) {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        target = target.replaceAll('localhost', host).replaceAll('127.0.0.1', host);
+      }
+    }
+    return target;
   }
 
   /// Quickly verifies if the backend at [targetUrl] (defaults to [baseUrl]) is reachable

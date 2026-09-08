@@ -16,6 +16,7 @@ class MissionCard extends StatelessWidget {
   final VoidCallback onTriggerManual;
   final VoidCallback? onEdit;
   final VoidCallback? onViewActivity;
+  final VoidCallback? onDelete;
 
   const MissionCard({
     super.key,
@@ -24,6 +25,7 @@ class MissionCard extends StatelessWidget {
     required this.onTriggerManual,
     this.onEdit,
     this.onViewActivity,
+    this.onDelete,
   });
 
   @override
@@ -295,6 +297,13 @@ class MissionCard extends StatelessWidget {
                       icon: const Icon(Icons.history, size: 14),
                       label: const Text('Activity', style: TextStyle(fontSize: 12)),
                       onPressed: onViewActivity,
+                    ),
+                  if (onDelete != null)
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18, color: FlowPayColors.error),
+                      tooltip: 'Delete Mission',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onDelete,
                     ),
                 ],
               ),

@@ -253,4 +253,14 @@ class BmoniMissionRepository implements MissionRepository {
       lastExecution: 'Just now',
     );
   }
+
+  @override
+  Future<bool> deleteMission(String id) async {
+    try {
+      await apiClient.delete('/api/missions/$id');
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
 }

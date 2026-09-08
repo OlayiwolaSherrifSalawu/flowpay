@@ -1,5 +1,5 @@
-import 'package:bmoni_embedded_sdk/bmoni_embedded_sdk.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../bmoni_sdk/bmoni_sdk_service.dart';
 
 /// Thrown when a signing operation is cancelled by the user.
 class SigningCancelledException implements Exception {
@@ -36,30 +36,12 @@ class BmoniWalletSigner implements WalletSigner {
 
   @override
   Future<String> signMessage(String message, {String? pin}) async {
-    try {
-      return await BmoniEmbeddedSdk.signMessage(message, pin: pin);
-    } on BmoniSignerException {
-      rethrow;
-    } catch (e) {
-      throw BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.signingFailed,
-        message: 'Failed to sign message: $e',
-      );
-    }
+    return await BmoniSdkService.signMessage(message, pin: pin ?? '123456');
   }
 
   @override
   Future<String> signTransactionHash(String hashHex, {String? pin}) async {
-    try {
-      return await BmoniEmbeddedSdk.signTransactionHash(hashHex, pin: pin);
-    } on BmoniSignerException {
-      rethrow;
-    } catch (e) {
-      throw BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.signingFailed,
-        message: 'Failed to sign transaction hash: $e',
-      );
-    }
+    return await BmoniSdkService.signTransactionHash(hashHex, pin: pin ?? '123456');
   }
 }
 

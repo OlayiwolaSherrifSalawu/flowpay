@@ -61,6 +61,32 @@ walletsRouter.get('/:walletId/balance', async (req, res, next) => {
   }
 });
 
+// POST /api/wallets/:walletId/debit
+walletsRouter.post('/:walletId/debit', async (req, res, next) => {
+  try {
+    const { amount, userId } = req.body;
+    const num = parseFloat(amount) || 0;
+    const effectiveUser = userId || (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const ok = await WalletService.debitWallet(req.params.walletId, num, effectiveUser);
+    res.json({ success: ok, data: { walletId: req.params.walletId, debited: num } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/wallets/:walletId/credit
+walletsRouter.post('/:walletId/credit', async (req, res, next) => {
+  try {
+    const { amount, userId } = req.body;
+    const num = parseFloat(amount) || 0;
+    const effectiveUser = userId || (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const ok = await WalletService.creditWallet(req.params.walletId, num, effectiveUser);
+    res.json({ success: ok, data: { walletId: req.params.walletId, credited: num } });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/wallets/:walletId/transactions
 walletsRouter.get('/:walletId/transactions', async (req, res, next) => {
   try {

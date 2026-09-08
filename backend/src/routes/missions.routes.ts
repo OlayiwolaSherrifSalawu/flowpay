@@ -68,3 +68,13 @@ missionsRouter.patch('/:id/toggle', async (req, res, next) => {
     next(err);
   }
 });
+
+// DELETE /api/missions/:id - Delete a money mission
+missionsRouter.delete('/:id', async (req, res, next) => {
+  try {
+    const success = await MoneyMissionService.deleteMission(req.params.id);
+    res.json({ success: true, data: { deleted: success, id: req.params.id } });
+  } catch (err) {
+    next(err);
+  }
+});

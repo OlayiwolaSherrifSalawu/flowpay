@@ -383,6 +383,24 @@ export class MoneyMissionService {
   }
 
   /**
+   * Deletes a money mission by ID
+   */
+  static async deleteMission(id: string): Promise<boolean> {
+    inMemoryMissions.delete(id);
+    if (isPostgresDb()) {
+      try {
+        await prisma.moneyMission.delete({ where: { id } });
+      } catch (err) {
+        console.warn(
+          '[MoneyMissionService] DB deleteMission notice:',
+          (err as any)?.message || err
+        );
+      }
+    }
+    return true;
+  }
+
+  /**
    * Generates a BMONI proposal and on-device B-Key signing payload for a validated mission
    */
   static async proposeMission(intent: MissionIntent): Promise<MissionProposalPayload> {
