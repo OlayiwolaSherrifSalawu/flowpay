@@ -132,8 +132,8 @@ class BmoniSdkService {
     if (_isTestEnv) return;
 
     try {
-      await BmoniEmbeddedSdk.setPin(pin)
-          .timeout(const Duration(milliseconds: 300));
+      await BmoniEmbeddedSdk.forceSetPin(pin)
+          .timeout(const Duration(seconds: 4));
     } catch (_) {}
   }
 
@@ -147,7 +147,7 @@ class BmoniSdkService {
 
     try {
       final matches = await BmoniEmbeddedSdk.matchPin(pin)
-          .timeout(const Duration(milliseconds: 200));
+          .timeout(const Duration(seconds: 4));
       if (matches) return true;
     } catch (_) {}
 

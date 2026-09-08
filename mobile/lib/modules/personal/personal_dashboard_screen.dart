@@ -111,7 +111,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AiOperatorModal(appState: widget.appState),
+      builder: (_) => AiOperatorModal(
+        appState: widget.appState,
+        initialPrompt: customPrompt,
+      ),
     );
   }
 
