@@ -8,8 +8,10 @@ import '../../core/financial_operator/services/execution_provider.dart';
 import '../../core/financial_operator/services/financial_context_service.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
+import 'components/add_beneficiary_modal.dart';
 import 'components/ai_clarification_card.dart';
 import 'components/ai_financial_plan_card.dart';
+import 'components/choose_beneficiary_modal.dart';
 
 /// FlowPay AI Financial Operator Modal
 /// Embedded intelligent financial operator interface supporting natural language
@@ -97,6 +99,51 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     if (text.isEmpty) return;
     _inputController.clear();
     _operator.processInput(text);
+  }
+
+  Future<void> _handleOptionSelected(
+    ClarificationPrompt clarification,
+    ClarificationOptionData opt,
+  ) async {
+    if (opt.value == 'ADD_BENEFICIARY') {
+      // Extract possible nickname from question, e.g. "Who is dad?" -> "Dad"
+      String? nickname;
+      final q = clarification.question;
+      final match =
+          RegExp(r'Who is ([^?]+)\?', caseSensitive: false).firstMatch(q);
+      if (match != null) {
+        nickname = match.group(1)!.trim();
+        nickname = nickname[0].toUpperCase() +
+            (nickname.length > 1 ? nickname.substring(1) : '');
+      }
+
+      await AddBeneficiaryModal.show(
+        context,
+        initialNickname: nickname,
+        onSave: (beneficiary) async {
+          await _operator.contextService.addBeneficiary(beneficiary);
+          await _operator
+              .resolvePendingClarificationWithBeneficiary(beneficiary);
+        },
+      );
+      return;
+    }
+
+    if (opt.value == 'CHOOSE_EXISTING' || opt.value == 'CHOOSE_CONTACT') {
+      final beneficiaries = await _operator.contextService.getBeneficiaries();
+      if (!mounted) return;
+      await ChooseBeneficiaryModal.show(
+        context,
+        beneficiaries: beneficiaries,
+        onSelect: (beneficiary) async {
+          await _operator
+              .resolvePendingClarificationWithBeneficiary(beneficiary);
+        },
+      );
+      return;
+    }
+
+    await _operator.selectClarificationOption(clarification, opt);
   }
 
   Future<void> _handleApprovePlan(FinancialPlan plan) async {
@@ -444,8 +491,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                         id: opt.id,
                         label: opt.label,
                         subtitle: opt.subtitle,
-                        onCustomAction: () => _operator
-                            .selectClarificationOption(msg.clarification!, opt),
+                        onCustomAction: () =>
+                            _handleOptionSelected(msg.clarification!, opt),
                       );
                     }).toList(),
                   ),

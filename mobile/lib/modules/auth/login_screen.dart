@@ -78,7 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           'email': email,
           'pin': pin,
         }),
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 25));
 
       if (response.statusCode != 200) {
         String msg = 'Login failed. Please check your credentials.';
@@ -127,9 +127,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errStr = e.toString();
+        String message =
+            'Unable to connect to FlowPay server. Please check your network connection.';
+        if (errStr.contains('TimeoutException')) {
+          message =
+              'Server is waking up from standby. Please tap Log In again in a few moments.';
+        }
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Unable to connect to FlowPay server. Please check your network connection.';
+          _errorMessage = message;
         });
       }
     }
