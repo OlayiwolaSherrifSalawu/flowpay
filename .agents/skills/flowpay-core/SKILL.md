@@ -414,10 +414,14 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Financial Planner (`FinancialPlanner`) & Deterministic Validator (`FinancialPolicyValidator`)**: Assembles actions, computes total debits, fees, and projected before/after balances. Deterministically rejects insufficient funds, ambiguous recipients, unknown destinations, or unsupported currencies.
       * **Decoupled Execution Provider (`FinancialExecutionProvider`)**: Abstract provider layer decoupling AI planning from BMONI and smart-contract execution rails.
       * **UI Integration & Acceptance Scenario**: Revamped `AiOperatorModal` with message streams, telemetry bar, `AiClarificationCard`, and `AiFinancialPlanCard`. Passed the complete multi-turn Prompt #38 acceptance scenario.
+    * **FlowPay Production Resilience & Dynamic Missions Parsing**:
+      * **Live Render Dockerfile Fix**: Included `prisma/` directory in Docker build and copied client into runner stage.
+      * **Dynamic Money Missions Parsing**: Added full support for transfers, savings, FX conversions, and 3-way splits in both backend and mobile client interpreters (`ClientMissionInterpreter`).
+      * **AI Operator & Network Resilience**: Wrapped operator execution in safe handlers to prevent hanging in `INTERPRETING INTENT` and added fallback to verified smart wallets when remote backend is unreachable.
     * **Verification Status**:
       * **116/116 Flutter unit, widget, and flow tests passing (100%)**.
-      * **69/69 backend test suites passing (100%)**.
-      * **0 Dart analyzer warnings or errors (`flutter analyze lib test`)**.
+      * **77/77 backend tests passing across 6 test suites (100%)**.
+      * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
 
 ---
 

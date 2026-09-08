@@ -1,3 +1,4 @@
+import '../../missions/client_mission_interpreter.dart';
 import '../../missions/mission_intent.dart';
 import '../../money/currency.dart';
 import '../../money/money.dart';
@@ -151,86 +152,7 @@ class DemoMissionRepository implements MissionRepository {
 
   @override
   Future<MissionIntent> interpretMission(String prompt) async {
-    // Deterministic client-side AI simulation
-    final trimmed = prompt.trim();
-    final intentId = 'mission_${DateTime.now().millisecondsSinceEpoch}';
-
-    // Parse source amount (default $2,000)
-    final amtMatch =
-        RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)').firstMatch(trimmed);
-    final amtStr =
-        amtMatch != null ? amtMatch.group(1)!.replaceAll(',', '') : '2000.00';
-    final amtDouble = double.tryParse(amtStr) ?? 2000.0;
-    final totalMinor = (amtDouble * 100).toInt();
-
-    // Specific match for Flagship Prompt:
-    // "Whenever I receive $2,000, keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax."
-    final usdMinor = (totalMinor * 30) ~/ 100;
-    final ngnMinor = (totalMinor * 50) ~/ 100;
-    final taxMinor = totalMinor - usdMinor - ngnMinor;
-
-    final allocations = [
-      MissionAllocation(
-        id: 'alloc_usd_${DateTime.now().millisecondsSinceEpoch}',
-        category: MissionAllocationCategory.reserve,
-        label: 'USD Reserve',
-        percentage: 30.0,
-        targetCurrency: Currency.usd,
-        sourceAmountMinor: usdMinor.toString(),
-        sourceAmountFormatted: (usdMinor / 100).toStringAsFixed(2),
-        destinationWalletTag: 'USD Smart Vault',
-        actionType: MissionActionType.hold,
-      ),
-      MissionAllocation(
-        id: 'alloc_ngn_${DateTime.now().millisecondsSinceEpoch}',
-        category: MissionAllocationCategory.expenses,
-        label: 'NGN Expenses',
-        percentage: 50.0,
-        targetCurrency: Currency.ngn,
-        sourceAmountMinor: ngnMinor.toString(),
-        sourceAmountFormatted: (ngnMinor / 100).toStringAsFixed(2),
-        targetAmountMinor: (ngnMinor * 1550).toString(),
-        targetAmountFormatted: '\$1,000 equivalent',
-        destinationWalletTag: 'Main Naira Wallet',
-        actionType: MissionActionType.convertFx,
-      ),
-      MissionAllocation(
-        id: 'alloc_tax_${DateTime.now().millisecondsSinceEpoch}',
-        category: MissionAllocationCategory.tax,
-        label: 'Tax Reserve',
-        percentage: 20.0,
-        targetCurrency: Currency.usd,
-        sourceAmountMinor: taxMinor.toString(),
-        sourceAmountFormatted: (taxMinor / 100).toStringAsFixed(2),
-        destinationWalletTag: 'Tax Escrow Reserve',
-        actionType: MissionActionType.sweepVault,
-      ),
-    ];
-
-    return MissionIntent(
-      intentId: intentId,
-      originalPrompt: trimmed,
-      intentType: MissionIntentType.splitIncoming,
-      ruleTitle: 'Incoming 3-Way Split: USD, NGN Expenses & Tax',
-      triggerCondition: MissionTriggerCondition(
-        type: 'WHEN_RECEIVE',
-        sourceCurrency: Currency.usd,
-        sourceAmount: amtDouble.toStringAsFixed(2),
-        sourceAmountMinor: totalMinor.toString(),
-        description: 'Whenever I receive \$${amtDouble.toStringAsFixed(2)} USD',
-      ),
-      allocations: allocations,
-      destinationWallets: {
-        'USD': 'USD Smart Vault',
-        'NGN': 'Main Naira Wallet',
-        'TAX': 'Tax Escrow Reserve',
-      },
-      explanation:
-          'Whenever \$${amtDouble.toStringAsFixed(2)} is received: keep 30% (\$${(usdMinor / 100).toStringAsFixed(0)}) in USD Reserve, convert 50% (\$${(ngnMinor / 100).toStringAsFixed(0)} equivalent) to Naira for expenses, and reserve 20% (\$${(taxMinor / 100).toStringAsFixed(0)}) for taxes.',
-      confidenceScore: 0.98,
-      requiresExplicitApproval: true,
-      provider: 'deterministic-fallback',
-    );
+    return ClientMissionInterpreter.interpret(prompt);
   }
 
   @override
