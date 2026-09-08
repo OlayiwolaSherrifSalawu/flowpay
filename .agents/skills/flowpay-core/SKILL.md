@@ -54,7 +54,8 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Webhook listener (`bmoni/webhooks.ts`, `routes/webhook.routes.ts`) verifying HMAC-SHA256 signatures over raw Buffer bytes in constant time.
   * Multi-country aggregate payroll engine (`modules/payroll/service.ts`, `routes/payroll.routes.ts`).
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
-  * Automated unit tests passing for Money arithmetic, HMAC verification, and AI safety guards.
+  * Production Gmail SMTP Mail Relay (`modules/mail/`, `routes/mail.routes.ts`) with STARTTLS (`smtp.gmail.com:587`), non-blocking startup verification, dark-mode fintech email templates (OTP, Welcome, Employee Invite, Payroll Receipt, Transfer, Security Alerts), and integration with employee invitation dispatch.
+  * Automated unit tests passing for Money arithmetic, HMAC verification, AI safety guards, and mail templates/service.
 * [x] **Mobile Flutter Foundation & Application Shell (`mobile/`)**:
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.

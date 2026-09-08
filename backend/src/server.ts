@@ -14,6 +14,8 @@ import { transfersRouter } from './routes/transfers.routes.js';
 import { walletsRouter } from './routes/wallets.routes.js';
 import { webhookRouter } from './routes/webhook.routes.js';
 import { webhookConfigRouter } from './routes/webhook-config.routes.js';
+import { mailRouter } from './routes/mail.routes.js';
+import { mailService } from './modules/mail/service.js';
 
 const app = express();
 
@@ -49,6 +51,7 @@ app.use('/api/missions', missionsRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/activity', activityRouter);
 app.use('/api/webhooks', webhookConfigRouter);
+app.use('/api/mail', mailRouter);
 
 // 6. Global Error Handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
@@ -81,7 +84,13 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(` FlowPay Backend Running on http://localhost:${env.PORT}`);
     console.log(` BMONI Infrastructure: ${env.BMONI_BASE_URL}`);
     console.log(` Webhook URL: http://localhost:${env.PORT}/webhooks/bmoni`);
+    console.log(` Mail Relay: ${env.SMTP_HOST}:${env.SMTP_PORT} (${env.SMTP_USER})`);
     console.log(`=============================================`);
+
+    // Verify SMTP connection in background
+    mailService.verifyConnection().catch((err) => {
+      console.warn('[Server] Initial SMTP connection verification warning:', err.message || err);
+    });
   });
 }
 
