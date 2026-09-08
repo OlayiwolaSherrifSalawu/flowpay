@@ -40,6 +40,11 @@ class BmoniWalletSigner implements WalletSigner {
       return await BmoniEmbeddedSdk.signMessage(message, pin: pin);
     } on BmoniSignerException {
       rethrow;
+    } catch (e) {
+      throw BmoniSignerException(
+        errorCode: BmoniSignerErrorCode.signingFailed,
+        message: 'Failed to sign message: $e',
+      );
     }
   }
 
@@ -49,6 +54,11 @@ class BmoniWalletSigner implements WalletSigner {
       return await BmoniEmbeddedSdk.signTransactionHash(hashHex, pin: pin);
     } on BmoniSignerException {
       rethrow;
+    } catch (e) {
+      throw BmoniSignerException(
+        errorCode: BmoniSignerErrorCode.signingFailed,
+        message: 'Failed to sign transaction hash: $e',
+      );
     }
   }
 }

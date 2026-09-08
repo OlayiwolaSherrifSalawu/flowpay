@@ -1,6 +1,7 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { prisma } from '../../db/index.js';
 import { getStablecoinForCountry, getStablecoinForCurrency } from '../../core/currencies.js';
+import { FlowPayError, BmoniUnavailableError } from '../../core/errors.js';
 import type { EmployeeRecord } from './service.js';
 
 export type OnboardingState = 'Not Started' | 'In Progress' | 'Ready' | 'Failed';
@@ -87,6 +88,20 @@ export class EmployeeOnboardingService {
   }
 
   /**
+   * Helper to ensure employee has a valid BMONI user ID
+   */
+  private static requireBmoniUserId(employee: EmployeeRecord): string {
+    if (!employee.bmoniUserId) {
+      const error = new Error(
+        `Employee ${employee.id} does not have a valid BMONI user ID. Current status: '${employee.status}'.`
+      ) as Error & { statusCode?: number };
+      error.statusCode = 400;
+      throw error;
+    }
+    return employee.bmoniUserId;
+  }
+
+  /**
    * Validate 0x Ethereum owner address format
    */
   static validateOwnerAddress(userOwnerAddress: string): { valid: boolean; error?: string } {
@@ -158,7 +173,7 @@ export class EmployeeOnboardingService {
     }
 
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
     const currency = getStablecoinForCountry(employee.country);
 
     try {
@@ -180,15 +195,15 @@ export class EmployeeOnboardingService {
         expiresAt: challenge.expiresAt,
       };
     } catch (err: any) {
-      console.warn('[OnboardingService] Owner proof challenge fallback in sandbox:', err.message || err);
-      // Deterministic sandbox fallback if proxy is offline
-      const mockChallengeId = `ch_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const mockMessage = `FlowPay Onboarding Verification: I prove ownership of ${userOwnerAddress} for ${currency} wallet at ${new Date().toISOString()}`;
-      return {
-        challengeId: mockChallengeId,
-        message: mockMessage,
-        currency,
-      };
+      console.error('[OnboardingService] Owner proof challenge failed:', err.message || err);
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: { failedStage: 'WALLET' },
+      });
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(err.message || 'Failed to generate owner proof challenge from BMONI');
     }
   }
 
@@ -209,7 +224,7 @@ export class EmployeeOnboardingService {
     status: string;
   }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
     const currency = getStablecoinForCountry(employee.country);
 
     if (!input.userOwnerAddress || !input.ownerProofChallengeId || !input.ownerProofSignature) {
@@ -220,25 +235,31 @@ export class EmployeeOnboardingService {
       throw error;
     }
 
-    let walletId = `wlt_${Date.now()}`;
-    let walletAddress = input.userOwnerAddress;
-
+    let managedWallet;
     try {
-      const managedWallet = await bmoniClient.createManagedSmartWallet({
+      managedWallet = await bmoniClient.createManagedSmartWallet({
         userId,
         currency,
         userOwnerAddress: input.userOwnerAddress,
         ownerProofChallengeId: input.ownerProofChallengeId,
         ownerProofSignature: input.ownerProofSignature,
       });
-
-      walletId = (managedWallet as any).id || (managedWallet as any).smartWalletId || walletId;
-      walletAddress = (managedWallet as any).address || (managedWallet as any).walletAddress || walletAddress;
     } catch (err: any) {
-      console.warn('[OnboardingService] createManagedSmartWallet sandbox notice:', err.message || err);
+      console.error('[OnboardingService] createManagedSmartWallet failed:', err.message || err);
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: { failedStage: 'WALLET' },
+      });
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(err.message || 'Failed to provision managed smart wallet on BMONI');
     }
 
-    // Update employee record
+    const walletId = (managedWallet as any).id || (managedWallet as any).smartWalletId;
+    const walletAddress = (managedWallet as any).address || (managedWallet as any).walletAddress || input.userOwnerAddress;
+
+    // Update employee record only on real success
     await prisma.employee.update({
       where: { id: employeeId },
       data: {
@@ -289,7 +310,7 @@ export class EmployeeOnboardingService {
     payload: CountryKycPayload
   ): Promise<{ success: boolean; country: string; readyForActivation: boolean }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
     const country = employee.country.toUpperCase();
 
     // 1. Country-specific field validations
@@ -424,7 +445,15 @@ export class EmployeeOnboardingService {
         estimatedMonthlyVolume: payload.compliance?.estimatedMonthlyVolume || 2000,
       });
     } catch (err: any) {
-      console.warn('[OnboardingService] submitKycProfile sandbox notice:', err.message || err);
+      console.error('[OnboardingService] submitKycProfile failed:', err.message || err);
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: { failedStage: 'KYC' },
+      });
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(err.message || 'BMONI KYC profile submission failed');
     }
 
     return {
@@ -439,12 +468,16 @@ export class EmployeeOnboardingService {
    */
   static async checkKycReadiness(employeeId: string): Promise<{ ready: boolean; missing?: string[] }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    if (!employee.bmoniUserId) {
+      return { ready: false, missing: ['BMONI user creation failed or missing'] };
+    }
+    const userId = employee.bmoniUserId;
 
     try {
       return await bmoniClient.getKycReadiness(userId);
     } catch (err: any) {
-      return { ready: true };
+      console.error('[OnboardingService] getKycReadiness failed:', err.message || err);
+      return { ready: false, missing: ['Unable to query BMONI KYC readiness'] };
     }
   }
 
@@ -454,7 +487,7 @@ export class EmployeeOnboardingService {
    */
   static async activateKyc(employeeId: string): Promise<{ success: boolean; status: string }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
     const country = employee.country.toUpperCase();
 
     try {
@@ -464,7 +497,15 @@ export class EmployeeOnboardingService {
         sumsubLevelName: level,
       });
     } catch (err: any) {
-      console.warn('[OnboardingService] activateKyc sandbox notice:', err.message || err);
+      console.error('[OnboardingService] activateKyc failed:', err.message || err);
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: { failedStage: 'KYC' },
+      });
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(err.message || 'BMONI KYC activation failed');
     }
 
     await prisma.employee.update({
@@ -491,23 +532,16 @@ export class EmployeeOnboardingService {
     expiresAt: string;
   }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
 
     try {
       return await bmoniClient.getMexicoAgreements(userId);
     } catch (err: any) {
-      const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      return {
-        url: 'https://etherfuse.bmoni.com/auth/launch',
-        method: 'POST',
-        fields: {
-          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: `mock_signed_jwt_${employeeId}`,
-          target: '/agreements',
-        },
-        html: `<form method="POST" action="https://etherfuse.bmoni.com/auth/launch"><input type="hidden" name="target" value="/agreements"/><button type="submit">Sign Etherfuse Terms</button></form>`,
-        expiresAt: expires,
-      };
+      console.error('[OnboardingService] getMexicoAgreements failed:', err.message || err);
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(err.message || 'Failed to retrieve Mexico agreements from BMONI');
     }
   }
 
@@ -524,7 +558,7 @@ export class EmployeeOnboardingService {
     }
   ): Promise<{ success: boolean; rail: string; status: string; message: string }> {
     const employee = await this.getEmployee(employeeId);
-    const userId = employee.bmoniUserId || employee.id;
+    const userId = this.requireBmoniUserId(employee);
     const country = employee.country.toUpperCase();
 
     if (country === 'NG') {
@@ -540,7 +574,15 @@ export class EmployeeOnboardingService {
           ngnWalletIndex: 0,
         });
       } catch (err: any) {
-        console.warn('[OnboardingService] startNigeriaOnboarding sandbox notice:', err.message || err);
+        console.error('[OnboardingService] startNigeriaOnboarding failed:', err.message || err);
+        await prisma.employee.update({
+          where: { id: employeeId },
+          data: { failedStage: 'RAIL' },
+        });
+        if (err instanceof FlowPayError) {
+          throw err;
+        }
+        throw new BmoniUnavailableError(err.message || 'BMONI Nigeria rail activation failed');
       }
 
       await prisma.employee.update({
@@ -577,7 +619,15 @@ export class EmployeeOnboardingService {
           birthCountryIsoCode: 'MX',
         });
       } catch (err: any) {
-        console.warn('[OnboardingService] activateMexicoKyc sandbox notice:', err.message || err);
+        console.error('[OnboardingService] activateMexicoKyc failed:', err.message || err);
+        await prisma.employee.update({
+          where: { id: employeeId },
+          data: { failedStage: 'RAIL' },
+        });
+        if (err instanceof FlowPayError) {
+          throw err;
+        }
+        throw new BmoniUnavailableError(err.message || 'BMONI Mexico rail activation failed');
       }
 
       await prisma.employee.update({
@@ -655,7 +705,7 @@ export class EmployeeOnboardingService {
       overallState = 'Ready';
     } else if (status === 'FAILED') {
       overallState = 'Failed';
-      if (employee.failedStage === 'WALLET') currentStage = 2;
+      if (employee.failedStage === 'BMONI_USER_CREATION' || employee.failedStage === 'WALLET') currentStage = 2;
       else if (employee.failedStage === 'KYC') currentStage = 3;
       else currentStage = 4;
     } else if (stage4State === 'In Progress') {
@@ -674,16 +724,22 @@ export class EmployeeOnboardingService {
     else if (employee.failedStage === 'KYC') failedStageNum = 3;
     else if (employee.failedStage === 'RAIL' || employee.failedStage === 'ONBOARDING') failedStageNum = 4;
 
+    const failureReason = employee.failedStage
+      ? employee.failedStage === 'BMONI_USER_CREATION'
+        ? 'BMONI user creation failed'
+        : `Failed during Stage ${failedStageNum || currentStage} processing`
+      : null;
+
     return {
       employeeId: employee.id,
-      bmoniUserId: employee.bmoniUserId || employee.id,
+      bmoniUserId: employee.bmoniUserId || '',
       country,
       targetCurrency: employee.targetCurrency,
       stablecoinToken: stablecoin,
       overallState,
       currentStage,
       failedStage: failedStageNum,
-      failureReason: employee.failedStage ? `Failed during Stage ${failedStageNum || currentStage} processing` : null,
+      failureReason,
       stages: {
         stage2Wallet: {
           stageNumber: 2,
