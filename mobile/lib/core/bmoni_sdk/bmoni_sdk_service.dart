@@ -32,12 +32,14 @@ class BmoniSdkService {
   /// Call once at app startup before runApp.
   static Future<void> initialize(
       {int pinLength = 6, bool requirePin = true}) async {
-    if (!kIsWeb) {
+    if (!kIsWeb && !_isTestEnv) {
       try {
         BmoniEmbeddedSdk.initialize(pinLength: pinLength, requirePin: requirePin);
       } catch (_) {}
     }
-    seedDemoWalletIfNeeded();
+    if (!_isTestEnv) {
+      seedDemoWalletIfNeeded();
+    }
   }
 
   static int get pinLength => 6;
@@ -49,7 +51,7 @@ class BmoniSdkService {
     _cachedAddress ??= '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
     _inMemoryPinDigest ??=
         sha256.convert(utf8.encode('bmoni_salt_123456')).toString();
-    if (!kIsWeb) {
+    if (!kIsWeb && !_isTestEnv) {
       try {
         BmoniEmbeddedSdk.setPin('123456');
       } catch (_) {}
