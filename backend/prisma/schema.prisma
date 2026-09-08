@@ -25,15 +25,39 @@ model User {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  businesses     Business[]
+
   @@index([email], name: "idx_users_email")
   @@index([bmoniUserId], name: "idx_users_bmoni_user_id")
   @@map("users")
+}
+
+model Business {
+  id                 String     @id
+  ownerUserId        String     @map("owner_user_id")
+  bmoniUserId        String?    @map("bmoni_user_id")
+  name               String
+  country            String     @default("US")
+  currency           String     @default("USD")
+  taxId              String?    @map("tax_id")
+  registrationNumber String?    @map("registration_number")
+  kybStatus          String     @default("verified") @map("kyb_status") // 'unverified', 'pending', 'verified'
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  owner              User       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  employees          Employee[]
+
+  @@index([ownerUserId], name: "idx_businesses_owner")
+  @@index([bmoniUserId], name: "idx_businesses_bmoni_user")
+  @@map("businesses")
 }
 
 model Employee {
   id                 String        @id
   bmoniUserId        String?       @map("bmoni_user_id")
   partnerId          String        @map("partner_id")
+  businessId         String?       @map("business_id")
   firstName          String        @map("first_name")
   lastName           String        @map("last_name")
   email              String        @unique
@@ -49,10 +73,13 @@ model Employee {
   failedStage        String?       @map("failed_stage")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  business           Business?     @relation(fields: [businessId], references: [id], onDelete: SetNull)
   cards              VirtualCard[]
 
   @@index([email], name: "idx_employees_email")
   @@index([bmoniUserId], name: "idx_employees_bmoni_user_id")
+  @@index([businessId], name: "idx_employees_business_id")
   @@map("employees")
 }
 

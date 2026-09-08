@@ -262,7 +262,7 @@ authRouter.post('/signup', async (req, res) => {
 
   registeredUsers.set(bmoniUserId, user);
 
-  // Persist into Supabase public.users
+  // Persist into Supabase public.users and public.businesses
   if (isPostgresDb()) {
     try {
       await prisma.user.upsert({
@@ -289,8 +289,28 @@ authRouter.post('/signup', async (req, res) => {
           companyRole: user.companyRole || 'ADMIN',
         },
       });
+
+      if (user.accountType === 'business' || user.accountType === 'both') {
+        const businessId = `biz_${bmoniUserId}`;
+        await (prisma as any).business.upsert({
+          where: { id: businessId },
+          create: {
+            id: businessId,
+            ownerUserId: bmoniUserId,
+            bmoniUserId,
+            name: user.companyName || `${user.fullName}'s Business`,
+            country: user.country,
+            currency: user.country === 'NG' ? 'NGN' : user.country === 'MX' ? 'MXN' : 'USD',
+            kybStatus: 'unverified',
+          },
+          update: {
+            name: user.companyName || `${user.fullName}'s Business`,
+            country: user.country,
+          },
+        });
+      }
     } catch (err) {
-      console.warn('[AuthRouter] Non-blocking DB user creation notice:', (err as any)?.message || err);
+      console.warn('[AuthRouter] Non-blocking DB user/business creation notice:', (err as any)?.message || err);
     }
   }
 
@@ -327,6 +347,15 @@ authRouter.post('/kyc', async (req, res) => {
         data: {
           kycStatus: 'verified',
           nationalId: nationalId || undefined,
+        },
+      });
+      await (prisma as any).business.updateMany({
+        where: {
+          OR: [{ ownerUserId: userId }, { bmoniUserId: userId }],
+        },
+        data: {
+          kybStatus: 'verified',
+          updatedAt: new Date(),
         },
       });
     } catch (err) {

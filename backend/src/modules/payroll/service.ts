@@ -1,7 +1,7 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { getStablecoinForCurrency } from '../../core/currencies.js';
 import { Money, type SupportedCurrency } from '../../core/money.js';
-import { prisma } from '../../db/index.js';
+import { prisma, isPostgresDb } from '../../db/index.js';
 
 export interface PayrollAllocationInput {
   employeeId: string;
@@ -89,15 +89,17 @@ export class PayrollOrchestrationService {
   static async getPreview(customAllocations?: PayrollAllocationInput[]): Promise<PayrollRunPreview> {
     // 1. Fetch live employees from Prisma or fallback to personas
     let dbEmployees: any[] = [];
-    try {
-      dbEmployees = await prisma.employee.findMany({
-        where: {
-          country: { in: ['NG', 'MX', 'CA'] },
-        },
-        orderBy: { createdAt: 'asc' },
-      });
-    } catch {
-      dbEmployees = [];
+    if (isPostgresDb()) {
+      try {
+        dbEmployees = await prisma.employee.findMany({
+          where: {
+            country: { in: ['NG', 'MX', 'CA'] },
+          },
+          orderBy: { createdAt: 'asc' },
+        });
+      } catch {
+        dbEmployees = [];
+      }
     }
 
     const employeeList = dbEmployees.length > 0 ? dbEmployees : this.DEFAULT_PERSONAS;
@@ -230,15 +232,19 @@ export class PayrollOrchestrationService {
         try {
           // Resolve employee's bmoniUserId
           let recipientUserId = 'usr_flowpay_sandbox_employee';
-          try {
-            const empRecord = await prisma.employee.findUnique({
-              where: { id: item.employeeId },
-              select: { bmoniUserId: true },
-            });
-            if (empRecord?.bmoniUserId) {
-              recipientUserId = empRecord.bmoniUserId;
+          if (isPostgresDb()) {
+            try {
+              const empRecord = await prisma.employee.findUnique({
+                where: { id: item.employeeId },
+                select: { bmoniUserId: true },
+              });
+              if (empRecord?.bmoniUserId) {
+                recipientUserId = empRecord.bmoniUserId;
+              }
+            } catch {
+              recipientUserId = `usr_bmoni_${item.employeeId}`;
             }
-          } catch {
+          } else {
             recipientUserId = `usr_bmoni_${item.employeeId}`;
           }
 
@@ -320,21 +326,22 @@ export class PayrollOrchestrationService {
           : 'FAILED';
 
     // Persist Payroll Run via Prisma
-    try {
-      await prisma.payrollRun.create({
-        data: {
-          id: runId,
-          title: preview.title,
-          totalUsdMinor: preview.totalUsdMinor,
-          feeUsdMinor: preview.totalFeeUsdMinor,
-          employeeCount: results.length,
-          status: runStatus,
-        },
-      });
+    if (isPostgresDb()) {
+      try {
+        await prisma.payrollRun.create({
+          data: {
+            id: runId,
+            title: preview.title,
+            totalUsdMinor: preview.totalUsdMinor,
+            feeUsdMinor: preview.totalFeeUsdMinor,
+            employeeCount: results.length,
+            status: runStatus,
+          },
+        });
 
-      // Persist individual payroll items
-      await prisma.payrollItem.createMany({
-        data: results.map((r) => {
+        // Persist individual payroll items
+        await prisma.payrollItem.createMany({
+          data: results.map((r) => {
           const originalAlloc = preview.items.find((i) => i.employeeId === r.employeeId);
           return {
             id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -377,6 +384,7 @@ export class PayrollOrchestrationService {
     } catch (dbErr) {
       console.warn('[Payroll] Persistence note:', dbErr);
     }
+  }
 
     return {
       ...preview,

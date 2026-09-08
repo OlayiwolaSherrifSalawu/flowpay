@@ -27,6 +27,9 @@ export interface CreateEmployeeInput {
   targetCurrency?: string;
   payrollAmountMinor: number;
   payrollCurrency?: string;
+  employerName?: string;
+  companyName?: string;
+  businessId?: string;
 }
 
 export interface EmployeeInviteRecord {
@@ -76,8 +79,15 @@ export class EmployeeService {
 
   static async listEmployees(statusFilter?: string): Promise<EmployeeRecord[]> {
     if (isPostgresDb()) {
-      try { return await prisma.employee.findMany({ where: statusFilter ? { status: statusFilter.toUpperCase() } : undefined, orderBy: { createdAt: 'desc' } }); }
-      catch (err) { console.warn('[EmployeeService] listEmployees error:', err); return []; }
+      try {
+        const rows = await prisma.employee.findMany({
+          where: statusFilter ? { status: statusFilter.toUpperCase() } : undefined,
+          orderBy: { createdAt: 'desc' },
+        });
+        if (rows && rows.length > 0) return rows;
+      } catch (err) {
+        console.warn('[EmployeeService] listEmployees DB error, falling back:', err);
+      }
     }
     const all = Array.from(inMemoryEmployees.values());
     if (statusFilter) {
@@ -88,8 +98,12 @@ export class EmployeeService {
 
   static async getEmployeeById(id: string): Promise<EmployeeRecord | undefined> {
     if (isPostgresDb()) {
-      try { return await prisma.employee.findUnique({ where: { id } }) ?? undefined; }
-      catch (err) { console.warn('[EmployeeService] getEmployeeById error:', err); return undefined; }
+      try {
+        const row = await prisma.employee.findUnique({ where: { id } });
+        if (row) return row;
+      } catch (err) {
+        console.warn('[EmployeeService] getEmployeeById DB error, falling back:', err);
+      }
     }
     return (inMemoryEmployees.get(id) || undefined) as EmployeeRecord | undefined;
   }
@@ -128,12 +142,14 @@ export class EmployeeService {
 
     const inviteToken = this.generateInviteToken();
     const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours single-use TTL
-    const inviteUrl = `https://app.flowpay.finance/invite/${inviteToken}`;
+    const baseUrl = env.APP_URL.replace(/\/$/, '');
+    const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
 
     const employeeData = {
       id,
       bmoniUserId: bmoniUserId || null,
       partnerId: env.BMONI_PARTNER_ID,
+      businessId: data.businessId || 'biz_flowpay_technologies',
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
       email: data.email.trim().toLowerCase(),
@@ -152,7 +168,12 @@ export class EmployeeService {
 
     let employee: EmployeeRecord;
     if (isPostgresDb()) {
-      employee = await prisma.employee.create({ data: employeeData as any });
+      try {
+        employee = await prisma.employee.create({ data: employeeData as any });
+      } catch (dbErr: any) {
+        console.warn('[EmployeeService] DB create failed, falling back to inMemory:', dbErr?.message || dbErr);
+        employee = employeeData as unknown as EmployeeRecord;
+      }
     } else {
       employee = employeeData as unknown as EmployeeRecord;
     }
@@ -181,6 +202,29 @@ export class EmployeeService {
         `Failed to create BMONI user: ${createError instanceof Error ? createError.message : 'BMONI user creation failed'}. Employee record saved with status FAILED.`
       );
     }
+
+    // Dispatch branded invitation email asynchronously (with single-use KYC onboarding link)
+    mailService
+      .sendEmployeeInvite({
+        to: employeeData.email,
+        recipientName: `${employeeData.firstName} ${employeeData.lastName}`.trim(),
+        employerName: data.employerName || data.companyName || 'FlowPay Technologies Ltd',
+        companyName: data.companyName || 'FlowPay Technologies Ltd',
+        country: employeeData.country,
+        currency: employeeData.payrollCurrency || undefined,
+        payrollAmount: (employeeData.payrollAmountMinor / 100).toFixed(2),
+        inviteUrl,
+      })
+      .then((res) => {
+        if (res.success) {
+          console.log(`[EmployeeService] ✅ Invite email successfully dispatched to ${employeeData.email} (ID: ${res.messageId})`);
+        } else {
+          console.warn(`[EmployeeService] ⚠️ Invite email delivery notification for ${employeeData.email}:`, res.error);
+        }
+      })
+      .catch((err) => {
+        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+      });
 
     return {
       employee,
@@ -218,8 +262,17 @@ export class EmployeeService {
             where: { OR: [{ id: tokenOrId }, { email: tokenOrId }] },
           }) ?? undefined;
         } catch (_) {}
-      } else {
+      }
+      if (!dbEmployee) {
         dbEmployee = inMemoryEmployees.get(tokenOrId) as EmployeeRecord | undefined;
+        if (!dbEmployee) {
+          for (const emp of inMemoryEmployees.values()) {
+            if (emp.email?.toLowerCase() === tokenOrId.toLowerCase() || emp.id === tokenOrId) {
+              dbEmployee = emp;
+              break;
+            }
+          }
+        }
       }
 
       if (dbEmployee && dbEmployee.status === 'INVITED') {
@@ -376,22 +429,21 @@ export class EmployeeService {
     return undefined;
   }
 
-  static async inviteEmployee(data: { firstName: string; lastName: string; email: string; phoneNumber?: string; country: string; targetCurrency?: string; payrollAmount?: number }): Promise<{ employee: EmployeeRecord; inviteUrl: string; inviteToken: string; inviteCode: string }> {
-    const result = await this.createEmployee({ ...data, payrollAmountMinor: data.payrollAmount || 100000 });
-
-    // Dispatch branded invitation email asynchronously
-    mailService
-      .sendEmployeeInvite({
-        to: result.employee.email,
-        recipientName: `${result.employee.firstName} ${result.employee.lastName}`.trim(),
-        country: result.employee.country,
-        currency: result.employee.payrollCurrency || undefined,
-        payrollAmount: (result.employee.payrollAmountMinor / 100).toFixed(2),
-        inviteUrl: result.inviteUrl,
-      })
-      .catch((err) => {
-        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
-      });
+  static async inviteEmployee(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    country: string;
+    targetCurrency?: string;
+    payrollAmount?: number;
+    employerName?: string;
+    companyName?: string;
+  }): Promise<{ employee: EmployeeRecord; inviteUrl: string; inviteToken: string; inviteCode: string }> {
+    const result = await this.createEmployee({
+      ...data,
+      payrollAmountMinor: data.payrollAmount || 100000,
+    });
 
     return {
       employee: result.employee,

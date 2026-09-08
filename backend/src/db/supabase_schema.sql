@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.employees (
   id TEXT PRIMARY KEY,
   bmoni_user_id TEXT,
   partner_id TEXT NOT NULL,
+  business_id TEXT REFERENCES public.businesses(id) ON DELETE SET NULL,
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
@@ -109,6 +110,20 @@ CREATE TABLE IF NOT EXISTS public.users (
   company_role TEXT DEFAULT 'ADMIN',
   kyc_status TEXT NOT NULL DEFAULT 'unverified', -- 'unverified', 'pending', 'verified'
   national_id TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.businesses (
+  id TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  bmoni_user_id TEXT,
+  name TEXT NOT NULL,
+  country TEXT NOT NULL DEFAULT 'US',
+  currency TEXT NOT NULL DEFAULT 'USD',
+  tax_id TEXT,
+  registration_number TEXT,
+  kyb_status TEXT NOT NULL DEFAULT 'verified', -- 'unverified', 'pending', 'verified'
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -229,6 +244,9 @@ CREATE INDEX IF NOT EXISTS idx_webhook_events_type ON public.webhook_events(even
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_bmoni_user_id ON public.users(bmoni_user_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_owner ON public.businesses(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_bmoni_user ON public.businesses(bmoni_user_id);
+CREATE INDEX IF NOT EXISTS idx_employees_business_id ON public.employees(business_id);
 CREATE INDEX IF NOT EXISTS idx_virtual_cards_user ON public.virtual_cards(user_id);
 CREATE INDEX IF NOT EXISTS idx_virtual_cards_employee ON public.virtual_cards(employee_id);
 CREATE INDEX IF NOT EXISTS idx_smart_wallets_user ON public.smart_wallets(user_id);
@@ -252,6 +270,7 @@ ALTER TABLE public.webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.webhook_subscriptions ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.virtual_cards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.smart_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transfers ENABLE ROW LEVEL SECURITY;
@@ -262,6 +281,9 @@ ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 -- Service role policies (full backend access)
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'businesses' AND policyname = 'service_role_businesses_all') THEN
+    CREATE POLICY service_role_businesses_all ON public.businesses FOR ALL TO service_role USING (true) WITH CHECK (true);
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'employees' AND policyname = 'service_role_employees_all') THEN
     CREATE POLICY service_role_employees_all ON public.employees FOR ALL TO service_role USING (true) WITH CHECK (true);
   END IF;
@@ -326,6 +348,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'users' AND policyname = 'authenticated_users_read') THEN
     CREATE POLICY authenticated_users_read ON public.users FOR SELECT TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'businesses' AND policyname = 'authenticated_businesses_read') THEN
+    CREATE POLICY authenticated_businesses_read ON public.businesses FOR SELECT TO authenticated USING (true);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'virtual_cards' AND policyname = 'authenticated_virtual_cards_read') THEN
     CREATE POLICY authenticated_virtual_cards_read ON public.virtual_cards FOR SELECT TO authenticated USING (true);
