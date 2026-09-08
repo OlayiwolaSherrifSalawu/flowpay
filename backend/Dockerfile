@@ -3,10 +3,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3 native compilation
 RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
+COPY prisma/ ./prisma/
 RUN npm ci
 
 COPY tsconfig.json ./
@@ -21,19 +21,18 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=4000
-ENV DATABASE_URL=/data/flowpay.db
 
-# better-sqlite3 requires g++ and make at install time
 RUN apk add --no-cache python3 make g++
 
 COPY package*.json ./
+COPY prisma/ ./prisma/
 RUN npm ci --only=production && npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
-
-# Create persistent data directory for SQLite
-RUN mkdir -p /data
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 EXPOSE 4000
 
 CMD ["node", "dist/server.js"]
+

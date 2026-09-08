@@ -60,7 +60,8 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
-  * **Central API Configuration (`lib/core/config/api_config.dart`)**: Routes all mobile authentication, KYC, capabilities, and proxy calls directly to live Render backend (`https://flowpay-k2wn.onrender.com`) with `--dart-define=FLOWPAY_API_URL` override support.
+  * **Central API Configuration (`lib/core/config/api_config.dart`)**: Routes all mobile authentication, KYC, capabilities, and proxy calls directly to live Render backend (`https://flowpay-k2wn.onrender.com`) by default for both debug and release mobile builds, with `--dart-define=FLOWPAY_API_URL` override support.
+  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 116/116 tests passing, and 0 analyzer lints.
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
   * **BMONI Embedded SDK facade** (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`) — wraps `bmoni_embedded_sdk: 0.0.2` with test-env fallback, salted PBKDF2 PIN digest, and 200ms native-platform timeout guards.
   * Provider abstraction interfaces: `WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`.
@@ -413,10 +414,14 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Financial Planner (`FinancialPlanner`) & Deterministic Validator (`FinancialPolicyValidator`)**: Assembles actions, computes total debits, fees, and projected before/after balances. Deterministically rejects insufficient funds, ambiguous recipients, unknown destinations, or unsupported currencies.
       * **Decoupled Execution Provider (`FinancialExecutionProvider`)**: Abstract provider layer decoupling AI planning from BMONI and smart-contract execution rails.
       * **UI Integration & Acceptance Scenario**: Revamped `AiOperatorModal` with message streams, telemetry bar, `AiClarificationCard`, and `AiFinancialPlanCard`. Passed the complete multi-turn Prompt #38 acceptance scenario.
+    * **FlowPay Production Resilience & Dynamic Missions Parsing**:
+      * **Live Render Dockerfile Fix**: Included `prisma/` directory in Docker build and copied client into runner stage.
+      * **Dynamic Money Missions Parsing**: Added full support for transfers, savings, FX conversions, and 3-way splits in both backend and mobile client interpreters (`ClientMissionInterpreter`).
+      * **AI Operator & Network Resilience**: Wrapped operator execution in safe handlers to prevent hanging in `INTERPRETING INTENT` and added fallback to verified smart wallets when remote backend is unreachable.
     * **Verification Status**:
       * **116/116 Flutter unit, widget, and flow tests passing (100%)**.
-      * **69/69 backend test suites passing (100%)**.
-      * **0 Dart analyzer warnings or errors (`flutter analyze lib test`)**.
+      * **77/77 backend tests passing across 6 test suites (100%)**.
+      * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
 
 ---
 

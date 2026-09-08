@@ -148,10 +148,15 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final msg = e.toString();
+      String friendlyMsg = 'Could not process instruction: $e';
+      if (msg.contains('SocketException') || msg.contains('Failed host lookup') || msg.contains('ClientException')) {
+        friendlyMsg = 'Live backend is currently offline. Operating in on-device local parser mode.';
+      }
       setState(() {
         _isAnalyzing = false;
         _analysisStep = null;
-        _errorMessage = 'Could not parse request: $e';
+        _errorMessage = friendlyMsg;
       });
     }
   }
