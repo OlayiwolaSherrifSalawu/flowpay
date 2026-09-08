@@ -127,12 +127,22 @@ export class EmployeeService {
     const id = `emp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     let bmoniUserId: string | undefined;
     let createError: unknown;
+
+    // BMONI requires a phone number for user creation; format or generate a valid sandbox phone
+    const defaultPhone =
+      country === 'NG'
+        ? `+23480${Math.floor(10000000 + Math.random() * 90000000)}`
+        : country === 'MX'
+        ? `+5255${Math.floor(10000000 + Math.random() * 90000000)}`
+        : `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
+    const effectivePhone = data.phoneNumber?.trim() || defaultPhone;
+
     try {
       const user = await bmoniClient.createEmployeeUser({
         firstName: data.firstName.trim(),
         lastName: data.lastName.trim(),
         email: data.email.trim().toLowerCase(),
-        phoneNumber: data.phoneNumber?.trim(),
+        phoneNumber: effectivePhone,
       });
       bmoniUserId = user.bmoniUserId || user.id;
     } catch (err: unknown) {
@@ -153,7 +163,7 @@ export class EmployeeService {
       firstName: data.firstName.trim(),
       lastName: data.lastName.trim(),
       email: data.email.trim().toLowerCase(),
-      phoneNumber: data.phoneNumber?.trim() || null,
+      phoneNumber: effectivePhone,
       country,
       targetCurrency,
       payrollAmountMinor: data.payrollAmountMinor,

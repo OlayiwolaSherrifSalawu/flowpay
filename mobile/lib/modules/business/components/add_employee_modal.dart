@@ -160,6 +160,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
     final first = _firstCtrl.text.trim();
     final last = _lastCtrl.text.trim();
     final email = _emailCtrl.text.trim().toLowerCase();
+    final phone = _phoneCtrl.text.trim();
     final salaryStr = _salaryCtrl.text.trim();
 
     setState(() => _isSubmitting = true);
@@ -173,6 +174,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         firstName: first,
         lastName: last,
         email: email,
+        phoneNumber: phone.isNotEmpty ? phone : null,
         country: _selectedCountry.code,
         countryName: _selectedCountry.code == 'NG' ? 'Nigeria' : 'Mexico',
         targetCurrency: _selectedCountry.currency,
