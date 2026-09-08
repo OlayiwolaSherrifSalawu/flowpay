@@ -158,7 +158,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * `backend/src/modules/cards/service.ts` (`createVirtualCard`, `listCards`, `updateCardStatus`).
     * `backend/src/modules/wallets/service.ts` (`getWallets`, `createManagedWallet`).
     * `backend/src/modules/transfers/service.ts` (`executeTransfer`).
-  * Full test suite passing: 69/69 backend tests passed (100%), 0 failures across 6 test suites.
+  * **Database Persistence & Mobile Onboarding Synchronization**:
+    * Fixed missing `phoneNumber` forwarding from `AddEmployeeModal` (`_phoneCtrl`) through `BusinessProvider.addEmployee` down to `EmployeeRepository` and BMONI user creation API, preventing BMONI 400 Bad Request ("phoneNumber should not be empty").
+    * Added resilient country-aware phone formatting in `backend/src/modules/employees/service.ts` so BMONI sandbox user creation never fails on missing phone numbers.
+    * Synced all 16 Prisma models with the local Docker PostgreSQL instance (`flowpay-postgres` on port 5435) via `npx prisma db push`.
+    * Added `GET /api/health/db` endpoint and `dbConnected` boolean indicator in `GET /api/health` for immediate observability of PostgreSQL connection state on both local and Render deployments.
+  * Full test suite passing: 92/92 backend tests passed (100%), 144/144 Flutter mobile tests passed (100%), 0 analyzer lints.
 * [x] **Signup Screen, Context-Aware KYC, and Personal vs Business Separation**:
   * **Onboarding & Signup Screen (`mobile/lib/modules/auth/signup_screen.dart`)**:
     * Clean BMoni Dark Obsidian aesthetic (`BMoniColors.offbrand950`, `brand500` magenta accents).

@@ -2,7 +2,7 @@ import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { env } from './config/env.js';
 import { FlowPayError, sanitizeBmoniError } from './core/errors.js';
-import { initDatabase } from './db/index.js';
+import { initDatabase, isPostgresDb, prisma } from './db/index.js';
 import { activityRouter } from './routes/activity.routes.js';
 import { aiRouter } from './routes/ai.routes.js';
 import { authRouter } from './routes/auth.routes.js';
@@ -35,9 +35,37 @@ app.get('/api/health', (req: Request, res: Response) => {
     status: 'ok',
     service: 'flowpay-backend',
     version: '1.0.0',
+    dbConnected: isPostgresDb(),
     bmoniOrigin: env.BMONI_BASE_URL,
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/api/health/db', async (req: Request, res: Response) => {
+  const connected = isPostgresDb();
+  if (!connected) {
+    return res.status(503).json({
+      status: 'disconnected',
+      isPostgresDb: false,
+      message: 'PostgreSQL database is not connected. Operations are falling back to in-memory.',
+    });
+  }
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    const employeeCount = await prisma.employee.count();
+    return res.json({
+      status: 'connected',
+      isPostgresDb: true,
+      tablesVerified: true,
+      employeeCount,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      status: 'error',
+      isPostgresDb: true,
+      error: err.message || err,
+    });
+  }
 });
 
 // 5. Register API routes
