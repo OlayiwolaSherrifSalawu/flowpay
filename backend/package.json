@@ -14,7 +14,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/employees/onboarding.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/wallets/wallets.test.js dist/modules/cards/cards.test.js dist/modules/payroll/payroll.test.js dist/modules/payroll/audit.test.js"
+    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/employees/onboarding.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/wallets/wallets.test.js dist/modules/cards/cards.test.js dist/modules/payroll/payroll.test.js dist/modules/payroll/audit.test.js dist/modules/mail/mail.test.js"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
@@ -24,6 +24,7 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.17.0",
     "express": "^4.19.2",
+    "nodemailer": "^10.0.1",
     "pg": "^8.23.0",
     "zod": "^3.23.8"
   },
@@ -31,6 +32,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
+    "@types/nodemailer": "^8.0.1",
     "prisma": "^6.19.3",
     "tsx": "^4.19.0",
     "typescript": "^5.4.5"

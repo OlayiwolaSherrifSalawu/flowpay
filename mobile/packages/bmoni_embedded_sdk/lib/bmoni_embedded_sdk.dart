@@ -175,6 +175,12 @@ final class BmoniEmbeddedSdk {
     await _pinStore.set(pin);
   }
 
+  /// Sets or overwrites the device PIN directly.
+  static Future<void> forceSetPin(String pin) async {
+    _requireValidPin(pin);
+    await _pinStore.set(pin);
+  }
+
   /// Rotates the device PIN.
   ///
   /// Verifies [currentPin] against the stored digest before persisting

@@ -18,7 +18,9 @@ class BmoniTransferRepository implements TransferRepository {
       'prompt': prompt,
     });
 
-    final intentJson = res['data']?['intent'] ?? res['data'] ?? {};
+    final intentJson = (res is Map && res.containsKey('intent'))
+        ? res['intent']
+        : (res['data']?['intent'] ?? res['data'] ?? res ?? {});
     return TransferIntent.fromJson(Map<String, dynamic>.from(intentJson));
   }
 

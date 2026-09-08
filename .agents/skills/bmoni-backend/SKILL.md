@@ -32,6 +32,10 @@ description: >-
   - `validator.ts`: Deterministic `MissionValidator` ensuring 100% split totals, minor-unit positive amounts, allowlisted currencies (`USD`, `NGN`, `MXN`, `CAD`, `EUR`), and allowed action types.
   - `service.ts`: `MoneyMissionService` managing mission proposals with SHA-256 hashes, B-Key signature verification, transactional execution, and audit logging into `audit_activity`. Includes resilient `isPostgresDb()` environment guard, self-derived `MoneyMissionRecord` Prisma types, and persistent in-memory fallback for offline sandbox operation.
   - Routes (`src/routes/missions.routes.ts`, `src/routes/ai.routes.ts`): `POST /api/ai/missions/interpret`, `GET /api/missions`, `POST /api/missions/propose`, `POST /api/missions/:id/execute`, `PATCH /api/missions/:id/toggle`.
+- `src/modules/mail/`: Production SMTP Mail Service & Notification Relay:
+  - `service.ts`: `MailService` singleton configured for Gmail SMTP (`smtp.gmail.com:587` with STARTTLS, `cujynpeeagqlmkpz` app pass), supporting connection verification (`verifyConnection()`), test diagnostics (`sendTestEmail()`), raw mail, and typed notification methods.
+  - `templates.ts`: Branded, responsive dark-mode fintech email templates for One-Time Passcodes (`sendOtp`), Welcome onboarding (`sendWelcome`), Global Team Invitations (`sendEmployeeInvite`), Payroll Disbursement receipts (`sendPayrollReceipt`), Transfers (`sendTransferReceipt`), and Security alerts (`sendSecurityAlert`).
+  - `routes/mail.routes.ts`: `GET /api/mail/health`, `POST /api/mail/test`, `POST /api/mail/otp`, `POST /api/mail/invite`, `POST /api/mail/send`.
 
 ---
 
@@ -43,6 +47,7 @@ description: >-
 - [x] Multi-country payroll fanout service and relational persistence.
 - [x] Employee management engine with server-side validation and lifecycle status filtering.
 - [x] Money Missions backend engine with AI NL interpretation, deterministic validation, proposal generation with SHA-256 hash, and B-Key signature verification.
+- [x] Production Gmail SMTP Mail Relay (`modules/mail/`) with STARTTLS (`smtp.gmail.com:587`), non-blocking startup verification, branded HTML email templates, automatic dispatch on employee invitations, and automated test suite coverage (`dist/modules/mail/mail.test.js`).
 - [x] Multi-stage Employee Onboarding Engine (`modules/employees/onboarding.service.ts`) for Nigeria (`NG`) and Mexico (`MX`):
   - Canonical fiat-to-stablecoin mapping (`CNGN`, `MEXe`).
   - Stage 2 smart wallet challenge and deployment proxy.

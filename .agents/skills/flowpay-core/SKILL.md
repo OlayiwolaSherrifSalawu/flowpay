@@ -54,7 +54,8 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Webhook listener (`bmoni/webhooks.ts`, `routes/webhook.routes.ts`) verifying HMAC-SHA256 signatures over raw Buffer bytes in constant time.
   * Multi-country aggregate payroll engine (`modules/payroll/service.ts`, `routes/payroll.routes.ts`).
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
-  * Automated unit tests passing for Money arithmetic, HMAC verification, and AI safety guards.
+  * Production Gmail SMTP Mail Relay (`modules/mail/`, `routes/mail.routes.ts`) with STARTTLS (`smtp.gmail.com:587`), non-blocking startup verification, dark-mode fintech email templates (OTP, Welcome, Employee Invite, Payroll Receipt, Transfer, Security Alerts), and integration with employee invitation dispatch.
+  * Automated unit tests passing for Money arithmetic, HMAC verification, AI safety guards, and mail templates/service.
 * [x] **Mobile Flutter Foundation & Application Shell (`mobile/`)**:
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
@@ -403,8 +404,17 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **FlowPay Design System Architecture (`lib/core/design_system/`)**: Built dark-mode first Obsidian Slate (`#090A0F`, `#12141C`, `#181B26`) visual identity with FlowPay Electric Emerald (`#00E599`), Vivid Cyan (`#00D2FF`), and tabular typography.
       * **Custom Primitives & Backward Compatibility**: Created `FlowPayButton`, `FlowPayWalletCard`, `FlowPayAmount`, `FlowPayBalance`, `FlowPayHeroCard`, `FlowPayStatus`, `FlowPayDialog`, `FlowPayBottomSheet`, `FlowPayToast`, and seamless aliases (`BMoniButton`, `BMoniWalletCardBalance`, etc.).
       * **Multi-Modal Flow Overhaul**: Revamped `PersonalDashboardScreen`, `AiCommandBar`, `PendingApprovalsCard`, `MoneyMissionsScreen`, `SendMoneyScreen`, `TransferReviewModal`, `TransferReceiptDialog`, `WalletsScreen`, and `BusinessDashboardScreen`.
+    * **FlowPay Intelligent Financial Operator Layer (`lib/core/financial_operator/`)**:
+      * **Core Philosophy**: FlowPay understands what the user means, not merely what the user typed. Strictly advisory; zero direct money execution; deterministic validation and explicit on-device B-Key PIN signing before any funds move.
+      * **18 Strongly Typed Financial Intents (`FinancialIntentType`)**: `SEND_MONEY`, `RECEIVE_MONEY`, `CONVERT_CURRENCY`, `ALLOCATE_MONEY`, `CREATE_RESERVE`, `UPDATE_RESERVE`, `CREATE_MISSION`, `UPDATE_MISSION`, `PAUSE_MISSION`, `RESUME_MISSION`, `CHECK_BALANCE`, `CHECK_SPENDING`, `CHECK_INCOME`, `VIEW_TRANSACTIONS`, `PAY_BENEFICIARY`, `PAY_BILL`, `ASK_FINANCIAL_QUESTION`, `UNKNOWN`.
+      * **Entity Knowledge State & Safety (`EntityKnowledgeState`)**: Enforces `known`, `unknown`, `ambiguous`, `inferred`, `requiresConfirmation`. Critical entities never silently transition to `known` through AI hallucination.
+      * **Context Resolver (`ContextResolver`) & Controlled Tools (`FinancialContextService`)**: Safe read-only application tool layer inspecting wallets, beneficiaries, missions, and reserves. Exact alias matching (Mom → Mary Fashola, Nigeria), ambiguous candidate detection, and zero-float-drift minor unit arithmetic (`Money`).
+      * **Smart Clarification Engine (`ClarificationEngine`)**: Formulates natural, contextual follow-ups with 1-tap structured options (e.g. "Where should I keep the $300.00 tax reserve?"). Never asks redundant questions when entities are already known.
+      * **Financial Planner (`FinancialPlanner`) & Deterministic Validator (`FinancialPolicyValidator`)**: Assembles actions, computes total debits, fees, and projected before/after balances. Deterministically rejects insufficient funds, ambiguous recipients, unknown destinations, or unsupported currencies.
+      * **Decoupled Execution Provider (`FinancialExecutionProvider`)**: Abstract provider layer decoupling AI planning from BMONI and smart-contract execution rails.
+      * **UI Integration & Acceptance Scenario**: Revamped `AiOperatorModal` with message streams, telemetry bar, `AiClarificationCard`, and `AiFinancialPlanCard`. Passed the complete multi-turn Prompt #38 acceptance scenario.
     * **Verification Status**:
-      * **105/105 Flutter unit, widget, and flow tests passing (100%)**.
+      * **116/116 Flutter unit, widget, and flow tests passing (100%)**.
       * **69/69 backend test suites passing (100%)**.
       * **0 Dart analyzer warnings or errors (`flutter analyze lib test`)**.
 

@@ -1,6 +1,7 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { prisma } from '../../db/index.js';
 import { env } from '../../config/env.js';
+import { mailService } from '../mail/service.js';
 
 export type EmployeeLifecycleStage = 'CREATED' | 'WALLET_PENDING' | 'KYC_PENDING' | 'ONBOARDING' | 'READY' | 'FAILED';
 export type EmployeeRecord = NonNullable<Awaited<ReturnType<typeof prisma.employee.findFirst>>>;
@@ -66,6 +67,22 @@ export class EmployeeService {
 
   static async inviteEmployee(data: { firstName: string; lastName: string; email: string; phoneNumber?: string; country: string; targetCurrency?: string; payrollAmount?: number }): Promise<{ employee: EmployeeRecord; inviteUrl: string }> {
     const result = await this.createEmployee({ ...data, payrollAmountMinor: data.payrollAmount || 100000 });
-    return { employee: result.employee, inviteUrl: `https://bmoni.com/invite/flowpay_${result.employee.id}` };
+    const inviteUrl = `https://bmoni.com/invite/flowpay_${result.employee.id}`;
+
+    // Dispatch branded invitation email asynchronously
+    mailService
+      .sendEmployeeInvite({
+        to: result.employee.email,
+        recipientName: `${result.employee.firstName} ${result.employee.lastName}`.trim(),
+        country: result.employee.country,
+        currency: result.employee.payrollCurrency || undefined,
+        payrollAmount: (result.employee.payrollAmountMinor / 100).toFixed(2),
+        inviteUrl,
+      })
+      .catch((err) => {
+        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+      });
+
+    return { employee: result.employee, inviteUrl };
   }
 }

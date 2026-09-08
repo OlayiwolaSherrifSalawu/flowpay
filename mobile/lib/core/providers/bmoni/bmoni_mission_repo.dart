@@ -141,7 +141,9 @@ class BmoniMissionRepository implements MissionRepository {
         'prompt': prompt,
       });
 
-      final intentData = res['data']?['intent'] ?? res['data'] ?? res;
+      final intentData = (res is Map && res.containsKey('intent'))
+          ? res['intent']
+          : (res['data']?['intent'] ?? res['data'] ?? res);
       return MissionIntent.fromJson(Map<String, dynamic>.from(intentData));
     } catch (_) {
       // Offline / fallback parser for hackathon demo
