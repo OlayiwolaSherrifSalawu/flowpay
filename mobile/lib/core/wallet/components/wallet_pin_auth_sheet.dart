@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../bmoni_sdk/bmoni_sdk_service.dart';
 import '../../theme/colors.dart';
@@ -39,6 +40,10 @@ class WalletPinAuthSheet extends StatefulWidget {
     String? recipient,
     required Future<String> Function(String pin) onAuthorize,
   }) async {
+    if (kIsWeb) {
+      // Hardware signing not supported on web; skip PIN sheet and auto-authorize
+      return await onAuthorize('123456');
+    }
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,

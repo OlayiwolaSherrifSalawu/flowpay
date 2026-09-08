@@ -420,6 +420,59 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     }
   }
 
+  Future<void> _confirmDeleteMission(MoneyMissionModel mission) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : FlowPayColors.lightSurfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Mission?',
+          style: FlowPayTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${mission.title}"? This autonomous rule will be permanently removed.',
+          style: FlowPayTypography.bodySmall.copyWith(
+            color: isDark
+                ? FlowPayColors.darkTextSecondary
+                : FlowPayColors.lightTextSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FlowPayButton(
+            text: 'Delete',
+            size: FlowPayButtonSize.small,
+            variant: FlowPayButtonVariant.danger,
+            onPressed: () => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await widget.appState.missionRepo.deleteMission(mission.id);
+      await widget.appState.personalProvider.deleteMission(mission.id);
+      if (mounted) {
+        setState(() {
+          missions.removeWhere((m) => m.id == mission.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Mission "${mission.title}" deleted.'),
+            backgroundColor: FlowPayColors.darkSurfaceElevated,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _handleManualTrigger(String id) async {
     final idx = missions.indexWhere((m) => m.id == id);
     if (idx == -1) return;
@@ -945,6 +998,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       mission: m,
                       onToggleActive: (_) => _toggleMission(m.id),
                       onTriggerManual: () => _handleManualTrigger(m.id),
+                      onDelete: () => _confirmDeleteMission(m),
                     );
                   }),
               ],

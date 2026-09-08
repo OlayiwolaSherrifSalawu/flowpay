@@ -106,4 +106,5 @@ abstract class MissionRepository {
     bool pinValidated = true,
   });
   Future<MoneyMissionModel> triggerManualExecution(String id);
+  Future<bool> deleteMission(String id);
 }

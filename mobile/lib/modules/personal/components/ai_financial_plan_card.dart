@@ -65,9 +65,10 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
         children: [
           // Header: Plan Title + Status & Expiration Badge
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: FlowPayColors.primary.withAlpha(35),
                   borderRadius: BorderRadius.circular(8),
@@ -90,7 +91,14 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   ),
                 ),
               ),
-              if (plan.quoteExpiresAt != null) ...[
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              if (plan.quoteExpiresAt != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -120,8 +128,6 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
-              ],
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
