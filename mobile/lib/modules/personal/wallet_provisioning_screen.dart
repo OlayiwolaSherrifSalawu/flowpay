@@ -615,12 +615,16 @@ class _WalletProvisioningScreenState
           style:
               const TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
         ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: statusColor,
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: statusColor,
+            ),
           ),
         ),
       ],
