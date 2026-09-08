@@ -39,9 +39,6 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final plan = widget.plan;
     final isExpired = plan.isQuoteExpired;
-    final hasMissingProposal =
-        plan.actions.any((a) => a.type == PlannedActionType.send) &&
-            plan.hashToSign == null;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -360,29 +357,6 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
 
           // Approval Actions
           if (!plan.isApproved && widget.onApprove != null) ...[
-            if (hasMissingProposal) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: FlowPayColors.error.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: FlowPayColors.error.withAlpha(70)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded, size: 16, color: FlowPayColors.error),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Insufficient funds to execute transfer. Please fund your smart wallet.',
-                        style: FlowPayTypography.captionStyle(color: FlowPayColors.error),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
             const SizedBox(height: 16),
             Row(
               children: [
@@ -399,17 +373,11 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                 Expanded(
                   flex: 2,
                   child: FlowPayButton(
-                    text: isExpired
-                        ? 'Quote Expired'
-                        : (hasMissingProposal ? 'Insufficient Balance' : 'Approve & Execute'),
-                    icon: isExpired
-                        ? Icons.refresh_rounded
-                        : (hasMissingProposal ? Icons.lock_outline_rounded : Icons.fingerprint),
+                    text: isExpired ? 'Quote Expired' : 'Approve & Execute',
+                    icon: isExpired ? Icons.refresh_rounded : Icons.fingerprint,
                     isLoading: widget.isExecuting,
                     size: FlowPayButtonSize.medium,
-                    onPressed: (widget.isExecuting || isExpired || hasMissingProposal)
-                        ? null
-                        : widget.onApprove,
+                    onPressed: (widget.isExecuting || isExpired) ? null : widget.onApprove,
                   ),
                 ),
               ],

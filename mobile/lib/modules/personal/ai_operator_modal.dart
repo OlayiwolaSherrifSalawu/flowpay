@@ -176,23 +176,6 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
   }
 
   Future<void> _handleApprovePlan(FinancialPlan plan) async {
-    final bool hasTransferWithoutProposal =
-        plan.actions.any((a) => a.type == PlannedActionType.send) &&
-            plan.hashToSign == null;
-    if (hasTransferWithoutProposal) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Cannot authorize transfer: insufficient smart wallet balance to fund ${plan.totalDebit.toFormattedString()}. Please deposit funds first.',
-            ),
-            backgroundColor: FlowPayColors.error,
-          ),
-        );
-      }
-      return;
-    }
-
     setState(() => _isSigning = true);
 
     try {
