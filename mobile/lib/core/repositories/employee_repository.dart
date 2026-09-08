@@ -9,6 +9,7 @@ import '../money/money.dart';
 /// 5. READY - KYC verified, VBA provisioned, smart wallet active, ready for payroll
 /// 6. FAILED - Onboarding or KYC failed; see failedStage
 class EmployeeLifecycleStages {
+  static const String invited = 'INVITED';
   static const String created = 'CREATED';
   static const String walletPending = 'WALLET_PENDING';
   static const String kycPending = 'KYC_PENDING';
@@ -347,4 +348,18 @@ abstract class EmployeeRepository {
 
   Future<EmployeeOnboardingStatusModel> simulateWebhookCompleted(
       String employeeId);
+
+  /// Resolves employee invitation details (email, company, salary, currency) by inviteToken or inviteCode.
+  Future<Map<String, dynamic>> getInviteDetails(String codeOrId);
+
+  /// Links the employee's on-device self-custody smart wallet to the invited employee record.
+  Future<Map<String, dynamic>> linkEmployeeWallet({
+    required String employeeId,
+    required String inviteToken,
+    required String bmoniUserId,
+    required String walletAddress,
+    String? walletId,
+    String? sessionToken,
+  });
 }
+

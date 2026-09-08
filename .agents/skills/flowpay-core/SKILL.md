@@ -430,10 +430,38 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * In `BmoniSdkService.signMessage` and `signTransactionHash`, removed sha256 fallback signature generation in non-test mode. Native or platform signing failures now rethrow typed `BmoniSignerException`.
         * In `SigningCoordinator.authorizeAndSign`, routed signing strictly through `WalletSigner` (`walletSignerProvider` / `BmoniWalletSigner`) rather than calling SDK directly, conforming to standing architecture conventions.
       * **Verification**: All 16 card tests, 6 payroll tests, 11 transfer tests, 9 employee tests, and 11 onboarding tests passing (100%). Full backend build passes cleanly with zero TypeScript errors.
+    * **Payroll Proposal Hashing & Distinct On-Device Signing Fix (`mobile/lib/core/state/business_provider.dart`)**:
+      * Resolved critical fintech bug where `runPayroll()` signed a static test-vector hash for all proposals.
+      * Implemented canonical 32-byte SHA-256 hash derivation per proposal item (`runId`, `employeeId`, `currency`, `amountMinor`, `country`).
+      * Added batched collision safeguard detecting duplicate proposal hashes and throwing `StateError` per financial safety standards.
+      * Generated distinct on-device signatures per proposal with `BmoniSdkService.signTransactionHash`.
+      * Added unit test suite `mobile/test/payroll_signing_test.dart` verifying hash uniqueness, parameter sensitivity, signature variance, and collision protection.
     * **Verification Status**:
       * **118/118 Flutter unit, widget, and flow tests passing (100%)**.
       * **77/77 backend tests passing across 6 test suites (100%)**.
       * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
+    * **FlowPay Business — Employee Invite-Then-Self-Onboard Architecture (v2)**:
+      * **Elimination of Employer Key Custody**: Replaced legacy architecture where employee wallets were provisioned on the employer's device. Employees now hold their own hardware keypair and PIN in their own device's hardware enclave via `BmoniEmbeddedSdk` (`initWallet()` + `setPin()`).
+      * **Single-Use, Time-Bound Invite Tokens**:
+        * `POST /api/employees` generates single-use 24-byte cryptographically secure `inviteToken` with 72-hour TTL and initializes employee in `INVITED` status with `walletAddress: null`.
+        * Returns `inviteUrl` and `inviteCode` for dispatch.
+      * **Token Validation & Pre-fill (`GET /api/employees/invite/:codeOrId`)**:
+        * Pre-fills employee's legal name, email, country, and currency into onboarding flow.
+        * Explicitly returns 410 Gone with machine-readable error codes `EXPIRED` and `ALREADY_USED` so client UI surfaces clean actionable warnings rather than silent failures.
+      * **Strict Session-Gated Wallet Linkage (`POST /api/employees/link-wallet`)**:
+        * Requires employee's own authenticated session (`Authorization: Bearer <sessionToken>` or `x-user-id`).
+        * Backend strictly validates that the caller session matches the invited employee identity, rejecting unauthorized or foreign third-party sessions with 403 `FORBIDDEN`.
+        * On successful verification, marks token as used (replay protection) and updates employee status from `INVITED` to `READY` with verified destination `walletAddress`.
+      * **Reused Personal Onboarding Flow**:
+        * `SignupScreen`: Accepts `employeeInviteToken`, validates token on mount, pre-fills fields, locks account type to personal, surfaces token expiration/used warnings, and threads token and `employeeId` through the flow.
+        * `KycScreen`: Passes invite parameters through without modifying compliance steps.
+        * `SetPinScreen`: After on-device wallet initialization and PIN registration, automatically triggers `linkEmployeeWallet` using employee's active session, shows confirmation banner, and transitions into `PersonalShell`.
+      * **Employer UI Experience (`AddEmployeeModal`)**:
+        * Transitions to "Invitation Sent!" sheet displaying employee name, country, status badge `INVITED`, single-use link with copy button, and "Test Onboarding as Employee" simulation button that routes through the exact same token-validated flow.
+      * **Automated Verification**:
+        * 13/13 employee backend unit tests passing in `employee.test.ts` (Nigeria/Mexico validations, BMONI failure honesty, status `INVITED`, token issuance, valid wallet link to `READY`, foreign session rejection, expired token rejection, token reuse rejection).
+        * Full backend test suite passing with 92/92 tests green (100%).
+        * Flutter test suite created in `mobile/test/employee_invite_flow_test.dart`.
 
 ---
 
@@ -450,6 +478,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 
 ### Business Track Owner
 - [x] Implement FlowPay Business Employee Onboarding (Model B) for Nigeria (`NG`) and Mexico (`MX`) across Stage 2, Stage 3, and Stage 4 with 4-state lifecycle.
+- [x] Implement FlowPay Business Employee Invite-Then-Self-Onboard (v2) architecture with single-use tokens, session-bound wallet linking, and employee hardware key custody.
 - [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
 - [x] Implement FlowPay Business Global Payroll ("One Employer. Many Countries. One Bill.") with 4-call proposal sequence, raw-hash signing, rail validation, 4-stage timeline, and granular retry.
 - [x] Implement FlowPay Business Corporate Payroll Activity & Audit subsystem with composed repositories, bkey_uikit ActivitySectionCard and StatusText, shared transaction models, and failure retry.

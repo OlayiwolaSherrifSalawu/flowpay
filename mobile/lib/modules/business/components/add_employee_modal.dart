@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
 import '../../../core/state/business_provider.dart';
+import '../../auth/signup_screen.dart';
 
 class CountryOption {
   final String code;
@@ -51,6 +53,11 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController(text: '3100000.00');
+
+  String? _createdInviteUrl;
+  String? _createdInviteToken;
+  String? _createdEmployeeName;
+  String? _createdEmployeeEmail;
 
   static const List<CountryOption> _countries = [
     CountryOption(
@@ -103,7 +110,6 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         });
       }
     } catch (_) {
-      // Fallback simple dialog if bottom sheet is constrained
       _showSimpleCountryPicker();
     }
   }
@@ -163,7 +169,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
           Money.fromMajorString(salaryStr, _selectedCountry.currency);
       final usdSalary = Money.fromMajorString('2000.00', Currency.usd);
 
-      await widget.businessProvider.addEmployee(
+      final inviteUrl = await widget.businessProvider.addEmployee(
         firstName: first,
         lastName: last,
         email: email,
@@ -174,26 +180,23 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         usdPayrollAmount: usdSalary,
       );
 
+      final token = inviteUrl.split('/').last.replaceAll('flowpay_', '');
+
       if (mounted) {
-        Navigator.pop(context);
+        setState(() {
+          _createdInviteUrl = inviteUrl;
+          _createdInviteToken = token;
+          _createdEmployeeName = '$first $last';
+          _createdEmployeeEmail = email;
+        });
+
         try {
           BMoniToastOverlay.showSuccess(
             context: context,
-            title: 'Employee Onboarded',
-            message:
-                '$first $last added with BMONI on-chain identity and smart wallet!',
+            title: 'Invitation Dispatched',
+            message: 'Single-use invite link created for $first $last.',
           );
-        } catch (_) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: FlowPayColors.ink,
-              content: Text(
-                '$first $last onboarded successfully! Smart wallet provisioned.',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          );
-        }
+        } catch (_) {}
       }
     } catch (e) {
       if (mounted) {
@@ -212,6 +215,186 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Widget _buildInvitationSentView(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: FlowPayColors.successSubtle,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.mark_email_read_rounded,
+                  color: FlowPayColors.success, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Invitation Sent!',
+                    style: FlowPayTypography.title(color: FlowPayColors.ink)
+                        .copyWith(fontSize: 18),
+                  ),
+                  Text(
+                    'Employee self-onboards on their phone to hold their own key.',
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded,
+                  color: FlowPayColors.textSecondary),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+
+        // Employee Info Card
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: FlowPayColors.surfaceAlt,
+            borderRadius: FlowPayRadii.card,
+            border: Border.all(color: FlowPayColors.hairline),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _createdEmployeeName ?? '',
+                    style: FlowPayTypography.body(color: FlowPayColors.ink)
+                        .copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const StatusBadge(status: 'INVITED'),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _createdEmployeeEmail ?? '',
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textSecondary),
+                  ),
+                  Text(
+                    '${_selectedCountry.flag} ${_selectedCountry.currency.code}',
+                    style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.textPrimary)
+                        .copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Copy Link Box
+        Text(
+          'SINGLE-USE INVITATION LINK (72H TTL)',
+          style: FlowPayTypography.captionStyle(color: FlowPayColors.textTertiary)
+              .copyWith(
+            fontSize: 11,
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: FlowPayColors.surfaceAlt,
+            borderRadius: FlowPayRadii.input,
+            border: Border.all(color: FlowPayColors.hairline),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.link_rounded,
+                  color: FlowPayColors.textSecondary, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _createdInviteUrl ?? '',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.ink)
+                      .copyWith(fontFamily: 'monospace', fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  if (_createdInviteUrl != null) {
+                    Clipboard.setData(ClipboardData(text: _createdInviteUrl!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: FlowPayColors.ink,
+                        content: Text('Invite link copied to clipboard!'),
+                      ),
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.copy_rounded,
+                          size: 16, color: FlowPayColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Copy',
+                        style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.primary)
+                            .copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Test Onboarding as Employee button
+        BMoniButton(
+          text: 'Test Onboarding as Employee',
+          variant: BMoniButtonVariant.primary,
+          size: BMoniButtonSize.large,
+          icon: Icons.smartphone_rounded,
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SignupScreen(
+                  employeeInviteToken: _createdInviteToken,
+                ),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 10),
+        BMoniButton(
+          text: 'Close',
+          variant: BMoniButtonVariant.secondary,
+          size: BMoniButtonSize.medium,
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
+    );
   }
 
   @override
@@ -233,52 +416,55 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
           top: 20,
           bottom: bottomInset + 24,
         ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: FlowPayColors.surfaceAlt,
-                      borderRadius: FlowPayRadii.avatar,
-                    ),
-                    child: const Icon(Icons.person_add_rounded,
-                        color: FlowPayColors.ink, size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Add Remote Employee',
-                          style:
-                              FlowPayTypography.title(color: FlowPayColors.ink)
-                                  .copyWith(fontSize: 17),
-                        ),
-                        Text(
-                          'Stages: Created → Wallet → KYC → Ready',
-                          style: FlowPayTypography.captionStyle(
-                              color: FlowPayColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        color: FlowPayColors.textSecondary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
+        child: _createdInviteUrl != null
+            ? _buildInvitationSentView(context)
+            : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: FlowPayColors.surfaceAlt,
+                              borderRadius: FlowPayRadii.avatar,
+                            ),
+                            child: const Icon(Icons.person_add_rounded,
+                                color: FlowPayColors.ink, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Invite Remote Employee',
+                                  style: FlowPayTypography.title(
+                                          color: FlowPayColors.ink)
+                                      .copyWith(fontSize: 17),
+                                ),
+                                Text(
+                                  'Invite → Employee Self-Onboards → Ready',
+                                  style: FlowPayTypography.captionStyle(
+                                      color: FlowPayColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded,
+                                color: FlowPayColors.textSecondary),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
 
               // Country & Currency Selector using SelectorBottomSheet
               Text(
@@ -437,11 +623,11 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                 width: double.infinity,
                 child: BMoniButton(
                   onPressed: _isSubmitting ? null : _handleSubmit,
-                  text: 'Create Employee & Provision Rails',
+                  text: 'Send Employee Invitation',
                   variant: BMoniButtonVariant.primary,
                   size: BMoniButtonSize.large,
                   isLoading: _isSubmitting,
-                  icon: Icons.check_circle_rounded,
+                  icon: Icons.send_rounded,
                 ),
               ),
             ],

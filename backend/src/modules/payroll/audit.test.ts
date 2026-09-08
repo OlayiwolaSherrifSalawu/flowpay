@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PayrollOrchestrationService } from './service.js';
 import { Money } from '../../core/money.js';
+import { bmoniClient } from '../../bmoni/client.js';
 
 test('Payroll Activity & Audit Subsystem - Suite', async (t) => {
   await t.test('1. Payroll Run record structure and required fields', async () => {
@@ -82,22 +83,42 @@ test('Payroll Activity & Audit Subsystem - Suite', async (t) => {
   });
 
   await t.test('4. Independent failure isolation and retry payload structure', async () => {
-    // When a proposal fails, retryProposal calls approve and returns the updated item
-    const retryResult = await PayrollOrchestrationService.retryProposal(
-      'usr_flowpay_sandbox_master',
-      'prop_sandbox_failed_retry_test',
-      'emp_bunch_dillon'
-    );
+    const originalRetry = bmoniClient.retryFailedProposal;
+    const originalPoll = bmoniClient.pollProposalSignPayload;
+    const originalSubmit = bmoniClient.submitProposalSignature;
 
-    assert.ok(retryResult, 'Retry result must be defined');
-    assert.equal(typeof retryResult.success, 'boolean', 'Retry result must have success boolean');
-    assert.ok(retryResult.item, 'Retry result must return updated item');
-    assert.equal(retryResult.item.employeeId, 'emp_bunch_dillon');
+    bmoniClient.retryFailedProposal = async () => ({ success: true, status: 'APPROVED' } as any);
+    bmoniClient.pollProposalSignPayload = async () => ({ hashToSign: '0x1234', isPending: false } as any);
+    bmoniClient.submitProposalSignature = async () => ({
+      success: true,
+      status: 'COMPLETED',
+      transactionHash: '0x1111222233334444555566667777888899990000aaaabbbbccccddddeeeeffff',
+    } as any);
 
-    // Assert retry payload does not leak secrets
-    const serializedRetry = JSON.stringify(retryResult);
-    assert.equal(serializedRetry.includes('hashToSign'), false);
-    assert.equal(serializedRetry.includes('privateKey'), false);
+    try {
+      // When a proposal fails, retryProposal calls approve and returns the updated item
+      const retryResult = await PayrollOrchestrationService.retryProposal(
+        'usr_flowpay_sandbox_master',
+        'prop_sandbox_failed_retry_test',
+        'emp_bunch_dillon',
+        '0x' + 'bb'.repeat(65)
+      );
+
+      assert.ok(retryResult, 'Retry result must be defined');
+      assert.equal(typeof retryResult.success, 'boolean', 'Retry result must have success boolean');
+      assert.equal(retryResult.success, true, 'Retry result must succeed when BMONI succeeds');
+      assert.ok(retryResult.item, 'Retry result must return updated item');
+      assert.equal(retryResult.item.employeeId, 'emp_bunch_dillon');
+
+      // Assert retry payload does not leak secrets
+      const serializedRetry = JSON.stringify(retryResult);
+      assert.equal(serializedRetry.includes('hashToSign'), false);
+      assert.equal(serializedRetry.includes('privateKey'), false);
+    } finally {
+      bmoniClient.retryFailedProposal = originalRetry;
+      bmoniClient.pollProposalSignPayload = originalPoll;
+      bmoniClient.submitProposalSignature = originalSubmit;
+    }
   });
 
   await t.test('5. Cost transparency & savings comparison precision', async () => {
