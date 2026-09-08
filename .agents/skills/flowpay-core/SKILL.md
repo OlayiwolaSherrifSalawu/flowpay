@@ -56,6 +56,13 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
   * Production Gmail SMTP Mail Relay (`modules/mail/`, `routes/mail.routes.ts`) with STARTTLS (`smtp.gmail.com:587`), non-blocking startup verification, dark-mode fintech email templates (OTP, Welcome, Employee Invite, Payroll Receipt, Transfer, Security Alerts), and integration with employee invitation dispatch.
   * Automated unit tests passing for Money arithmetic, HMAC verification, AI safety guards, and mail templates/service.
+  * **Database & ORM Synchronization (Supabase & Prisma)**:
+    * Created and verified `public.businesses` in Supabase PostgreSQL (`mxjbzexlnenooclmaawe`) linked to `users` and `employees`.
+    * Synchronized `backend/prisma/schema.prisma` with `Business` model and relations to `User` and `Employee`.
+    * Fixed Prisma P1012 validator issue by enforcing PostgreSQL protocol connection string defaults.
+    * Added graceful database connection handling and in-memory fallback in `backend/src/db/index.ts`.
+    * Implemented automated, non-blocking employee invite email dispatch via Gmail SMTP relay (`MailService.sendEmployeeInvite`) carrying single-use invite tokens and KYC onboarding links.
+    * Added top-level web browser invite landing card (`/invite/:codeOrId`) and fixed mobile `inviteUrl` extraction in `BmoniEmployeeRepository`.
 * [x] **Mobile Flutter Foundation & Application Shell (`mobile/`)**:
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.

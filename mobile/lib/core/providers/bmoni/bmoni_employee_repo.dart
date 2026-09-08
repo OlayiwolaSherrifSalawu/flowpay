@@ -58,9 +58,14 @@ class BmoniEmployeeRepository implements EmployeeRepository {
         'usdPayrollAmountMinor': usdPayrollAmount.minorUnits,
     });
 
-    return res['inviteUrl'] ??
-        res['data']?['employee']?['id'] ??
-        'https://bmoni.com/invite';
+    final inviteUrl = res['data']?['inviteUrl'] ??
+        res['inviteUrl'] ??
+        (res['data']?['inviteToken'] != null
+            ? 'https://app.flowpay.finance/invite/${res['data']['inviteToken']}'
+            : (res['data']?['employee']?['id'] != null
+                ? 'https://app.flowpay.finance/invite/${res['data']['employee']['id']}'
+                : 'https://app.flowpay.finance/invite'));
+    return inviteUrl as String;
   }
 
   @override

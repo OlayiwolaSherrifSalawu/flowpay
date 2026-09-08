@@ -41,6 +41,56 @@ export type Database = {
         }
         Relationships: []
       }
+      businesses: {
+        Row: {
+          bmoni_user_id: string | null
+          country: string
+          created_at: string
+          currency: string
+          id: string
+          kyb_status: string
+          name: string
+          owner_user_id: string
+          registration_number: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bmoni_user_id?: string | null
+          country?: string
+          created_at?: string
+          currency?: string
+          id: string
+          kyb_status?: string
+          name: string
+          owner_user_id: string
+          registration_number?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bmoni_user_id?: string | null
+          country?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          kyb_status?: string
+          name?: string
+          owner_user_id?: string
+          registration_number?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "businesses_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       card_transactions: {
         Row: {
           amount_major: number
@@ -91,6 +141,7 @@ export type Database = {
       employees: {
         Row: {
           bmoni_user_id: string | null
+          business_id: string | null
           card_id: string | null
           country: string
           created_at: string
@@ -111,6 +162,7 @@ export type Database = {
         }
         Insert: {
           bmoni_user_id?: string | null
+          business_id?: string | null
           card_id?: string | null
           country: string
           created_at?: string
@@ -131,6 +183,7 @@ export type Database = {
         }
         Update: {
           bmoni_user_id?: string | null
+          business_id?: string | null
           card_id?: string | null
           country?: string
           created_at?: string
@@ -149,7 +202,15 @@ export type Database = {
           wallet_address?: string | null
           wallet_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {

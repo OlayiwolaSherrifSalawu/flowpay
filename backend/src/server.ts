@@ -53,6 +53,11 @@ app.use('/api/activity', activityRouter);
 app.use('/api/webhooks', webhookConfigRouter);
 app.use('/api/mail', mailRouter);
 
+// Top-level invite link route (for web previews and deep links)
+app.use('/invite', (req: Request, res: Response) => {
+  res.redirect(`/api/employees/invite${req.url}`);
+});
+
 // 6. Global Error Handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   const safeErr = sanitizeBmoniError(err);

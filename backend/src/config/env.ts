@@ -6,8 +6,9 @@ dotenv.config();
 const envSchema = z.object({
   PORT: z.string().default('4000').transform((val) => parseInt(val, 10)),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().default('./flowpay.db'),
+  DATABASE_URL: z.string().default('postgresql://postgres:flowpay@localhost:5432/flowpay'),
   FLOWPAY_JWT_SECRET: z.string().default('flowpay_development_secret_change_in_production_min32chars'),
+  APP_URL: z.string().default('https://app.flowpay.finance'),
   // BMONI Configuration
   BMONI_BASE_URL: z.string().default('https://embedded-dev.bmoni.com').transform((url) => {
     // Enforce origin-only: strip any trailing slash or /v1 to prevent /v1/v1/ 404s

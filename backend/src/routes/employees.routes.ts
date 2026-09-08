@@ -40,8 +40,19 @@ employeesRouter.get('/:id', async (req, res, next) => {
 // POST /api/employees - Primary employee creation endpoint with server-side validation
 employeesRouter.post('/', async (req, res, next) => {
   try {
-    const { firstName, lastName, email, phoneNumber, country, targetCurrency, payrollAmountMinor, payrollCurrency } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      country,
+      targetCurrency,
+      payrollAmountMinor,
+      payrollCurrency,
+      employerName,
+      companyName,
+      businessId,
+    } = req.body;
 
     // Handle either payrollAmountMinor directly or payrollAmount in major
     let amountMinor = payrollAmountMinor;
@@ -63,6 +74,9 @@ employeesRouter.post('/', async (req, res, next) => {
       targetCurrency,
       payrollAmountMinor: amountMinor ?? 0,
       payrollCurrency,
+      employerName,
+      companyName,
+      businessId,
     });
 
     res.status(201).json({
@@ -103,9 +117,64 @@ employeesRouter.post('/invite', async (req, res, next) => {
 employeesRouter.get('/invite/:codeOrId', async (req, res, next) => {
   try {
     const invite = await EmployeeService.getInviteDetails(req.params.codeOrId);
+
+    if (req.headers.accept?.includes('text/html')) {
+      const salaryFormatted = (invite.payrollAmountMinor / 100).toLocaleString('en-US', {
+        style: 'currency',
+        currency: invite.targetCurrency || 'USD',
+      });
+      return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowPay - Accept Payroll Invitation</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f19; color: #f3f4f6; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 16px; max-width: 480px; width: 100%; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); text-align: center; }
+    .badge { display: inline-block; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 600; margin-bottom: 16px; letter-spacing: 0.5px; }
+    h1 { font-size: 22px; margin: 0 0 10px 0; color: #ffffff; }
+    p.subtitle { color: #9ca3af; font-size: 14px; margin: 0 0 24px 0; line-height: 20px; }
+    .details { background: #1f2937; border-radius: 12px; padding: 18px; margin-bottom: 24px; text-align: left; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+    .row:last-child { margin-bottom: 0; }
+    .label { color: #9ca3af; }
+    .value { color: #ffffff; font-weight: 600; }
+    .code-box { background: #0b0f19; border: 1px dashed #374151; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 16px; color: #818cf8; word-break: break-all; margin-bottom: 24px; user-select: all; }
+    .btn { display: block; width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 600; padding: 14px 20px; border-radius: 8px; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .btn:hover { opacity: 0.9; }
+    .note { margin-top: 16px; font-size: 12px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">SECURE INVITATION</div>
+    <h1>FlowPay Global Payroll</h1>
+    <p class="subtitle">You have been invited to set up your self-custody payout wallet and complete KYC verification.</p>
+    <div class="details">
+      <div class="row"><span class="label">Recipient:</span><span class="value">${invite.firstName} ${invite.lastName}</span></div>
+      <div class="row"><span class="label">Country / Rail:</span><span class="value">${invite.country} (${invite.targetCurrency})</span></div>
+      <div class="row"><span class="label">Payroll Amount:</span><span class="value">${salaryFormatted}</span></div>
+      <div class="row"><span class="label">Status:</span><span class="value" style="color:#10b981;">Active Invitation</span></div>
+    </div>
+    <div style="font-size: 12px; color: #9ca3af; margin-bottom: 6px; text-align: left;">Your Single-Use Invite Token:</div>
+    <div class="code-box">${invite.token}</div>
+    <a href="flowpay://invite/${invite.token}" class="btn">Open in FlowPay Mobile App</a>
+    <div class="note">Open this link in the FlowPay mobile app to generate your smart contract wallet with local hardware PIN encryption.</div>
+  </div>
+</body>
+</html>`);
+    }
+
     res.json({ success: true, data: invite });
   } catch (err: any) {
     if (err.statusCode) {
+      if (req.headers.accept?.includes('text/html')) {
+        return res.status(err.statusCode).send(`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Invitation Expired - FlowPay</title><style>body { margin: 0; font-family: sans-serif; background: #0b0f19; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; } .card { background: #111827; padding: 32px; border-radius: 16px; border: 1px solid #1f2937; text-align: center; max-width: 400px; }</style></head>
+<body><div class="card"><h2 style="color:#ef4444;">Invitation Invalid or Expired</h2><p style="color:#9ca3af;font-size:14px;">${err.message}</p></div></body></html>`);
+      }
       return res.status(err.statusCode).json({
         success: false,
         code: err.code || 'INVITE_ERROR',
