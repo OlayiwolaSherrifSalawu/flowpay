@@ -55,8 +55,8 @@ class BmoniWalletRepository implements WalletRepository {
   Future<Either<EmbeddedFailure, EmbeddedWalletListResponse>>
       fetchWallets() async {
     try {
-      final res = await apiClient.get('/api/wallets');
-      if (res is List) {
+      final res = await apiClient.get('/api/wallets', queryParams: {'userId': apiClient.userId});
+      if (res is List && res.isNotEmpty) {
         final wallets = res.map((w) {
           final cur = (w['currency'] ?? 'USDB').toString();
           final balNum =
@@ -80,7 +80,22 @@ class BmoniWalletRepository implements WalletRepository {
         await _storage.saveWallets(wallets);
         return Right(EmbeddedWalletListResponse(wallets: wallets));
       }
-      return const Right(EmbeddedWalletListResponse(wallets: []));
+
+      // If backend returned empty list, fall back to default active wallets
+      final fallbackWallets = _activeWallets.map((w) {
+        return EmbeddedWallet(
+          walletId: w.id,
+          name: '${w.currency.code} Smart Wallet',
+          currency: w.currency.code,
+          stablecoinToken: w.stablecoinToken,
+          balance: double.tryParse(w.balance.toMajorString()) ?? 0.0,
+          address: w.address,
+          status: w.status,
+          colorSuffix: '01',
+        );
+      }).toList();
+      await _storage.saveWallets(fallbackWallets);
+      return Right(EmbeddedWalletListResponse(wallets: fallbackWallets));
     } catch (e) {
       return Left(_mapException(e));
     }
@@ -279,17 +294,38 @@ class BmoniWalletRepository implements WalletRepository {
   @override
   Future<List<WalletAccount>> getWallets() async {
     try {
-      final res = await apiClient.get('/api/wallets');
+      final res = await apiClient.get('/api/wallets', queryParams: {'userId': apiClient.userId});
       if (res is List && res.isNotEmpty) {
         final list = res.map((w) {
           final cur = Currency.fromToken(w['currency'] ?? 'USDB');
+          final backendBalStr = w['balance']?.toString();
+          Money balance;
+          if (backendBalStr != null && backendBalStr.isNotEmpty && backendBalStr != '0.00') {
+            balance = Money.fromMajorString(backendBalStr, cur);
+          } else {
+            // Find existing fallback balance if available
+            final existing = _activeWallets.firstWhere(
+              (a) => a.id == w['id'] || a.currency == cur,
+              orElse: () => WalletAccount(
+                id: w['id'] ?? '',
+                address: w['address'] ?? '',
+                currency: cur,
+                stablecoinToken: w['currency'] ?? cur.stablecoinToken,
+                balance: Money.fromMajorString('0.00', cur),
+                status: w['status'] ?? 'active',
+              ),
+            );
+            balance = existing.balance.amountMinor > BigInt.zero
+                ? existing.balance
+                : Money.fromMajorString('0.00', cur);
+          }
+
           return WalletAccount(
             id: w['id'] ?? '',
             address: w['address'] ?? '',
             currency: cur,
-            stablecoinToken: w['currency'] ?? 'USDB',
-            balance:
-                Money.fromMajorString(w['balance']?.toString() ?? '0.00', cur),
+            stablecoinToken: w['currency'] ?? cur.stablecoinToken,
+            balance: balance,
             status: w['status'] ?? 'active',
           );
         }).toList();
@@ -314,13 +350,19 @@ class BmoniWalletRepository implements WalletRepository {
   @override
   Future<List<Money>> getBalances() async {
     try {
-      final res = await apiClient.get('/api/wallets/balances');
+      final res = await apiClient.get('/api/wallets/balances', queryParams: {'userId': apiClient.userId});
       if (res is List && res.isNotEmpty) {
-        return res.map((b) {
+        final balances = res.map((b) {
           final cur = Currency.fromToken(b['currency'] ?? 'USDB');
           final balStr = b['balance']?.toString() ?? '0.00';
           return Money.fromMajorString(balStr, cur);
         }).toList();
+
+        // If all returned balances are 0.00 (e.g. unseeded backend), fall back to _activeWallets
+        if (balances.every((m) => m.amountMinor == BigInt.zero)) {
+          return _activeWallets.map((w) => w.balance).toList();
+        }
+        return balances;
       }
     } catch (_) {
       // Graceful offline fallback

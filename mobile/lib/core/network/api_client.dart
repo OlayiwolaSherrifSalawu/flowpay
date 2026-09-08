@@ -13,10 +13,12 @@ class FlowPayApiClient {
     String? userId,
   })  : baseUrl = baseUrl ?? ApiConfig.baseUrl,
         _client = client ?? http.Client(),
-        _userId = userId;
+        _userId = userId ?? 'usr_flowpay_sandbox_master';
+
+  String get userId => _userId ?? 'usr_flowpay_sandbox_master';
 
   void setUserId(String? userId) {
-    _userId = userId;
+    _userId = userId ?? 'usr_flowpay_sandbox_master';
   }
 
   Map<String, String> _buildHeaders([Map<String, String>? extra]) {

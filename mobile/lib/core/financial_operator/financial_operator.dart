@@ -698,6 +698,10 @@ class FinancialOperator extends ChangeNotifier {
             hashToSign: proposal.hashToSign,
             transferProposal: proposal,
           );
+        } else {
+          explanation.writeln();
+          explanation.writeln(
+              '⚠️ **Insufficient Smart Wallet Balance**: Your smart wallets do not have sufficient funds to cover ${sendAction.amount.toFormattedString()}. Please deposit funds or receive a transfer to approve and execute this plan.');
         }
       } catch (err) {
         final errorMsg = OperatorMessage.operator(

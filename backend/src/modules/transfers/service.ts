@@ -301,19 +301,20 @@ export class TransferService {
       }
 
       if (recipientUserId) {
-        let creditCurrency = targetCurrency;
+        let creditCurrency: string = targetCurrency;
         let creditAmt = parseFloat(targetAmount) || 0;
 
         // Cross-border auto-conversion to local currency if sender sent in USD or if local delivery is targeted
+        const targetCurStr = String(targetCurrency).toUpperCase();
         const isCrossBorderLocal = recipientLocalCurrency && (
-          targetCurrency === 'USD' ||
-          (recipientLocalCurrency === 'CNGN' && (targetCurrency === 'NGN' || targetCurrency === 'CNGN')) ||
-          (recipientLocalCurrency === 'MEXe' && (targetCurrency === 'MXN' || targetCurrency === 'MEXe'))
+          targetCurStr === 'USD' ||
+          (recipientLocalCurrency === 'CNGN' && (targetCurStr === 'NGN' || targetCurStr === 'CNGN')) ||
+          (recipientLocalCurrency === 'MEXe' && (targetCurStr === 'MXN' || targetCurStr === 'MEXE'))
         );
 
         if (isCrossBorderLocal && recipientLocalCurrency) {
           creditCurrency = recipientLocalCurrency;
-          if (targetCurrency === 'USD') {
+          if (targetCurStr === 'USD') {
             creditAmt = Math.round(creditAmt * fxRateToLocal * 100) / 100;
           }
         }
