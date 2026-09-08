@@ -1,5 +1,6 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
+import '../../financial_engine/financial_engine.dart';
 import '../models/financial_entities.dart';
 import '../models/financial_intent_types.dart';
 import '../models/financial_plan_models.dart';
@@ -8,53 +9,122 @@ import 'financial_policy_validator.dart';
 
 /// FlowPay Financial Planner
 /// Compiles a fully resolved StructuredIntent into a deterministic FinancialPlan,
-/// calculating debit totals, fees, and projected post-execution balance changes.
+/// integrating the FundingPlanner for cross-border routing, shortfall detection,
+/// live quote resolution, and zero over-conversion.
 class FinancialPlanner {
   final FinancialContextService contextService;
+  final ExecutionProvider? executionProvider;
+  late final FundingPlanner _fundingPlanner;
 
-  FinancialPlanner({required this.contextService});
+  FinancialPlanner({
+    required this.contextService,
+    this.executionProvider,
+  }) {
+    final ep = executionProvider ??
+        DemoExecutionProvider(
+          walletRepo: contextService.walletRepo,
+          activityRepo: contextService.activityRepo,
+        );
+    _fundingPlanner = FundingPlanner(executionProvider: ep);
+  }
 
   /// Generate a structured FinancialPlan from a resolved StructuredIntent
-  Future<FinancialPlan> createPlan(StructuredIntent intent) async {
+  Future<FinancialPlan> createPlan(
+    StructuredIntent intent, {
+    Currency? overrideFundingCurrency,
+  }) async {
     final planId =
         'plan_${DateTime.now().millisecondsSinceEpoch}_${intent.id.substring(intent.id.length - 4)}';
     final plannedActions = <PlannedFinancialAction>[];
 
-    final usdWallet =
-        await contextService.getWalletForCurrency(Currency.usd);
-    final sourceWalletId = usdWallet?.id ?? 'sw_demo_usdb_01';
-    const sourceWalletName = 'USD Wallet (USDB)';
+    // Separate send actions from reserve / allocation actions
+    final sendActions = <ActionIntent>[];
+    final otherActions = <ActionIntent>[];
 
-    int totalDebitMinor = 0;
-    int totalFeeMinor = 0;
+    for (final act in intent.actions) {
+      if (act.intentType == FinancialIntentType.sendMoney ||
+          act.intentType == FinancialIntentType.payBeneficiary) {
+        sendActions.add(act);
+      } else {
+        otherActions.add(act);
+      }
+    }
 
-    for (int i = 0; i < intent.actions.length; i++) {
-      final act = intent.actions[i];
+    SmartPaymentBatchPlan? batchPlan;
 
-      // Resolved amount
+    // 1. Process send actions through the FundingPlanner
+    if (sendActions.isNotEmpty) {
+      final paymentRequests = <PaymentRequest>[];
+
+      for (int i = 0; i < sendActions.length; i++) {
+        final act = sendActions[i];
+        final amount = act.amount.resolvedAmount ??
+            act.amount.fixedAmount ??
+            Money.zero(act.amount.currency);
+
+        final recipient = act.person?.resolvedBeneficiary;
+        if (recipient != null) {
+          paymentRequests.add(
+            PaymentRequest(
+              id: act.id,
+              recipient: recipient,
+              amount: amount,
+              description: act.description,
+            ),
+          );
+        }
+      }
+
+      if (paymentRequests.isNotEmpty) {
+        batchPlan = await _fundingPlanner.planPaymentBatch(
+          requests: paymentRequests,
+          displayCurrency: paymentRequests.first.amount.currency,
+          overrideFundingCurrency: overrideFundingCurrency,
+        );
+
+        // Convert batch items into planned financial actions
+        for (final item in batchPlan.items) {
+          plannedActions.add(
+            PlannedFinancialAction(
+              id: 'item_${planId}_${item.id}',
+              type: PlannedActionType.send,
+              amount: item.displayAmount,
+              sourceWalletId: batchPlan.fundingAllocations.isNotEmpty
+                  ? batchPlan.fundingAllocations.first.walletId
+                  : 'sw_primary',
+              sourceWalletName: batchPlan.fundingAllocations.isNotEmpty
+                  ? batchPlan.fundingAllocations.first.walletName
+                  : 'Primary Wallet',
+              destinationId: item.recipient.id,
+              destinationName: item.recipient.displayName,
+              destinationType: item.destinationType,
+              destinationRail: item.destinationRail,
+              description: item.description,
+              fxRate: item.quote?.formattedRate,
+              fee: item.fee,
+              destinationAmount: item.destinationAmount,
+              destinationCurrency: item.destinationCurrency,
+              fundingCurrency: batchPlan.selectedFundingCurrency,
+            ),
+          );
+        }
+      }
+    }
+
+    // 2. Process reserve, allocate, or conversion actions
+    for (int i = 0; i < otherActions.length; i++) {
+      final act = otherActions[i];
       final amount = act.amount.resolvedAmount ??
           act.amount.fixedAmount ??
           Money.zero(act.amount.currency);
 
-      totalDebitMinor += amount.minorUnits;
-
-      // Planned action type
-      PlannedActionType plannedType = PlannedActionType.send;
+      PlannedActionType plannedType = PlannedActionType.reserve;
       String destId = 'unknown';
       String destName = 'Unknown';
       String destType = 'unknown';
       Money fee = Money.zero(amount.currency);
 
-      if (act.intentType == FinancialIntentType.sendMoney ||
-          act.intentType == FinancialIntentType.payBeneficiary) {
-        plannedType = PlannedActionType.send;
-        destId = act.person?.resolvedBeneficiary?.id ?? 'recipient';
-        destName = act.person?.displayName ?? 'Recipient';
-        destType = 'beneficiary';
-        // Minor network fee: e.g. 10 cents
-        fee = Money.fromMinor(10, amount.currency);
-        totalFeeMinor += 10;
-      } else if (act.intentType == FinancialIntentType.createReserve ||
+      if (act.intentType == FinancialIntentType.createReserve ||
           act.intentType == FinancialIntentType.updateReserve) {
         plannedType = PlannedActionType.reserve;
         destId = act.destination?.resolvedWalletId ?? 'reserve';
@@ -74,15 +144,15 @@ class FinancialPlanner {
 
       plannedActions.add(
         PlannedFinancialAction(
-          id: 'item_${planId}_${i + 1}',
+          id: 'item_${planId}_other_${i + 1}',
           type: plannedType,
           amount: amount,
           percentageLabel: act.amount.type == AmountType.percentage &&
                   act.amount.percentage != null
               ? '${act.amount.percentage!.toStringAsFixed(0)}%'
               : null,
-          sourceWalletId: sourceWalletId,
-          sourceWalletName: sourceWalletName,
+          sourceWalletId: 'sw_demo_usdb_01',
+          sourceWalletName: 'USD Wallet (USDB)',
           destinationId: destId,
           destinationName: destName,
           destinationType: destType,
@@ -92,33 +162,40 @@ class FinancialPlanner {
       );
     }
 
+    // 3. Aggregate totals and balance changes
+    int totalDebitMinor = 0;
+    int totalFeeMinor = 0;
+
+    for (final act in plannedActions) {
+      totalDebitMinor += act.amount.minorUnits;
+      totalFeeMinor += act.fee.minorUnits;
+    }
+
     final totalDebit = Money.fromMinor(totalDebitMinor, Currency.usd);
     final totalFee = Money.fromMinor(totalFeeMinor, Currency.usd);
 
-    // Compute expected balance changes
-    final currentBalance = usdWallet?.balance ??
-        Money.fromMajorString('24500.00', Currency.usd);
-    final projectedBalance =
-        currentBalance.minorUnits >= (totalDebitMinor + totalFeeMinor)
-            ? Money.fromMinor(
-                currentBalance.minorUnits - (totalDebitMinor + totalFeeMinor),
-                Currency.usd)
-            : Money.fromMinor(
-                currentBalance.minorUnits - (totalDebitMinor + totalFeeMinor),
-                Currency.usd);
+    final balanceImpacts = <BalanceImpact>[];
 
-    final balanceImpacts = <BalanceImpact>[
-      BalanceImpact(
-        walletId: sourceWalletId,
-        walletName: sourceWalletName,
-        currency: Currency.usd,
-        currentBalance: currentBalance,
-        projectedBalance: projectedBalance,
-        delta: Money.fromMinor(-(totalDebitMinor + totalFeeMinor), Currency.usd),
-      ),
-    ];
+    if (batchPlan != null) {
+      balanceImpacts.addAll(batchPlan.expectedBalanceChanges);
+    } else {
+      // Fallback single balance impact for non-send actions
+      final usdWallet = await contextService.getWalletForCurrency(Currency.usd);
+      final currentBal =
+          usdWallet?.balance ?? Money.fromMajorString('24500.00', Currency.usd);
+      balanceImpacts.add(
+        BalanceImpact(
+          walletId: usdWallet?.id ?? 'sw_demo_usdb_01',
+          walletName: 'USD Wallet (USDB)',
+          currency: Currency.usd,
+          currentBalance: currentBal,
+          projectedBalance: currentBal.subtract(totalDebit),
+          delta: Money.fromMinor(-totalDebitMinor, Currency.usd),
+        ),
+      );
+    }
 
-    // For any reserve / savings action, show positive credit impact
+    // Add positive impact for reserves or savings allocations
     for (final act in plannedActions) {
       if (act.type == PlannedActionType.reserve ||
           act.type == PlannedActionType.allocate) {
@@ -135,7 +212,7 @@ class FinancialPlanner {
       }
     }
 
-    // Build plan draft
+    // 4. Build draft plan
     final draftPlan = FinancialPlan(
       planId: planId,
       title: _generatePlanTitle(plannedActions, totalDebit),
@@ -144,12 +221,21 @@ class FinancialPlanner {
       totalDebit: totalDebit,
       totalFee: totalFee,
       expectedBalanceChanges: balanceImpacts,
-      validation: const PlanValidationResult(isValid: true),
+      validation: batchPlan != null && !batchPlan.validation.isValid
+          ? batchPlan.validation
+          : const PlanValidationResult(isValid: true),
       createdAt: DateTime.now(),
-      executionState: 'READY_FOR_REVIEW',
+      executionState: batchPlan != null && !batchPlan.validation.isValid
+          ? 'INSUFFICIENT_FUNDS'
+          : 'READY_FOR_REVIEW',
+      routeExplanation: batchPlan?.routeExplanation,
+      availableRouteOverrides: batchPlan?.availableRouteOverrides ?? const [],
+      selectedFundingCurrency: batchPlan?.selectedFundingCurrency,
+      quoteExpiresAt: batchPlan?.quoteExpiresAt,
+      shortfall: batchPlan?.shortfall,
     );
 
-    // Deterministically validate policy
+    // 5. Deterministically validate policy
     final validation =
         await FinancialPolicyValidator.validate(draftPlan, contextService);
 
@@ -158,6 +244,7 @@ class FinancialPlanner {
 
   static String _generatePlanTitle(
       List<PlannedFinancialAction> actions, Money total) {
+    if (actions.isEmpty) return 'Financial Plan';
     if (actions.length == 1) {
       return '${actions.first.type.displayName} ${actions.first.amount.toFormattedString()}';
     }
@@ -168,7 +255,8 @@ class FinancialPlanner {
     final buffer = StringBuffer();
     for (int i = 0; i < actions.length; i++) {
       final act = actions[i];
-      buffer.write('${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}');
+      buffer.write(
+          '${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}');
       if (i < actions.length - 1) buffer.write(' • ');
     }
     return buffer.toString();

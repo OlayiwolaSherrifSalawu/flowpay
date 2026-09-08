@@ -3,6 +3,7 @@ import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
+import '../../core/money/money.dart';
 import '../../core/repositories/mission_repository.dart';
 import '../../core/navigation/personal_tab_provider.dart';
 import '../../core/state/app_state.dart';
@@ -176,24 +177,49 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
           pinValidated: true,
         );
 
-        // 4. Create local active mission item
+        // 4. Create and persist active mission item with real intent parameters
+        MissionRuleType rule = MissionRuleType.splitIncoming;
+        if (intent.intentType == MissionIntentType.sendMoney) {
+          rule = MissionRuleType.autoSweep;
+        } else if (intent.intentType == MissionIntentType.saveGoal) {
+          rule = MissionRuleType.autoSweep;
+        } else if (intent.intentType == MissionIntentType.splitIncoming) {
+          rule = MissionRuleType.splitIncoming;
+        } else if (intent.intentType == MissionIntentType.convertFx) {
+          rule = MissionRuleType.fxTarget;
+        }
+
+        final srcCur = intent.triggerCondition.sourceCurrency;
+        final amt = Money.fromMajorString(
+          intent.triggerCondition.sourceAmount,
+          srcCur,
+        );
+
         final newMission = MoneyMissionModel(
           id: missionId,
           title: intent.ruleTitle,
           tagline: intent.explanation,
-          ruleType: MissionRuleType.splitIncoming,
+          ruleType: rule,
           isActive: true,
           status: MissionStatus.active,
-          stats:
-              '\$${intent.triggerCondition.sourceAmount} scheduled • 3 rails settled',
+          stats: intent.allocations.length > 1
+              ? '${amt.toFormattedString()} scheduled • ${intent.allocations.length} rails settled'
+              : '${amt.toFormattedString()} scheduled',
           conditionSummary: intent.triggerCondition.description,
           actionSummary: intent.explanation,
+          targetCurrency: srcCur,
+          thresholdAmount: amt,
           allocations: intent.allocations,
+          executionCount: 1,
+          executedAmount: amt,
           lastExecution: 'Just now',
           nextExecution:
-              'On Incoming Transfer (\$${intent.triggerCondition.sourceAmount})',
+              'On Incoming Transfer (${amt.toFormattedString()})',
           createdAt: DateTime.now(),
         );
+
+        // Persist into repository
+        await widget.appState.missionRepo.createMission(newMission);
 
         setState(() {
           missions.insert(0, newMission);

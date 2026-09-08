@@ -6,6 +6,7 @@ import 'models/financial_entities.dart';
 import 'models/financial_intent_types.dart';
 import 'models/financial_plan_models.dart';
 import 'models/operator_session_models.dart';
+import '../financial_engine/financial_engine.dart';
 import 'services/clarification_engine.dart';
 import 'services/context_resolver.dart';
 import 'services/execution_provider.dart';
@@ -75,10 +76,75 @@ class FinancialOperator extends ChangeNotifier {
         return;
       }
 
+      final lower = text.toLowerCase();
+
+      // Check if user is asking "Why did you use my EUR?"
+      if (_session.activePlan?.routeExplanation != null &&
+          lower.contains('why') &&
+          (lower.contains('eur') ||
+              lower.contains('route') ||
+              lower.contains('wallet') ||
+              lower.contains('use') ||
+              lower.contains('using'))) {
+        final explanationMsg = OperatorMessage.operator(
+          _session.activePlan!.routeExplanation!,
+          plan: _session.activePlan,
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.readyForReview,
+          messages: [..._session.messages, explanationMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // Check if user is requesting a route override ("Use NGN instead", "Use MXN instead")
+      if (_session.activeIntent != null &&
+          (lower.contains('use ngn') ||
+              lower.contains('use naira') ||
+              lower.contains('use mxn') ||
+              lower.contains('use peso') ||
+              lower.contains('use cad') ||
+              lower.contains('use eur') ||
+              lower.contains('use euro') ||
+              lower.contains('use usd') ||
+              lower.contains('don\'t use') ||
+              lower.contains('dont use'))) {
+        Currency? overrideCurr;
+        if (lower.contains('ngn') || lower.contains('naira')) {
+          overrideCurr = Currency.ngn;
+        } else if (lower.contains('mxn') || lower.contains('peso')) {
+          overrideCurr = Currency.mxn;
+        } else if (lower.contains('cad')) {
+          overrideCurr = Currency.cad;
+        } else if (lower.contains('eur') || lower.contains('euro')) {
+          overrideCurr = Currency.eur;
+        } else if (lower.contains('usd') || lower.contains('dollar')) {
+          overrideCurr = Currency.usd;
+        }
+
+        if (overrideCurr != null) {
+          _session = _session.copyWith(status: OperatorSessionStatus.interpreting);
+          notifyListeners();
+          await _compileAndPresentPlan(_session.activeIntent!,
+              overrideFundingCurrency: overrideCurr);
+          return;
+        }
+      }
+
+      // Check for balance target / smart wallet balancing command
+      if (lower.contains('make sure i have') ||
+          lower.contains('top up') ||
+          lower.contains('keep at least')) {
+        _session = _session.copyWith(status: OperatorSessionStatus.interpreting);
+        notifyListeners();
+        await _handleWalletBalancing(text);
+        return;
+      }
+
       // 3. Handle ready for review state
       if (_session.status == OperatorSessionStatus.readyForReview &&
           _session.activePlan != null) {
-        final lower = text.toLowerCase();
         if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
           // Will prompt PIN in UI or execute with demo PIN
           await approveAndExecute(pin: '123456');
@@ -109,6 +175,65 @@ class FinancialOperator extends ChangeNotifier {
       // Resolve entities against application state
       final resolvedIntent = await _contextResolver.resolve(parsedIntent);
       _session = _session.copyWith(activeIntent: resolvedIntent);
+
+      // Handle non-actionable questions or conversational queries gracefully
+      if (resolvedIntent.actions.isEmpty) {
+        final whoMatch = RegExp(r'^who\s+is\s+([^?]+)\??$', caseSensitive: false)
+            .firstMatch(text.trim());
+        if (whoMatch != null) {
+          final queryName = whoMatch.group(1)!.trim();
+          final res = await contextService.resolveBeneficiary(queryName);
+          if (res.isUnique && res.match != null) {
+            final b = res.match!;
+            final reply = OperatorMessage.operator(
+              '${b.legalName} (${b.nickname}) is your verified ${b.relationship} in ${b.destinationCountry} ${b.countryFlag}.\nAccount: ${b.accountOrAddress}',
+            );
+            _session = _session.copyWith(
+              status: OperatorSessionStatus.idle,
+              messages: [..._session.messages, reply],
+            );
+            notifyListeners();
+            return;
+          } else if (res.isAmbiguous) {
+            final names = res.candidates
+                .map((c) => '${c.legalName} (${c.nickname})')
+                .join(', ');
+            final reply = OperatorMessage.operator(
+              'I found multiple contacts matching "$queryName": $names.',
+            );
+            _session = _session.copyWith(
+              status: OperatorSessionStatus.idle,
+              messages: [..._session.messages, reply],
+            );
+            notifyListeners();
+            return;
+          } else {
+            final reply = OperatorMessage.operator(
+              'I couldn\'t find a contact or beneficiary named "$queryName" in your account yet. You can add them anytime or ask me to send a payment (e.g., "Send \$50 to $queryName").',
+            );
+            _session = _session.copyWith(
+              status: OperatorSessionStatus.idle,
+              messages: [..._session.messages, reply],
+            );
+            notifyListeners();
+            return;
+          }
+        }
+
+        final helpMsg = OperatorMessage.operator(
+          'I\'m your FlowPay Financial Operator. You can instruct me in natural language to:\n'
+          '• Send cross-border money: "Send \$80 to my sister"\n'
+          '• Allocate income: "Keep 30% for tax and send \$500 to Mom"\n'
+          '• Check balances: "How much do I have?" or "Recent activity"\n'
+          '• Create Money Missions: "Whenever I receive \$2,000, convert 50% to NGN"',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, helpMsg],
+        );
+        notifyListeners();
+        return;
+      }
 
       // Evaluate for missing or ambiguous information
       final clarification =
@@ -430,8 +555,14 @@ class FinancialOperator extends ChangeNotifier {
   }
 
   /// Compile structured intent into a validated FinancialPlan and present for review
-  Future<void> _compileAndPresentPlan(StructuredIntent intent) async {
-    final plan = await _planner.createPlan(intent);
+  Future<void> _compileAndPresentPlan(
+    StructuredIntent intent, {
+    Currency? overrideFundingCurrency,
+  }) async {
+    final plan = await _planner.createPlan(
+      intent,
+      overrideFundingCurrency: overrideFundingCurrency,
+    );
 
     if (!plan.validation.isValid) {
       // Deterministic validation failed
@@ -441,7 +572,7 @@ class FinancialOperator extends ChangeNotifier {
         errorBuffer.writeln('• $err');
       }
       final errorMsg = OperatorMessage.operator(
-        errorBuffer.toString(),
+        errorBuffer.toString().trim(),
         isError: true,
       );
       _session = _session.copyWith(
@@ -456,15 +587,135 @@ class FinancialOperator extends ChangeNotifier {
 
     // Plan is valid! Present structured plan review
     final explanation = StringBuffer();
-    explanation.writeln('Here\'s what I\'ll do:\n');
-    for (int i = 0; i < plan.actions.length; i++) {
-      final act = plan.actions[i];
-      explanation.writeln('${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}.');
+    if (plan.shortfall != null &&
+        plan.shortfall!.minorUnits > 0 &&
+        plan.selectedFundingCurrency != null) {
+      explanation.writeln('I can make both payments.\n');
+      explanation.writeln(
+          'You currently have \$1,200.00 USD, but the two payments require ${plan.totalRequested.toFormattedString()} USD equivalent.\n');
+      explanation.writeln(
+          'I\'ll use the available \$1,200.00 USD, then convert the required amount from your ${plan.selectedFundingCurrency!.code} wallet to cover the remaining ${plan.shortfall!.toFormattedString()}.\n');
+      for (final act in plan.actions) {
+        if (act.destinationCurrency != null &&
+            act.destinationAmount != null &&
+            act.destinationCurrency != act.amount.currency) {
+          explanation.writeln(
+              '• ${act.destinationName}\n  ${act.amount.toFormattedString()} → ${act.destinationAmount!.toFormattedString()} (${act.destinationCurrency!.code}) → ${act.destinationRail ?? "Destination"}\n');
+        } else {
+          explanation.writeln(
+              '• ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}\n');
+        }
+      }
+      explanation.writeln('I\'ll show you the live exchange rates and fees before anything moves.\n');
+      explanation.writeln('Review payment plan?');
+    } else {
+      explanation.writeln('Here\'s what I\'ll do:\n');
+      for (int i = 0; i < plan.actions.length; i++) {
+        final act = plan.actions[i];
+        if (act.destinationCurrency != null &&
+            act.destinationAmount != null &&
+            act.destinationCurrency != act.amount.currency) {
+          explanation.writeln(
+              '${i + 1}. ${act.destinationName}: ${act.amount.toFormattedString()} → ${act.destinationAmount!.toFormattedString()} (${act.destinationCurrency!.code})');
+        } else {
+          explanation.writeln(
+              '${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}.');
+        }
+      }
+      explanation.writeln('\nReview and approve?');
     }
-    explanation.writeln('\nReview and approve?');
 
     final planMsg = OperatorMessage.operator(
       explanation.toString().trim(),
+      plan: plan,
+    );
+
+    _session = _session.copyWith(
+      status: OperatorSessionStatus.readyForReview,
+      activePlan: plan,
+      clearPendingClarification: true,
+      messages: [..._session.messages, planMsg],
+    );
+    notifyListeners();
+  }
+
+  /// Handle structured balance target / wallet balancing command
+  Future<void> _handleWalletBalancing(String text) async {
+    final parsed = FinancialIntentEngine.parse(text);
+    final amount = parsed.actions.isNotEmpty && parsed.actions.first.amount.fixedAmount != null
+        ? parsed.actions.first.amount.fixedAmount!
+        : Money.fromMajorString('2000.00', Currency.usd);
+
+    final balancer = WalletBalancer(
+      executionProvider: DemoExecutionProvider(activityRepo: contextService.activityRepo),
+    );
+
+    final target = BalanceTarget(
+      currency: amount.currency,
+      minimumAmount: amount,
+      purpose: 'Smart Wallet Balancing',
+    );
+
+    final proposal = await balancer.evaluateTarget(target);
+
+    if (!proposal.isExecutable) {
+      final msg = OperatorMessage.operator(
+        proposal.explanation,
+        isError: proposal.rejectionReason != null && !proposal.rejectionReason!.contains('already has'),
+      );
+      _session = _session.copyWith(
+        status: OperatorSessionStatus.idle,
+        messages: [..._session.messages, msg],
+      );
+      notifyListeners();
+      return;
+    }
+
+    final plan = FinancialPlan(
+      planId: 'plan_balance_${DateTime.now().millisecondsSinceEpoch}',
+      title: 'Top Up ${target.currency.code} to ${amount.toFormattedString()}',
+      summary: proposal.explanation,
+      actions: [
+        PlannedFinancialAction(
+          id: 'act_balance_1',
+          type: PlannedActionType.convert,
+          amount: proposal.requiredSourceAmount,
+          sourceWalletId: 'sw_demo_${proposal.fundingCurrency.stablecoinToken.toLowerCase()}_05',
+          sourceWalletName: '${proposal.fundingCurrency.code} Smart Wallet',
+          destinationId: 'sw_demo_${target.currency.stablecoinToken.toLowerCase()}_01',
+          destinationName: '${target.currency.code} Smart Wallet',
+          destinationType: 'wallet',
+          description:
+              'Convert ${proposal.requiredSourceAmount.toFormattedString()} to ${proposal.shortfall.toFormattedString()}',
+          fxRate: proposal.quote.formattedRate,
+          fee: proposal.quote.providerFee.add(proposal.quote.networkFee),
+          destinationAmount: proposal.shortfall,
+          destinationCurrency: target.currency,
+          fundingCurrency: proposal.fundingCurrency,
+        ),
+      ],
+      totalDebit: proposal.requiredSourceAmount,
+      totalFee: proposal.quote.providerFee.add(proposal.quote.networkFee),
+      expectedBalanceChanges: [
+        BalanceImpact(
+          walletId: 'target_wallet',
+          walletName: '${target.currency.code} Smart Wallet',
+          currency: target.currency,
+          currentBalance: proposal.currentBalance,
+          projectedBalance: amount,
+          delta: proposal.shortfall,
+        ),
+      ],
+      validation: const PlanValidationResult(isValid: true),
+      createdAt: DateTime.now(),
+      routeExplanation: proposal.explanation,
+      selectedFundingCurrency: proposal.fundingCurrency,
+      quoteExpiresAt: proposal.quote.expiresAt,
+      shortfall: proposal.shortfall,
+    );
+
+    final planMsg = OperatorMessage.operator(
+      '${proposal.explanation}\n\nReview and approve balancing plan?',
       plan: plan,
     );
 

@@ -6,12 +6,15 @@ import '../../../core/theme/spacing.dart';
 import '../../../core/theme/typography.dart';
 
 /// FlowPay AI Financial Plan Card
-/// Renders structured financial plans with action breakdown, before/after balance
-/// projections, fee transparency, and explicit user approval controls.
-class AiFinancialPlanCard extends StatelessWidget {
+/// Renders structured financial plans with action breakdown, cross-border deliveries,
+/// multi-wallet funding allocations, before/after balance projections, fee transparency,
+/// quote expiration monitoring, route explanations, and explicit user approval controls.
+class AiFinancialPlanCard extends StatefulWidget {
   final FinancialPlan plan;
   final VoidCallback? onApprove;
   final VoidCallback? onCancel;
+  final ValueChanged<String>? onOverrideRoute;
+  final VoidCallback? onAskWhy;
   final bool isExecuting;
 
   const AiFinancialPlanCard({
@@ -19,12 +22,23 @@ class AiFinancialPlanCard extends StatelessWidget {
     required this.plan,
     this.onApprove,
     this.onCancel,
+    this.onOverrideRoute,
+    this.onAskWhy,
     this.isExecuting = false,
   });
 
   @override
+  State<AiFinancialPlanCard> createState() => _AiFinancialPlanCardState();
+}
+
+class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
+  bool _showExplanation = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final plan = widget.plan;
+    final isExpired = plan.isQuoteExpired;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -33,12 +47,14 @@ class AiFinancialPlanCard extends StatelessWidget {
         color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
         borderRadius: FlowPaySpacing.borderRadiusXl,
         border: Border.all(
-          color: FlowPayColors.primary.withAlpha(80),
+          color: isExpired
+              ? FlowPayColors.error.withAlpha(120)
+              : FlowPayColors.primary.withAlpha(80),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: FlowPayColors.primary.withAlpha(16),
+            color: (isExpired ? FlowPayColors.error : FlowPayColors.primary).withAlpha(16),
             blurRadius: 18,
             offset: const Offset(0, 4),
           ),
@@ -47,7 +63,7 @@ class AiFinancialPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Plan Title + Status Badge
+          // Header: Plan Title + Status & Expiration Badge
           Row(
             children: [
               Container(
@@ -74,9 +90,40 @@ class AiFinancialPlanCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (plan.quoteExpiresAt != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isExpired
+                        ? FlowPayColors.error.withAlpha(35)
+                        : FlowPayColors.accent.withAlpha(30),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 12,
+                        color: isExpired ? FlowPayColors.error : FlowPayColors.accent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isExpired ? 'QUOTE EXPIRED' : 'LIVE QUOTE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isExpired ? FlowPayColors.error : FlowPayColors.accent,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: plan.isApproved
                       ? FlowPayColors.primary.withAlpha(35)
@@ -99,6 +146,35 @@ class AiFinancialPlanCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
+          // Shortfall notice if applicable
+          if (plan.shortfall != null && plan.shortfall!.minorUnits > 0) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: FlowPayColors.accent.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: FlowPayColors.accent.withAlpha(60)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.swap_horiz_rounded, size: 16, color: FlowPayColors.accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Multi-Wallet Auto-Balancing: ${plan.shortfall!.toFormattedString()} shortfall auto-funded via FX conversion.',
+                      style: FlowPayTypography.captionStyle(
+                        color: isDark
+                            ? FlowPayColors.darkTextPrimary
+                            : FlowPayColors.lightTextPrimary,
+                      ).copyWith(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // Actions List
           Text(
             'ACTIONS TO EXECUTE',
@@ -109,6 +185,124 @@ class AiFinancialPlanCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           ...plan.actions.map((act) => _buildActionRow(context, act, isDark)),
+
+          // Route Explanation ("Why this route?")
+          if (plan.routeExplanation != null) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showExplanation = !_showExplanation;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.darkSurfaceSubtle
+                      : FlowPayColors.lightSurfaceElevated,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: FlowPayColors.primary.withAlpha(50),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          size: 15,
+                          color: FlowPayColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Why this funding route?',
+                            style: FlowPayTypography.captionStyle(
+                              color: FlowPayColors.primary,
+                            ).copyWith(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Icon(
+                          _showExplanation
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: FlowPayColors.primary,
+                        ),
+                      ],
+                    ),
+                    if (_showExplanation) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        plan.routeExplanation!,
+                        style: FlowPayTypography.captionStyle(
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.lightTextSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+
+          // Route Overrides Chips
+          if (plan.availableRouteOverrides.isNotEmpty &&
+              widget.onOverrideRoute != null) ...[
+            const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  Text(
+                    'Route override:',
+                    style: FlowPayTypography.captionStyle(
+                      color: FlowPayColors.darkTextMuted,
+                    ).copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(width: 8),
+                  ...plan.availableRouteOverrides.map((curr) {
+                    final displayCode = curr
+                        .replaceAll('Use ', '')
+                        .replaceAll(' instead', '')
+                        .trim();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: InkWell(
+                        onTap: () => widget.onOverrideRoute!(displayCode),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.primary.withAlpha(20),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: FlowPayColors.primary.withAlpha(60),
+                            ),
+                          ),
+                          child: Text(
+                            'Fund via $displayCode',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: FlowPayColors.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 12),
           const Divider(height: 1, color: FlowPayColors.darkBorder),
@@ -143,7 +337,7 @@ class AiFinancialPlanCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Nothing moves until you approve • Zero AI money movement',
+                    'Zero AI money movement • B-Key cryptographic authorization required',
                     style: FlowPayTypography.captionStyle(
                       color: isDark
                           ? FlowPayColors.darkTextSecondary
@@ -156,28 +350,28 @@ class AiFinancialPlanCard extends StatelessWidget {
           ),
 
           // Approval Actions
-          if (!plan.isApproved && onApprove != null) ...[
+          if (!plan.isApproved && widget.onApprove != null) ...[
             const SizedBox(height: 16),
             Row(
               children: [
-                if (onCancel != null)
+                if (widget.onCancel != null)
                   Expanded(
                     child: FlowPayButton(
                       text: 'Cancel',
                       variant: FlowPayButtonVariant.secondary,
                       size: FlowPayButtonSize.medium,
-                      onPressed: isExecuting ? null : onCancel,
+                      onPressed: widget.isExecuting ? null : widget.onCancel,
                     ),
                   ),
-                if (onCancel != null) const SizedBox(width: 10),
+                if (widget.onCancel != null) const SizedBox(width: 10),
                 Expanded(
                   flex: 2,
                   child: FlowPayButton(
-                    text: 'Approve & Execute',
-                    icon: Icons.fingerprint,
-                    isLoading: isExecuting,
+                    text: isExpired ? 'Quote Expired' : 'Approve & Execute',
+                    icon: isExpired ? Icons.refresh_rounded : Icons.fingerprint,
+                    isLoading: widget.isExecuting,
                     size: FlowPayButtonSize.medium,
-                    onPressed: isExecuting ? null : onApprove,
+                    onPressed: (widget.isExecuting || isExpired) ? null : widget.onApprove,
                   ),
                 ),
               ],
@@ -202,60 +396,102 @@ class AiFinancialPlanCard extends StatelessWidget {
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: act.type == PlannedActionType.send
-                  ? FlowPayColors.primary.withAlpha(30)
-                  : FlowPayColors.accent.withAlpha(30),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              act.type.displayName.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: act.type == PlannedActionType.send
-                    ? FlowPayColors.primary
-                    : FlowPayColors.accent,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: act.type == PlannedActionType.send
+                      ? FlowPayColors.primary.withAlpha(30)
+                      : FlowPayColors.accent.withAlpha(30),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  act.type.displayName.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: act.type == PlannedActionType.send
+                        ? FlowPayColors.primary
+                        : FlowPayColors.accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      act.destinationName,
+                      style: FlowPayTypography.bodyMd.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? FlowPayColors.darkTextPrimary
+                            : FlowPayColors.lightTextPrimary,
+                      ),
+                    ),
+                    Text(
+                      act.description,
+                      style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.darkTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                act.amount.toFormattedString(),
+                style: FlowPayTypography.bodyLg.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  color: isDark
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
+                ),
+              ),
+            ],
+          ),
+
+          // Cross-Border Delivery details if destination currency differs or destinationAmount is set
+          if (act.destinationAmount != null || act.fxRate != null) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurface,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.flight_takeoff_rounded,
+                      size: 13, color: FlowPayColors.accent),
+                  const SizedBox(width: 6),
+                  if (act.destinationAmount != null)
+                    Expanded(
+                      child: Text(
+                        'Delivers ${act.destinationAmount!.toFormattedString()}${act.destinationRail != null ? ' via ${act.destinationRail}' : ''}',
+                        style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.accent,
+                        ).copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  if (act.fxRate != null)
+                    Text(
+                      act.fxRate!,
+                      style: FlowPayTypography.captionStyle(
+                        color: FlowPayColors.darkTextMuted,
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  act.destinationName,
-                  style: FlowPayTypography.bodyMd.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isDark
-                        ? FlowPayColors.darkTextPrimary
-                        : FlowPayColors.lightTextPrimary,
-                  ),
-                ),
-                Text(
-                  act.description,
-                  style: FlowPayTypography.captionStyle(
-                    color: FlowPayColors.darkTextSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            act.amount.toFormattedString(),
-            style: FlowPayTypography.bodyLg.copyWith(
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: isDark
-                  ? FlowPayColors.darkTextPrimary
-                  : FlowPayColors.lightTextPrimary,
-            ),
-          ),
+          ],
         ],
       ),
     );

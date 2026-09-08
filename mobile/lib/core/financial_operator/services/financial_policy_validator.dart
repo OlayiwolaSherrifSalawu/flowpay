@@ -22,8 +22,8 @@ class FinancialPolicyValidator {
     FinancialPlan plan,
     FinancialContextService contextService,
   ) async {
-    final errors = <String>[];
-    final warnings = <String>[];
+    final errors = <String>[...plan.validation.errors];
+    final warnings = <String>[...plan.validation.warnings];
 
     // 1. Actions non-empty check
     if (plan.actions.isEmpty) {
@@ -31,7 +31,12 @@ class FinancialPolicyValidator {
       return PlanValidationResult.invalid(errors);
     }
 
-    // 2. Individual action checks
+    // 2. Quote expiration check
+    if (plan.isQuoteExpired) {
+      errors.add('Payment quote has expired. Please refresh to get current rates.');
+    }
+
+    // 3. Individual action checks
     for (final act in plan.actions) {
       // Amount must be strictly greater than zero
       if (act.amount.minorUnits <= 0) {
@@ -65,18 +70,25 @@ class FinancialPolicyValidator {
       }
     }
 
-    // 3. Balance sufficiency check
-    final usdWallet =
-        await contextService.getWalletForCurrency(Currency.usd);
-    final availableBalance =
-        usdWallet?.balance ?? Money.zero(Currency.usd);
+    // 4. Single-wallet balance sufficiency check (only if multi-wallet funding is NOT active)
+    final isMultiWalletFunded = plan.selectedFundingCurrency != null &&
+        plan.selectedFundingCurrency != Currency.usd &&
+        plan.shortfall != null &&
+        plan.shortfall!.minorUnits > 0;
 
-    final totalRequired = plan.totalDebit.minorUnits + plan.totalFee.minorUnits;
+    if (!isMultiWalletFunded && plan.validation.errors.isEmpty) {
+      final usdWallet =
+          await contextService.getWalletForCurrency(Currency.usd);
+      final availableBalance =
+          usdWallet?.balance ?? Money.zero(Currency.usd);
 
-    if (totalRequired > availableBalance.minorUnits) {
-      errors.add(
-        'You don\'t have enough ${Currency.usd.code} to complete this plan. Available: ${availableBalance.toFormattedString()}, Requested: ${plan.totalDebit.toFormattedString()} (plus ${plan.totalFee.toFormattedString()} network fee).',
-      );
+      final totalRequired = plan.totalDebit.minorUnits + plan.totalFee.minorUnits;
+
+      if (totalRequired > availableBalance.minorUnits) {
+        errors.add(
+          'You don\'t have enough ${Currency.usd.code} to complete this plan. Available: ${availableBalance.toFormattedString()}, Requested: ${plan.totalDebit.toFormattedString()} (plus ${plan.totalFee.toFormattedString()} network fee).',
+        );
+      }
     }
 
     if (errors.isNotEmpty) {

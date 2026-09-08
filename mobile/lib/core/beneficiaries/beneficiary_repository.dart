@@ -57,11 +57,14 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       id: 'ben_mom_01',
       nickname: 'Mom',
       legalName: 'Mary Fashola',
+      aliases: const ['Mom', 'Mother', 'Mum', 'Mama'],
       relationship: 'Mother',
       destinationCountry: 'Nigeria',
       countryFlag: '🇳🇬',
+      destinationType: 'bank_account',
       currency: Currency.ngn,
-      accountOrAddress: '0123456789 (GTBank)',
+      preferredFundingCurrency: Currency.usd,
+      accountOrAddress: '0123456789 (GTBank Nigerian bank account)',
       isVerified: true,
       paymentCount: 14,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 4)),
@@ -69,12 +72,15 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
     Beneficiary(
       id: 'ben_designer_02',
       nickname: 'Designer',
-      legalName: 'Bunch Dillon',
+      legalName: 'David Mensah',
+      aliases: const ['Designer', 'David', 'Lead Designer'],
       relationship: 'Lead Designer',
-      destinationCountry: 'Nigeria',
-      countryFlag: '🇳🇬',
-      currency: Currency.ngn,
-      accountOrAddress: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+      destinationCountry: 'Ghana',
+      countryFlag: '🇬🇭',
+      destinationType: 'mobile_money',
+      currency: Currency.ghs,
+      preferredFundingCurrency: Currency.usd,
+      accountOrAddress: '0241234567 (MTN MoMo / Ecobank Ghana)',
       isVerified: true,
       paymentCount: 6,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 12)),
@@ -83,11 +89,14 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       id: 'ben_contractor_03',
       nickname: 'Contractor MX',
       legalName: 'Samson Jabo',
+      aliases: const ['Contractor', 'Samson', 'Contractor MX'],
       relationship: 'Engineering Contractor',
       destinationCountry: 'Mexico',
       countryFlag: '🇲🇽',
+      destinationType: 'bank_account',
       currency: Currency.mxn,
-      accountOrAddress: '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
+      preferredFundingCurrency: Currency.usd,
+      accountOrAddress: '0x7e81C44F35dB56E522432d6771F52994B6b021ad (CLABE SPEI)',
       isVerified: true,
       paymentCount: 4,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 18)),
@@ -96,14 +105,33 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       id: 'ben_sarah_04',
       nickname: 'Sarah',
       legalName: 'Sarah Jenkins',
+      aliases: const ['Sarah', 'Sister'],
       relationship: 'Sister',
       destinationCountry: 'United States',
       countryFlag: '🇺🇸',
+      destinationType: 'evm_wallet',
       currency: Currency.usd,
+      preferredFundingCurrency: Currency.usd,
       accountOrAddress: 'sarah.j@flowpay.me',
       isVerified: true,
       paymentCount: 8,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    Beneficiary(
+      id: 'ben_brother_05',
+      nickname: 'Brother',
+      legalName: 'Tunde Fashola',
+      aliases: const ['Brother', 'Bro', 'Tunde'],
+      relationship: 'Brother',
+      destinationCountry: 'Nigeria',
+      countryFlag: '🇳🇬',
+      destinationType: 'bank_account',
+      currency: Currency.ngn,
+      preferredFundingCurrency: Currency.usd,
+      accountOrAddress: '0234567891 (Access Bank Nigeria)',
+      isVerified: true,
+      paymentCount: 5,
+      lastPaymentDate: DateTime.now().subtract(const Duration(days: 6)),
     ),
   ];
 
@@ -116,24 +144,35 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
   @override
   Future<BeneficiaryResolutionResult> resolveAlias(String query) async {
     await Future.delayed(const Duration(milliseconds: 80));
-    final q = query.trim().toLowerCase();
+    var q = query.trim().toLowerCase();
+    q = q.replaceFirst(RegExp(r'^(?:my\s+|our\s+)'), '').trim();
     if (q.isEmpty) {
       return BeneficiaryResolutionResult.notFound(query);
     }
 
-    // 1. Exact match on nickname or legalName
-    final exact = _beneficiaries.where((b) =>
-        b.nickname.toLowerCase() == q ||
-        b.legalName.toLowerCase() == q).toList();
+    // 1. Exact match on nickname, legalName, or explicit aliases array
+    final exact = _beneficiaries.where((b) {
+      if (b.nickname.toLowerCase() == q || b.legalName.toLowerCase() == q) {
+        return true;
+      }
+      return b.aliases.any((a) => a.toLowerCase() == q);
+    }).toList();
+
     if (exact.length == 1) {
       return BeneficiaryResolutionResult.unique(exact.first, query);
+    } else if (exact.length > 1) {
+      return BeneficiaryResolutionResult.ambiguous(exact, query);
     }
 
-    // 2. Contains match
-    final matches = _beneficiaries.where((b) =>
-        b.nickname.toLowerCase().contains(q) ||
-        b.legalName.toLowerCase().contains(q) ||
-        b.relationship.toLowerCase().contains(q)).toList();
+    // 2. Contains match on nickname, legalName, aliases, or relationship
+    final matches = _beneficiaries.where((b) {
+      if (b.nickname.toLowerCase().contains(q) ||
+          b.legalName.toLowerCase().contains(q) ||
+          b.relationship.toLowerCase().contains(q)) {
+        return true;
+      }
+      return b.aliases.any((a) => a.toLowerCase().contains(q));
+    }).toList();
 
     if (matches.length == 1) {
       return BeneficiaryResolutionResult.unique(matches.first, query);

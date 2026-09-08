@@ -115,14 +115,15 @@ class ClientMissionInterpreter {
         lower.contains('transfer')) {
       String recipient = 'Recipient';
       final toMatch = RegExp(
-        r'(?:to|for)\s+([A-Za-z0-9._%+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?|[A-Za-z]+(?:\s+[A-Za-z]+)?)',
+        r'(?:to|for)\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)',
         caseSensitive: false,
       ).firstMatch(trimmed);
       if (toMatch != null) {
         final raw = toMatch
             .group(1)!
             .trim()
-            .replaceAll(RegExp(r'^(?:my\s+)', caseSensitive: false), '');
+            .replaceAll(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+            .trim();
         if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
             .contains(raw.toLowerCase())) {
           recipient = raw;

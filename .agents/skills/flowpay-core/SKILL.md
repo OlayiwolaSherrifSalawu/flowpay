@@ -444,10 +444,41 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Formatted `TimeoutException` with informative standby messaging.
       * **BMONI Embedded SDK Parity**:
         * Added `signingFailed = signProcess` alias to `BmoniSignerErrorCode` so error propagation tests compile cleanly.
-    * **Verification Status**:
-      * **119/119 Flutter unit, widget, and flow tests passing (100%)**.
-      * **77/77 backend tests passing across 6 test suites (100%)**.
-      * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
+    * **FlowPay Smart Payment Engine — Multi-Wallet Intelligence, FX Routing & Auto-Balancing (`lib/core/financial_engine/`)**:
+      * **Core Philosophy**: FlowPay empowers users to think *"What do I want to accomplish?"* rather than *"Which wallet should I use?"*. Solves multi-currency debits, FX conversions, local rails, and fee routing with zero floating-point drift and zero over-conversion.
+      * **Hero Multi-Payment Batch Execution**: Verified end-to-end execution of the hero prompt *"Send $500 USD to Mom and pay my designer $2,000 USD"*. With $1,200 USD, €2,000 EUR, and ₦800,000 NGN:
+        * Detects $2,500 total requested against $1,200 available USD -> calculates exact $1,300 shortfall.
+        * Direct USD covers $1,200 (Mom $500 + Designer $700).
+        * Converts exact required EUR (€1,203.71 @ 1.08 EUR/USD) to fund the $1,300 shortfall with zero over-conversion.
+        * Mom receives ₦775,000 NGN in her Nigerian bank account; Designer receives GH₵31,000 GHS via Ghanaian mobile money.
+        * Presents structured review plan before requiring on-device B-Key cryptographic PIN authorization.
+      * **Protected Funds Safety**: Enforces `isProtected` and `protectedAmount` (e.g. $1,000 Tax Reserve) strictly excluded from spendable balance, ensuring tax reserves are never touched for ordinary payments.
+      * **Quote Expiration & Gating**: Quotes include strict TTL timers (`expiresAt`); execution is deterministically blocked if a quote expires prior to PIN entry (`QuoteExpiredException`).
+      * **Decoupled Execution Architecture (`ExecutionProvider`)**:
+        * `DemoExecutionProvider`: Deterministic FX rates (USD/NGN 1550, USD/GHS 15.50, EUR/USD 1.08, USD/MXN 17.20), quote expiration, atomic funds reservations, and offline simulation.
+        * `BmoniExecutionProvider`: Production BMONI smart wallet & rails provider strictly enforcing: *Never fabricate a success response on a failed BMONI call*.
+      * **Conversational Intelligence & Explanations**:
+        * Responds to *"Why did you use my EUR?"* with transparent justification (direct USD consumed first, EUR was lowest-cost route for the $1,300 shortfall).
+        * Responds to route overrides (*"Use NGN instead"*, *"Use MXN instead"*) by dynamically recalculating the funding plan.
+        * Responds to natural language balance targets (*"Make sure I have $2,000 in USD"*) via `WalletBalancer` with actionable top-up proposals.
+      * **Elevated Design System UI (`AiFinancialPlanCard` & `AiOperatorModal`)**:
+        * Cross-border delivery badges displaying recipient local amount (₦775,000 NGN, GH₵31,000 GHS) and rail.
+        * Multi-wallet auto-balancing breakdown and quote expiration badge.
+        * Expandable *"Why this route?"* explanation card.
+        * 1-tap route override chips (*"Fund via NGN"*, *"Fund via MXN"*). Wrapped in horizontal `SingleChildScrollView` to prevent screen overflows.
+        * Hero prompt suggestion pills in `AiOperatorModal`.
+      * **Possessive Entity Resolution & Who-Is Conversational Intelligence**:
+        * Fixed NLP entity parsing in `FinancialIntentEngine` and `ClientMissionInterpreter`: strictly consumes possessive pronouns (`my`, `our`) prior to recipient capture and requires `@` for email branches, resolving prompts like *"send 80 usd to my sister"* directly to Sarah Jenkins (Sister) without ambiguous *"Who is my?"* prompts.
+        * Added Tunde Fashola (Brother) into `DemoBeneficiaryRepository` with `relationship: 'Brother'` and aliases `['Brother', 'Bro', 'Tunde']`.
+        * Added natural conversational and who-is query handling in `FinancialOperator`: queries like *"who is HikiHiki"* and *"who is Sarah"* return helpful contact details or friendly guidance rather than triggering plan validation failures (*"Plan contains zero actionable operations"*).
+      * **Real Dynamic Money Missions & BMONI Protocol Integrity**:
+        * Replaced hardcoded progress ($900 / $2000, 45%) in `MissionCard` with dynamic calculations derived from `thresholdAmount`, `executedAmount`, `executionCount`, and actual allocation rules.
+        * Money mission execution via `⚡ Run Now` accurately debits source wallet balance, updates execution counters, records entries in `ActivityRepository`, and renders updated dynamic progress.
+        * Enforced AGENTS.md rule in `BmoniMissionRepository` preventing synthesized success responses on failed BMONI calls.
+      * **Verification Status**:
+        * **136/136 Flutter unit, widget, and flow tests passing (100% green)**.
+        * **77/77 backend tests passing across 6 test suites (100% green)**.
+        * **0 Dart analyzer warnings or errors (`flutter analyze lib test`)**.
 
 ---
 
