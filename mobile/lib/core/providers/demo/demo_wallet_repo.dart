@@ -358,6 +358,22 @@ class DemoWalletRepository implements WalletRepository {
     return false;
   }
 
+  void setWalletBalance(Currency currency, Money balance) {
+    final idx = _wallets.indexWhere((w) => w.currency == currency);
+    if (idx != -1) {
+      _wallets[idx] = _wallets[idx].copyWith(balance: balance);
+    }
+  }
+
+  void addWalletAccount(WalletAccount account) {
+    final idx = _wallets.indexWhere((w) => w.currency == account.currency);
+    if (idx != -1) {
+      _wallets[idx] = account;
+    } else {
+      _wallets.add(account);
+    }
+  }
+
   void reset() {
     _wallets = List.from(DemoData.wallets);
   }

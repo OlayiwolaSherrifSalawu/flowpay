@@ -327,6 +327,71 @@ void main() {
       expect(
           op.activePlan!.actions.first.destinationName, contains('Ade Fashola'));
     });
+
+    test('15. Possessive Recipient: "send 80 usd to my sister" resolves directly to Sarah Jenkins',
+        () async {
+      final parsed =
+          FinancialIntentEngine.parse('send 80 usd to my sister');
+      expect(parsed.actions.length, equals(1));
+      expect(parsed.actions.first.person?.rawInput, equals('sister'));
+
+      final resolver = ContextResolver(contextService: contextService);
+      final resolved = await resolver.resolve(parsed);
+      final person = resolved.actions.first.person!;
+
+      expect(person.knowledgeState, equals(EntityKnowledgeState.known));
+      expect(person.resolvedBeneficiary?.legalName, equals('Sarah Jenkins'));
+      expect(person.resolvedBeneficiary?.nickname, equals('Sarah'));
+      expect(person.resolvedBeneficiary?.relationship, equals('Sister'));
+    });
+
+    test('16. Possessive Recipient: "send 200 usd to my brother" resolves directly to Tunde Fashola',
+        () async {
+      final parsed =
+          FinancialIntentEngine.parse('send 200 usd to my brother');
+      expect(parsed.actions.length, equals(1));
+      expect(parsed.actions.first.person?.rawInput, equals('brother'));
+
+      final resolver = ContextResolver(contextService: contextService);
+      final resolved = await resolver.resolve(parsed);
+      final person = resolved.actions.first.person!;
+
+      expect(person.knowledgeState, equals(EntityKnowledgeState.known));
+      expect(person.resolvedBeneficiary?.legalName, equals('Tunde Fashola'));
+      expect(person.resolvedBeneficiary?.relationship, equals('Brother'));
+    });
+
+    test('17. Informational Query: "who is HikiHiki" returns friendly contact not found message without plan error',
+        () async {
+      final op = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      await op.processInput('who is HikiHiki');
+
+      expect(op.status, equals(OperatorSessionStatus.idle));
+      expect(op.activePlan, isNull);
+      expect(op.messages.last.text,
+          contains('couldn\'t find a contact or beneficiary named "HikiHiki"'));
+      expect(op.messages.last.isError, isFalse);
+    });
+
+    test('18. Informational Query: "who is Sarah" returns Sarah details without plan error',
+        () async {
+      final op = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      await op.processInput('who is Sarah');
+
+      expect(op.status, equals(OperatorSessionStatus.idle));
+      expect(op.activePlan, isNull);
+      expect(op.messages.last.text, contains('Sarah Jenkins'));
+      expect(op.messages.last.text, contains('Sister'));
+      expect(op.messages.last.isError, isFalse);
+    });
   });
 }
 

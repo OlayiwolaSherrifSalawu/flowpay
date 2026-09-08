@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/design_system/buttons.dart';
+import '../../../core/missions/mission_intent.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/repositories/mission_repository.dart';
 import '../../../core/theme/colors.dart';
@@ -34,16 +35,58 @@ class MissionCard extends StatelessWidget {
     final primaryAllocation =
         allocations.isNotEmpty ? allocations.first : null;
     final allocPercent =
-        (mission.percentage ?? (primaryAllocation?.percentage ?? 20)).toInt();
+        (mission.percentage ?? (primaryAllocation?.percentage ?? 100)).toInt();
     final sourceCur = (mission.targetCurrency ?? Currency.usd).code;
-    final destTarget =
-        primaryAllocation?.destinationWalletTag ?? 'Smart Vault';
 
-    // Mock progress calculation based on execution count for real visual feedback
-    const executionCount = 3;
-    final currentAmount = (executionCount * 300.0).clamp(0.0, 2000.0);
-    const targetAmount = 2000.0;
-    final progressFraction = (currentAmount / targetAmount).clamp(0.0, 1.0);
+    // Dynamic destination and allocation display
+    String destTarget = 'Smart Vault';
+    if (primaryAllocation != null &&
+        primaryAllocation.destinationWalletTag.isNotEmpty) {
+      destTarget = primaryAllocation.destinationWalletTag;
+    } else if (mission.allocations.length > 1) {
+      destTarget = 'Multi-Vault';
+    }
+
+    String allocLabel = '$allocPercent% share';
+    if (mission.allocations.length > 1) {
+      allocLabel = '${mission.allocations.length} Allocations';
+    } else if (mission.ruleType == MissionRuleType.autoSweep) {
+      allocLabel = '$allocPercent% sweep';
+    } else if (primaryAllocation?.actionType == MissionActionType.transfer) {
+      allocLabel = '100% transfer';
+    }
+
+    // Dynamic target & execution amount calculation
+    double targetAmount = 2000.0;
+    if (mission.thresholdAmount != null) {
+      targetAmount = mission.thresholdAmount!.minorUnits / 100.0;
+    } else if (allocations.isNotEmpty) {
+      double sum = 0;
+      for (final a in allocations) {
+        sum += double.tryParse(a.sourceAmountFormatted) ??
+            ((int.tryParse(a.sourceAmountMinor) ?? 0) / 100.0);
+      }
+      if (sum > 0) targetAmount = sum;
+    }
+
+    double currentAmount = 0.0;
+    if (mission.executedAmount != null) {
+      currentAmount = mission.executedAmount!.minorUnits / 100.0;
+    } else if (mission.executionCount > 0) {
+      currentAmount =
+          (mission.executionCount * targetAmount).clamp(0.0, targetAmount);
+    } else if (mission.stats.contains('\$')) {
+      final statMatch = RegExp(r'\$([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{2})?)')
+          .firstMatch(mission.stats);
+      if (statMatch != null) {
+        currentAmount =
+            double.tryParse(statMatch.group(1)!.replaceAll(',', '')) ?? 0.0;
+      }
+    }
+
+    final progressFraction = targetAmount > 0
+        ? (currentAmount / targetAmount).clamp(0.0, 1.0)
+        : 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -179,9 +222,13 @@ class MissionCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${(progressFraction * 100).toInt()}% complete',
+                    currentAmount == 0
+                        ? 'Ready to run'
+                        : '${(progressFraction * 100).toInt()}% complete',
                     style: FlowPayTypography.captionStyle(
-                      color: FlowPayColors.darkTextSecondary,
+                      color: mission.isActive
+                          ? FlowPayColors.primaryLight
+                          : FlowPayColors.darkTextSecondary,
                     ),
                   ),
                 ],
@@ -221,11 +268,11 @@ class MissionCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildRuleItem('Source', 'Incoming $sourceCur'),
+                _buildRuleItem('Source', 'Incoming $sourceCur', isDark),
                 const Text('•', style: TextStyle(color: FlowPayColors.hairline)),
-                _buildRuleItem('Allocation', '$allocPercent% share'),
+                _buildRuleItem('Allocation', allocLabel, isDark),
                 const Text('•', style: TextStyle(color: FlowPayColors.hairline)),
-                _buildRuleItem('Destination', destTarget),
+                _buildRuleItem('Destination', destTarget, isDark),
               ],
             ),
           ),
@@ -263,7 +310,7 @@ class MissionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildRuleItem(String label, String value) {
+  Widget _buildRuleItem(String label, String value, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,10 +326,12 @@ class MissionCard extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: FlowPayColors.ink,
+            color: isDark
+                ? FlowPayColors.darkTextPrimary
+                : FlowPayColors.lightTextPrimary,
           ),
         ),
       ],
