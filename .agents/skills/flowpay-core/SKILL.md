@@ -60,10 +60,13 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
-  * **Central API Configuration (`lib/core/config/api_config.dart`)**: Routes all mobile authentication, KYC, capabilities, and proxy calls directly to live Render backend (`https://flowpay-k2wn.onrender.com`) by default for both debug and release mobile builds, with `--dart-define=FLOWPAY_API_URL` override support.
-  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 116/116 tests passing, and 0 analyzer lints.
+  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 132/132 tests passing, 0 analyzer lints, and streamed/installed via ADB directly to physical Android hardware.
+  * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome).
+  * **Operational Workflows**: Added standardized build and verification workflows in `.agents/workflows/`:
+    * `/build-apk`: Automated test verification and compilation for Android release APK targeting live backend.
+    * `/build-web`: Automated compilation, multi-device local network hosting, and iOS/Android PWA install instructions.
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
-  * **BMONI Embedded SDK facade** (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`) — wraps `bmoni_embedded_sdk: 0.0.2` with test-env fallback, salted PBKDF2 PIN digest, and 200ms native-platform timeout guards.
+  * **BMONI Embedded SDK facade** (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`) — wraps `bmoni_embedded_sdk: 0.0.2` with test-env fallback, web guards, salted PBKDF2 PIN digest, and 200ms native-platform timeout guards.
   * Provider abstraction interfaces: `WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`.
   * Deterministic `DemoProvider` implementations loaded with BMONI sandbox personas (Bunch Dillon BVN 99999999999, Samson Jabo BVN 22222222222).
   * Live `BMONIProvider` implementations communicating via backend proxy.
