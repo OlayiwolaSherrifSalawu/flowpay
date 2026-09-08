@@ -86,6 +86,11 @@ class FinancialContextService {
     return await beneficiaryRepo.resolveAlias(query);
   }
 
+  /// Add a new beneficiary
+  Future<Beneficiary> addBeneficiary(Beneficiary beneficiary) async {
+    return await beneficiaryRepo.addBeneficiary(beneficiary);
+  }
+
   /// Retrieve existing reserves
   Future<List<ReserveAccount>> getReserves() async {
     return List.unmodifiable(_reserves);

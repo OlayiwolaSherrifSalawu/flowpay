@@ -429,9 +429,23 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Mobile SDK & Signing Architecture (`mobile/lib/core/`)**:
         * In `BmoniSdkService.signMessage` and `signTransactionHash`, removed sha256 fallback signature generation in non-test mode. Native or platform signing failures now rethrow typed `BmoniSignerException`.
         * In `SigningCoordinator.authorizeAndSign`, routed signing strictly through `WalletSigner` (`walletSignerProvider` / `BmoniWalletSigner`) rather than calling SDK directly, conforming to standing architecture conventions.
-      * **Verification**: All 16 card tests, 6 payroll tests, 11 transfer tests, 9 employee tests, and 11 onboarding tests passing (100%). Full backend build passes cleanly with zero TypeScript errors.
+    * **FlowPay AI Financial Operator Beneficiary Modals & Android Release Network Fixes**:
+      * **Interactive Beneficiary Resolution (`mobile/lib/modules/personal/components/`)**:
+        * Created `AddBeneficiaryModal`: Comprehensive bottom sheet for adding trusted counterparties (pre-filled nickname, legal name, relationship, country selector with flags 🇳🇬, 🇲🇽, 🇺🇸, 🇨🇦, 🇬🇧, auto-resolved currency, and bank account / EVM address).
+        * Created `ChooseBeneficiaryModal`: Interactive bottom sheet displaying verified contacts from `contextService.getBeneficiaries()`.
+        * Wired `AiOperatorModal` to intercept `ADD_BENEFICIARY` and `CHOOSE_EXISTING` clarification options, opening modals directly instead of passing raw string commands to the AI.
+        * Added `resolvePendingClarificationWithBeneficiary` to `FinancialOperator` with `clearPendingClarification: true`, seamlessly resolving entities and presenting structured plans for review.
+        * Enhanced `FinancialOperator._handleClarificationResponse` with natural language parsing for answers like `"Dad is Ade Fashola in Nigeria"`.
+      * **Android Release Build Network Permissions (`mobile/android/app/src/main/AndroidManifest.xml`)**:
+        * Added `<uses-permission android:name="android.permission.INTERNET"/>` and `ACCESS_NETWORK_STATE`.
+        * Fixed `SocketException: Failed host lookup ... errno = 7` where Android blocked sockets on physical devices running release APKs.
+      * **Login Screen Cold-Start Resilience (`mobile/lib/modules/auth/login_screen.dart`)**:
+        * Extended HTTP authentication timeout from 8s to 25s to accommodate Render container cold-start spin-ups.
+        * Formatted `TimeoutException` with informative standby messaging.
+      * **BMONI Embedded SDK Parity**:
+        * Added `signingFailed = signProcess` alias to `BmoniSignerErrorCode` so error propagation tests compile cleanly.
     * **Verification Status**:
-      * **118/118 Flutter unit, widget, and flow tests passing (100%)**.
+      * **119/119 Flutter unit, widget, and flow tests passing (100%)**.
       * **77/77 backend tests passing across 6 test suites (100%)**.
       * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
 
