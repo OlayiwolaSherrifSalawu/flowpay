@@ -241,7 +241,7 @@ class BmoniWalletRepository implements WalletRepository {
   // 4. Legacy Convenience Methods
   // =========================================================
 
-  static final List<WalletAccount> _fallbackWallets = [
+  static final List<WalletAccount> _activeWallets = [
     WalletAccount(
       id: 'sw_usdb_live_01',
       address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
@@ -281,7 +281,7 @@ class BmoniWalletRepository implements WalletRepository {
     try {
       final res = await apiClient.get('/api/wallets');
       if (res is List && res.isNotEmpty) {
-        return res.map((w) {
+        final list = res.map((w) {
           final cur = Currency.fromToken(w['currency'] ?? 'USDB');
           return WalletAccount(
             id: w['id'] ?? '',
@@ -293,11 +293,22 @@ class BmoniWalletRepository implements WalletRepository {
             status: w['status'] ?? 'active',
           );
         }).toList();
+
+        // Update local _activeWallets with backend values
+        for (final w in list) {
+          final idx = _activeWallets.indexWhere((a) => a.id == w.id || a.currency == w.currency);
+          if (idx != -1) {
+            _activeWallets[idx] = w;
+          } else {
+            _activeWallets.add(w);
+          }
+        }
+        return list;
       }
     } catch (_) {
       // Graceful offline fallback
     }
-    return _fallbackWallets;
+    return _activeWallets;
   }
 
   @override
@@ -314,7 +325,7 @@ class BmoniWalletRepository implements WalletRepository {
     } catch (_) {
       // Graceful offline fallback
     }
-    return _fallbackWallets.map((w) => w.balance).toList();
+    return _activeWallets.map((w) => w.balance).toList();
   }
 
   @override
@@ -341,12 +352,46 @@ class BmoniWalletRepository implements WalletRepository {
   @override
   Future<bool> debitWallet(
       {required String walletId, required Money amount}) async {
+    final idx = _activeWallets.indexWhere(
+        (w) => w.id == walletId || w.currency == amount.currency);
+    if (idx != -1) {
+      final current = _activeWallets[idx];
+      final newMinor = (current.balance.minorUnits - amount.minorUnits).clamp(0, 1 << 50);
+      _activeWallets[idx] = current.copyWith(
+        balance: Money.fromMinor(newMinor, current.currency),
+      );
+    }
+
+    try {
+      await apiClient.post('/api/wallets/$walletId/debit', body: {
+        'amount': amount.toMajorString(),
+        'currency': amount.currency.code,
+      });
+    } catch (_) {}
+
     return true;
   }
 
   @override
   Future<bool> creditWallet(
       {required String walletId, required Money amount}) async {
+    final idx = _activeWallets.indexWhere(
+        (w) => w.id == walletId || w.currency == amount.currency);
+    if (idx != -1) {
+      final current = _activeWallets[idx];
+      final newMinor = current.balance.minorUnits + amount.minorUnits;
+      _activeWallets[idx] = current.copyWith(
+        balance: Money.fromMinor(newMinor, current.currency),
+      );
+    }
+
+    try {
+      await apiClient.post('/api/wallets/$walletId/credit', body: {
+        'amount': amount.toMajorString(),
+        'currency': amount.currency.code,
+      });
+    } catch (_) {}
+
     return true;
   }
 }

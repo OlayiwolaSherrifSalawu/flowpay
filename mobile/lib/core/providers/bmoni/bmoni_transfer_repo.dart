@@ -212,6 +212,7 @@ class BmoniTransferRepository implements TransferRepository {
     required TransferProposal proposal,
   }) async {
     final res = await apiClient.post('/api/transfers/execute', body: {
+      'userId': 'usr_flowpay_sandbox_master',
       'proposalId': proposalId,
       'signature': signature,
       'proposalPayload': {

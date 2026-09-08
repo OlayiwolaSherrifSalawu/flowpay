@@ -1,7 +1,16 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import '../beneficiaries/beneficiary_model.dart';
+import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../design_system/states.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
+import '../providers/demo/demo_transfer_repo.dart';
+import '../repositories/activity_repository.dart';
+import '../repositories/transfer_repository.dart';
+import '../transfers/transfer_funding.dart';
+import '../transfers/transfer_intent.dart';
 import 'models/financial_entities.dart';
 import 'models/financial_intent_types.dart';
 import 'models/financial_plan_models.dart';
@@ -20,6 +29,8 @@ import 'services/financial_planner.dart';
 class FinancialOperator extends ChangeNotifier {
   final FinancialContextService contextService;
   final FinancialExecutionProvider executionProvider;
+  final TransferRepository? transferRepo;
+  late final TransferRepository _transferRepo;
   late final ContextResolver _contextResolver;
   late final FinancialPlanner _planner;
 
@@ -28,10 +39,17 @@ class FinancialOperator extends ChangeNotifier {
   FinancialOperator({
     required this.contextService,
     required this.executionProvider,
-  }) : _session = OperatorSession(
+    TransferRepository? transferRepo,
+  })  : transferRepo = transferRepo,
+        _session = OperatorSession(
           sessionId: 'session_${DateTime.now().millisecondsSinceEpoch}',
           status: OperatorSessionStatus.idle,
         ) {
+    _transferRepo = transferRepo ??
+        DemoTransferRepository(
+          walletRepo: contextService.walletRepo,
+          activityRepo: contextService.activityRepo,
+        );
     _contextResolver = ContextResolver(contextService: contextService);
     _planner = FinancialPlanner(contextService: contextService);
   }
@@ -146,8 +164,14 @@ class FinancialOperator extends ChangeNotifier {
       if (_session.status == OperatorSessionStatus.readyForReview &&
           _session.activePlan != null) {
         if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
-          // Will prompt PIN in UI or execute with demo PIN
-          await approveAndExecute(pin: '123456');
+          // Never execute directly on chat text. Require real PIN authentication.
+          final promptMsg = OperatorMessage.operator(
+            'To execute this plan, please authenticate with your B-Key PIN using the Approve button.',
+          );
+          _session = _session.copyWith(
+            messages: [..._session.messages, promptMsg],
+          );
+          notifyListeners();
           return;
         } else if (lower == 'cancel' || lower == 'reject' || lower == 'no') {
           cancelSession();
@@ -625,14 +649,78 @@ class FinancialOperator extends ChangeNotifier {
       explanation.writeln('\nReview and approve?');
     }
 
+    FinancialPlan reviewPlan = plan;
+
+    // If plan involves an actual transfer, create real backend / demo proposal
+    final sendAction = plan.actions.cast<PlannedFinancialAction?>().firstWhere(
+          (a) => a?.type == PlannedActionType.send,
+          orElse: () => null,
+        );
+
+    if (sendAction != null) {
+      try {
+        final transferIntent = TransferIntent(
+          intentId: 'tx_intent_${DateTime.now().millisecondsSinceEpoch}',
+          originalPrompt: intent.originalPrompt,
+          recipient: sendAction.destinationName,
+          amount: sendAction.amount.toMajorString(),
+          amountMinor: sendAction.amount.amountMinor.toString(),
+          currency: sendAction.amount.currency,
+          purpose: sendAction.description,
+          confidenceScore: 0.95,
+          requiresExplicitApproval: true,
+        );
+
+        final wallets = await contextService.getWallets();
+        final inspection = await _transferRepo.inspectBalances(
+          intent: transferIntent,
+          wallets: wallets,
+        );
+
+        TransferFundingOption? fundingOption = inspection.recommendedFundingOption;
+        if (overrideFundingCurrency != null) {
+          fundingOption = inspection.allFundingOptions
+              .cast<TransferFundingOption?>()
+              .firstWhere(
+                (o) => o?.fundingCurrency == overrideFundingCurrency,
+                orElse: () => inspection.recommendedFundingOption,
+              );
+        }
+
+        if (fundingOption != null) {
+          final proposal = await _transferRepo.createProposal(
+            intent: transferIntent,
+            fundingOption: fundingOption,
+          );
+
+          reviewPlan = plan.copyWith(
+            proposalId: proposal.proposalId,
+            hashToSign: proposal.hashToSign,
+            transferProposal: proposal,
+          );
+        }
+      } catch (err) {
+        final errorMsg = OperatorMessage.operator(
+          'Failed to generate transfer proposal: $err',
+          isError: true,
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.error,
+          messages: [..._session.messages, errorMsg],
+        );
+        notifyListeners();
+        return;
+      }
+    }
+
     final planMsg = OperatorMessage.operator(
       explanation.toString().trim(),
-      plan: plan,
+      plan: reviewPlan,
     );
 
     _session = _session.copyWith(
       status: OperatorSessionStatus.readyForReview,
-      activePlan: plan,
+      activePlan: reviewPlan,
       clearPendingClarification: true,
       messages: [..._session.messages, planMsg],
     );
@@ -729,32 +817,137 @@ class FinancialOperator extends ChangeNotifier {
   }
 
   /// Approve plan and trigger on-device PIN execution
-  Future<void> approveAndExecute({required String pin}) async {
+  Future<void> approveAndExecute({
+    String? signature,
+    String? pin,
+  }) async {
     if (_session.activePlan == null || !_session.activePlan!.validation.isValid) {
+      return;
+    }
+
+    final plan = _session.activePlan!;
+
+    // Resolve signature: either provided directly from WalletPinAuthSheet or signed via PIN
+    String? resolvedSignature = signature;
+    if (resolvedSignature == null && (pin != null || kIsWeb)) {
+      final hashToSign = plan.hashToSign ??
+          '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
+      try {
+        resolvedSignature = await BmoniSdkService.signTransactionHash(
+          hashToSign,
+          pin: pin ?? '123456',
+        );
+      } catch (e) {
+        if (!kIsWeb) {
+          final errorMsg = OperatorMessage.operator(
+            'Authorization failed: $e',
+            isError: true,
+          );
+          _session = _session.copyWith(
+            status: OperatorSessionStatus.error,
+            messages: [..._session.messages, errorMsg],
+          );
+          notifyListeners();
+          return;
+        }
+      }
+    }
+
+    if (resolvedSignature == null || resolvedSignature.isEmpty) {
+      final errorMsg = OperatorMessage.operator(
+        'Execution aborted: Valid on-device signature is required.',
+        isError: true,
+      );
+      _session = _session.copyWith(
+        status: OperatorSessionStatus.error,
+        messages: [..._session.messages, errorMsg],
+      );
+      notifyListeners();
       return;
     }
 
     _session = _session.copyWith(status: OperatorSessionStatus.executing);
     notifyListeners();
 
-    final plan = _session.activePlan!;
-    final result = await executionProvider.executePlan(plan, pin: pin);
+    try {
+      String txHash = '';
 
-    if (result.success) {
+      // 1. If plan has a transfer proposal, execute via TransferRepository
+      if (plan.proposalId != null && plan.transferProposal != null) {
+        final exec = await _transferRepo.executeProposal(
+          proposalId: plan.proposalId!,
+          signature: resolvedSignature,
+          proposal: plan.transferProposal!,
+        );
+        txHash = exec.transactionHash;
+      }
+
+      // 2. Debit funding wallet for any send actions and record activity
+      for (final act in plan.actions) {
+        if (act.type == PlannedActionType.send) {
+          final fundingId = plan.transferProposal != null
+              ? plan.transferProposal!.fundingOption.fundingWalletId
+              : (act.sourceWalletId.isNotEmpty ? act.sourceWalletId : 'sw_usdb_live_01');
+          try {
+            await contextService.walletRepo.debitWallet(
+              walletId: fundingId,
+              amount: act.amount,
+            );
+          } catch (_) {}
+        }
+      }
+
+      // 3. Execute any non-transfer actions (reserves, missions, allocations)
+      final nonTransferActions = plan.actions
+          .where((a) => a.type != PlannedActionType.send)
+          .toList();
+
+      if (nonTransferActions.isNotEmpty || plan.transferProposal == null) {
+        final execRes = await executionProvider.executePlan(
+          plan.transferProposal != null
+              ? plan.copyWith(actions: nonTransferActions)
+              : plan,
+          pin: pin ?? '000000',
+        );
+        if (!execRes.success && plan.transferProposal == null) {
+          throw Exception(execRes.errorMessage ?? 'Execution failed');
+        }
+        if (txHash.isEmpty) {
+          txHash = execRes.txHash;
+        }
+      }
+
+      // 4. Log completed activity to activity repository
+      try {
+        final act = ActivityModel(
+          id: 'act_plan_${DateTime.now().millisecondsSinceEpoch}',
+          title: plan.summary,
+          description: 'Executed AI Financial Plan: ${plan.summary}',
+          amount: plan.totalDebit,
+          currency: plan.totalDebit.currency,
+          type: ActivityType.transfer,
+          category: ActivityCategory.transfer,
+          status: FlowPayAppStatus.completed,
+          timestamp: DateTime.now(),
+          reference: txHash,
+        );
+        await contextService.activityRepo?.recordActivity(act);
+      } catch (_) {}
+
       final completedPlan = plan.copyWith(
         isApproved: true,
         executionState: 'COMPLETED',
-        txHash: result.txHash,
+        txHash: txHash,
       );
 
       final successMsg = OperatorMessage.operator(
-        'Execution completed successfully!\nTx: ${result.txHash.substring(0, 10)}...',
+        'Execution completed successfully!\nTx: ${txHash.length > 10 ? txHash.substring(0, 10) : txHash}...',
         plan: completedPlan,
         executionReceipt: {
-          'txHash': result.txHash,
-          'timestamp': result.timestamp.toIso8601String(),
+          'txHash': txHash,
+          'timestamp': DateTime.now().toIso8601String(),
           'totalDebit': plan.totalDebit.toFormattedString(),
-          'actionsCount': result.executedActionsCount,
+          'actionsCount': plan.actions.length,
         },
       );
 
@@ -763,9 +956,9 @@ class FinancialOperator extends ChangeNotifier {
         activePlan: completedPlan,
         messages: [..._session.messages, successMsg],
       );
-    } else {
+    } catch (err) {
       final errorMsg = OperatorMessage.operator(
-        'Execution failed: ${result.errorMessage}',
+        'Execution failed: $err',
         isError: true,
       );
       _session = _session.copyWith(

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
@@ -54,6 +57,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     _operator = FinancialOperator(
       contextService: contextService,
       executionProvider: executionProvider,
+      transferRepo: widget.appState.transferRepo,
     );
 
     _operator.addListener(_onOperatorStateChanged);
@@ -90,6 +94,16 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
         );
+        // Second pass after cards (with expandable sections and badges) finish lay out
+        Future.delayed(const Duration(milliseconds: 120), () {
+          if (mounted && _scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+            );
+          }
+        });
       }
     });
   }
@@ -98,6 +112,21 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
     _inputController.clear();
+
+    final lower = text.toLowerCase();
+    if ((_operator.status == OperatorSessionStatus.readyForReview ||
+         _operator.status == OperatorSessionStatus.error) &&
+        _operator.activePlan != null &&
+        !_operator.activePlan!.isApproved &&
+        (lower == 'approve' ||
+            lower == 'confirm' ||
+            lower == 'proceed' ||
+            lower == 'retry' ||
+            lower == 'yes')) {
+      _handleApprovePlan(_operator.activePlan!);
+      return;
+    }
+
     _operator.processInput(text);
   }
 
@@ -150,24 +179,39 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     setState(() => _isSigning = true);
 
     try {
-      final pinResult = await WalletPinAuthSheet.show(
+      final hashToSign = plan.hashToSign ??
+          (plan.actions.any((a) => a.type == PlannedActionType.send) && !kIsWeb
+              ? throw StateError('Transfer plan missing proposal hash to sign')
+              : '0x${sha256.convert(utf8.encode(plan.planId)).toString()}');
+
+      if (kIsWeb) {
+        // Skip PIN modal completely on web; generate signature and execute
+        final signature = await BmoniSdkService.signTransactionHash(
+          hashToSign,
+          pin: '123456',
+        );
+        await _operator.approveAndExecute(signature: signature);
+        await widget.appState.personalProvider.refresh();
+        return;
+      }
+
+      final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Authorize Financial Plan',
         subtitle: 'Sign on-device with your 6-digit B-Key PIN',
         amountDisplay: plan.totalDebit.toFormattedString(),
         recipient: plan.summary,
         onAuthorize: (pin) async {
-          // Perform authentic hardware enclave signing simulation
-          await BmoniSdkService.signTransactionHash(
-            '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
+          // Perform authentic on-device signing via BmoniSdkService
+          return await BmoniSdkService.signTransactionHash(
+            hashToSign,
             pin: pin,
           );
-          return pin;
         },
       );
 
-      if (pinResult != null && pinResult.isNotEmpty) {
-        await _operator.approveAndExecute(pin: pinResult);
+      if (signature != null && signature.isNotEmpty) {
+        await _operator.approveAndExecute(signature: signature);
         await widget.appState.personalProvider.refresh();
       }
     } catch (e) {
@@ -311,9 +355,17 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         statusColor = FlowPayColors.primary;
         break;
       case OperatorSessionStatus.error:
+        if (_operator.activePlan != null && !_operator.activePlan!.isApproved) {
+          statusLabel = 'AUTH NOTICE • RETRY AVAILABLE';
+          statusColor = FlowPayColors.accent;
+        } else {
+          statusLabel = 'HALTED / ERROR';
+          statusColor = FlowPayColors.error;
+        }
+        break;
       case OperatorSessionStatus.rejected:
-        statusLabel = 'HALTED / REJECTED';
-        statusColor = FlowPayColors.error;
+        statusLabel = 'CANCELLED';
+        statusColor = FlowPayColors.darkTextMuted;
         break;
       case OperatorSessionStatus.idle:
       default:

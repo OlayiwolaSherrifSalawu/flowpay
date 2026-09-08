@@ -71,6 +71,12 @@ class FlowPayApiClient {
     return _handleResponse(res);
   }
 
+  Future<dynamic> delete(String path, {Map<String, String>? headers}) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final res = await _client.delete(uri, headers: _buildHeaders(headers));
+    return _handleResponse(res);
+  }
+
   dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};

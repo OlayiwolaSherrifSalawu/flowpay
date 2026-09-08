@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { bmoniClient } from '../bmoni/client.js';
 import { env } from '../config/env.js';
-import { prisma } from '../db/index.js';
+import { prisma, isPostgresDb } from '../db/index.js';
 
 export const webhookConfigRouter = Router();
 
@@ -84,10 +84,17 @@ webhookConfigRouter.post('/subscribe', async (req, res, next) => {
 // GET /api/webhooks/subscription - Get active subscription
 webhookConfigRouter.get('/subscription', async (req, res, next) => {
   try {
-    const subscription = await prisma.webhookSubscription.findFirst({
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json({ success: true, data: subscription });
+    if (isPostgresDb()) {
+      try {
+        const subscription = await prisma.webhookSubscription.findFirst({
+          orderBy: { createdAt: 'desc' },
+        });
+        return res.json({ success: true, data: subscription });
+      } catch (dbErr) {
+        console.warn('[WebhookConfig] DB read subscription failed:', dbErr);
+      }
+    }
+    res.json({ success: true, data: null });
   } catch (err) {
     next(err);
   }

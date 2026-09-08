@@ -309,4 +309,10 @@ class DemoMissionRepository implements MissionRepository {
     }
     throw Exception('Mission not found: $id');
   }
+
+  @override
+  Future<bool> deleteMission(String id) async {
+    _missions.removeWhere((m) => m.id == id);
+    return true;
+  }
 }

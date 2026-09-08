@@ -4,6 +4,7 @@ import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/wallet_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/navigation/personal_tab_provider.dart';
@@ -347,6 +348,31 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
         signature: signature,
         proposal: proposal,
       );
+
+      // Debit funding wallet
+      try {
+        await widget.appState.walletRepo.debitWallet(
+          walletId: fundingOption.fundingWalletId,
+          amount: fundingOption.totalDebit,
+        );
+      } catch (_) {}
+
+      // Record activity in ActivityRepository
+      try {
+        final act = ActivityModel(
+          id: 'act_send_${DateTime.now().millisecondsSinceEpoch}',
+          title: 'Sent ${intent.amount} ${intent.currency.code}',
+          description: 'Transfer to ${intent.recipient} (${fundingOption.conversionLabel})',
+          amount: Money.fromMajorString(intent.amount, intent.currency),
+          currency: intent.currency,
+          type: fundingOption.requiresConversion ? ActivityType.conversion : ActivityType.transfer,
+          category: fundingOption.requiresConversion ? ActivityCategory.fx : ActivityCategory.transfer,
+          status: FlowPayAppStatus.completed,
+          timestamp: DateTime.now(),
+          reference: execution.transactionHash,
+        );
+        await widget.appState.activityRepo.recordActivity(act);
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() {

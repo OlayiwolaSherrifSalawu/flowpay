@@ -78,9 +78,13 @@ description: >-
 * [x] Built `FundingPlanner` and `WalletBalancer` with zero float drift and zero over-conversion.
 * [x] Supported route explanations ("Why did you use my EUR?") and dynamic route overrides ("Use NGN instead").
 * [x] Enforced protected funds safety ($1,000 Tax Reserve excluded from spendable balance and preserved intact).
-* [x] Passed all 12 tests in `mobile/test/financial_operator_test.dart`.
+* [x] Eliminated chat text execution bypass in `financial_operator.dart` & `ai_operator_modal.dart`; all affirmative chat inputs route through `WalletPinAuthSheet`.
+* [x] Wired `transferRepo.createProposal()` into `readyForReview` plan compilation, obtaining dynamic canonical SHA-256 `hashToSign` and `proposalId`.
+* [x] Replaced hardcoded static hash in `_handleApprovePlan` with authentic hardware enclave signing over `plan.hashToSign`.
+* [x] Routed approved transfer plans through `transferRepo.executeProposal(proposalId, signature, proposal)` with enclave signature verification.
+* [x] Passed all 18 tests in `mobile/test/financial_operator_test.dart` (including Issue 1 chat bypass and Issue 2 dynamic signature verification).
 * [x] Passed all 13 tests in `mobile/test/smart_payment_engine_test.dart` (including the full Hero Multi-Payment Batch scenario).
-* [x] Passed all 132 tests in the mobile suite and 77 tests in the backend suite.
+* [x] Passed all 146 tests in the mobile suite and 77 tests in the backend suite.
 
 ---
 

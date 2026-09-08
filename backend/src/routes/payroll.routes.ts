@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '../db/index.js';
+import { prisma, isPostgresDb } from '../db/index.js';
 import { PayrollOrchestrationService } from '../modules/payroll/service.js';
 
 export const payrollRouter = Router();
@@ -51,28 +51,42 @@ payrollRouter.post('/proposals/:proposalId/retry', async (req, res, next) => {
 // GET /api/payroll/runs
 payrollRouter.get('/runs', async (req, res, next) => {
   try {
-    const runs = await prisma.payrollRun.findMany({
-      include: { items: true },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    });
-    res.json({ success: true, data: runs });
+    if (isPostgresDb()) {
+      try {
+        const runs = await prisma.payrollRun.findMany({
+          include: { items: true },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        });
+        return res.json({ success: true, data: runs });
+      } catch (dbErr) {
+        console.warn('[Payroll] DB read runs failed, using empty list fallback:', dbErr);
+      }
+    }
+    res.json({ success: true, data: [] });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/payroll/runs/:runId
-payrollRouter.get('/runs/:runId', async (req, res, next) => {
+// GET /api/payroll/runs/:id
+payrollRouter.get('/runs/:id', async (req, res, next) => {
   try {
-    const run = await prisma.payrollRun.findUnique({
-      where: { id: req.params.runId },
-      include: { items: true },
-    });
-    if (!run) {
-      return res.status(404).json({ success: false, error: 'Payroll run not found' });
+    if (isPostgresDb()) {
+      try {
+        const run = await prisma.payrollRun.findUnique({
+          where: { id: req.params.id },
+          include: { items: true },
+        });
+        if (!run) {
+          return res.status(404).json({ success: false, message: 'Payroll run not found' });
+        }
+        return res.json({ success: true, data: run });
+      } catch (dbErr) {
+        console.warn('[Payroll] DB read run by id failed:', dbErr);
+      }
     }
-    res.json({ success: true, data: run });
+    res.status(404).json({ success: false, message: 'Payroll run not found' });
   } catch (err) {
     next(err);
   }

@@ -254,6 +254,16 @@ void main() {
       // Verified projected balance impact
       expect(plan.expectedBalanceChanges.isNotEmpty, isTrue);
 
+      // Verified real proposal generation & dynamic per-transaction hash
+      expect(plan.proposalId, isNotNull);
+      expect(plan.hashToSign, isNotNull);
+      expect(plan.hashToSign, startsWith('0x'));
+      expect(
+        plan.hashToSign,
+        isNot(equals('0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31')),
+      );
+      expect(plan.transferProposal, isNotNull);
+
       // Turn 3: USER approves
       await operator.approveAndExecute(pin: '123456');
 
@@ -391,6 +401,50 @@ void main() {
       expect(op.messages.last.text, contains('Sarah Jenkins'));
       expect(op.messages.last.text, contains('Sister'));
       expect(op.messages.last.isError, isFalse);
+    });
+
+    test('19. Issue 1 Verification: Typing "approve" in chat never executes directly',
+        () async {
+      final op = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      await op.processInput('Send 500 usd to Mom');
+      expect(op.status, equals(OperatorSessionStatus.readyForReview));
+      expect(op.activePlan, isNotNull);
+
+      // User types "approve" in chat
+      await op.processInput('approve');
+
+      // Must NOT transition to completed; must stay in readyForReview and prompt for B-Key PIN
+      expect(op.status, equals(OperatorSessionStatus.readyForReview));
+      expect(op.activePlan?.executionState, equals('READY_FOR_REVIEW'));
+      expect(
+        op.messages.last.text,
+        contains('authenticate with your B-Key PIN using the Approve button'),
+      );
+    });
+
+    test('20. Issue 2 Verification: Execution requires valid on-device signature',
+        () async {
+      final op = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      await op.processInput('Send 500 usd to Mom');
+      expect(op.status, equals(OperatorSessionStatus.readyForReview));
+      final plan = op.activePlan!;
+      expect(plan.hashToSign, isNotNull);
+
+      // Attempting to execute with empty signature and no PIN fails
+      await op.approveAndExecute(signature: '');
+      expect(op.status, equals(OperatorSessionStatus.error));
+      expect(
+        op.messages.last.text,
+        contains('Valid on-device signature is required'),
+      );
     });
   });
 }
