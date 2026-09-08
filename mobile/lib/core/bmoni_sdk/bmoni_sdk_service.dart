@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:bmoni_embedded_sdk/bmoni_embedded_sdk.dart';
 import 'package:crypto/crypto.dart';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 export 'package:bmoni_embedded_sdk/bmoni_embedded_sdk.dart'
     show BmoniEmbeddedSdk, BmoniSignerErrorCode, BmoniSignerException;
 
@@ -15,8 +17,14 @@ export 'package:bmoni_embedded_sdk/bmoni_embedded_sdk.dart'
 /// 3. PIN policy is enforced (defaults to 6 digits, PBKDF2-HMAC-SHA256 salted digest).
 /// 4. Handles native platform limitations transparently in host/test runners without hanging.
 class BmoniSdkService {
-  static final bool _isTestEnv =
-      Platform.environment.containsKey('FLUTTER_TEST');
+  static bool get _isTestEnv {
+    if (kIsWeb) return false;
+    try {
+      return Platform.environment.containsKey('FLUTTER_TEST');
+    } catch (_) {
+      return false;
+    }
+  }
   static String? _cachedAddress;
   static String? _inMemoryPinDigest;
 
