@@ -1,5 +1,6 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
+import '../../transfers/transfer_models.dart';
 
 enum PlannedActionType {
   send,
@@ -132,6 +133,9 @@ class FinancialPlan {
   final Currency? selectedFundingCurrency;
   final DateTime? quoteExpiresAt;
   final Money? shortfall;
+  final String? proposalId;
+  final String? hashToSign;
+  final TransferProposal? transferProposal;
 
   const FinancialPlan({
     required this.planId,
@@ -151,6 +155,9 @@ class FinancialPlan {
     this.selectedFundingCurrency,
     this.quoteExpiresAt,
     this.shortfall,
+    this.proposalId,
+    this.hashToSign,
+    this.transferProposal,
   });
 
   bool get isQuoteExpired =>
@@ -182,6 +189,9 @@ class FinancialPlan {
     Currency? selectedFundingCurrency,
     DateTime? quoteExpiresAt,
     Money? shortfall,
+    String? proposalId,
+    String? hashToSign,
+    TransferProposal? transferProposal,
   }) {
     return FinancialPlan(
       planId: planId ?? this.planId,
@@ -204,6 +214,9 @@ class FinancialPlan {
           selectedFundingCurrency ?? this.selectedFundingCurrency,
       quoteExpiresAt: quoteExpiresAt ?? this.quoteExpiresAt,
       shortfall: shortfall ?? this.shortfall,
+      proposalId: proposalId ?? this.proposalId,
+      hashToSign: hashToSign ?? this.hashToSign,
+      transferProposal: transferProposal ?? this.transferProposal,
     );
   }
 }
