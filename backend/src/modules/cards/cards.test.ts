@@ -1,7 +1,8 @@
 import test, { describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { CardService } from './service.js';
-import { CardEnrollmentRequiredError, ValidationError } from '../../core/errors.js';
+import { bmoniClient } from '../../bmoni/client.js';
+import { BmoniApiError, BmoniUnavailableError, CardEnrollmentRequiredError, ValidationError } from '../../core/errors.js';
 
 describe('Virtual Employee Cards & Proposal Lifecycle', () => {
   test('parses minor-unit string correctly for card detail ledger', () => {
@@ -29,19 +30,103 @@ describe('Virtual Employee Cards & Proposal Lifecycle', () => {
   });
 
   test('creates virtual card proposal auto-approved with FlowPay Amber color (#F4B740)', async () => {
-    const res = await CardService.createVirtualCard({
-      userId: 'usr_test_employee_01',
-      cardName: 'Payroll Spend Card',
-      currency: 'NGN',
-      smartWalletId: 'sw_cngn_test_01',
-      nin: '12345678901',
-    });
+    const originalCreate = bmoniClient.createVirtualCard;
+    bmoniClient.createVirtualCard = async () => ({
+      flow: 'group',
+      feeAmount: '1000',
+      feeCurrency: 'NGN',
+      proposalId: 'prop_real_card_01',
+      proposalStatus: 'PENDING_APPROVALS',
+      signPayload: {
+        hashToSign: '0x' + 'ab'.repeat(32),
+        safeTxHash: '0x' + 'ab'.repeat(32),
+        deadline: new Date(Date.now() + 3600000).toISOString(),
+      },
+      signPayloadPending: false,
+      card: {
+        id: 'card_real_01',
+        userId: 'usr_test_employee_01',
+        smartWalletId: 'sw_cngn_test_01',
+        cardName: 'Payroll Spend Card',
+        cardColor: '#F4B740',
+        currency: 'NGN',
+        type: 'virtual',
+        status: 'RESERVED',
+        isReserved: true,
+        proposalId: 'prop_real_card_01',
+        proposalStatus: 'PENDING_APPROVALS',
+        last4: '4289',
+        maskedPan: '•••• •••• •••• 4289',
+        expirationDate: '08/29',
+        createdAt: new Date().toISOString(),
+      },
+    } as any);
 
-    assert.ok(res.proposalId, 'proposalId must be present');
-    assert.equal(res.proposalStatus, 'PENDING_APPROVALS', 'Proxy auto-approves proposals');
-    assert.ok(res.signPayload, 'signPayload must be present');
-    assert.equal(res.card?.cardColor, '#F4B740', 'Must use FlowPay Amber');
-    assert.equal(res.card?.isReserved, true, 'Pre-signed card starts in reserved state');
+    try {
+      const res = await CardService.createVirtualCard({
+        userId: 'usr_test_employee_01',
+        cardName: 'Payroll Spend Card',
+        currency: 'NGN',
+        smartWalletId: 'sw_cngn_test_01',
+        nin: '12345678901',
+      });
+
+      assert.ok(res.proposalId, 'proposalId must be present');
+      assert.equal(res.proposalStatus, 'PENDING_APPROVALS', 'Proxy auto-approves proposals');
+      assert.ok(res.signPayload, 'signPayload must be present');
+      assert.equal(res.card?.cardColor, '#F4B740', 'Must use FlowPay Amber');
+      assert.equal(res.card?.isReserved, true, 'Pre-signed card starts in reserved state');
+    } finally {
+      bmoniClient.createVirtualCard = originalCreate;
+    }
+  });
+
+  test('throws BmoniUnavailableError when BMONI card creation fails with 5xx (never fabricates fake card)', async () => {
+    const originalCreate = bmoniClient.createVirtualCard;
+    bmoniClient.createVirtualCard = async () => {
+      throw new BmoniApiError('BMONI 500: Card provider gateway timeout', 500);
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await CardService.createVirtualCard({
+            userId: 'usr_test_employee_01',
+            cardName: 'Payroll Spend Card',
+            currency: 'NGN',
+            smartWalletId: 'sw_cngn_test_01',
+          });
+        },
+        BmoniUnavailableError,
+        'Must propagate 5xx failure as BmoniUnavailableError'
+      );
+    } finally {
+      bmoniClient.createVirtualCard = originalCreate;
+    }
+  });
+
+  test('throws CardEnrollmentRequiredError when BMONI card creation returns 400 E101', async () => {
+    const originalCreate = bmoniClient.createVirtualCard;
+    bmoniClient.createVirtualCard = async () => {
+      throw new BmoniApiError('E101: Card owner is not enrolled for cards yet', 400, 'E101', { isEnrollmentRequired: true });
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await CardService.createVirtualCard({
+            userId: 'usr_test_employee_01',
+            cardName: 'Payroll Spend Card',
+            currency: 'NGN',
+            smartWalletId: 'sw_cngn_test_01',
+          });
+        },
+        CardEnrollmentRequiredError,
+        'Must propagate E101 as CardEnrollmentRequiredError'
+      );
+    } finally {
+      bmoniClient.createVirtualCard = originalCreate;
+    }
   });
 
   test('enforces smartWalletId and cardName validation on card creation', async () => {
@@ -73,25 +158,91 @@ describe('Virtual Employee Cards & Proposal Lifecycle', () => {
   });
 
   test('retrieves proposal sign payload for hardware signing', async () => {
-    const payload = await CardService.getProposalSignPayload({
-      userId: 'usr_test_01',
-      proposalId: 'prop_card_123',
+    const originalGet = bmoniClient.getProposalSignPayload;
+    bmoniClient.getProposalSignPayload = async () => ({
+      hashToSign: '0x' + '12'.repeat(32),
+      isPending: false,
     });
 
-    assert.ok(payload.hashToSign, 'hashToSign must be returned');
-    assert.ok(payload.hashToSign.startsWith('0x'), 'hash must be 0x hex');
-    assert.equal(payload.isPending, false);
+    try {
+      const payload = await CardService.getProposalSignPayload({
+        userId: 'usr_test_01',
+        proposalId: 'prop_card_123',
+      });
+
+      assert.ok(payload.hashToSign, 'hashToSign must be returned');
+      assert.ok(payload.hashToSign.startsWith('0x'), 'hash must be 0x hex');
+      assert.equal(payload.isPending, false);
+    } finally {
+      bmoniClient.getProposalSignPayload = originalGet;
+    }
   });
 
-  test('submits valid 0x hex signature for card issuance proposal', async () => {
-    const result = await CardService.submitProposalSignature({
-      userId: 'usr_test_01',
-      proposalId: 'prop_card_123',
-      signature: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1b',
+  test('throws BmoniUnavailableError when getProposalSignPayload fails (never fabricates dummy hash)', async () => {
+    const originalGet = bmoniClient.getProposalSignPayload;
+    bmoniClient.getProposalSignPayload = async () => {
+      throw new Error('BMONI sign payload connection refused');
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await CardService.getProposalSignPayload({
+            userId: 'usr_test_01',
+            proposalId: 'prop_card_123',
+          });
+        },
+        BmoniUnavailableError,
+        'Must reject with BmoniUnavailableError when sign payload cannot be retrieved'
+      );
+    } finally {
+      bmoniClient.getProposalSignPayload = originalGet;
+    }
+  });
+
+  test('submits valid 0x hex signature for card issuance proposal when BMONI succeeds', async () => {
+    const originalSubmit = bmoniClient.submitProposalSignature;
+    bmoniClient.submitProposalSignature = async () => ({
+      success: true,
+      status: 'COMPLETED',
+      transactionHash: '0x' + '34'.repeat(32),
     });
 
-    assert.equal(result.success, true);
-    assert.equal(result.status, 'COMPLETED');
+    try {
+      const result = await CardService.submitProposalSignature({
+        userId: 'usr_test_01',
+        proposalId: 'prop_card_123',
+        signature: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1b',
+      });
+
+      assert.equal(result.success, true);
+      assert.equal(result.status, 'COMPLETED');
+    } finally {
+      bmoniClient.submitProposalSignature = originalSubmit;
+    }
+  });
+
+  test('throws BmoniUnavailableError when submitProposalSignature fails (never returns fake COMPLETED)', async () => {
+    const originalSubmit = bmoniClient.submitProposalSignature;
+    bmoniClient.submitProposalSignature = async () => {
+      throw new Error('BMONI 500: On-chain transaction revert');
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await CardService.submitProposalSignature({
+            userId: 'usr_test_01',
+            proposalId: 'prop_card_123',
+            signature: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1b',
+          });
+        },
+        BmoniUnavailableError,
+        'Must reject with BmoniUnavailableError when signature submission fails'
+      );
+    } finally {
+      bmoniClient.submitProposalSignature = originalSubmit;
+    }
   });
 
   test('rejects malformed signature when submitting proposal', async () => {

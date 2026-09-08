@@ -1,9 +1,14 @@
-import '../bmoni_sdk/bmoni_sdk_service.dart';
 import '../money/money.dart';
+import '../wallet/wallet_signer.dart';
 import 'financial_intent.dart';
 import 'operation_preview.dart';
 
 class SigningCoordinator {
+  final WalletSigner _signer;
+
+  const SigningCoordinator({WalletSigner? signer})
+      : _signer = signer ?? const BmoniWalletSigner();
+
   /// Complete Financial Safety Pipeline:
   /// 1. Validate intent deterministically against available balance
   /// 2. Build explicit Preview
@@ -25,11 +30,20 @@ class SigningCoordinator {
     );
   }
 
-  static Future<String> authorizeAndSign({
+  Future<String> authorize({
     required String hashToSign,
     required String pin,
   }) async {
-    // Executes strictly on-device using Keystore / Secure Enclave
-    return await BmoniSdkService.signTransactionHash(hashToSign, pin: pin);
+    return await _signer.signTransactionHash(hashToSign, pin: pin);
+  }
+
+  static Future<String> authorizeAndSign({
+    required String hashToSign,
+    required String pin,
+    WalletSigner? signer,
+  }) async {
+    // Executes strictly on-device using WalletSigner (Keystore / Secure Enclave)
+    final activeSigner = signer ?? const BmoniWalletSigner();
+    return await activeSigner.signTransactionHash(hashToSign, pin: pin);
   }
 }

@@ -214,15 +214,13 @@ class BmoniSdkService {
 
     try {
       return await BmoniEmbeddedSdk.signMessage(message, pin: pin);
-    } on BmoniSignerException catch (e) {
-      if (e.errorCode == BmoniSignerErrorCode.pinMismatch) {
-        rethrow;
-      }
-      final hash = sha256.convert(utf8.encode('$message:$pin')).toString();
-      return '0x${hash}1b';
-    } catch (_) {
-      final hash = sha256.convert(utf8.encode('$message:$pin')).toString();
-      return '0x${hash}1b';
+    } on BmoniSignerException {
+      rethrow;
+    } catch (e) {
+      throw BmoniSignerException(
+        errorCode: BmoniSignerErrorCode.signingFailed,
+        message: 'Failed to sign message: $e',
+      );
     }
   }
 
@@ -246,19 +244,13 @@ class BmoniSdkService {
 
     try {
       return await BmoniEmbeddedSdk.signTransactionHash(hash32, pin: pin);
-    } on BmoniSignerException catch (e) {
-      if (e.errorCode == BmoniSignerErrorCode.pinMismatch) {
-        rethrow;
-      }
-      final hash = sha256
-          .convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin'))
-          .toString();
-      return '0x${hash}1c';
-    } catch (_) {
-      final hash = sha256
-          .convert(utf8.encode('$hash32:${_cachedAddress ?? ""}:$pin'))
-          .toString();
-      return '0x${hash}1c';
+    } on BmoniSignerException {
+      rethrow;
+    } catch (e) {
+      throw BmoniSignerException(
+        errorCode: BmoniSignerErrorCode.signingFailed,
+        message: 'Failed to sign transaction hash: $e',
+      );
     }
   }
 }

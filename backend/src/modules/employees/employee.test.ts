@@ -104,4 +104,87 @@ describe('Employee Management Validation & Lifecycle', () => {
     assert.strictEqual(EmployeeService.resolveCurrency('CA'), 'CAD');
     assert.strictEqual(EmployeeService.resolveCurrency('US'), 'USD');
   });
+
+  it('rejects and sets status FAILED with null bmoniUserId when BMONI user creation fails', async () => {
+    const { bmoniClient } = await import('../../bmoni/client.js');
+    const { prisma, isPostgresDb } = await import('../../db/index.js');
+    const { FlowPayError } = await import('../../core/errors.js');
+
+    const originalCreate = bmoniClient.createEmployeeUser;
+    bmoniClient.createEmployeeUser = async () => {
+      throw new Error('BMONI connection timeout (504)');
+    };
+
+    let createdRecordId: string | undefined;
+    try {
+      await assert.rejects(
+        async () => {
+          await EmployeeService.createEmployee({
+            firstName: 'TestFail',
+            lastName: 'User',
+            email: 'fail-test@example.com',
+            country: 'NG',
+            payrollAmountMinor: 100000,
+          });
+        },
+        FlowPayError,
+        'createEmployee must throw FlowPayError / BmoniUnavailableError on failure'
+      );
+
+      if (isPostgresDb()) {
+        const record = await prisma.employee.findFirst({
+          where: { email: 'fail-test@example.com' },
+        });
+        assert.ok(record, 'Employee record should be persisted for audit tracking');
+        createdRecordId = record.id;
+        assert.strictEqual(record.status, 'FAILED');
+        assert.strictEqual(record.failedStage, 'BMONI_USER_CREATION');
+        assert.strictEqual(record.bmoniUserId, null, 'Must never assign a fake bmoniUserId');
+      }
+    } finally {
+      bmoniClient.createEmployeeUser = originalCreate;
+      if (createdRecordId && isPostgresDb()) {
+        await prisma.employee.delete({ where: { id: createdRecordId } }).catch(() => {});
+      }
+    }
+  });
+
+  it('succeeds and records real bmoniUserId when BMONI user creation succeeds', async () => {
+    const { bmoniClient } = await import('../../bmoni/client.js');
+    const { prisma, isPostgresDb } = await import('../../db/index.js');
+
+    const originalCreate = bmoniClient.createEmployeeUser;
+    bmoniClient.createEmployeeUser = async () => {
+      return {
+        id: 'usr_real_bmoni_99999',
+        bmoniUserId: 'usr_real_bmoni_99999',
+        firstName: 'TestSuccess',
+        lastName: 'User',
+        email: 'success-test@example.com',
+        partnerId: 'part_flowpay_01',
+        createdAt: new Date().toISOString(),
+      };
+    };
+
+    let createdRecordId: string | undefined;
+    try {
+      const result = await EmployeeService.createEmployee({
+        firstName: 'TestSuccess',
+        lastName: 'User',
+        email: 'success-test@example.com',
+        country: 'NG',
+        payrollAmountMinor: 100000,
+      });
+
+      assert.strictEqual(result.bmoniUserId, 'usr_real_bmoni_99999');
+      assert.strictEqual(result.employee.status, 'CREATED');
+      assert.strictEqual(result.employee.bmoniUserId, 'usr_real_bmoni_99999');
+      createdRecordId = result.employee.id;
+    } finally {
+      bmoniClient.createEmployeeUser = originalCreate;
+      if (createdRecordId && isPostgresDb()) {
+        await prisma.employee.delete({ where: { id: createdRecordId } }).catch(() => {});
+      }
+    }
+  });
 });

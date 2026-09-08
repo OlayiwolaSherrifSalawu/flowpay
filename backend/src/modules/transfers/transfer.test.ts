@@ -4,6 +4,7 @@ import { TransferInterpreter } from '../ai/transfer_interpreter.js';
 import { TransferService } from './service.js';
 import type { TransferIntent } from './types.js';
 import { TransferValidator } from './validator.js';
+import { bmoniClient } from '../../bmoni/client.js';
 
 test('FlowPay Send Money Feature & Balance-Aware Routing Tests', async (t) => {
   // Test 1: Natural Language Interpretation
@@ -236,19 +237,64 @@ test('FlowPay Send Money Feature & Balance-Aware Routing Tests', async (t) => {
     assert.strictEqual(proposal.fundingOption.conversionLabel, 'NGN → USD');
   });
 
-  // Test 7: B-Key Signature Submission and Activity Persistence
-  await t.test('executes transfer with valid on-device B-Key signature and records to PostgreSQL Activity', async () => {
+  // Test 7: B-Key Signature Submission - Honest Failure Propagation
+  await t.test('throws an error and never marks COMPLETED when BMONI signProposal fails', async () => {
+    const dummySig = '0x' + 'ab'.repeat(65);
+    const originalSign = bmoniClient.signProposal;
+    bmoniClient.signProposal = async () => {
+      throw new Error('BMONI 500: Secp256k1 signature validation error');
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await TransferService.executeTransfer({
+            userId: 'usr_flowpay_sandbox_master',
+            proposalId: 'prop_tx_test_fail',
+            signature: dummySig,
+          });
+        },
+        /Secp256k1 signature validation error/,
+        'Must propagate real BMONI failure and reject'
+      );
+    } finally {
+      bmoniClient.signProposal = originalSign;
+    }
+  });
+
+  // Test 7b: Genuine B-Key Signature Submission and Activity Persistence
+  await t.test('executes transfer with valid on-device B-Key signature when BMONI succeeds', async () => {
     const dummySig = '0x' + 'ab'.repeat(65); // 65-byte hex signature
+    const realTxHash = '0x' + '1234567890abcdef'.repeat(4);
+    const originalSign = bmoniClient.signProposal;
+    const originalGet = bmoniClient.getProposal;
 
-    const result = await TransferService.executeTransfer({
-      userId: 'usr_flowpay_sandbox_master',
-      proposalId: 'prop_tx_test_123',
-      signature: dummySig,
+    bmoniClient.signProposal = async () => ({
+      success: true,
+      status: 'COMPLETED',
+      transactionHash: realTxHash,
     });
+    bmoniClient.getProposal = async () => ({
+      id: 'prop_tx_test_123',
+      proposalId: 'prop_tx_test_123',
+      status: 'COMPLETED',
+      transactionHash: realTxHash,
+    } as any);
 
-    assert.strictEqual(result.status, 'COMPLETED');
-    assert.match(result.transactionHash, /^0x[a-f0-9]{64}$/);
-    assert.ok(result.auditActivityId);
+    try {
+      const result = await TransferService.executeTransfer({
+        userId: 'usr_flowpay_sandbox_master',
+        proposalId: 'prop_tx_test_123',
+        signature: dummySig,
+      });
+
+      assert.strictEqual(result.status, 'COMPLETED');
+      assert.strictEqual(result.transactionHash, realTxHash, 'Must return real BMONI transaction hash');
+      assert.ok(result.auditActivityId);
+    } finally {
+      bmoniClient.signProposal = originalSign;
+      bmoniClient.getProposal = originalGet;
+    }
   });
 
   // Test 8: Human-Readable Error Formatting across all 8 failure modes

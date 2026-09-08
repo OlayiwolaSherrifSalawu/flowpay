@@ -146,12 +146,12 @@ export class TransferService {
       );
     }
 
-    let txHash = `0x${crypto.createHash('sha256').update(`${proposalId}_${signature}_${Date.now()}`).digest('hex')}`;
+    let txHash: string;
 
     // If live BMONI environment is active
     if (env.BMONI_API_KEY && env.BMONI_API_KEY !== 'sandbox-demo-key') {
       try {
-        await bmoniClient.signProposal({
+        const signRes = await bmoniClient.signProposal({
           userId,
           proposalId,
           signature,
@@ -161,11 +161,42 @@ export class TransferService {
         if (terminalProposal && terminalProposal.status === 'FAILED') {
           throw new Error(TransferValidator.formatError('TRANSFER_FAILURE'));
         }
-      } catch (err: any) {
-        if (err.message.includes('BMONI')) {
-          console.warn('[BMONI Client] Live submission returned warning in sandbox:', err.message);
+
+        const resolvedTxHash = signRes.transactionHash || (terminalProposal as any)?.transactionHash;
+        if (!resolvedTxHash) {
+          throw new Error(`BMONI did not return a transaction hash for proposal ${proposalId}`);
         }
+        txHash = resolvedTxHash;
+      } catch (err: any) {
+        console.error('[Transfers] BMONI signProposal or getProposal failed:', err.message || err);
+        if (isPostgresDb()) {
+          try {
+            await prisma.auditActivity.create({
+              data: {
+                id: `act_tx_failed_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                category: 'PERSONAL',
+                action: 'TRANSFER_FAILED',
+                actor: userId,
+                detailsJson: {
+                  transferId: proposalId,
+                  recipient: proposalPayload?.intent.recipient ?? 'Beneficiary',
+                  amount: proposalPayload?.intent.amount ?? '500.00',
+                  currency: proposalPayload?.intent.currency ?? 'USD',
+                  error: err.message || 'Transfer failed on BMONI rails',
+                  proposalId,
+                  bmoniStatus: 'FAILED',
+                  executedAt: new Date().toISOString(),
+                },
+              },
+            });
+          } catch (dbErr: any) {
+            console.warn('[Audit Activity] Failed to write failure record to PostgreSQL:', dbErr.message);
+          }
+        }
+        throw err;
       }
+    } else {
+      txHash = `0x${crypto.createHash('sha256').update(`${proposalId}_${signature}_${Date.now()}`).digest('hex')}`;
     }
 
     const activityId = `act_tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;

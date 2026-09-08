@@ -125,4 +125,93 @@ describe('Employee Onboarding: Stablecoin Mapping & Country-Specific Rules', () 
     assert.ok(states.includes('Ready'));
     assert.ok(states.includes('Failed'));
   });
+
+  it('throws error when requestOwnerChallenge is called for employee without bmoniUserId', async () => {
+    const { prisma } = await import('../../db/index.js');
+    const originalFind = prisma.employee.findUnique;
+    (prisma.employee as any).findUnique = async () => ({
+      id: 'emp_no_bmoni',
+      bmoniUserId: null,
+      country: 'NG',
+      status: 'FAILED',
+    });
+
+    try {
+      await assert.rejects(
+        async () => {
+          await EmployeeOnboardingService.requestOwnerChallenge(
+            'emp_no_bmoni',
+            '0x7e8125a09c2cdc7bedc12253e49e4946c6fff027'
+          );
+        },
+        /does not have a valid BMONI user ID/
+      );
+    } finally {
+      (prisma.employee as any).findUnique = originalFind;
+    }
+  });
+
+  it('propagates BMONI failure in requestOwnerChallenge without fabricating fake challenge', async () => {
+    const { prisma } = await import('../../db/index.js');
+    const { bmoniClient } = await import('../../bmoni/client.js');
+    const { FlowPayError } = await import('../../core/errors.js');
+
+    const originalFind = prisma.employee.findUnique;
+    const originalChallenge = bmoniClient.createOwnerProofChallenge;
+    const originalUpdate = prisma.employee.update;
+
+    (prisma.employee as any).findUnique = async () => ({
+      id: 'emp_test_01',
+      bmoniUserId: 'usr_bmoni_valid_01',
+      country: 'NG',
+      status: 'CREATED',
+    });
+    (prisma.employee as any).update = async () => ({});
+    bmoniClient.createOwnerProofChallenge = async () => {
+      throw new Error('BMONI Rail Network Error (503)');
+    };
+
+    try {
+      await assert.rejects(
+        async () => {
+          await EmployeeOnboardingService.requestOwnerChallenge(
+            'emp_test_01',
+            '0x7e8125a09c2cdc7bedc12253e49e4946c6fff027'
+          );
+        },
+        FlowPayError
+      );
+    } finally {
+      (prisma.employee as any).findUnique = originalFind;
+      bmoniClient.createOwnerProofChallenge = originalChallenge;
+      (prisma.employee as any).update = originalUpdate;
+    }
+  });
+
+  it('returns ready: false when checkKycReadiness fails on BMONI query', async () => {
+    const { prisma } = await import('../../db/index.js');
+    const { bmoniClient } = await import('../../bmoni/client.js');
+
+    const originalFind = prisma.employee.findUnique;
+    const originalReadiness = bmoniClient.getKycReadiness;
+
+    (prisma.employee as any).findUnique = async () => ({
+      id: 'emp_test_01',
+      bmoniUserId: 'usr_bmoni_valid_01',
+      country: 'NG',
+      status: 'KYC_PENDING',
+    });
+    bmoniClient.getKycReadiness = async () => {
+      throw new Error('BMONI 500 error');
+    };
+
+    try {
+      const res = await EmployeeOnboardingService.checkKycReadiness('emp_test_01');
+      assert.strictEqual(res.ready, false);
+      assert.ok(res.missing && res.missing.length > 0);
+    } finally {
+      (prisma.employee as any).findUnique = originalFind;
+      bmoniClient.getKycReadiness = originalReadiness;
+    }
+  });
 });

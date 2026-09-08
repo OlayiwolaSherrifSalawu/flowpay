@@ -242,55 +242,53 @@ export class PayrollOrchestrationService {
             recipientUserId = `usr_bmoni_${item.employeeId}`;
           }
 
-          let proposalId = `prop_fanout_${item.country.toLowerCase()}_${Date.now()}`;
-          let txHash = `0x7e81...${item.destinationStablecoin.toLowerCase()}_${Date.now().toString(16)}`;
+          let proposalId: string | undefined;
+          let txHash: string | undefined;
 
           // 1. Call 1: Create TRANSFER proposal on BMONI rails
-          try {
-            const proposalRes = await bmoniClient.createTransferProposal({
-              userId: employerUserId,
-              smartWalletId: sourceSmartWalletId,
-              toUserId: recipientUserId,
-              amount: item.targetAmountFormatted,
-              currency: item.destinationStablecoin,
-              description: `Payroll — ${preview.title}`,
-            });
-            if (proposalRes.id || proposalRes.proposalId) {
-              proposalId = proposalRes.id || proposalRes.proposalId;
-            }
-
-            // 2. Call 2: Approve proposal
-            await bmoniClient.approveProposal({
-              userId: employerUserId,
-              proposalId,
-            });
-
-            // 3. Call 3: Fetch sign payload (poll for PENDING_SIGNATURES)
-            const signPayload = await bmoniClient.pollProposalSignPayload({
-              userId: employerUserId,
-              proposalId,
-              maxAttempts: 3,
-              delayMs: 300,
-            });
-
-            // 4. Call 4: Submit client on-device signature if passed
-            const signature = signaturesMap?.[item.employeeId];
-            if (signature) {
-              const signRes = await bmoniClient.submitProposalSignature({
-                userId: employerUserId,
-                proposalId,
-                signature,
-              });
-              if (signRes.transactionHash) {
-                txHash = signRes.transactionHash;
-              }
-            }
-          } catch (bmoniErr: any) {
-            console.warn(
-              `[Payroll] Notice for ${item.name} (${item.destinationStablecoin}): ${bmoniErr.message || bmoniErr}`
-            );
-            // In sandbox offline mode, continue with simulated proposalId and receipt
+          const proposalRes = await bmoniClient.createTransferProposal({
+            userId: employerUserId,
+            smartWalletId: sourceSmartWalletId,
+            toUserId: recipientUserId,
+            amount: item.targetAmountFormatted,
+            currency: item.destinationStablecoin,
+            description: `Payroll — ${preview.title}`,
+          });
+          proposalId = proposalRes.id || proposalRes.proposalId;
+          if (!proposalId) {
+            throw new Error('BMONI did not return a valid proposal ID');
           }
+
+          // 2. Call 2: Approve proposal
+          await bmoniClient.approveProposal({
+            userId: employerUserId,
+            proposalId,
+          });
+
+          // 3. Call 3: Fetch sign payload (poll for PENDING_SIGNATURES)
+          await bmoniClient.pollProposalSignPayload({
+            userId: employerUserId,
+            proposalId,
+            maxAttempts: 3,
+            delayMs: 300,
+          });
+
+          // 4. Call 4: Submit client on-device signature
+          const signature = signaturesMap?.[item.employeeId];
+          if (!signature) {
+            throw new Error(`Missing on-device signature for employee ${item.name} (${item.employeeId})`);
+          }
+
+          const signRes = await bmoniClient.submitProposalSignature({
+            userId: employerUserId,
+            proposalId,
+            signature,
+          });
+
+          if (!signRes?.transactionHash) {
+            throw new Error(`BMONI did not return a transaction hash for proposal ${proposalId}`);
+          }
+          txHash = signRes.transactionHash;
 
           return {
             ...item,
@@ -300,7 +298,7 @@ export class PayrollOrchestrationService {
             transactionHash: txHash,
           };
         } catch (err: any) {
-          console.error(`[Payroll] Failed payout for ${item.name}:`, err);
+          console.error(`[Payroll] Failed payout for ${item.name}:`, err.message || err);
           return {
             ...item,
             status: 'FAILED',
@@ -401,38 +399,33 @@ export class PayrollOrchestrationService {
   ): Promise<{ success: boolean; item?: PayrollRunItem; message: string }> {
     try {
       // 1. Call approve to restart workflow (per BMONI docs)
-      try {
-        await bmoniClient.retryFailedProposal({
-          userId: employerUserId,
-          proposalId,
-        });
-      } catch (approveErr: any) {
-        console.warn(`[Payroll] Retry approve notice (offline/sandbox): ${approveErr.message || approveErr}`);
-      }
+      await bmoniClient.retryFailedProposal({
+        userId: employerUserId,
+        proposalId,
+      });
 
       // 2. Poll sign-payload & submit signature if provided
-      let txHash = `0x7e81...retry_${Date.now().toString(16)}`;
-      try {
-        await bmoniClient.pollProposalSignPayload({
-          userId: employerUserId,
-          proposalId,
-          maxAttempts: 2,
-          delayMs: 200,
-        });
+      await bmoniClient.pollProposalSignPayload({
+        userId: employerUserId,
+        proposalId,
+        maxAttempts: 3,
+        delayMs: 300,
+      });
 
-        if (signature) {
-          const signRes = await bmoniClient.submitProposalSignature({
-            userId: employerUserId,
-            proposalId,
-            signature,
-          });
-          if (signRes.transactionHash) {
-            txHash = signRes.transactionHash;
-          }
-        }
-      } catch (pollErr) {
-        console.warn(`[Payroll] Retry sign notice (offline/sandbox): ${pollErr}`);
+      if (!signature) {
+        throw new Error(`Missing on-device signature for retrying proposal ${proposalId}`);
       }
+
+      const signRes = await bmoniClient.submitProposalSignature({
+        userId: employerUserId,
+        proposalId,
+        signature,
+      });
+
+      if (!signRes?.transactionHash) {
+        throw new Error(`BMONI did not return a transaction hash for retried proposal ${proposalId}`);
+      }
+      const txHash = signRes.transactionHash;
 
       // 3. Update status in database
       try {
@@ -464,7 +457,7 @@ export class PayrollOrchestrationService {
     } catch (err: any) {
       return {
         success: false,
-        message: `Retry failed for proposal ${proposalId}: ${err.message}`,
+        message: `Retry failed for proposal ${proposalId}: ${err.message || err}`,
       };
     }
   }

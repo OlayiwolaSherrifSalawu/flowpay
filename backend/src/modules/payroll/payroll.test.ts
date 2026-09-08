@@ -3,6 +3,7 @@ import test, { describe } from 'node:test';
 import { ethers } from 'ethers';
 import { getStablecoinForCurrency, getStablecoinForCountry } from '../../core/currencies.js';
 import { PayrollOrchestrationService } from './service.js';
+import { bmoniClient } from '../../bmoni/client.js';
 
 describe('Global Payroll Orchestration & BMONI Primitives', () => {
   /**
@@ -85,48 +86,105 @@ describe('Global Payroll Orchestration & BMONI Primitives', () => {
   });
 
   /**
-   * 4. Independent Failure Isolation & Partial Completion
-   * Per prompt: "one employee's FAILED proposal does not block the others.
-   * Completed / overall Payroll Partially Completed framing is correct."
+   * 4. Honest Failure Propagation: Never Fabricate Success on BMONI Proposal Creation Error
    */
-  test('Isolates employee failure without blocking other disbursements', async () => {
-    // Execute payroll with simulated unready rail on one custom allocation
-    const customAllocations = [
-      { employeeId: 'emp_bunch_dillon', usdAmountMinor: 200000 },
-      { employeeId: 'emp_samson_jabo', usdAmountMinor: 200000 },
-    ];
+  test('Returns status FAILED with real error message when BMONI proposal creation throws', async () => {
+    // Force BMONI createTransferProposal to throw
+    const originalCreate = bmoniClient.createTransferProposal;
+    bmoniClient.createTransferProposal = async () => {
+      throw new Error('BMONI API 503: Service Unavailable on proposal creation');
+    };
 
-    const result = await PayrollOrchestrationService.executePayroll(
-      'usr_flowpay_employer_test',
-      'sw_usdb_source_wallet',
-      customAllocations
-    );
+    try {
+      const result = await PayrollOrchestrationService.executePayroll(
+        'usr_flowpay_employer_test',
+        'sw_usdb_source_wallet',
+        [
+          { employeeId: 'emp_bunch_dillon', usdAmountMinor: 200000 },
+        ]
+      );
 
-    assert.ok(result.runId.startsWith('run_'), 'Run must be created');
-    assert.ok(result.items.length >= 2, 'Items must be evaluated');
-
-    // All valid items succeed independently
-    for (const item of result.items) {
-      if (item.isRailActive) {
-        assert.equal(item.status, 'SUCCESS', 'Active rail employee must succeed');
-        assert.ok(item.proposalId, 'Proposal ID must be recorded');
-      }
+      assert.ok(result.runId.startsWith('run_'), 'Run must be created');
+      const item = result.items.find((i) => i.employeeId === 'emp_bunch_dillon');
+      assert.ok(item, 'Item must be evaluated');
+      assert.equal(item.status, 'FAILED', 'Failed BMONI call must result in status FAILED');
+      assert.match(item.error || '', /BMONI API 503/, 'Must include the real BMONI error message');
+      assert.equal(item.transactionHash, undefined, 'Must NEVER fabricate a transaction hash on failure');
+      assert.equal(result.status, 'FAILED', 'Run where all items fail must be FAILED');
+    } finally {
+      bmoniClient.createTransferProposal = originalCreate;
     }
   });
 
   /**
-   * 5. Proposal Retry Endpoint Logic
-   * Per BMONI docs: "A FAILED proposal can be retried by calling approve again, which restarts the workflow."
+   * 5. Honest Retry Failure: Never Fabricate Success on BMONI Retry Call Error
    */
-  test('Retries failed proposal by calling approve to restart workflow', async () => {
-    const retryResult = await PayrollOrchestrationService.retryProposal(
-      'usr_flowpay_employer_test',
-      'prop_test_retry_123',
-      'emp_bunch_dillon'
-    );
+  test('Returns success: false with real error when BMONI retryProposal fails', async () => {
+    const originalRetry = bmoniClient.retryFailedProposal;
+    bmoniClient.retryFailedProposal = async () => {
+      throw new Error('BMONI 404: Proposal prop_test_retry_123 not found for retry');
+    };
 
-    assert.equal(retryResult.success, true, 'Retry must return success');
-    assert.ok(retryResult.message.includes('restarted'), 'Message must indicate restart');
-    assert.equal(retryResult.item?.status, 'SUCCESS', 'Item status must transition to SUCCESS');
+    try {
+      const retryResult = await PayrollOrchestrationService.retryProposal(
+        'usr_flowpay_employer_test',
+        'prop_test_retry_123',
+        'emp_bunch_dillon'
+      );
+
+      assert.equal(retryResult.success, false, 'Failed BMONI retry must return success: false');
+      assert.match(retryResult.message, /BMONI 404/, 'Message must contain real BMONI error');
+      assert.equal(retryResult.item, undefined, 'Item must not be returned as SUCCESS on retry failure');
+    } finally {
+      bmoniClient.retryFailedProposal = originalRetry;
+    }
+  });
+
+  /**
+   * 6. Genuine Success Path: Only Succeed When BMONI Returns Real Transaction Hash
+   */
+  test('Returns status SUCCESS only when BMONI proposal flow genuinely succeeds with real txHash', async () => {
+    const originalCreate = bmoniClient.createTransferProposal;
+    const originalApprove = bmoniClient.approveProposal;
+    const originalPoll = bmoniClient.pollProposalSignPayload;
+    const originalSubmit = bmoniClient.submitProposalSignature;
+
+    const realTxHash = '0x9999888877776666555544443333222211110000aaaabbbbccccddddeeeeffff';
+
+    bmoniClient.createTransferProposal = async () => ({
+      id: 'prop_real_bmoni_123',
+      proposalId: 'prop_real_bmoni_123',
+      status: 'PENDING_APPROVALS',
+    } as any);
+    bmoniClient.approveProposal = async () => ({ success: true, status: 'APPROVED' });
+    bmoniClient.pollProposalSignPayload = async () => ({
+      hashToSign: '0x1234567890123456789012345678901234567890123456789012345678901234',
+      isPending: false,
+    });
+    bmoniClient.submitProposalSignature = async () => ({
+      success: true,
+      status: 'COMPLETED',
+      transactionHash: realTxHash,
+    });
+
+    try {
+      const result = await PayrollOrchestrationService.executePayroll(
+        'usr_flowpay_employer_test',
+        'sw_usdb_source_wallet',
+        [{ employeeId: 'emp_bunch_dillon', usdAmountMinor: 200000 }],
+        { emp_bunch_dillon: '0x' + 'aa'.repeat(65) }
+      );
+
+      const item = result.items.find((i) => i.employeeId === 'emp_bunch_dillon');
+      assert.ok(item);
+      assert.equal(item.status, 'SUCCESS', 'Item must succeed when BMONI succeeds');
+      assert.equal(item.transactionHash, realTxHash, 'Must carry real BMONI transaction hash');
+      assert.equal(item.proposalStatus, 'COMPLETED');
+    } finally {
+      bmoniClient.createTransferProposal = originalCreate;
+      bmoniClient.approveProposal = originalApprove;
+      bmoniClient.pollProposalSignPayload = originalPoll;
+      bmoniClient.submitProposalSignature = originalSubmit;
+    }
   });
 });

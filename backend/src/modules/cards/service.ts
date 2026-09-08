@@ -1,6 +1,6 @@
 import { bmoniClient } from '../../bmoni/client.js';
 import { prisma, isPostgresDb } from '../../db/index.js';
-import { BmoniApiError, CardEnrollmentRequiredError, ValidationError } from '../../core/errors.js';
+import { BmoniApiError, BmoniUnavailableError, CardEnrollmentRequiredError, FlowPayError, ValidationError } from '../../core/errors.js';
 import type {
   BmoniCard,
   CardTransaction,
@@ -97,46 +97,18 @@ export class CardService {
             'Card owner is not enrolled for cards yet. 11-digit NIN is required for first card issuance.'
           );
         }
+        if (err.statusCode >= 500) {
+          throw new BmoniUnavailableError(err.message);
+        }
       }
 
-      console.warn('[CardService] Fallback sandbox card creation:', err);
-      // Deterministic sandbox proposal for offline/test mode
-      const proposalId = `prop_card_${Date.now()}`;
-      const dummyHash = `0x${Buffer.from(`flowpay_card_${args.userId}_${Date.now()}`)
-        .toString('hex')
-        .padEnd(64, '0')
-        .slice(0, 64)}`;
-
-      cardResponse = {
-        flow: 'group',
-        feeAmount: args.currency === 'NGN' ? '1000' : '2',
-        feeCurrency: args.currency,
-        proposalId,
-        proposalStatus: 'PENDING_APPROVALS',
-        signPayload: {
-          hashToSign: dummyHash,
-          safeTxHash: dummyHash,
-          deadline: new Date(Date.now() + 3600000).toISOString(),
-        },
-        signPayloadPending: false,
-        card: {
-          id: proposalId,
-          userId: args.userId,
-          smartWalletId: args.smartWalletId,
-          cardName: args.cardName,
-          cardColor,
-          currency: args.currency,
-          type: 'virtual',
-          status: 'RESERVED',
-          isReserved: true,
-          proposalId,
-          proposalStatus: 'PENDING_APPROVALS',
-          last4: '4289',
-          maskedPan: '•••• •••• •••• 4289',
-          expirationDate: '08/29',
-          createdAt: new Date().toISOString(),
-        },
-      };
+      console.error('[CardService] Failed to create virtual card via BMONI:', err);
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(
+        err instanceof Error ? err.message : 'BMONI virtual card issuance failed'
+      );
     }
 
     // Persist card proposal into Supabase public.virtual_cards
@@ -183,29 +155,20 @@ export class CardService {
   }): Promise<ProposalSignPayload> {
     try {
       const payload = await bmoniClient.getProposalSignPayload(args);
-      if (payload.hashToSign) {
+      if (payload.hashToSign || payload.isPending) {
         return payload;
       }
-      const dummyHash = `0x${Buffer.from(`flowpay_card_${args.proposalId}`)
-        .toString('hex')
-        .padEnd(64, '0')
-        .slice(0, 64)}`;
-      return {
-        hashToSign: dummyHash,
-        deadline: new Date(Date.now() + 3600000).toISOString(),
-        isPending: false,
-      };
-    } catch (err) {
-      console.warn('[CardService] getProposalSignPayload fallback:', err);
-      const dummyHash = `0x${Buffer.from(`flowpay_card_${args.proposalId}`)
-        .toString('hex')
-        .padEnd(64, '0')
-        .slice(0, 64)}`;
-      return {
-        hashToSign: dummyHash,
-        deadline: new Date(Date.now() + 3600000).toISOString(),
-        isPending: false,
-      };
+      throw new BmoniUnavailableError(
+        `BMONI returned no hashToSign for proposal ${args.proposalId}`
+      );
+    } catch (err: unknown) {
+      console.error('[CardService] Failed to retrieve proposal sign payload:', err);
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(
+        err instanceof Error ? err.message : `Failed to retrieve sign payload for proposal ${args.proposalId}`
+      );
     }
   }
 
@@ -221,14 +184,19 @@ export class CardService {
       throw new ValidationError('signature must be a valid 0x hex string');
     }
     try {
-      return await bmoniClient.submitProposalSignature(args);
-    } catch (err) {
-      console.warn('[CardService] submitProposalSignature fallback:', err);
-      return {
-        success: true,
-        status: 'COMPLETED',
-        transactionHash: `0x${Buffer.from(`tx_${args.proposalId}`).toString('hex').padEnd(64, '0')}`,
-      };
+      const res = await bmoniClient.submitProposalSignature(args);
+      if (!res.transactionHash && res.status !== 'COMPLETED' && !res.success) {
+        throw new BmoniUnavailableError(`BMONI signature submission failed for proposal ${args.proposalId}`);
+      }
+      return res;
+    } catch (err: unknown) {
+      console.error('[CardService] Failed to submit proposal signature:', err);
+      if (err instanceof FlowPayError) {
+        throw err;
+      }
+      throw new BmoniUnavailableError(
+        err instanceof Error ? err.message : `Failed to submit signature for proposal ${args.proposalId}`
+      );
     }
   }
 

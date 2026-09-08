@@ -1,7 +1,8 @@
 import { bmoniClient } from '../../bmoni/client.js';
-import { prisma } from '../../db/index.js';
+import { prisma, isPostgresDb } from '../../db/index.js';
 import { env } from '../../config/env.js';
 import { mailService } from '../mail/service.js';
+import { FlowPayError, BmoniUnavailableError } from '../../core/errors.js';
 
 export type EmployeeLifecycleStage = 'CREATED' | 'WALLET_PENDING' | 'KYC_PENDING' | 'ONBOARDING' | 'READY' | 'FAILED';
 export type EmployeeRecord = NonNullable<Awaited<ReturnType<typeof prisma.employee.findFirst>>>;
@@ -52,11 +53,56 @@ export class EmployeeService {
     const payrollCurrency = data.payrollCurrency?.toUpperCase() || targetCurrency;
     const id = `emp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     let bmoniUserId: string | undefined;
+    let createError: unknown;
     try {
-      const user = await bmoniClient.createEmployeeUser({ firstName: data.firstName.trim(), lastName: data.lastName.trim(), email: data.email.trim().toLowerCase(), phoneNumber: data.phoneNumber?.trim() });
+      const user = await bmoniClient.createEmployeeUser({
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        email: data.email.trim().toLowerCase(),
+        phoneNumber: data.phoneNumber?.trim(),
+      });
       bmoniUserId = user.bmoniUserId || user.id;
-    } catch (err: any) { console.warn('[EmployeeService] BMONI user creation notice (offline/sandbox fallback):', err.message || err); bmoniUserId = `usr_bmoni_${id}`; }
-    const employee = await prisma.employee.create({ data: { id, bmoniUserId, partnerId: env.BMONI_PARTNER_ID, firstName: data.firstName.trim(), lastName: data.lastName.trim(), email: data.email.trim().toLowerCase(), phoneNumber: data.phoneNumber?.trim() || null, country, targetCurrency, payrollAmountMinor: data.payrollAmountMinor, payrollCurrency, status: 'CREATED' } });
+    } catch (err: unknown) {
+      console.error('[EmployeeService] Failed to create BMONI user for employee:', err);
+      createError = err;
+    }
+
+    const employeeData = {
+      id,
+      bmoniUserId: bmoniUserId || null,
+      partnerId: env.BMONI_PARTNER_ID,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      email: data.email.trim().toLowerCase(),
+      phoneNumber: data.phoneNumber?.trim() || null,
+      country,
+      targetCurrency,
+      payrollAmountMinor: data.payrollAmountMinor,
+      payrollCurrency,
+      status: bmoniUserId ? 'CREATED' : 'FAILED',
+      failedStage: bmoniUserId ? null : 'BMONI_USER_CREATION',
+      walletId: null,
+      walletAddress: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    let employee: EmployeeRecord;
+    if (isPostgresDb()) {
+      employee = await prisma.employee.create({ data: employeeData as any });
+    } else {
+      employee = employeeData as unknown as EmployeeRecord;
+    }
+
+    if (createError) {
+      if (createError instanceof FlowPayError) {
+        throw createError;
+      }
+      throw new BmoniUnavailableError(
+        `Failed to create BMONI user: ${createError instanceof Error ? createError.message : 'BMONI user creation failed'}. Employee record saved with status FAILED.`
+      );
+    }
+
     return { employee, bmoniUserId };
   }
 

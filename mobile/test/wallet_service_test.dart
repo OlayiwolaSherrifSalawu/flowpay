@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_service.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_signer.dart';
+import 'package:flowpay_mobile/core/safety/signing_coordinator.dart';
 
 /// In-memory mock wallet service for deterministic unit testing.
 class MockWalletService implements WalletService {
@@ -489,4 +490,59 @@ void main() {
       expect(e.errorCode, BmoniSignerErrorCode.pinInvalid);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // SIGNING COORDINATOR & WALLET SIGNER INTEGRATION
+  // ---------------------------------------------------------------------------
+  group('SigningCoordinator — WalletSigner delegation & error propagation', () {
+    test('authorizes and signs using injected WalletSigner', () async {
+      final mockSigner = _MockWalletSigner();
+      final signature = await SigningCoordinator.authorizeAndSign(
+        hashToSign: '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        pin: '123456',
+        signer: mockSigner,
+      );
+      expect(signature, equals('0xMOCK_SIGNATURE_1C'));
+    });
+
+    test('propagates BmoniSignerException when signing fails (no silent success)', () async {
+      final failingSigner = _FailingWalletSigner();
+      expect(
+        () => SigningCoordinator.authorizeAndSign(
+          hashToSign: '0x1111',
+          pin: '000000',
+          signer: failingSigner,
+        ),
+        throwsA(isA<BmoniSignerException>()),
+      );
+    });
+  });
+}
+
+class _MockWalletSigner implements WalletSigner {
+  @override
+  Future<String> signMessage(String message, {String? pin}) async =>
+      '0xMOCK_SIGNATURE_1B';
+
+  @override
+  Future<String> signTransactionHash(String hashHex, {String? pin}) async =>
+      '0xMOCK_SIGNATURE_1C';
+}
+
+class _FailingWalletSigner implements WalletSigner {
+  @override
+  Future<String> signMessage(String message, {String? pin}) async {
+    throw const BmoniSignerException(
+      errorCode: BmoniSignerErrorCode.signingFailed,
+      message: 'Hardware enclave signing failed',
+    );
+  }
+
+  @override
+  Future<String> signTransactionHash(String hashHex, {String? pin}) async {
+    throw const BmoniSignerException(
+      errorCode: BmoniSignerErrorCode.signingFailed,
+      message: 'Hardware enclave signing failed',
+    );
+  }
 }

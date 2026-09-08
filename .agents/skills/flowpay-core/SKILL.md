@@ -418,8 +418,20 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Live Render Dockerfile Fix**: Included `prisma/` directory in Docker build and copied client into runner stage.
       * **Dynamic Money Missions Parsing**: Added full support for transfers, savings, FX conversions, and 3-way splits in both backend and mobile client interpreters (`ClientMissionInterpreter`).
       * **AI Operator & Network Resilience**: Wrapped operator execution in safe handlers to prevent hanging in `INTERPRETING INTENT` and added fallback to verified smart wallets when remote backend is unreachable.
+    * **Elimination of Silent BMONI Fallbacks & Fabricated Success Responses (Standing Rule Enforcement)**:
+      * **Core Mandate**: Enforced the ironclad rule: *A failed BMONI call must propagate as an explicit failure, never a synthesized success*. Completely eradicated silent `try/catch` fallbacks that generated mock transaction hashes, dummy user IDs, synthetic cards, fake signatures, or fake `status: 'SUCCESS'` / `'COMPLETED'` statuses.
+      * **Payroll Service (`backend/src/modules/payroll/service.ts`)**: In `executePayroll`, proposal failures strictly return `status: 'FAILED'` with real error message, keeping `transactionHash` undefined. Only returns `status: 'SUCCESS'` with `transactionHash` when BMONI actually returns a verified hash. In `retryProposal`, failures return `success: false` and never synthesize fake transaction hashes.
+      * **Transfers Service (`backend/src/modules/transfers/service.ts`)**: In `executeTransfer`, BMONI proposal signing or status polling failures log the error, record `action: 'TRANSFER_FAILED'` in `audit_activity`, and rethrow `BmoniUnavailableError`. Never falls through to `TRANSFER_COMPLETED`.
+      * **Cards Service (`backend/src/modules/cards/service.ts`)**: In `createVirtualCard`, `getProposalSignPayload`, and `submitProposalSignature`, eliminated fallback that synthesized fake cards, dummy hashes, or fake `COMPLETED` statuses. Propagates 400 E101 as `CardEnrollmentRequiredError` and 5xx as `BmoniUnavailableError`.
+      * **Employees & Onboarding (`backend/src/modules/employees/`)**:
+        * In `EmployeeService.createEmployee`, if `bmoniClient.createEmployeeUser` fails, the employee record is created with `status: 'FAILED'`, `failedStage: 'BMONI_USER_CREATION'`, and `bmoniUserId: null` (never assigns fake `usr_bmoni_${id}`), then throws `BmoniUnavailableError`.
+        * In `EmployeeOnboardingService`, enforced `requireBmoniUserId` across all operations. Removed deterministic sandbox fallbacks in `requestOwnerChallenge` (removed mock challenge ID and message), `provisionSmartWallet` (never sets `status: 'ACTIVE'` or DB to `KYC_PENDING` on error), `submitCountryKyc`, `activateKyc`, `activateRail`, and `getMexicoAgreements` (removed mock JWT and HTML form). In `checkKycReadiness`, queries returning errors now return `{ ready: false }` instead of `{ ready: true }`.
+      * **Mobile SDK & Signing Architecture (`mobile/lib/core/`)**:
+        * In `BmoniSdkService.signMessage` and `signTransactionHash`, removed sha256 fallback signature generation in non-test mode. Native or platform signing failures now rethrow typed `BmoniSignerException`.
+        * In `SigningCoordinator.authorizeAndSign`, routed signing strictly through `WalletSigner` (`walletSignerProvider` / `BmoniWalletSigner`) rather than calling SDK directly, conforming to standing architecture conventions.
+      * **Verification**: All 16 card tests, 6 payroll tests, 11 transfer tests, 9 employee tests, and 11 onboarding tests passing (100%). Full backend build passes cleanly with zero TypeScript errors.
     * **Verification Status**:
-      * **116/116 Flutter unit, widget, and flow tests passing (100%)**.
+      * **118/118 Flutter unit, widget, and flow tests passing (100%)**.
       * **77/77 backend tests passing across 6 test suites (100%)**.
       * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
 
