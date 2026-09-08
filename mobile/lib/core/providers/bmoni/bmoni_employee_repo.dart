@@ -215,4 +215,51 @@ class BmoniEmployeeRepository implements EmployeeRepository {
         : <String, dynamic>{};
     return EmployeeOnboardingStatusModel.fromJson(data);
   }
+
+  @override
+  Future<Map<String, dynamic>> getInviteDetails(String codeOrId) async {
+    final res = await apiClient.get('/api/employees/invite/$codeOrId');
+    if (res is Map && res['data'] is Map) {
+      return Map<String, dynamic>.from(res['data'] as Map);
+    }
+    if (res is Map) {
+      return Map<String, dynamic>.from(res);
+    }
+    throw StateError('Invalid response when fetching invite details');
+  }
+
+  @override
+  Future<Map<String, dynamic>> linkEmployeeWallet({
+    required String employeeId,
+    required String inviteToken,
+    required String bmoniUserId,
+    required String walletAddress,
+    String? walletId,
+    String? sessionToken,
+  }) async {
+    final headers = <String, String>{};
+    if (sessionToken != null && sessionToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $sessionToken';
+    }
+    headers['x-user-id'] = bmoniUserId;
+
+    final res = await apiClient.post(
+      '/api/employees/link-wallet',
+      headers: headers,
+      body: {
+        'employeeId': employeeId,
+        'inviteToken': inviteToken,
+        'bmoniUserId': bmoniUserId,
+        'walletAddress': walletAddress,
+        if (walletId != null) 'walletId': walletId,
+        'requestingUserId': bmoniUserId,
+      },
+    );
+
+    if (res is Map && res['data'] is Map) {
+      return Map<String, dynamic>.from(res['data'] as Map);
+    }
+    return (res is Map) ? Map<String, dynamic>.from(res) : {};
+  }
 }
+

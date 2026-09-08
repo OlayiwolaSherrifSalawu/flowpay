@@ -149,7 +149,7 @@ describe('Employee Management Validation & Lifecycle', () => {
     }
   });
 
-  it('succeeds and records real bmoniUserId when BMONI user creation succeeds', async () => {
+  it('succeeds and records real bmoniUserId with status INVITED and single-use inviteToken', async () => {
     const { bmoniClient } = await import('../../bmoni/client.js');
     const { prisma, isPostgresDb } = await import('../../db/index.js');
 
@@ -177,8 +177,10 @@ describe('Employee Management Validation & Lifecycle', () => {
       });
 
       assert.strictEqual(result.bmoniUserId, 'usr_real_bmoni_99999');
-      assert.strictEqual(result.employee.status, 'CREATED');
+      assert.strictEqual(result.employee.status, 'INVITED');
       assert.strictEqual(result.employee.bmoniUserId, 'usr_real_bmoni_99999');
+      assert.ok(result.inviteToken, 'Must generate single-use inviteToken');
+      assert.ok(result.inviteUrl, 'Must generate inviteUrl');
       createdRecordId = result.employee.id;
     } finally {
       bmoniClient.createEmployeeUser = originalCreate;
@@ -187,4 +189,184 @@ describe('Employee Management Validation & Lifecycle', () => {
       }
     }
   });
+
+  describe('Employee Invite-Then-Self-Onboard Wallet Linkage', () => {
+    it('links wallet with valid token and matching employee session -> transitions status to READY', async () => {
+      const { bmoniClient } = await import('../../bmoni/client.js');
+      const originalCreate = bmoniClient.createEmployeeUser;
+      bmoniClient.createEmployeeUser = async () => ({
+        id: 'usr_emp_onboard_1',
+        bmoniUserId: 'usr_emp_onboard_1',
+        firstName: 'Amara',
+        lastName: 'Okonkwo',
+        email: 'amara.okonkwo@flowpay.ng',
+        partnerId: 'part_flowpay_01',
+        createdAt: new Date().toISOString(),
+      });
+
+      try {
+        const invite = await EmployeeService.createEmployee({
+          firstName: 'Amara',
+          lastName: 'Okonkwo',
+          email: 'amara.okonkwo@flowpay.ng',
+          country: 'NG',
+          payrollAmountMinor: 310000000,
+        });
+
+        assert.strictEqual(invite.employee.status, 'INVITED');
+        assert.ok(invite.inviteToken);
+
+        // Fetch invite details
+        const details = await EmployeeService.getInviteDetails(invite.inviteToken);
+        assert.strictEqual(details.email, 'amara.okonkwo@flowpay.ng');
+
+        // Employee self-onboards on own device, receives own session
+        const employeeSessionUserId = 'usr_emp_onboard_1';
+        const hardwareWalletAddress = '0x1234567890abcdef1234567890abcdef12345678';
+
+        const linked = await EmployeeService.linkEmployeeWallet({
+          employeeId: invite.employee.id,
+          inviteToken: invite.inviteToken,
+          bmoniUserId: employeeSessionUserId,
+          walletAddress: hardwareWalletAddress,
+          requestingUserId: employeeSessionUserId,
+        });
+
+        assert.strictEqual(linked.status, 'READY');
+        assert.strictEqual(linked.walletAddress, hardwareWalletAddress);
+        assert.strictEqual(linked.bmoniUserId, employeeSessionUserId);
+      } finally {
+        bmoniClient.createEmployeeUser = originalCreate;
+      }
+    });
+
+    it('rejects link-wallet attempt with wrong/foreign session', async () => {
+      const { bmoniClient } = await import('../../bmoni/client.js');
+      const originalCreate = bmoniClient.createEmployeeUser;
+      bmoniClient.createEmployeeUser = async () => ({
+        id: 'usr_emp_onboard_2',
+        bmoniUserId: 'usr_emp_onboard_2',
+        firstName: 'Chidi',
+        lastName: 'Eze',
+        email: 'chidi.eze@flowpay.ng',
+        partnerId: 'part_flowpay_01',
+        createdAt: new Date().toISOString(),
+      });
+
+      try {
+        const invite = await EmployeeService.createEmployee({
+          firstName: 'Chidi',
+          lastName: 'Eze',
+          email: 'chidi.eze@flowpay.ng',
+          country: 'NG',
+          payrollAmountMinor: 150000000,
+        });
+
+        // An unauthorized employer or malicious third party tries to claim the wallet
+        const foreignSessionId = 'usr_foreign_attacker_or_employer';
+
+        await assert.rejects(
+          async () => {
+            await EmployeeService.linkEmployeeWallet({
+              employeeId: invite.employee.id,
+              inviteToken: invite.inviteToken,
+              bmoniUserId: 'usr_foreign_attacker_or_employer',
+              walletAddress: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef',
+              requestingUserId: foreignSessionId,
+            });
+          },
+          (err: any) => {
+            return err.statusCode === 403 && err.code === 'FORBIDDEN';
+          },
+          'Must reject wallet linking with foreign session token'
+        );
+      } finally {
+        bmoniClient.createEmployeeUser = originalCreate;
+      }
+    });
+
+    it('rejects link-wallet attempt with expired invite token', async () => {
+      const { employeeInvites } = await import('./service.js');
+      const expiredToken = 'token_already_expired_123';
+      employeeInvites.set(expiredToken, {
+        token: expiredToken,
+        employeeId: 'emp_expired_test',
+        email: 'expired.worker@flowpay.test',
+        firstName: 'Expired',
+        lastName: 'Worker',
+        country: 'NG',
+        targetCurrency: 'NGN',
+        payrollAmountMinor: 1000000,
+        expiresAt: new Date(Date.now() - 3600000), // expired 1 hour ago
+      });
+
+      await assert.rejects(
+        async () => {
+          await EmployeeService.linkEmployeeWallet({
+            inviteToken: expiredToken,
+            bmoniUserId: 'usr_emp_expired',
+            walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+            requestingUserId: 'usr_emp_expired',
+          });
+        },
+        (err: any) => {
+          return err.statusCode === 410 && err.code === 'EXPIRED';
+        },
+        'Must reject expired invite tokens with 410 EXPIRED'
+      );
+    });
+
+    it('rejects link-wallet attempt when invite token is used twice (single-use enforcement)', async () => {
+      const { bmoniClient } = await import('../../bmoni/client.js');
+      const originalCreate = bmoniClient.createEmployeeUser;
+      bmoniClient.createEmployeeUser = async () => ({
+        id: 'usr_emp_onboard_single_use',
+        bmoniUserId: 'usr_emp_onboard_single_use',
+        firstName: 'Tolu',
+        lastName: 'Ade',
+        email: 'tolu.ade@flowpay.ng',
+        partnerId: 'part_flowpay_01',
+        createdAt: new Date().toISOString(),
+      });
+
+      try {
+        const invite = await EmployeeService.createEmployee({
+          firstName: 'Tolu',
+          lastName: 'Ade',
+          email: 'tolu.ade@flowpay.ng',
+          country: 'NG',
+          payrollAmountMinor: 200000000,
+        });
+
+        // 1st attempt: success
+        await EmployeeService.linkEmployeeWallet({
+          employeeId: invite.employee.id,
+          inviteToken: invite.inviteToken,
+          bmoniUserId: 'usr_emp_onboard_single_use',
+          walletAddress: '0x1111111111111111111111111111111111111111',
+          requestingUserId: 'usr_emp_onboard_single_use',
+        });
+
+        // 2nd attempt: must fail with ALREADY_USED
+        await assert.rejects(
+          async () => {
+            await EmployeeService.linkEmployeeWallet({
+              employeeId: invite.employee.id,
+              inviteToken: invite.inviteToken,
+              bmoniUserId: 'usr_emp_onboard_single_use',
+              walletAddress: '0x2222222222222222222222222222222222222222',
+              requestingUserId: 'usr_emp_onboard_single_use',
+            });
+          },
+          (err: any) => {
+            return err.statusCode === 410 && err.code === 'ALREADY_USED';
+          },
+          'Must reject re-using an invite token once linked'
+        );
+      } finally {
+        bmoniClient.createEmployeeUser = originalCreate;
+      }
+    });
+  });
 });
+

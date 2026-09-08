@@ -99,6 +99,83 @@ employeesRouter.post('/invite', async (req, res, next) => {
   }
 });
 
+// GET /api/employees/invite/:codeOrId - Resolve invite token details for employee self-onboarding
+employeesRouter.get('/invite/:codeOrId', async (req, res, next) => {
+  try {
+    const invite = await EmployeeService.getInviteDetails(req.params.codeOrId);
+    res.json({ success: true, data: invite });
+  } catch (err: any) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        success: false,
+        code: err.code || 'INVITE_ERROR',
+        message: err.message,
+      });
+    }
+    next(err);
+  }
+});
+
+// POST /api/employees/link-wallet - Link employee's self-custody wallet created on their own device
+employeesRouter.post('/link-wallet', async (req, res, next) => {
+  try {
+    const { employeeId, inviteToken, bmoniUserId, walletAddress, walletId } = req.body;
+
+    // Resolve requesting user from session header (x-user-id or Authorization bearer)
+    const headerUserId = req.headers['x-user-id'] as string | undefined;
+    const authHeader = req.headers.authorization;
+    let requestingUserId = headerUserId;
+
+    if (!requestingUserId && authHeader?.startsWith('Bearer ')) {
+      const bearer = authHeader.substring(7);
+      const match = bearer.match(/^flowpay_jwt_(usr_[a-zA-Z0-9_-]+)/);
+      requestingUserId = match ? match[1] : bearer;
+    }
+
+    if (!requestingUserId && req.body.requestingUserId) {
+      requestingUserId = req.body.requestingUserId;
+    }
+
+    const requestingEmail = (req.headers['x-user-email'] as string | undefined) || req.body.requestingEmail;
+
+    if (!inviteToken) {
+      return res.status(400).json({ success: false, message: 'inviteToken is required' });
+    }
+    if (!walletAddress) {
+      return res.status(400).json({ success: false, message: 'walletAddress is required' });
+    }
+    if (!bmoniUserId) {
+      return res.status(400).json({ success: false, message: 'bmoniUserId is required' });
+    }
+
+    const updated = await EmployeeService.linkEmployeeWallet({
+      employeeId,
+      inviteToken,
+      bmoniUserId,
+      walletAddress,
+      walletId,
+      requestingUserId,
+      requestingEmail,
+    });
+
+    res.json({
+      success: true,
+      message: 'Employee wallet linked successfully and ready for payroll',
+      data: updated,
+    });
+  } catch (err: any) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        success: false,
+        code: err.code || 'LINK_ERROR',
+        message: err.message,
+      });
+    }
+    next(err);
+  }
+});
+
+
 // PATCH /api/employees/:id/status - Update lifecycle stage
 employeesRouter.patch('/:id/status', async (req, res, next) => {
   try {

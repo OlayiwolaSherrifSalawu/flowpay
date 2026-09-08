@@ -18,10 +18,14 @@ import 'set_pin_screen.dart';
 /// and Business KYB (Entity Docs + Signatory Verification + Payroll Rail Activation).
 class KycScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
+  final String? employeeInviteToken;
+  final String? employeeId;
 
   const KycScreen({
     super.key,
     required this.userProfile,
+    this.employeeInviteToken,
+    this.employeeId,
   });
 
   @override
@@ -168,6 +172,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           MaterialPageRoute(
             builder: (_) => SetPinScreen(
               userProfile: updatedProfile,
+              employeeInviteToken: widget.employeeInviteToken,
+              employeeId: widget.employeeId,
             ),
           ),
         );
