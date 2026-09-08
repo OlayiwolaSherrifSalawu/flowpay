@@ -63,6 +63,9 @@ abstract final class BmoniSignerErrorCode {
   /// A general signing pipeline error occurred (decryption, ECDSA, etc.).
   static const int signProcess = 0x30010004;
 
+  /// General signing failure alias.
+  static const int signingFailed = signProcess;
+
   /// Generating a fresh secp256k1 keypair failed.
   static const int signKeygen = 0x30010005;
 

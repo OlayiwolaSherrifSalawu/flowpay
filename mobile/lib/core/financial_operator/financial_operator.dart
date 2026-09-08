@@ -156,6 +156,34 @@ class FinancialOperator extends ChangeNotifier {
       for (final act in intent.actions) {
         if (act.id == prompt.targetActionId) {
           if (prompt.field == 'recipient') {
+            // Handle special non-name action values
+            if (answer.toUpperCase() == 'ADD_BENEFICIARY' ||
+                answer.toLowerCase() == 'add beneficiary' ||
+                answer.toLowerCase() == 'add new beneficiary') {
+              final promptMsg = OperatorMessage.operator(
+                'Please use the "Add New Beneficiary" button above to enter their details, or reply naturally with their full legal name and country (e.g., "Dad is Ade Fashola in Nigeria").',
+                clarification: prompt,
+              );
+              _session = _session.copyWith(
+                messages: [..._session.messages, promptMsg],
+              );
+              notifyListeners();
+              return;
+            }
+
+            if (answer.toUpperCase() == 'CHOOSE_EXISTING' ||
+                answer.toUpperCase() == 'CHOOSE_CONTACT') {
+              final promptMsg = OperatorMessage.operator(
+                'Please use the "Choose Existing Contact" button above to select from your saved beneficiaries.',
+                clarification: prompt,
+              );
+              _session = _session.copyWith(
+                messages: [..._session.messages, promptMsg],
+              );
+              notifyListeners();
+              return;
+            }
+
             // Resolve beneficiary from answer
             // e.g. "Mary, my Nigerian beneficiary" -> extracts Mary or resolves
             final beneficiaryQuery = _extractBeneficiaryName(answer);
@@ -176,6 +204,64 @@ class FinancialOperator extends ChangeNotifier {
                         b.destinationCountry.toLowerCase().contains('nigeria'))) {
                   match = b;
                   break;
+                }
+              }
+            }
+
+            // If still null, check if user provided a natural sentence: "Dad is Ade Fashola in Nigeria"
+            if (match == null) {
+              final lower = answer.toLowerCase();
+              if (lower.contains(' in ') ||
+                  lower.contains(' is ') ||
+                  lower.contains(',')) {
+                String country = 'Nigeria';
+                String flag = '🇳🇬';
+                Currency cur = Currency.ngn;
+                if (lower.contains('mexico')) {
+                  country = 'Mexico';
+                  flag = '🇲🇽';
+                  cur = Currency.mxn;
+                } else if (lower.contains('united states') ||
+                    lower.contains('usa') ||
+                    lower.contains('us')) {
+                  country = 'United States';
+                  flag = '🇺🇸';
+                  cur = Currency.usd;
+                } else if (lower.contains('canada')) {
+                  country = 'Canada';
+                  flag = '🇨🇦';
+                  cur = Currency.cad;
+                }
+
+                String cleanName = answer
+                    .replaceAll(
+                        RegExp(
+                            r'^(?:his\s+name\s+is|her\s+name\s+is|they\s+are|he\s+is|she\s+is|[a-zA-Z]+\s+is)\s+',
+                            caseSensitive: false),
+                        '')
+                    .replaceAll(
+                        RegExp(r'\s+(?:in|from)\s+[a-zA-Z\s]+$',
+                            caseSensitive: false),
+                        '')
+                    .replaceAll(RegExp(r'[,.]'), '')
+                    .trim();
+
+                if (cleanName.isNotEmpty && cleanName.length > 2) {
+                  final unknownNickname =
+                      act.person?.rawInput.trim() ?? 'Beneficiary';
+                  final newBeneficiary = Beneficiary(
+                    id: 'ben_${DateTime.now().millisecondsSinceEpoch}',
+                    nickname: unknownNickname,
+                    legalName: cleanName,
+                    relationship: 'Family',
+                    destinationCountry: country,
+                    countryFlag: flag,
+                    currency: cur,
+                    accountOrAddress: '0123456789 (Verified Bank)',
+                    isVerified: true,
+                  );
+                  await contextService.addBeneficiary(newBeneficiary);
+                  match = newBeneficiary;
                 }
               }
             }
@@ -300,6 +386,49 @@ class FinancialOperator extends ChangeNotifier {
     await processInput(option.value);
   }
 
+  /// Resolve pending clarification with a concrete beneficiary (from modal or selection)
+  Future<void> resolvePendingClarificationWithBeneficiary(
+      Beneficiary beneficiary) async {
+    final prompt = _session.pendingClarification;
+    final intent = _session.activeIntent;
+    if (prompt == null || intent == null) return;
+
+    final updatedActions = <ActionIntent>[];
+    for (final act in intent.actions) {
+      if (act.id == prompt.targetActionId) {
+        updatedActions.add(
+          act.copyWith(
+            person: PersonEntity(
+              rawInput: beneficiary.legalName,
+              resolvedBeneficiary: beneficiary,
+              knowledgeState: EntityKnowledgeState.known,
+              aliasMatched: beneficiary.nickname,
+            ),
+            description:
+                'Send ${act.amount.formattedDisplay} to ${beneficiary.legalName} (${beneficiary.nickname})',
+          ),
+        );
+      } else {
+        updatedActions.add(act);
+      }
+    }
+
+    final resolvedIntent = intent.copyWith(actions: updatedActions);
+    _session = _session.copyWith(
+      activeIntent: resolvedIntent,
+      clearPendingClarification: true,
+      status: OperatorSessionStatus.interpreting,
+      messages: [
+        ..._session.messages,
+        OperatorMessage.user(
+            'Beneficiary selected: ${beneficiary.legalName} (${beneficiary.nickname})'),
+      ],
+    );
+    notifyListeners();
+
+    await _compileAndPresentPlan(resolvedIntent);
+  }
+
   /// Compile structured intent into a validated FinancialPlan and present for review
   Future<void> _compileAndPresentPlan(StructuredIntent intent) async {
     final plan = await _planner.createPlan(intent);
@@ -318,6 +447,7 @@ class FinancialOperator extends ChangeNotifier {
       _session = _session.copyWith(
         status: OperatorSessionStatus.error,
         activePlan: plan,
+        clearPendingClarification: true,
         messages: [..._session.messages, errorMsg],
       );
       notifyListeners();
@@ -341,6 +471,7 @@ class FinancialOperator extends ChangeNotifier {
     _session = _session.copyWith(
       status: OperatorSessionStatus.readyForReview,
       activePlan: plan,
+      clearPendingClarification: true,
       messages: [..._session.messages, planMsg],
     );
     notifyListeners();

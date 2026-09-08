@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flowpay_mobile/core/beneficiaries/beneficiary_model.dart';
 import 'package:flowpay_mobile/core/beneficiaries/beneficiary_repository.dart';
 import 'package:flowpay_mobile/core/financial_operator/financial_operator.dart';
 import 'package:flowpay_mobile/core/financial_operator/models/financial_entities.dart';
@@ -283,6 +284,48 @@ void main() {
 
       // Verify quick action pills
       expect(find.textContaining('Send 500 usd to mom'), findsOneWidget);
+    });
+
+    test('12. Clarification Flow: Resolves unknown beneficiary via Add Beneficiary',
+        () async {
+      final op = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      // 1. Process request with unknown beneficiary "Dad"
+      await op.processInput('Send 500 to dad');
+
+      expect(op.status, equals(OperatorSessionStatus.waitingForClarification));
+      expect(op.pendingClarification?.question, contains('dad'));
+      expect(
+        op.pendingClarification?.options
+            .any((o) => o.value == 'ADD_BENEFICIARY'),
+        isTrue,
+      );
+
+      // 2. Resolve with a newly created beneficiary
+      const newDad = Beneficiary(
+        id: 'ben_dad_test_01',
+        nickname: 'Dad',
+        legalName: 'Ade Fashola',
+        relationship: 'Father',
+        destinationCountry: 'Nigeria',
+        countryFlag: '🇳🇬',
+        currency: Currency.ngn,
+        accountOrAddress: '0123456789 (GTBank)',
+        isVerified: true,
+      );
+      await contextService.addBeneficiary(newDad);
+      await op.resolvePendingClarificationWithBeneficiary(newDad);
+
+      // 3. Verify session resolves to ready and plan is compiled
+      expect(op.status, equals(OperatorSessionStatus.readyForReview));
+      expect(op.pendingClarification, isNull);
+      expect(op.activePlan, isNotNull);
+      expect(op.activePlan!.validation.isValid, isTrue);
+      expect(
+          op.activePlan!.actions.first.destinationName, contains('Ade Fashola'));
     });
   });
 }

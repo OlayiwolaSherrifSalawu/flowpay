@@ -379,7 +379,16 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       setState(() {
         _isAnalyzing = false;
         _analysisStep = null;
-        _errorMessage = 'Transfer failed: $e';
+        final errStr = e.toString();
+        if (errStr.contains('SocketException') ||
+            errStr.contains('Failed host lookup') ||
+            errStr.contains('ClientException') ||
+            errStr.contains('errno = 7')) {
+          _errorMessage =
+              'Transfer failed: Unable to connect to the FlowPay network. Please check your internet connection and try again.';
+        } else {
+          _errorMessage = 'Transfer failed: $e';
+        }
       });
     }
   }
