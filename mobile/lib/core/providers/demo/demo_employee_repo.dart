@@ -36,7 +36,6 @@ class DemoEmployeeRepository implements EmployeeRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final newId = 'emp_demo_${DateTime.now().millisecondsSinceEpoch}';
-    final randomHex = (1000 + _employees.length).toString();
     final bmoniId = 'usr_bmoni_${newId.substring(4)}';
 
     final emp = EmployeeModel(

@@ -133,6 +133,7 @@ void main() {
         userId: 'usr_personal_amara',
         fullName: 'Amara Okonkwo',
         email: 'amara.okonkwo@flowpay.ng',
+        phone: '+2348012345678',
         accountType: AccountType.personal,
         country: 'NG',
         createdAt: DateTime.now(),
@@ -151,13 +152,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter National ID (BVN)
+      // Enter National ID (BVN), DOB, and Address
       final idField = find.descendant(
         of: find.widgetWithText(
             FlowPayTextField, 'Bank Verification Number (BVN) / NIN'),
         matching: find.byType(TextField),
       );
       await tester.enterText(idField, '22233344455');
+      await tester.pumpAndSettle();
+
+      final dobField = find.descendant(
+        of: find.widgetWithText(
+            FlowPayTextField, 'Date of Birth (YYYY-MM-DD)'),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(dobField, '1995-05-15');
+      await tester.pumpAndSettle();
+
+      final addressField = find.descendant(
+        of: find.widgetWithText(
+            FlowPayTextField, 'Residential Address'),
+        matching: find.byType(TextField),
+      );
+      await tester.enterText(addressField, '10 Marina Road, Lagos');
       await tester.pumpAndSettle();
 
       // Run facial liveness scan
@@ -167,7 +184,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Complete KYC
-      await tester.tap(find.text('Complete Identity Verification'));
+      final submitBtn = find.text('Complete KYC & Set PIN');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
       // Verify navigated to SetPinScreen with invite parameters attached

@@ -40,8 +40,11 @@ class FlowPayColors {
 
   static const Color stateSuccess = Color(0xFF00E599);
   static const Color success = stateSuccess;
+  static const Color successSubtle = Color(0x1A00E599);
   static const Color statePending = Color(0xFFF59E0B);
+  static const Color warningSubtle = Color(0x1AF59E0B);
   static const Color stateError = Color(0xFFEF4444);
+  static const Color errorSubtle = Color(0x1AEF4444);
   static const Color stateInfo = Color(0xFF38BDF8);
 
   // Dark Theme Palette (Obsidian Slate System)
