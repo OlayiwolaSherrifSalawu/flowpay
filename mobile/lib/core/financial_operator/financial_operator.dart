@@ -67,204 +67,228 @@ class FinancialOperator extends ChangeNotifier {
     );
     notifyListeners();
 
-    // 2. Handle waiting for clarification state
-    if (_session.status == OperatorSessionStatus.waitingForClarification &&
-        _session.pendingClarification != null) {
-      await _handleClarificationResponse(text);
-      return;
-    }
-
-    // 3. Handle ready for review state
-    if (_session.status == OperatorSessionStatus.readyForReview &&
-        _session.activePlan != null) {
-      final lower = text.toLowerCase();
-      if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
-        // Will prompt PIN in UI or execute with demo PIN
-        await approveAndExecute(pin: '123456');
-        return;
-      } else if (lower == 'cancel' || lower == 'reject' || lower == 'no') {
-        cancelSession();
+    try {
+      // 2. Handle waiting for clarification state
+      if (_session.status == OperatorSessionStatus.waitingForClarification &&
+          _session.pendingClarification != null) {
+        await _handleClarificationResponse(text);
         return;
       }
-    }
 
-    // 4. Initial interpretation of a new request
-    _session = _session.copyWith(status: OperatorSessionStatus.interpreting);
-    notifyListeners();
+      // 3. Handle ready for review state
+      if (_session.status == OperatorSessionStatus.readyForReview &&
+          _session.activePlan != null) {
+        final lower = text.toLowerCase();
+        if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
+          // Will prompt PIN in UI or execute with demo PIN
+          await approveAndExecute(pin: '123456');
+          return;
+        } else if (lower == 'cancel' || lower == 'reject' || lower == 'no') {
+          cancelSession();
+          return;
+        }
+      }
 
-    // Handle quick balance / transaction queries directly
-    final parsedIntent = FinancialIntentEngine.parse(text);
+      // 4. Initial interpretation of a new request
+      _session = _session.copyWith(status: OperatorSessionStatus.interpreting);
+      notifyListeners();
 
-    if (parsedIntent.primaryIntent == FinancialIntentType.checkBalance) {
-      await _handleBalanceCheck();
-      return;
-    }
+      // Handle quick balance / transaction queries directly
+      final parsedIntent = FinancialIntentEngine.parse(text);
 
-    if (parsedIntent.primaryIntent == FinancialIntentType.viewTransactions) {
-      await _handleTransactionCheck();
-      return;
-    }
+      if (parsedIntent.primaryIntent == FinancialIntentType.checkBalance) {
+        await _handleBalanceCheck();
+        return;
+      }
 
-    // Resolve entities against application state
-    final resolvedIntent = await _contextResolver.resolve(parsedIntent);
-    _session = _session.copyWith(activeIntent: resolvedIntent);
+      if (parsedIntent.primaryIntent == FinancialIntentType.viewTransactions) {
+        await _handleTransactionCheck();
+        return;
+      }
 
-    // Evaluate for missing or ambiguous information
-    final clarification =
-        ClarificationEngine.evaluateClarification(resolvedIntent);
+      // Resolve entities against application state
+      final resolvedIntent = await _contextResolver.resolve(parsedIntent);
+      _session = _session.copyWith(activeIntent: resolvedIntent);
 
-    if (clarification != null) {
-      // Need clarification before planning
-      final promptMsg = OperatorMessage.operator(
-        clarification.question,
-        clarification: clarification,
+      // Evaluate for missing or ambiguous information
+      final clarification =
+          ClarificationEngine.evaluateClarification(resolvedIntent);
+
+      if (clarification != null) {
+        // Need clarification before planning
+        final promptMsg = OperatorMessage.operator(
+          clarification.question,
+          clarification: clarification,
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.waitingForClarification,
+          pendingClarification: clarification,
+          messages: [..._session.messages, promptMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // If all entities are known, compile the plan!
+      await _compileAndPresentPlan(resolvedIntent);
+    } catch (err) {
+      final errorMsg = OperatorMessage.operator(
+        'I encountered an issue while processing your request: $err. Please try rephrasing or specify the amount and recipient directly.',
+        isError: true,
       );
       _session = _session.copyWith(
-        status: OperatorSessionStatus.waitingForClarification,
-        pendingClarification: clarification,
-        messages: [..._session.messages, promptMsg],
+        status: OperatorSessionStatus.error,
+        messages: [..._session.messages, errorMsg],
       );
       notifyListeners();
-      return;
     }
-
-    // If all entities are known, compile the plan!
-    await _compileAndPresentPlan(resolvedIntent);
   }
 
   /// Handle clarification response when user types an answer
   Future<void> _handleClarificationResponse(String answer) async {
-    final prompt = _session.pendingClarification!;
-    final intent = _session.activeIntent;
-    if (intent == null) return;
+    try {
+      final prompt = _session.pendingClarification!;
+      final intent = _session.activeIntent;
+      if (intent == null) return;
 
-    final updatedActions = <ActionIntent>[];
+      final updatedActions = <ActionIntent>[];
 
-    for (final act in intent.actions) {
-      if (act.id == prompt.targetActionId) {
-        if (prompt.field == 'recipient') {
-          // Resolve beneficiary from answer
-          // e.g. "Mary, my Nigerian beneficiary" -> extracts Mary or resolves
-          final beneficiaryQuery = _extractBeneficiaryName(answer);
-          final res = await contextService.resolveBeneficiary(beneficiaryQuery);
+      for (final act in intent.actions) {
+        if (act.id == prompt.targetActionId) {
+          if (prompt.field == 'recipient') {
+            // Resolve beneficiary from answer
+            // e.g. "Mary, my Nigerian beneficiary" -> extracts Mary or resolves
+            final beneficiaryQuery = _extractBeneficiaryName(answer);
+            final res = await contextService.resolveBeneficiary(beneficiaryQuery);
 
-          Beneficiary? match = res.match;
-          if (match == null && res.candidates.isNotEmpty) {
-            match = res.candidates.first;
-          }
+            Beneficiary? match = res.match;
+            if (match == null && res.candidates.isNotEmpty) {
+              match = res.candidates.first;
+            }
 
-          // If still null, check if any existing beneficiary matches Nigeria / Mary
-          if (match == null) {
-            final all = await contextService.getBeneficiaries();
-            for (final b in all) {
-              if (answer.toLowerCase().contains(b.legalName.toLowerCase()) ||
-                  answer.toLowerCase().contains(b.nickname.toLowerCase()) ||
-                  (answer.toLowerCase().contains('nigeria') &&
-                      b.destinationCountry.toLowerCase().contains('nigeria'))) {
-                match = b;
-                break;
+            // If still null, check if any existing beneficiary matches Nigeria / Mary
+            if (match == null) {
+              final all = await contextService.getBeneficiaries();
+              for (final b in all) {
+                if (answer.toLowerCase().contains(b.legalName.toLowerCase()) ||
+                    answer.toLowerCase().contains(b.nickname.toLowerCase()) ||
+                    (answer.toLowerCase().contains('nigeria') &&
+                        b.destinationCountry.toLowerCase().contains('nigeria'))) {
+                  match = b;
+                  break;
+                }
               }
             }
-          }
 
-          if (match != null) {
+            if (match != null) {
+              updatedActions.add(
+                act.copyWith(
+                  person: PersonEntity(
+                    rawInput: match.legalName,
+                    resolvedBeneficiary: match,
+                    knowledgeState: EntityKnowledgeState.known,
+                    aliasMatched: match.nickname,
+                  ),
+                  description:
+                      'Send ${act.amount.formattedDisplay} to ${match.legalName} (${match.nickname})',
+                ),
+              );
+            } else {
+              // Cannot resolve: ask again
+              final retryMsg = OperatorMessage.operator(
+                'I still couldn\'t find a beneficiary matching "$answer". Please choose from your existing contacts or add them first.',
+                clarification: prompt,
+              );
+              _session = _session.copyWith(
+                messages: [..._session.messages, retryMsg],
+              );
+              notifyListeners();
+              return;
+            }
+          } else if (prompt.field == 'destination') {
+            // Resolve destination from answer: e.g. "Put it in my USD savings"
+            String destName = 'USD Savings';
+            if (answer.toLowerCase().contains('create')) {
+              destName = 'Tax Reserve';
+            } else if (answer.toLowerCase().contains('wallet')) {
+              destName = 'USD Wallet';
+            }
+
+            final usdWallet =
+                await contextService.getWalletForCurrency(Currency.usd);
+
             updatedActions.add(
               act.copyWith(
-                person: PersonEntity(
-                  rawInput: match.legalName,
-                  resolvedBeneficiary: match,
+                destination: DestinationEntity(
+                  type: DestinationType.reserve,
+                  rawInput: destName,
+                  resolvedWalletId: usdWallet?.id ?? 'sw_demo_usdb_01',
+                  resolvedWalletName: destName,
+                  resolvedCurrency: Currency.usd,
                   knowledgeState: EntityKnowledgeState.known,
-                  aliasMatched: match.nickname,
                 ),
-                description:
-                    'Send ${act.amount.formattedDisplay} to ${match.legalName} (${match.nickname})',
+                description: 'Reserve ${act.amount.formattedDisplay} in $destName',
+              ),
+            );
+          } else if (prompt.field == 'amount') {
+            final amtClean = answer.replaceAll(RegExp(r'[^0-9.]'), '');
+            final money = Money.fromMajorString(amtClean, Currency.usd);
+            updatedActions.add(
+              act.copyWith(
+                amount: AmountEntity(
+                  rawInput: answer,
+                  type: AmountType.fixed,
+                  fixedAmount: money,
+                  currency: Currency.usd,
+                  knowledgeState: EntityKnowledgeState.known,
+                ),
               ),
             );
           } else {
-            // Cannot resolve: ask again
-            final retryMsg = OperatorMessage.operator(
-              'I still couldn\'t find a beneficiary matching "$answer". Please choose from your existing contacts or add them first.',
-              clarification: prompt,
-            );
-            _session = _session.copyWith(
-              messages: [..._session.messages, retryMsg],
-            );
-            notifyListeners();
-            return;
+            updatedActions.add(act);
           }
-        } else if (prompt.field == 'destination') {
-          // Resolve destination from answer: e.g. "Put it in my USD savings"
-          String destName = 'USD Savings';
-          if (answer.toLowerCase().contains('create')) {
-            destName = 'Tax Reserve';
-          } else if (answer.toLowerCase().contains('wallet')) {
-            destName = 'USD Wallet';
-          }
-
-          final usdWallet =
-              await contextService.getWalletForCurrency(Currency.usd);
-
-          updatedActions.add(
-            act.copyWith(
-              destination: DestinationEntity(
-                type: DestinationType.reserve,
-                rawInput: destName,
-                resolvedWalletId: usdWallet?.id ?? 'sw_demo_usdb_01',
-                resolvedWalletName: destName,
-                resolvedCurrency: Currency.usd,
-                knowledgeState: EntityKnowledgeState.known,
-              ),
-              description: 'Reserve ${act.amount.formattedDisplay} in $destName',
-            ),
-          );
-        } else if (prompt.field == 'amount') {
-          final amtClean = answer.replaceAll(RegExp(r'[^0-9.]'), '');
-          final money = Money.fromMajorString(amtClean, Currency.usd);
-          updatedActions.add(
-            act.copyWith(
-              amount: AmountEntity(
-                rawInput: answer,
-                type: AmountType.fixed,
-                fixedAmount: money,
-                currency: Currency.usd,
-                knowledgeState: EntityKnowledgeState.known,
-              ),
-            ),
-          );
         } else {
           updatedActions.add(act);
         }
-      } else {
-        updatedActions.add(act);
       }
-    }
 
-    final newIntent = intent.copyWith(actions: updatedActions);
-    _session = _session.copyWith(
-      activeIntent: newIntent,
-      clearPendingClarification: true,
-    );
+      final newIntent = intent.copyWith(actions: updatedActions);
+      _session = _session.copyWith(
+        activeIntent: newIntent,
+        clearPendingClarification: true,
+      );
 
-    // Re-evaluate if any other actions need clarification
-    final nextClarification =
-        ClarificationEngine.evaluateClarification(newIntent);
+      // Re-evaluate if any other actions need clarification
+      final nextClarification =
+          ClarificationEngine.evaluateClarification(newIntent);
 
-    if (nextClarification != null) {
-      final promptMsg = OperatorMessage.operator(
-        'Got it. ${nextClarification.question}',
-        clarification: nextClarification,
+      if (nextClarification != null) {
+        final promptMsg = OperatorMessage.operator(
+          'Got it. ${nextClarification.question}',
+          clarification: nextClarification,
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.waitingForClarification,
+          pendingClarification: nextClarification,
+          messages: [..._session.messages, promptMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // All clear! Compile the plan
+      await _compileAndPresentPlan(newIntent);
+    } catch (err) {
+      final errorMsg = OperatorMessage.operator(
+        'I encountered an error during clarification: $err. Please try again.',
+        isError: true,
       );
       _session = _session.copyWith(
-        status: OperatorSessionStatus.waitingForClarification,
-        pendingClarification: nextClarification,
-        messages: [..._session.messages, promptMsg],
+        status: OperatorSessionStatus.error,
+        messages: [..._session.messages, errorMsg],
       );
       notifyListeners();
-      return;
     }
-
-    // All clear! Compile the plan
-    await _compileAndPresentPlan(newIntent);
   }
 
   /// Handle 1-tap clarification option selection

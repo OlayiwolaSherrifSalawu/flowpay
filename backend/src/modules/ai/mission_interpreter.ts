@@ -280,6 +280,98 @@ Output strictly valid JSON conforming to the schema.`,
       };
     }
 
+    // Rule C: Send / Transfer directive (e.g. "send $500 to mom", "pay 200 usd to mary")
+    const transferMatch = trimmed.match(/(?:send|pay|transfer)\s+(?:[\$₦€£]?[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?\s*(?:usd|ngn|mxn|cad|eur)?)\s+(?:to|for)\s+([A-Za-z0-9._%+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?|[A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+    if (transferMatch || /(?:send|pay|transfer)/i.test(trimmed)) {
+      const recipient = transferMatch && transferMatch[1] ? transferMatch[1].trim() : 'Recipient';
+      const cleanRecipient = recipient.replace(/^(?:my\s+)/i, '');
+      const ruleTitle = `Send $${sourceMoney.toMajorString()} ${sourceCurrency} to ${cleanRecipient}`;
+
+      allocations.push({
+        id: 'alloc_transfer_direct',
+        category: 'CUSTOM',
+        label: `Transfer to ${cleanRecipient}`,
+        percentage: 100,
+        targetCurrency: sourceCurrency,
+        sourceAmountMinor: sourceMinor.toString(),
+        sourceAmountFormatted: sourceMoney.toMajorString(),
+        targetAmountFormatted: `$${sourceMoney.toMajorString()}`,
+        destinationWalletTag: `${cleanRecipient}'s Wallet`,
+        recipientIdentifier: cleanRecipient,
+        actionType: 'TRANSFER',
+      });
+
+      return {
+        intentId: id,
+        originalPrompt: trimmed,
+        intentType: 'SPLIT_INCOMING',
+        ruleTitle,
+        triggerCondition: {
+          type: 'MANUAL',
+          sourceCurrency,
+          sourceAmount: sourceMoney.toMajorString(),
+          sourceAmountMinor: sourceMinor.toString(),
+          description: `Transfer $${sourceMoney.toMajorString()} ${sourceCurrency} to ${cleanRecipient}`,
+        },
+        allocations,
+        destinationWallets: {
+          [sourceCurrency]: `${cleanRecipient}'s Wallet`,
+        },
+        explanation: `Transfer $${sourceMoney.toMajorString()} ${sourceCurrency} directly to ${cleanRecipient}.`,
+        confidenceScore: 0.95,
+        requiresExplicitApproval: true,
+        provider: 'deterministic-fallback',
+      };
+    }
+
+    // Rule D: Convert / FX directive (e.g. "convert $1,000 to Naira", "swap 500 usd to mxn")
+    if (/convert|swap|exchange/i.test(trimmed)) {
+      let targetCur: SupportedCurrency = 'NGN';
+      if (/mxn|peso/i.test(trimmed)) targetCur = 'MXN';
+      if (/cad/i.test(trimmed)) targetCur = 'CAD';
+      if (/usd/i.test(trimmed) && sourceCurrency !== 'USD') targetCur = 'USD';
+      if (/eur/i.test(trimmed)) targetCur = 'EUR';
+
+      const rate = targetCur === 'NGN' ? 1550 : targetCur === 'MXN' ? 17 : 1;
+      const targetTag = `Main ${targetCur} Wallet`;
+
+      allocations.push({
+        id: 'alloc_convert_fx',
+        category: 'EXPENSES',
+        label: `Convert to ${targetCur}`,
+        percentage: 100,
+        targetCurrency: targetCur,
+        sourceAmountMinor: sourceMinor.toString(),
+        sourceAmountFormatted: sourceMoney.toMajorString(),
+        targetAmountMinor: (sourceMinor * BigInt(rate)).toString(),
+        targetAmountFormatted: `${(Number(sourceMoney.toMajorString()) * rate).toLocaleString()} ${targetCur} equivalent`,
+        destinationWalletTag: targetTag,
+        actionType: 'CONVERT_FX',
+      });
+
+      return {
+        intentId: id,
+        originalPrompt: trimmed,
+        intentType: 'SPLIT_INCOMING',
+        ruleTitle: `Convert $${sourceMoney.toMajorString()} ${sourceCurrency} to ${targetCur}`,
+        triggerCondition: {
+          type: 'WHEN_RECEIVE',
+          sourceCurrency,
+          sourceAmount: sourceMoney.toMajorString(),
+          sourceAmountMinor: sourceMinor.toString(),
+          description: `When $${sourceMoney.toMajorString()} ${sourceCurrency} is available`,
+        },
+        allocations,
+        destinationWallets: {
+          [targetCur]: targetTag,
+        },
+        explanation: `Convert $${sourceMoney.toMajorString()} ${sourceCurrency} to ${targetCur} at prevailing BMONI rate.`,
+        confidenceScore: 0.95,
+        requiresExplicitApproval: true,
+        provider: 'deterministic-fallback',
+      };
+    }
+
     // Default 3-Way Split Fallback (30% USD, 50% NGN, 20% Tax)
     const usdMinor = (sourceMinor * 30n) / 100n;
     const ngnMinor = (sourceMinor * 50n) / 100n;
@@ -386,6 +478,9 @@ Output strictly valid JSON conforming to the schema.`,
         targetAmountFormatted = `$${sourceFormatted} equivalent (₦${(Number(sourceFormatted) * 1550).toLocaleString()})`;
       }
 
+      const actionType = a.actionType || 'HOLD';
+      const recipientIdentifier = a.recipientIdentifier || (actionType === 'TRANSFER' ? (destinationWalletTag || a.label || 'Recipient') : undefined);
+
       return {
         id: `alloc_${idx + 1}_${Date.now()}`,
         category: a.category || 'CUSTOM',
@@ -396,9 +491,11 @@ Output strictly valid JSON conforming to the schema.`,
         sourceAmountFormatted: sourceFormatted,
         targetAmountFormatted,
         destinationWalletTag,
-        actionType: a.actionType || 'HOLD',
+        recipientIdentifier,
+        actionType,
       };
     });
+
 
     return {
       intentId,
