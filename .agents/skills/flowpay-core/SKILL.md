@@ -67,7 +67,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
-  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 132/132 tests passing, 0 analyzer lints, and streamed/installed via ADB directly to physical Android hardware.
+  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity (`https://flowpay-k2wn.onrender.com`), 146/146 tests passing, 0 analyzer lints, and hosted for instant local Wi-Fi download and ADB direct install.
   * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome).
   * **Operational Workflows**: Added standardized build and verification workflows in `.agents/workflows/`:
     * `/build-apk`: Automated test verification and compilation for Android release APK targeting live backend.
