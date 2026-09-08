@@ -517,9 +517,20 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Transitions to "Invitation Sent!" sheet displaying employee name, country, status badge `INVITED`, single-use link with copy button, and "Test Onboarding as Employee" simulation button that routes through the exact same token-validated flow.
       * **Automated Verification**:
         * 13/13 employee backend unit tests passing in `employee.test.ts` (Nigeria/Mexico validations, BMONI failure honesty, status `INVITED`, token issuance, valid wallet link to `READY`, foreign session rejection, expired token rejection, token reuse rejection).
-        * Full test suite passing: **144/144 Flutter unit, widget, and flow tests passing (100% green)**.
+        * Full test suite passing: **146/146 Flutter unit, widget, and flow tests passing (100% green)**.
         * **77/77 backend tests passing across 6 test suites (100% green)**.
-        * **0 Dart analyzer warnings or errors (`flutter analyze lib test`)**.
+        * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
+    * **FlowPay AI-Initiated Transfer Flow Security & Per-Transaction Signing Alignment**:
+      * **Issue 1 Fix (Chat-Text Execution Bypass Eliminated)**:
+        * Removed `approveAndExecute(pin: '123456')` bypass in `financial_operator.dart` triggered by typing "approve", "confirm", "proceed", or "yes".
+        * In `ai_operator_modal.dart`, affirmative chat inputs in `readyForReview` status now route directly to `_handleApprovePlan`, forcing user entry of their actual 6-digit PIN into `WalletPinAuthSheet`.
+      * **Issue 2 Fix (Dynamic Per-Transaction Proposal & Enclave Signing)**:
+        * Added `proposalId`, `hashToSign`, and `transferProposal` fields to `FinancialPlan`.
+        * Wired `FinancialOperator._compileAndPresentPlan` to call `transferRepo.createProposal(intent, fundingOption)` when a plan involves actual transfer actions (`PlannedActionType.send`).
+        * Removed the hardcoded static hash `'0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31'` from `ai_operator_modal.dart`.
+        * Updated `_handleApprovePlan` to sign `plan.hashToSign` on-device via `BmoniSdkService.signTransactionHash(plan.hashToSign!, pin: pin)` and pass the resulting 65-byte enclave signature to `approveAndExecute`.
+        * Updated `FinancialOperator.approveAndExecute` to execute proposals via `transferRepo.executeProposal(proposalId, signature, proposal)`, with multi-action non-transfer items (e.g. reserves) delegated to `executionProvider`.
+      * **Verification**: All 18 tests in `financial_operator_test.dart` passing (including tests 19 and 20 verifying chat bypass elimination and mandatory signature enforcement). 146/146 Flutter tests passing with 0 analyzer issues.
 
 ---
 
