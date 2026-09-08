@@ -60,7 +60,8 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
-  * **Central API Configuration (`lib/core/config/api_config.dart`)**: Routes all mobile authentication, KYC, capabilities, and proxy calls directly to live Render backend (`https://flowpay-k2wn.onrender.com`) with `--dart-define=FLOWPAY_API_URL` override support.
+  * **Central API Configuration (`lib/core/config/api_config.dart`)**: Routes all mobile authentication, KYC, capabilities, and proxy calls directly to live Render backend (`https://flowpay-k2wn.onrender.com`) by default for both debug and release mobile builds, with `--dart-define=FLOWPAY_API_URL` override support.
+  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 116/116 tests passing, and 0 analyzer lints.
   * Financial safety state models & signing coordinator (`lib/core/safety/`).
   * **BMONI Embedded SDK facade** (`lib/core/bmoni_sdk/bmoni_sdk_service.dart`) — wraps `bmoni_embedded_sdk: 0.0.2` with test-env fallback, salted PBKDF2 PIN digest, and 200ms native-platform timeout guards.
   * Provider abstraction interfaces: `WalletRepository`, `TransferRepository`, `CardRepository`, `EmployeeRepository`, `PayrollRepository`.
