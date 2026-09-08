@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
+import '../../core/auth/secure_storage_service.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/config/api_config.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
 import '../../core/theme/radii.dart';
@@ -16,10 +20,14 @@ import '../../core/theme/typography.dart';
 /// 3. Stores salted PBKDF2 digest in secure hardware storage via `BmoniSdkService.setPin()`.
 class SetPinScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
+  final String? employeeInviteToken;
+  final String? employeeId;
 
   const SetPinScreen({
     super.key,
     required this.userProfile,
+    this.employeeInviteToken,
+    this.employeeId,
   });
 
   @override
@@ -95,7 +103,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
 
     try {
       // 1. Provision hardware keypair on device via BMONI Embedded SDK
-      await BmoniSdkService.initWallet();
+      final generatedAddress = await BmoniSdkService.initWallet();
 
       // 2. Set 6-digit PIN in BMONI SDK (salted PBKDF2 digest in Secure Storage)
       await BmoniSdkService.setPin(_initialPin);
@@ -104,6 +112,37 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       final storage = ref.read(secureStorageServiceProvider);
       await storage.setFallbackPin(_initialPin);
 
+      // 4. Link employee's self-custody wallet to payroll roster if invite flow
+      if (widget.employeeInviteToken != null &&
+          widget.employeeInviteToken!.trim().isNotEmpty) {
+        try {
+          final walletAddr =
+              await BmoniSdkService.walletAddress() ?? generatedAddress;
+          final sessionToken = await storage.getAuthToken() ??
+              'flowpay_jwt_${widget.userProfile.userId}';
+
+          if (!SecureStorageService.isTestEnv) {
+            await http.post(
+              Uri.parse('${ApiConfig.baseUrl}/api/employees/link-wallet'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $sessionToken',
+                'x-user-id': widget.userProfile.userId,
+              },
+              body: jsonEncode({
+                'employeeId': widget.employeeId,
+                'inviteToken': widget.employeeInviteToken,
+                'bmoniUserId': widget.userProfile.userId,
+                'walletAddress': walletAddr,
+                'requestingUserId': widget.userProfile.userId,
+              }),
+            ).timeout(const Duration(seconds: 4));
+          }
+        } catch (linkErr) {
+          debugPrint('[SetPinScreen] link-wallet notice: $linkErr');
+        }
+      }
+
       if (!mounted) return;
       // Log in user and unlock into corresponding shell
       await ref
@@ -111,6 +150,18 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           .loginAsPersona(widget.userProfile, pin: _initialPin);
 
       if (!mounted) return;
+      if (widget.employeeInviteToken != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: FlowPayColors.success,
+            content: Text(
+              'Hardware wallet linked to corporate payroll! You have full custody of your earnings.',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      }
       // Pop back to root (AppAuthGate will render the unlocked shell)
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {

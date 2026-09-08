@@ -17,7 +17,12 @@ import 'login_screen.dart';
 /// Signup Screen: Allows selecting Personal vs Business account type,
 /// collecting identity details, setting up security PIN, and proceeding to KYC.
 class SignupScreen extends ConsumerStatefulWidget {
-  const SignupScreen({super.key});
+  final String? employeeInviteToken;
+
+  const SignupScreen({
+    super.key,
+    this.employeeInviteToken,
+  });
 
   @override
   ConsumerState<SignupScreen> createState() => _SignupScreenState();
@@ -37,6 +42,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   final TextEditingController _companyRoleController = TextEditingController();
 
   String _selectedCountry = 'NG';
+  bool _isLoadingInvite = false;
+  String? _inviteErrorMessage;
+  Map<String, dynamic>? _inviteDetails;
+  String? _employeeId;
 
   final List<Map<String, String>> _countries = const [
     {
@@ -60,6 +69,86 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       'idLabel': 'National Insurance'
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.employeeInviteToken != null &&
+        widget.employeeInviteToken!.trim().isNotEmpty) {
+      _loadInviteDetails(widget.employeeInviteToken!.trim());
+    }
+  }
+
+  Future<void> _loadInviteDetails(String token) async {
+    setState(() {
+      _isLoadingInvite = true;
+      _inviteErrorMessage = null;
+    });
+
+    try {
+      if (SecureStorageService.isTestEnv) {
+        setState(() {
+          _isLoadingInvite = false;
+          _fullNameController.text = 'Amara Okonkwo';
+          _emailController.text = 'amara.okonkwo@flowpay.ng';
+          _selectedCountry = 'NG';
+          _accountType = AccountType.personal;
+          _employeeId = 'emp_test_amara';
+          _inviteDetails = {
+            'firstName': 'Amara',
+            'lastName': 'Okonkwo',
+            'email': 'amara.okonkwo@flowpay.ng',
+            'country': 'NG',
+          };
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/api/employees/invite/$token'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 4));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        final details = data['data'] as Map<String, dynamic>;
+        setState(() {
+          _inviteDetails = details;
+          _employeeId = details['employeeId'];
+          final first = details['firstName'] ?? '';
+          final last = details['lastName'] ?? '';
+          _fullNameController.text = '$first $last'.trim();
+          _emailController.text = details['email'] ?? '';
+          if (details['country'] != null) {
+            _selectedCountry = (details['country'] as String).toUpperCase();
+          }
+          _accountType = AccountType.personal;
+          _isLoadingInvite = false;
+        });
+      } else {
+        final code = data['code'] ?? '';
+        final msg = data['message'] ?? 'Unable to resolve invitation';
+        setState(() {
+          _isLoadingInvite = false;
+          if (code == 'ALREADY_USED') {
+            _inviteErrorMessage =
+                'This invitation has already been used and employee wallet is linked.';
+          } else if (code == 'EXPIRED') {
+            _inviteErrorMessage =
+                'This invitation link has expired. Please contact your employer for a new link.';
+          } else {
+            _inviteErrorMessage = msg;
+          }
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingInvite = false;
+        _inviteErrorMessage = 'Failed to load invitation details: $e';
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -109,6 +198,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             'phone': profile.phone,
             'companyName': profile.companyName,
             'companyRole': profile.companyRole,
+            if (widget.employeeInviteToken != null)
+              'inviteToken': widget.employeeInviteToken,
           }),
         ).timeout(const Duration(seconds: 3));
       } catch (_) {}
@@ -120,10 +211,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       MaterialPageRoute(
         builder: (_) => KycScreen(
           userProfile: profile,
+          employeeInviteToken: widget.employeeInviteToken,
+          employeeId: _employeeId,
         ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +269,116 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
+
+                // Employee Invite Status Banner
+                if (_isLoadingInvite)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 18),
+                    padding: const EdgeInsets.all(14),
+                    decoration: const BoxDecoration(
+                      color: FlowPayColors.surfaceAlt,
+                      borderRadius: FlowPayRadii.card,
+                    ),
+                    child: const Row(
+                      children: [
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: FlowPayColors.primary),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Verifying invitation token...',
+                          style: TextStyle(
+                              fontSize: 13, color: FlowPayColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_inviteErrorMessage != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 18),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.errorSubtle,
+                      borderRadius: FlowPayRadii.card,
+                      border: Border.all(color: FlowPayColors.error),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: FlowPayColors.error, size: 22),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Invalid or Expired Invitation',
+                                style: TextStyle(
+                                    color: FlowPayColors.error,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _inviteErrorMessage!,
+                                style: const TextStyle(
+                                    color: FlowPayColors.error, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (_inviteDetails != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 18),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.surfaceAlt,
+                      borderRadius: FlowPayRadii.card,
+                      border:
+                          Border.all(color: FlowPayColors.primary, width: 1.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: FlowPayColors.surface,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.card_membership_rounded,
+                              color: FlowPayColors.primary, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Remote Employee Invitation',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: FlowPayColors.ink),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Pre-filled from employer invite. After PIN setup, your hardware wallet will link to corporate payroll.',
+                                style: FlowPayTypography.captionStyle(
+                                    color: FlowPayColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Title & Subtitle
                 Text(

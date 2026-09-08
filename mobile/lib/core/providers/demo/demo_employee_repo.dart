@@ -5,6 +5,7 @@ import 'demo_data.dart';
 
 class DemoEmployeeRepository implements EmployeeRepository {
   final List<EmployeeModel> _employees = List.from(DemoData.employees);
+  final Map<String, Map<String, dynamic>> _demoInvites = {};
 
   @override
   Future<List<EmployeeModel>> getEmployees() async {
@@ -53,20 +54,33 @@ class DemoEmployeeRepository implements EmployeeRepository {
                   ? 'Mexico'
                   : 'Canada'),
       targetCurrency: targetCurrency,
-      status:
-          EmployeeLifecycleStages.ready, // Sandbox personas ready immediately
-      onboardingStatus: EmployeeLifecycleStages.ready,
-      walletStatus: 'ACTIVE',
+      status: EmployeeLifecycleStages.invited,
+      onboardingStatus: EmployeeLifecycleStages.invited,
+      walletStatus: 'PENDING',
       cardStatus: 'ACTIVE',
       payrollAmount: payrollAmount,
       usdPayrollAmount:
           usdPayrollAmount ?? Money.fromMajorString('2000.00', Currency.usd),
-      walletAddress: '0x$randomHex...${DateTime.now().millisecond}A',
+      walletAddress: null,
       cardId: 'card_demo_${newId.substring(0, 8)}',
       cardLast4: (4000 + _employees.length * 111).toString(),
     );
     _employees.add(emp);
-    return 'https://bmoni.com/invite/flowpay_$newId';
+    final inviteToken = 'token_demo_${newId.substring(4)}';
+    _demoInvites[inviteToken] = {
+      'inviteToken': inviteToken,
+      'employeeId': newId,
+      'bmoniUserId': bmoniId,
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'country': country,
+      'targetCurrency': targetCurrency.code,
+      'payrollAmountMinor': payrollAmount.minorUnits,
+      'expiresAt':
+          DateTime.now().add(const Duration(hours: 72)).toIso8601String(),
+    };
+    return 'https://app.flowpay.finance/invite/$inviteToken';
   }
 
   @override
@@ -420,4 +434,75 @@ class DemoEmployeeRepository implements EmployeeRepository {
     }
     return getOnboardingStatus(employeeId);
   }
+
+  @override
+  Future<Map<String, dynamic>> getInviteDetails(String codeOrId) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final clean = codeOrId.replaceAll('flowpay_', '').trim();
+    if (_demoInvites.containsKey(clean)) {
+      return Map<String, dynamic>.from(_demoInvites[clean]!);
+    }
+    // Fallback: match any existing demo employee
+    final emp = _employees.firstWhere(
+      (e) => e.id == clean || e.email == clean,
+      orElse: () => _employees.first,
+    );
+    return {
+      'inviteToken': clean.isEmpty ? 'token_demo_sample' : clean,
+      'employeeId': emp.id,
+      'bmoniUserId': emp.bmoniUserId ?? 'usr_bmoni_demo',
+      'firstName': emp.firstName,
+      'lastName': emp.lastName,
+      'email': emp.email,
+      'country': emp.country,
+      'targetCurrency': emp.targetCurrency.code,
+      'payrollAmountMinor': emp.payrollAmount?.minorUnits ?? 310000000,
+      'expiresAt':
+          DateTime.now().add(const Duration(hours: 72)).toIso8601String(),
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> linkEmployeeWallet({
+    required String employeeId,
+    required String inviteToken,
+    required String bmoniUserId,
+    required String walletAddress,
+    String? walletId,
+    String? sessionToken,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final idx = _employees.indexWhere((e) => e.id == employeeId);
+    if (idx != -1) {
+      final old = _employees[idx];
+      _employees[idx] = EmployeeModel(
+        id: old.id,
+        bmoniUserId: bmoniUserId,
+        firstName: old.firstName,
+        lastName: old.lastName,
+        email: old.email,
+        phoneNumber: old.phoneNumber,
+        country: old.country,
+        countryName: old.countryName,
+        targetCurrency: old.targetCurrency,
+        status: EmployeeLifecycleStages.ready,
+        failedStage: null,
+        onboardingStatus: EmployeeLifecycleStages.ready,
+        walletStatus: 'ACTIVE',
+        cardStatus: old.cardStatus,
+        payrollAmount: old.payrollAmount,
+        usdPayrollAmount: old.usdPayrollAmount,
+        walletAddress: walletAddress,
+        cardId: old.cardId,
+        cardLast4: old.cardLast4,
+      );
+    }
+    return {
+      'success': true,
+      'status': 'READY',
+      'walletAddress': walletAddress,
+      'bmoniUserId': bmoniUserId,
+    };
+  }
 }
+

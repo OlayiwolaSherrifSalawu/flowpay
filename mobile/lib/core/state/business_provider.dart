@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import '../bmoni_sdk/bmoni_sdk_service.dart';
 import '../money/currency.dart';
@@ -256,26 +258,65 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
+  /// Compute canonical 32-byte hash for a payroll proposal item
+  static String computeProposalHash({
+    required String runId,
+    required PayrollItemModel item,
+  }) {
+    final canonicalPayload = jsonEncode({
+      'amount': item.targetAmount.amountMinor.toString(),
+      'country': item.country,
+      'currency': item.destinationStablecoin,
+      'employeeId': item.employeeId,
+      'runId': runId,
+    });
+    return '0x${sha256.convert(utf8.encode(canonicalPayload))}';
+  }
+
   /// Primary Action: Run Global Payroll with on-device B-Key signing
   Future<PayrollRunModel> runPayroll({required String pin}) async {
     if (_pendingPayroll == null) {
       throw Exception('No pending payroll run available to execute.');
+    }
+    if (_pendingPayroll!.items.isEmpty) {
+      throw StateError('Cannot execute payroll with zero proposal items.');
     }
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      // 1. Sign 32-byte digest on device via BMONI SDK (raw secp256k1, no EIP-191 prefix)
-      final sig = await BmoniSdkService.signTransactionHash(
-        '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
-        pin: pin,
-      );
+      // 1. Generate distinct cryptographic 32-byte hash and sign each proposal independently
+      final signatures = <String, String>{};
+      final seenHashes = <String>{};
+
+      for (final item in _pendingPayroll!.items) {
+        final hash32 = computeProposalHash(
+          runId: _pendingPayroll!.runId,
+          item: item,
+        );
+
+        // Safeguard: Disallow identical signing payloads in the same batch
+        if (seenHashes.contains(hash32)) {
+          throw StateError(
+            'Fintech signing violation: Duplicate proposal hash detected in batch for employee '
+            '${item.employeeId} (${item.employeeName}). Proposals within a batch must have unique hash inputs.',
+          );
+        }
+        seenHashes.add(hash32);
+
+        final sig = await BmoniSdkService.signTransactionHash(
+          hash32,
+          pin: pin,
+        );
+        signatures[item.employeeId] = sig;
+      }
 
       // 2. Execute aggregate fan-out via repository
+      final primarySig = signatures.values.first;
       final completed = await payrollRepo.executePayrollRun(
         runId: _pendingPayroll!.runId,
-        signature: sig,
+        signature: primarySig,
       );
 
       _lastExecutedPayroll = completed;
