@@ -9,6 +9,14 @@ import '../../core/state/app_state.dart';
 import 'send_money_screen.dart';
 import 'wallet_provisioning_screen.dart';
 
+/// FLOWPAY — MULTI-CURRENCY SMART WALLETS SCREEN
+///
+/// Features:
+/// - Interactive Card Deck / Carousel (USD, NGN, MXN, CAD) with tactile indicators
+/// - Quick Actions Row (Send, Receive, Convert, Security)
+/// - Spendable Balance vs Active Mission Reservations metric pill split
+/// - On-Device B-Key Hardware Enclave status banner
+/// - Configured Multi-Currency Wallets list with 1-tap address copying and actions
 class WalletsScreen extends StatefulWidget {
   final AppState appState;
 
@@ -21,10 +29,13 @@ class WalletsScreen extends StatefulWidget {
 class _WalletsScreenState extends State<WalletsScreen> {
   List<WalletAccount> wallets = [];
   bool isLoading = true;
+  int _selectedWalletIndex = 0;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(viewportFraction: 0.92);
     widget.appState.addListener(_onAppStateChanged);
     _load();
   }
@@ -37,6 +48,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
   @override
   void dispose() {
+    _pageController.dispose();
     widget.appState.removeListener(_onAppStateChanged);
     super.dispose();
   }
@@ -47,6 +59,9 @@ class _WalletsScreenState extends State<WalletsScreen> {
     if (mounted) {
       setState(() {
         wallets = list;
+        if (_selectedWalletIndex >= wallets.length) {
+          _selectedWalletIndex = (wallets.length - 1).clamp(0, 99);
+        }
         isLoading = false;
       });
     }
@@ -73,9 +88,9 @@ class _WalletsScreenState extends State<WalletsScreen> {
       isScrollControlled: true,
       backgroundColor: isDark
           ? FlowPayColors.darkSurfaceElevated
-          : FlowPayColors.lightSurfaceElevated,
+          : Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
@@ -88,9 +103,9 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
           return Padding(
             padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 24,
+              left: 20,
+              right: 20,
+              top: 18,
               bottom: bottomInset + 24,
             ),
             child: SingleChildScrollView(
@@ -100,10 +115,12 @@ class _WalletsScreenState extends State<WalletsScreen> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40,
+                      width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: FlowPayColors.hairline,
+                        color: isDark
+                            ? FlowPayColors.darkBorder
+                            : FlowPayColors.lightBorder,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -112,58 +129,84 @@ class _WalletsScreenState extends State<WalletsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Receive ${wallet.currency.code}',
-                        style: FlowPayTypography.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            wallet.currency.flagEmoji,
+                            style: const TextStyle(fontSize: 22),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Receive ${wallet.currency.code}',
+                            style: FlowPayTypography.titleMedium.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                              color: isDark
+                                  ? Colors.white
+                                  : FlowPayColors.lightTextPrimary,
+                            ),
+                          ),
+                        ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: FlowPayColors.primary.withAlpha(25),
-                          borderRadius: BorderRadius.circular(6),
+                          color: isDark
+                              ? FlowPayColors.emerald600.withAlpha(30)
+                              : FlowPayColors.mint100,
+                          borderRadius: FlowPayRadii.chip,
+                          border: Border.all(
+                            color: isDark
+                                ? FlowPayColors.emerald400.withAlpha(60)
+                                : FlowPayColors.emerald600.withAlpha(40),
+                          ),
                         ),
                         child: Text(
-                          '${wallet.currency.name} Wallet',
-                          style: const TextStyle(
+                          '${wallet.stablecoinToken} Rail',
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: FlowPayColors.primary,
+                            color: isDark
+                                ? FlowPayColors.emerald400
+                                : FlowPayColors.emerald700,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     'Share your address or simulate an instant incoming deposit below.',
                     style: FlowPayTypography.captionStyle(
-                      color: FlowPayColors.darkTextSecondary,
+                      color: isDark
+                          ? FlowPayColors.darkTextSecondary
+                          : FlowPayColors.lightTextSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Wallet address box
-                  const Text(
+                  Text(
                     'FLOWPAY ACCOUNT ADDRESS',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
-                      color: FlowPayColors.darkTextSecondary,
+                      color: isDark
+                          ? FlowPayColors.darkTextSecondary
+                          : FlowPayColors.lightTextSecondary,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                        horizontal: 14, vertical: 11),
                     decoration: BoxDecoration(
                       color: isDark
                           ? FlowPayColors.darkSurface
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                          : FlowPayColors.lightSurface,
+                      borderRadius: FlowPayRadii.cardSmall,
                       border: Border.all(
                         color: isDark
                             ? FlowPayColors.darkBorder
@@ -175,16 +218,24 @@ class _WalletsScreenState extends State<WalletsScreen> {
                         Expanded(
                           child: SelectableText(
                             wallet.address,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontSize: 12,
-                              color: FlowPayColors.primary,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald700,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.copy,
-                              size: 16, color: FlowPayColors.primary),
+                          icon: Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: isDark
+                                ? FlowPayColors.emerald400
+                                : FlowPayColors.emerald700,
+                          ),
                           tooltip: 'Copy Address',
                           onPressed: () {
                             Clipboard.setData(
@@ -200,33 +251,44 @@ class _WalletsScreenState extends State<WalletsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
                   // Simulate deposit section
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: FlowPayColors.primary.withAlpha(15),
-                      borderRadius: BorderRadius.circular(14),
+                      color: isDark
+                          ? FlowPayColors.darkSurface
+                          : FlowPayColors.mint100.withAlpha(90),
+                      borderRadius: FlowPayRadii.cardSmall,
                       border: Border.all(
-                        color: FlowPayColors.primary.withAlpha(40),
+                        color: isDark
+                            ? FlowPayColors.emerald400.withAlpha(50)
+                            : FlowPayColors.emerald600.withAlpha(40),
                       ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.arrow_downward,
-                                size: 16, color: FlowPayColors.primary),
-                            SizedBox(width: 6),
+                            Icon(
+                              Icons.south_west_rounded,
+                              size: 16,
+                              color: isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald700,
+                            ),
+                            const SizedBox(width: 6),
                             Text(
                               'SIMULATE INCOMING DEPOSIT',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 0.5,
-                                color: FlowPayColors.primary,
+                                color: isDark
+                                    ? FlowPayColors.emerald400
+                                    : FlowPayColors.emerald700,
                               ),
                             ),
                           ],
@@ -244,21 +306,23 @@ class _WalletsScreenState extends State<WalletsScreen> {
                                   amountController.text = q;
                                 });
                               },
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: FlowPayRadii.chip,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
+                                    horizontal: 11, vertical: 7),
                                 decoration: BoxDecoration(
                                   color: isSel
-                                      ? FlowPayColors.primary
+                                      ? FlowPayColors.emerald600
                                       : (isDark
-                                          ? FlowPayColors.darkSurface
+                                          ? FlowPayColors.darkSurfaceElevated
                                           : Colors.white),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: FlowPayRadii.chip,
                                   border: Border.all(
                                     color: isSel
-                                        ? FlowPayColors.primary
-                                        : FlowPayColors.darkBorder,
+                                        ? FlowPayColors.emerald600
+                                        : (isDark
+                                            ? FlowPayColors.darkBorder
+                                            : FlowPayColors.lightBorder),
                                   ),
                                 ),
                                 child: Text(
@@ -267,9 +331,9 @@ class _WalletsScreenState extends State<WalletsScreen> {
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: isSel
-                                        ? Colors.black
+                                        ? Colors.white
                                         : (isDark
-                                            ? FlowPayColors.darkTextPrimary
+                                            ? Colors.white
                                             : FlowPayColors.lightTextPrimary),
                                   ),
                                 ),
@@ -291,10 +355,30 @@ class _WalletsScreenState extends State<WalletsScreen> {
                             prefixText: '${wallet.currency.symbol} ',
                             filled: true,
                             fillColor: isDark
-                                ? FlowPayColors.darkSurface
+                                ? FlowPayColors.darkSurfaceElevated
                                 : Colors.white,
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: FlowPayRadii.input,
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? FlowPayColors.darkBorder
+                                    : FlowPayColors.lightBorder,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: FlowPayRadii.input,
+                              borderSide: BorderSide(
+                                color: isDark
+                                    ? FlowPayColors.darkBorder
+                                    : FlowPayColors.lightBorder,
+                              ),
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderRadius: FlowPayRadii.input,
+                              borderSide: BorderSide(
+                                color: FlowPayColors.emerald600,
+                                width: 1.5,
+                              ),
                             ),
                           ),
                         ),
@@ -402,122 +486,335 @@ class _WalletsScreenState extends State<WalletsScreen> {
     widget.appState.setPersonalTabIndex(0); // Switch to dashboard FX
   }
 
+  LinearGradient _getWalletGradient(Currency currency) {
+    if (currency == Currency.usd) {
+      return const LinearGradient(
+        colors: [
+          Color(0xFF0B6E4F),
+          Color(0xFF128A63),
+          Color(0xFF0F1712),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+    } else if (currency == Currency.ngn) {
+      return const LinearGradient(
+        colors: [
+          Color(0xFF181B26),
+          Color(0xFF12141C),
+          Color(0xFF0B6E4F),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+    } else if (currency == Currency.mxn) {
+      return const LinearGradient(
+        colors: [
+          Color(0xFF0F3B2E),
+          Color(0xFF149E72),
+          Color(0xFF0F1712),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+    } else {
+      return const LinearGradient(
+        colors: [
+          Color(0xFF141E28),
+          Color(0xFF0F1712),
+          Color(0xFF128A63),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canPop = Navigator.canPop(context);
 
-    Widget content = isLoading
-        ? const FlowPayLoadingState(message: 'Loading wallets...')
-        : RefreshIndicator(
-            onRefresh: _load,
-            color: FlowPayColors.primary,
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              children: [
-                // Security info banner
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const WalletProvisioningScreen()),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
+    if (isLoading) {
+      return const FlowPayLoadingState(message: 'Loading wallets...');
+    }
+
+    final activeWallet = wallets.isNotEmpty
+        ? wallets[_selectedWalletIndex.clamp(0, wallets.length - 1)]
+        : null;
+
+    Money? availableBal;
+    Money? reservedBal;
+    if (activeWallet != null) {
+      final totalBal = activeWallet.balance;
+      final reservedMajor = (totalBal.majorUnits * 0.15);
+      availableBal = Money.fromMajorString(
+        (totalBal.majorUnits - reservedMajor).toStringAsFixed(2),
+        activeWallet.currency,
+      );
+      reservedBal = Money.fromMajorString(
+        reservedMajor.toStringAsFixed(2),
+        activeWallet.currency,
+      );
+    }
+
+    Widget content = RefreshIndicator(
+      onRefresh: _load,
+      color: FlowPayColors.emerald600,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          // 1. Multi-Currency Hero Card Carousel / Deck
+          if (wallets.isNotEmpty) ...[
+            SizedBox(
+              height: 228,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: wallets.length,
+                onPageChanged: (idx) {
+                  setState(() => _selectedWalletIndex = idx);
+                },
+                itemBuilder: (context, index) {
+                  final w = wallets[index];
+                  final gradient = _getWalletGradient(w.currency);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FlowPayScallopedCard(
+                      title: '${w.currency.name} Portfolio',
+                      balance: w.balance.formatFormatted(includeSymbol: true),
+                      holderName: 'Waffiyyi Fashola',
+                      expiryDate: '${w.stablecoinToken} Rail',
+                      gradient: gradient,
+                      actionLabel: 'Receive',
+                      onActionTap: () => _handleReceive(w),
+                      onTap: () => _handleReceive(w),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Tactile dot indicators
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(wallets.length, (i) {
+                final isSel = i == _selectedWalletIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isSel ? 22 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isSel
+                        ? FlowPayColors.emerald600
+                        : (isDark
+                            ? FlowPayColors.darkSurfaceElevated
+                            : FlowPayColors.mint100),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. Quick Actions for Active Wallet
+            if (activeWallet != null) ...[
+              FlowPayQuickActionRow(
+                customItems: [
+                  QuickActionItem(
+                    label: 'Send',
+                    icon: Icons.arrow_outward_rounded,
+                    onTap: () => _handleSend(activeWallet),
+                  ),
+                  QuickActionItem(
+                    label: 'Receive',
+                    icon: Icons.south_west_rounded,
+                    onTap: () => _handleReceive(activeWallet),
+                  ),
+                  QuickActionItem(
+                    label: 'Convert',
+                    icon: Icons.sync_alt_rounded,
+                    onTap: () => _handleConvert(activeWallet),
+                  ),
+                  QuickActionItem(
+                    label: 'Security',
+                    icon: Icons.shield_outlined,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const WalletProvisioningScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // 3. Spendable vs Reserved Breakdown
+              if (availableBal != null && reservedBal != null)
+                FlowPayIncomeExpenseRow(
+                  incomeLabel: '${activeWallet.currency.code} Spendable',
+                  incomeAmount:
+                      availableBal.formatFormatted(includeSymbol: true),
+                  expenseLabel: 'Reserved (Missions)',
+                  expenseAmount:
+                      reservedBal.formatFormatted(includeSymbol: true),
+                  onIncomeTap: () => _handleSend(activeWallet),
+                  onExpenseTap: () => _handleConvert(activeWallet),
+                ),
+              const SizedBox(height: 16),
+            ],
+          ],
+
+          // 4. Hardware Isolation Security Banner
+          InkWell(
+            borderRadius: FlowPayRadii.cardSmall,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const WalletProvisioningScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurface
+                    : FlowPayColors.lightSurface,
+                borderRadius: FlowPayRadii.cardSmall,
+                border: Border.all(
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.lightBorder,
+                ),
+                boxShadow: isDark
+                    ? null
+                    : const [
+                        BoxShadow(
+                          color: Color(0x0A0F1712),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? FlowPayColors.darkSurface
-                          : FlowPayColors.lightSurface,
-                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                          ? FlowPayColors.emerald600.withAlpha(35)
+                          : FlowPayColors.mint100,
+                      borderRadius: FlowPayRadii.quickAction,
                       border: Border.all(
-                        color: FlowPayColors.primary.withAlpha(80),
+                        color: isDark
+                            ? FlowPayColors.emerald400.withAlpha(70)
+                            : FlowPayColors.emerald600.withAlpha(40),
                       ),
                     ),
-                    child: Row(
+                    child: Icon(
+                      Icons.shield_rounded,
+                      color: isDark
+                          ? FlowPayColors.emerald400
+                          : FlowPayColors.emerald700,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: FlowPayColors.primary.withAlpha(25),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(Icons.shield_outlined,
-                              color: FlowPayColors.primary, size: 24),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Secure Hardware Isolation',
-                                style: FlowPayTypography.bodyMd.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? FlowPayColors.darkTextPrimary
-                                      : FlowPayColors.lightTextPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Keys sealed on this device. Tap to inspect security enclave.',
-                                style: FlowPayTypography.captionStyle(
-                                  color: FlowPayColors.darkTextSecondary,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'Secure Hardware Isolation',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.white
+                                : FlowPayColors.lightTextPrimary,
                           ),
                         ),
-                        const Icon(Icons.chevron_right,
-                            color: FlowPayColors.darkTextSecondary),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Keys sealed on this device. Tap to inspect security enclave.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                Text(
-                  'Configured Multi-Currency Wallets',
-                  style: FlowPayTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isDark
-                        ? FlowPayColors.darkTextPrimary
-                        : FlowPayColors.lightTextPrimary,
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 13,
+                    color: FlowPayColors.emerald400,
                   ),
-                ),
-                const SizedBox(height: 12),
-
-                ...wallets.map((w) {
-                  // Calculate available vs reserved breakdown
-                  final totalBal = w.balance;
-                  final reservedMajor = (totalBal.majorUnits * 0.15); // mock active mission reserve
-                  final availableBal = Money.fromMajorString(
-                    (totalBal.majorUnits - reservedMajor).toStringAsFixed(2),
-                    w.currency,
-                  );
-                  final reservedBal = Money.fromMajorString(
-                    reservedMajor.toStringAsFixed(2),
-                    w.currency,
-                  );
-
-                  return FlowPayWalletCard(
-                    walletName: '${w.currency.name} Wallet',
-                    currency: w.currency,
-                    balance: totalBal,
-                    availableBalance: availableBal,
-                    reservedBalance: reservedBal,
-                    accountOrAddress: w.address,
-                    status: w.status,
-                    onSend: () => _handleSend(w),
-                    onReceive: () => _handleReceive(w),
-                    onConvert: () => _handleConvert(w),
-                  );
-                }),
-              ],
+                ],
+              ),
             ),
-          );
+          ),
+          const SizedBox(height: 18),
+
+          // 5. Configured Multi-Currency Wallets List Section
+          Text(
+            'Configured Multi-Currency Wallets',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          ...wallets.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final w = entry.value;
+
+            final totalBal = w.balance;
+            final reservedMajor = (totalBal.majorUnits * 0.15);
+            final availableBal = Money.fromMajorString(
+              (totalBal.majorUnits - reservedMajor).toStringAsFixed(2),
+              w.currency,
+            );
+            final reservedBal = Money.fromMajorString(
+              reservedMajor.toStringAsFixed(2),
+              w.currency,
+            );
+
+            return FlowPayWalletCard(
+              walletName: '${w.currency.name} Wallet',
+              currency: w.currency,
+              balance: totalBal,
+              availableBalance: availableBal,
+              reservedBalance: reservedBal,
+              accountOrAddress: w.address,
+              status: w.status,
+              onTap: () {
+                setState(() => _selectedWalletIndex = idx);
+                _pageController.animateToPage(
+                  idx,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              },
+              onSend: () => _handleSend(w),
+              onReceive: () => _handleReceive(w),
+              onConvert: () => _handleConvert(w),
+            );
+          }),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
 
     if (canPop) {
       return Scaffold(

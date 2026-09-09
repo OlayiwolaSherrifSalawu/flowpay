@@ -141,6 +141,7 @@ class FlowPayScallopedCard extends StatelessWidget {
   final VoidCallback? onActionTap;
   final VoidCallback? onTap;
   final bool isEmerald;
+  final LinearGradient? gradient;
   final Widget? customContent;
 
   const FlowPayScallopedCard({
@@ -156,30 +157,32 @@ class FlowPayScallopedCard extends StatelessWidget {
     this.onActionTap,
     this.onTap,
     this.isEmerald = true,
+    this.gradient,
     this.customContent,
   });
 
   @override
   Widget build(BuildContext context) {
-    final gradient = isEmerald
-        ? const LinearGradient(
-            colors: [
-              Color(0xFF149E72),
-              Color(0xFF128A63),
-              Color(0xFF0B6E4F),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-        : const LinearGradient(
-            colors: [
-              Color(0xFF1B2422),
-              Color(0xFF0F1712),
-              Color(0xFF0C1210),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          );
+    final cardGradient = gradient ??
+        (isEmerald
+            ? const LinearGradient(
+                colors: [
+                  Color(0xFF149E72),
+                  Color(0xFF128A63),
+                  Color(0xFF0B6E4F),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : const LinearGradient(
+                colors: [
+                  Color(0xFF1B2422),
+                  Color(0xFF0F1712),
+                  Color(0xFF0C1210),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ));
 
     const textColor = Colors.white;
     final subtextColor = isEmerald
@@ -192,7 +195,7 @@ class FlowPayScallopedCard extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: gradient,
+          gradient: cardGradient,
           borderRadius: FlowPayRadii.cardLarge,
           boxShadow: [
             BoxShadow(
@@ -204,9 +207,10 @@ class FlowPayScallopedCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top Row: Brand / Type + Action Pill
             Row(
@@ -283,7 +287,7 @@ class FlowPayScallopedCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 16),
 
             // Middle: Balance or Masked Card Number
             if (customContent != null)
@@ -325,7 +329,7 @@ class FlowPayScallopedCard extends StatelessWidget {
                 ),
               ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Bottom Row: Holder Name & Expiry / Details
             Row(

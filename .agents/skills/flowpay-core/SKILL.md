@@ -107,6 +107,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Redesigned Money Missions feature card with electric emerald bolt icon and tagline (`"Your money. Your rules. AI executes."`).
       * Redesigned Active Strategy Rules, Multi-Currency Smart Wallets, and Recent Activity cards with `FlowPayRadii.cardSmall` (16dp), light/dark adaptive borders and subtle box shadows.
       * Verified with `mobile/test/personal_dashboard_test.dart` (5/5 passed), `mobile/test/app_shell_test.dart` (6/6 passed), and full suite (180/180 passed, 0 lints).
+    * **Complete Redesign — Phase 5: Wallets Experience & Stacked Cards**:
+      * Implemented Multi-Currency Hero Card Carousel (`PageView.builder` with viewportFraction 0.92, currency-specific gradients for USD, NGN, MXN, CAD, and tactile dot indicators `[ • ○ ○ ○ ]`).
+      * Integrated Quick Actions Row for active wallet (Send, Receive, Convert, Security) and customizable `FlowPayIncomeExpenseRow` (Spendable vs Reserved breakdown).
+      * Added on-device hardware isolation security banner with Hardware Keystore / Secure Enclave indicators.
+      * Upgraded configured multi-currency wallet list and modernized simulated receive/deposit bottom sheet with copyable address chips and QR code mockup.
+      * Verified with `mobile/test/personal_integration_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

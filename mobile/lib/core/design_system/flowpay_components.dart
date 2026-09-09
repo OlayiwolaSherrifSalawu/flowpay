@@ -4,6 +4,7 @@ import '../beneficiaries/beneficiary_model.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../theme/colors.dart';
+import '../theme/radii.dart';
 import '../theme/spacing.dart';
 import '../theme/typography.dart';
 import 'amount_display.dart';
@@ -1137,44 +1138,96 @@ class FlowPayWalletCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-          borderRadius: FlowPaySpacing.borderRadiusXl,
+          color: isDark ? FlowPayColors.darkSurface : Colors.white,
+          borderRadius: FlowPayRadii.cardMedium,
           border: Border.all(
             color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
           ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x10000000),
-              blurRadius: 14,
-              offset: Offset(0, 4),
-            ),
-          ],
+          boxShadow: isDark
+              ? null
+              : const [
+                  BoxShadow(
+                    color: Color(0x0A0F1712),
+                    blurRadius: 12,
+                    offset: Offset(0, 3),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Currency Flag, Code, Status
+            // Top Row: Currency Flag, Code, Rail token, Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Text(currency.flagEmoji, style: const TextStyle(fontSize: 22)),
-                    const SizedBox(width: 8),
+                    Container(
+                      width: 38,
+                      height: 38,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? FlowPayColors.darkSurfaceElevated
+                            : FlowPayColors.mint100,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark
+                              ? FlowPayColors.darkBorder
+                              : FlowPayColors.emerald400.withAlpha(50),
+                        ),
+                      ),
+                      child: Text(
+                        currency.flagEmoji,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          currency.code,
-                          style: FlowPayTypography.titleMedium.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              currency.code,
+                              style: FlowPayTypography.titleMedium.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                                color: isDark
+                                    ? Colors.white
+                                    : FlowPayColors.lightTextPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? FlowPayColors.emerald600.withAlpha(30)
+                                    : FlowPayColors.mint100,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${currency.stablecoinToken} Rail',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? FlowPayColors.emerald400
+                                      : FlowPayColors.emerald700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           walletName,
                           style: FlowPayTypography.captionStyle(
-                            color: FlowPayColors.darkTextSecondary,
+                            color: isDark
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary,
                           ),
                         ),
                       ],
@@ -1184,20 +1237,23 @@ class FlowPayWalletCard extends StatelessWidget {
                 FlowPayStatus(
                   label: status,
                   color: status.toUpperCase() == 'ACTIVE'
-                      ? FlowPayColors.primary
+                      ? FlowPayColors.emerald600
                       : FlowPayColors.amber,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
 
             // Balance Display
             Text(
               'TOTAL BALANCE',
-              style: FlowPayTypography.caption.copyWith(
-                color: FlowPayColors.darkTextSecondary,
+              style: TextStyle(
+                color: isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary,
                 letterSpacing: 0.8,
                 fontSize: 10,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 3),
@@ -1211,22 +1267,49 @@ class FlowPayWalletCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'Available: ${availableBalance.formattedWithSymbol}',
-                    style: FlowPayTypography.caption.copyWith(
-                      color: isDark
-                          ? FlowPayColors.darkTextSecondary
-                          : FlowPayColors.lightTextSecondary,
-                    ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: FlowPayColors.emerald600,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Available: ${availableBalance.formattedWithSymbol}',
+                        style: FlowPayTypography.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.lightTextSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (reservedBalance != null && reservedBalance!.isPositive)
-                  Text(
-                    'Reserved: ${reservedBalance!.formattedWithSymbol}',
-                    style: FlowPayTypography.caption.copyWith(
-                      color: FlowPayColors.amber,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: FlowPayColors.amber,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Reserved: ${reservedBalance!.formattedWithSymbol}',
+                        style: FlowPayTypography.caption.copyWith(
+                          color: FlowPayColors.amber,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -1243,64 +1326,190 @@ class FlowPayWalletCard extends StatelessWidget {
                     ),
                   );
                 },
-                child: Row(
-                  children: [
-                    const Icon(Icons.copy_rounded, size: 12, color: FlowPayColors.darkTextSecondary),
-                    const SizedBox(width: 4),
-                    Text(
-                      accountOrAddress!.length > 18
-                          ? '${accountOrAddress!.substring(0, 8)}...${accountOrAddress!.substring(accountOrAddress!.length - 6)}'
-                          : accountOrAddress!,
-                      style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.darkTextSecondary,
-                      ),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.mint100.withAlpha(120),
+                    borderRadius: FlowPayRadii.chip,
+                    border: Border.all(
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.emerald400.withAlpha(50),
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.copy_rounded,
+                        size: 11,
+                        color: isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.emerald700,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        accountOrAddress!.length > 18
+                            ? '${accountOrAddress!.substring(0, 8)}...${accountOrAddress!.substring(accountOrAddress!.length - 6)}'
+                            : accountOrAddress!,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.emerald700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
 
-            // Action row
+            // Action row with Dribbble tactile pill buttons
             const SizedBox(height: 14),
             Row(
               children: [
                 if (onSend != null)
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: onSend,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        side: const BorderSide(color: FlowPayColors.hairline),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: InkWell(
+                      onTap: onSend,
+                      borderRadius: FlowPayRadii.button,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? FlowPayColors.darkSurfaceElevated
+                              : FlowPayColors.lightSurfaceElevated,
+                          borderRadius: FlowPayRadii.button,
+                          border: Border.all(
+                            color: isDark
+                                ? FlowPayColors.darkBorder
+                                : FlowPayColors.lightBorder,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.arrow_outward_rounded,
+                              size: 13,
+                              color: isDark
+                                  ? Colors.white
+                                  : FlowPayColors.lightTextPrimary,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Send',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : FlowPayColors.lightTextPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('Send', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 if (onReceive != null) ...[
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: onReceive,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        side: const BorderSide(color: FlowPayColors.hairline),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: InkWell(
+                      onTap: onReceive,
+                      borderRadius: FlowPayRadii.button,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? FlowPayColors.emerald600.withAlpha(40)
+                              : FlowPayColors.mint100,
+                          borderRadius: FlowPayRadii.button,
+                          border: Border.all(
+                            color: isDark
+                                ? FlowPayColors.emerald400.withAlpha(90)
+                                : FlowPayColors.emerald600.withAlpha(60),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.south_west_rounded,
+                              size: 13,
+                              color: isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald700,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Receive',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? FlowPayColors.emerald400
+                                    : FlowPayColors.emerald700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('Receive', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
                 if (onConvert != null) ...[
                   const SizedBox(width: 8),
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: onConvert,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        side: const BorderSide(color: FlowPayColors.hairline),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: InkWell(
+                      onTap: onConvert,
+                      borderRadius: FlowPayRadii.button,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? FlowPayColors.darkSurfaceElevated
+                              : FlowPayColors.lightSurfaceElevated,
+                          borderRadius: FlowPayRadii.button,
+                          border: Border.all(
+                            color: isDark
+                                ? FlowPayColors.darkBorder
+                                : FlowPayColors.lightBorder,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.sync_alt_rounded,
+                              size: 13,
+                              color: isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald600,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Convert',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : FlowPayColors.lightTextPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('Convert', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],
