@@ -15,6 +15,7 @@ import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import 'components/ai_clarification_card.dart';
 import 'components/transfer_receipt_dialog.dart';
 import 'components/transfer_review_modal.dart';
+import '../../core/services/bank_resolution_service.dart';
 
 class SendMoneyScreen extends StatefulWidget {
   final AppState appState;
@@ -58,10 +59,21 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     'Send \$1,200 to contractor in Mexico',
   ];
 
+  // Paystack Nigerian Bank Resolution
+  bool _isBankMode = false;
+  final _bankResolutionService = BankResolutionService();
+  final _bankAccountController = TextEditingController();
+  List<BankInfo> _availableBanks = [];
+  BankInfo? _selectedBank;
+  ResolvedBankAccount? _resolvedBankAccount;
+  bool _isResolvingAccount = false;
+  String? _bankResolutionError;
+
   @override
   void initState() {
     super.initState();
     _loadWallets();
+    _loadBanks();
     if (widget.initialPrompt != null && widget.initialPrompt!.isNotEmpty) {
       _nlController.text = widget.initialPrompt!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,9 +86,250 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
   void dispose() {
     _nlController.dispose();
     _recipientController.dispose();
+    _bankAccountController.dispose();
     _amountController.dispose();
     _purposeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadBanks() async {
+    try {
+      final banks = await _bankResolutionService.getBanks();
+      if (!mounted) return;
+      setState(() {
+        _availableBanks = banks;
+        if (banks.isNotEmpty && _selectedBank == null) {
+          _selectedBank = banks.firstWhere(
+            (b) => b.code == '058',
+            orElse: () => banks.first,
+          );
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _onBankAccountChanged(String value) async {
+    final clean = value.replaceAll(RegExp(r'\D'), '');
+    if (clean.length == 10 && _selectedBank != null) {
+      await _resolveBankAccount(clean, _selectedBank!.code);
+    } else {
+      if (_resolvedBankAccount != null || _bankResolutionError != null) {
+        setState(() {
+          _resolvedBankAccount = null;
+          _bankResolutionError = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _resolveBankAccount(String accountNumber, String bankCode) async {
+    setState(() {
+      _isResolvingAccount = true;
+      _bankResolutionError = null;
+    });
+
+    try {
+      final resolved = await _bankResolutionService.resolveAccount(
+        accountNumber: accountNumber,
+        bankCode: bankCode,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _resolvedBankAccount = resolved;
+        _isResolvingAccount = false;
+        _recipientController.text = '${resolved.accountName} (${resolved.bankName} • ${resolved.accountNumber})';
+        if (_selectedCurrency != Currency.ngn) {
+          _selectedCurrency = Currency.ngn;
+        }
+      });
+      _runBalanceInspection();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isResolvingAccount = false;
+        _bankResolutionError = e.toString().replaceFirst('Exception: ', '');
+        _resolvedBankAccount = null;
+      });
+    }
+  }
+
+  void _openBankSelectorBottomSheet() {
+    final searchController = TextEditingController();
+    List<BankInfo> filteredBanks = List.from(_availableBanks);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: FlowPayColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, scrollController) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: FlowPayColors.darkBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_outlined,
+                        color: FlowPayColors.primaryLight, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Select Nigerian Bank',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: FlowPayColors.darkTextSecondary),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: searchController,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Search bank (e.g. GTB, OPay, Zenith, Kuda, Access)',
+                    hintStyle: const TextStyle(
+                      color: FlowPayColors.darkTextSecondary,
+                      fontSize: 13,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: FlowPayColors.primaryLight, size: 20),
+                    filled: true,
+                    fillColor: FlowPayColors.darkSurfaceElevated,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                    ),
+                  ),
+                  onChanged: (q) {
+                    setModalState(() {
+                      if (q.trim().isEmpty) {
+                        filteredBanks = List.from(_availableBanks);
+                      } else {
+                        final term = q.trim().toLowerCase();
+                        filteredBanks = _availableBanks.where((b) {
+                          return b.name.toLowerCase().contains(term) ||
+                              b.code.contains(term) ||
+                              b.slug.toLowerCase().contains(term);
+                        }).toList();
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: ListView.separated(
+                    controller: scrollController,
+                    itemCount: filteredBanks.length,
+                    separatorBuilder: (_, __) => const Divider(
+                      color: FlowPayColors.darkBorder,
+                      height: 1,
+                    ),
+                    itemBuilder: (ctx, index) {
+                      final bank = filteredBanks[index];
+                      final isSelected = _selectedBank?.code == bank.code;
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        leading: CircleAvatar(
+                          backgroundColor: isSelected
+                              ? FlowPayColors.primaryLight.withValues(alpha: 0.2)
+                              : FlowPayColors.darkSurfaceElevated,
+                          child: Icon(
+                            Icons.account_balance_rounded,
+                            color: isSelected ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
+                            size: 18,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                bank.name,
+                                style: TextStyle(
+                                  color: isSelected ? FlowPayColors.primaryLight : Colors.white,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            if (bank.isPopular)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                margin: const EdgeInsets.only(left: 6),
+                                decoration: BoxDecoration(
+                                  color: FlowPayColors.primary.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Popular',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: FlowPayColors.primaryLight,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          'Code: ${bank.code}',
+                          style: const TextStyle(
+                            color: FlowPayColors.darkTextSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: FlowPayColors.primaryLight, size: 20)
+                            : null,
+                        onTap: () {
+                          setState(() {
+                            _selectedBank = bank;
+                          });
+                          Navigator.of(ctx).pop();
+                          if (_bankAccountController.text.trim().length == 10) {
+                            _resolveBankAccount(_bankAccountController.text.trim(), bank.code);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadWallets() async {
@@ -748,15 +1001,269 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Recipient / Beneficiary',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: FlowPayColors.darkTextSecondary,
-                      ),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Recipient / Beneficiary',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: FlowPayColors.darkTextSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isBankMode = !_isBankMode;
+                              if (_isBankMode && _selectedCurrency != Currency.ngn) {
+                                _selectedCurrency = Currency.ngn;
+                              }
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _isBankMode
+                                  ? FlowPayColors.primary.withValues(alpha: 0.18)
+                                  : FlowPayColors.darkSurfaceElevated,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _isBankMode
+                                    ? FlowPayColors.primaryLight
+                                    : FlowPayColors.darkBorder,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isBankMode ? Icons.account_balance : Icons.account_balance_outlined,
+                                  size: 12,
+                                  color: _isBankMode ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _isBankMode ? 'NGN Bank' : 'Resolve Bank',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: _isBankMode ? FontWeight.bold : FontWeight.w500,
+                                    color: _isBankMode ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
+
+                    if (_isBankMode) ...[
+                      InkWell(
+                        onTap: _openBankSelectorBottomSheet,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.darkSurfaceElevated,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: FlowPayColors.darkBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.account_balance_rounded,
+                                  color: FlowPayColors.primaryLight, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedBank?.name ?? 'Select Bank (GTB, OPay, Zenith...)',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      _selectedBank != null
+                                          ? 'Bank Code: ${_selectedBank!.code} • Tap to change bank'
+                                          : 'Tap to browse Nigerian banks',
+                                      style: const TextStyle(
+                                        color: FlowPayColors.darkTextSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down_rounded,
+                                  color: FlowPayColors.darkTextSecondary),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _bankAccountController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 10,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        decoration: InputDecoration(
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.pin_outlined,
+                              color: FlowPayColors.primaryLight, size: 20),
+                          hintText: 'Enter 10-digit NUBAN account number',
+                          hintStyle: const TextStyle(
+                            color: FlowPayColors.darkTextSecondary,
+                            fontSize: 13,
+                            letterSpacing: 0,
+                            fontWeight: FontWeight.normal,
+                          ),
+                          filled: true,
+                          fillColor: FlowPayColors.darkSurfaceElevated,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                                color: FlowPayColors.primary, width: 1.5),
+                          ),
+                          suffixIcon: _isResolvingAccount
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: FlowPayColors.primaryLight,
+                                    ),
+                                  ),
+                                )
+                              : (_resolvedBankAccount != null
+                                  ? const Icon(Icons.check_circle_rounded,
+                                      color: FlowPayColors.success, size: 22)
+                                  : null),
+                        ),
+                        onChanged: _onBankAccountChanged,
+                      ),
+                      if (_isResolvingAccount) ...[
+                        const SizedBox(height: 6),
+                        const Row(
+                          children: [
+                            SizedBox(width: 4),
+                            Text(
+                              'Resolving account with Paystack & NIBSS...',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: FlowPayColors.primaryLight,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (_resolvedBankAccount != null) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.success.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: FlowPayColors.success.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.verified_user_rounded,
+                                  color: FlowPayColors.success, size: 24),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _resolvedBankAccount!.accountName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${_resolvedBankAccount!.bankName} • ${_resolvedBankAccount!.accountNumber}',
+                                      style: TextStyle(
+                                        color: FlowPayColors.success.withValues(alpha: 0.8),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (_resolvedBankAccount!.testNotice != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _resolvedBankAccount!.testNotice!,
+                                        style: TextStyle(
+                                          color: Colors.amber.withValues(alpha: 0.9),
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (_bankResolutionError != null) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.error.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: FlowPayColors.error.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline_rounded,
+                                  color: FlowPayColors.error, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _bankResolutionError!,
+                                  style: const TextStyle(
+                                    color: FlowPayColors.error,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                    ],
+
                     TextField(
                       key: const Key('send_money_recipient_field'),
                       controller: _recipientController,
@@ -766,7 +1273,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         prefixIcon: const Icon(Icons.person_search_outlined,
                             color: FlowPayColors.primaryLight, size: 20),
                         hintText:
-                            'e.g. my designer in Ghana or name@example.com',
+                            _isBankMode ? 'Resolved recipient name' : 'e.g. my designer in Ghana or name@example.com',
                         hintStyle: const TextStyle(
                             color: FlowPayColors.darkTextSecondary,
                             fontSize: 13),

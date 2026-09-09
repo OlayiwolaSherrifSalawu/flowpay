@@ -63,6 +63,11 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * Added graceful database connection handling and in-memory fallback in `backend/src/db/index.ts`.
     * Implemented automated, non-blocking employee invite email dispatch via Gmail SMTP relay (`MailService.sendEmployeeInvite`) carrying single-use invite tokens and KYC onboarding links.
     * Added top-level web browser invite landing card (`/invite/:codeOrId`) and fixed mobile `inviteUrl` extraction in `BmoniEmployeeRepository`.
+  * **Paystack Local Bank Resolution Subsystem (`backend/src/modules/banks/`, `mobile/lib/core/services/`)**:
+    * Integrated Paystack Bank API (`GET /bank?country=nigeria`) with in-memory caching and priority ranking for top commercial banks and fintechs (GTBank `058`, OPay `999992`, Access Bank `044`, Zenith Bank `057`, Kuda `50211`, PalmPay `999991`, First Bank `011`, UBA `033`, Moniepoint `50515`, Wema `035`, Stanbic `221`).
+    * Implemented NUBAN 10-digit account number verification endpoint (`GET /api/banks/resolve` & `POST /api/banks/resolve`) calling Paystack `/bank/resolve` with authenticated `PAYSTACK_SECRET_KEY`, providing test key simulation fallback on rate limits and sandbox fallbacks when keys are omitted.
+    * Built mobile `BankResolutionService` and interactive bank selection / live verification flow in `SendMoneyScreen` with green verified account badges (`✓ Verified Account Holder: [NAME] ([BANK])`).
+    * Verified with 7/7 backend unit tests (total 99 backend tests) and 4/4 mobile service tests (total 151 mobile tests passing, 0 analyzer lints).
 * [x] **Mobile Flutter Foundation & Application Shell (`mobile/`)**:
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
