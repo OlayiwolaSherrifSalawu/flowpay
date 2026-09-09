@@ -184,6 +184,7 @@ class BmoniTransferRepository implements TransferRepository {
   }) async {
     try {
       final res = await apiClient.post('/api/transfers/propose', body: {
+        'userId': apiClient.userId,
         'intent': intent.toJson(),
         'fundingOption': fundingOption.toJson(),
       });
@@ -192,7 +193,7 @@ class BmoniTransferRepository implements TransferRepository {
       return TransferProposal.fromJson(Map<String, dynamic>.from(data ?? {}));
     } catch (_) {
       return TransferProposal(
-        proposalId: 'prop_${DateTime.now().millisecondsSinceEpoch}',
+        proposalId: 'prop_fallback_${DateTime.now().millisecondsSinceEpoch}',
         status: 'PENDING_SIGNATURES',
         intent: intent,
         fundingOption: fundingOption,
@@ -212,7 +213,7 @@ class BmoniTransferRepository implements TransferRepository {
     required TransferProposal proposal,
   }) async {
     final res = await apiClient.post('/api/transfers/execute', body: {
-      'userId': 'usr_flowpay_sandbox_master',
+      'userId': apiClient.userId,
       'proposalId': proposalId,
       'signature': signature,
       'proposalPayload': {

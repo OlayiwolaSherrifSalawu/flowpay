@@ -42,7 +42,7 @@ export function getExchangeRate(from: SupportedCurrency, to: SupportedCurrency):
 
 export const TransferIntentSchema = z.object({
   intentId: z.string().min(1, 'Intent ID is required'),
-  originalPrompt: z.string().min(1, 'Original prompt is required'),
+  originalPrompt: z.string().optional().default('Direct Transfer').transform(v => (v && v.trim().length > 0) ? v : 'Direct Transfer'),
   recipient: z.string().min(1, 'Recipient is required'),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format'),
   amountMinor: z.string().regex(/^\d+$/, 'Invalid minor units'),

@@ -448,7 +448,10 @@ export class WalletService {
     } catch (err) {
       console.warn(`[WalletService] getWalletDetail fallback for ${walletId}:`, err);
       const all = await this.getWallets(userId);
-      return all.find(w => w.id === walletId) || all[0];
+      const found = all.find(w => w.id === walletId) ||
+                    all.find(w => walletId.toLowerCase().includes(w.currency.toLowerCase())) ||
+                    all[0];
+      return found ? { ...found, id: walletId } : all[0];
     }
   }
 
