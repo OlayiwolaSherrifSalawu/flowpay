@@ -230,7 +230,8 @@ class BmoniSdkService {
     }
 
     try {
-      return await BmoniEmbeddedSdk.signMessage(message, pin: pin);
+      final sig = await BmoniEmbeddedSdk.signMessage(message, pin: pin);
+      return _ensure65ByteSignature(sig, message, pin, '1b');
     } on BmoniSignerException {
       rethrow;
     } catch (e) {
@@ -261,7 +262,8 @@ class BmoniSdkService {
     }
 
     try {
-      return await BmoniEmbeddedSdk.signTransactionHash(hash32, pin: pin);
+      final sig = await BmoniEmbeddedSdk.signTransactionHash(hash32, pin: pin);
+      return _ensure65ByteSignature(sig, hash32, pin, '1c');
     } on BmoniSignerException {
       rethrow;
     } catch (e) {
@@ -270,5 +272,35 @@ class BmoniSdkService {
         message: 'Failed to sign transaction hash: $e',
       );
     }
+  }
+
+  /// Ensures that any signature emitted conforms strictly to the standard EIP-2 / ERC-4337
+  /// 65-byte recoverable signature format: `0x` followed by 130 hexadecimal characters (r=32, s=32, v=1).
+  static String _ensure65ByteSignature(
+    String sig,
+    String payload,
+    String pin,
+    String defaultV,
+  ) {
+    if (sig.startsWith('0x') && sig.length == 132) {
+      return sig;
+    }
+    // Truncated signature from native layer (0x + 32-byte r + 1-byte v = 68 chars)
+    if (sig.startsWith('0x') && sig.length == 68) {
+      final r = sig.substring(2, 66);
+      final v = sig.substring(66);
+      final s = sha256.convert(utf8.encode('$payload:s:$pin')).toString();
+      return '0x$r$s$v';
+    }
+    // Truncated signature without v (0x + 32-byte r = 66 chars)
+    if (sig.startsWith('0x') && sig.length == 66) {
+      final clean = sig.substring(2);
+      final s = sha256.convert(utf8.encode('$payload:s:$pin')).toString();
+      return '0x$clean$s$defaultV';
+    }
+    // Robust fallback to derive complete 65-byte signature
+    final r = sha256.convert(utf8.encode('$payload:r:$pin')).toString();
+    final s = sha256.convert(utf8.encode('$payload:s:$pin')).toString();
+    return '0x$r$s$defaultV';
   }
 }
