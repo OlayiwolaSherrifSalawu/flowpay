@@ -1,3 +1,4 @@
+import dns from 'node:dns';
 import nodemailer, { type Transporter, type TransportOptions } from 'nodemailer';
 import { env } from '../../config/env.js';
 import {
@@ -25,9 +26,18 @@ export class MailService {
   private static instance: MailService;
   private transporter: Transporter;
   private isConfigured: boolean = false;
+  private currentHost: string = env.SMTP_HOST;
+  private lastDnsLookupTime: number = 0;
+  private dnsLookupPromise: Promise<void> | null = null;
+  private static readonly DNS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {
-    this.transporter = this.createTransporter();
+    this.currentHost = env.SMTP_HOST;
+    this.transporter = this.createTransporter(env.SMTP_HOST);
+    // Kick off async IPv4 DNS resolution immediately in background
+    this.ensureTransporter().catch((err) => {
+      console.warn('[MailService] Initial async IPv4 DNS resolution warning:', err?.message || err);
+    });
   }
 
   public static getInstance(): MailService {
@@ -38,24 +48,37 @@ export class MailService {
   }
 
   /**
-   * Initializes the Nodemailer SMTP transporter using the configured credentials.
-   * Equivalent to Spring Boot:
-   * spring.mail.host=smtp.gmail.com
-   * spring.mail.port=587
-   * spring.mail.username=fwaffiyyi@gmail.com
-   * spring.mail.password=cujynpeeagqlmkpz
-   * spring.mail.properties.mail.smtp.auth=true
-   * spring.mail.properties.mail.smtp.starttls.enable=true
+   * Resolves the SMTP host to an IPv4 address using Node's dns.promises.lookup with family: 4.
+   * If lookup fails (DNS issue, no A record), falls back to the original hostname.
    */
-  private createTransporter(): Transporter {
+  private async resolveIpv4Address(hostname: string): Promise<string> {
+    try {
+      const { address } = await dns.promises.lookup(hostname, { family: 4 });
+      if (address) {
+        return address;
+      }
+    } catch (err: any) {
+      console.warn(
+        `[MailService] DNS IPv4 lookup failed for "${hostname}", falling back to hostname:`,
+        err?.message || String(err)
+      );
+    }
+    return hostname;
+  }
+
+  /**
+   * Initializes the Nodemailer SMTP transporter using the configured credentials.
+   * Connects to targetHost (an IPv4 address when resolved, or env.SMTP_HOST as fallback)
+   * while setting tls.servername to env.SMTP_HOST for SNI/TLS certificate validation.
+   */
+  private createTransporter(targetHost: string = env.SMTP_HOST): Transporter {
     const isGmail = env.SMTP_HOST.includes('gmail');
 
     const transportConfig: TransportOptions = {
-      host: env.SMTP_HOST,
+      host: targetHost,
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE, // false for port 587 (uses STARTTLS)
       requireTLS: true,
-      family: 4,
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       auth: {
@@ -63,14 +86,17 @@ export class MailService {
         pass: env.SMTP_PASS,
       },
       tls: {
+        servername: env.SMTP_HOST,
         rejectUnauthorized: false,
       },
     } as any;
 
     if (isGmail && env.SMTP_PORT === 587) {
-      console.log(`[MailService] Configured Gmail SMTP relay (${env.SMTP_HOST}:${env.SMTP_PORT}) with STARTTLS.`);
+      console.log(
+        `[MailService] Configured Gmail SMTP relay (${targetHost}:${env.SMTP_PORT}, SNI: ${env.SMTP_HOST}) with STARTTLS.`
+      );
     } else {
-      console.log(`[MailService] Configured SMTP host: ${env.SMTP_HOST}:${env.SMTP_PORT}`);
+      console.log(`[MailService] Configured SMTP host: ${targetHost}:${env.SMTP_PORT} (SNI: ${env.SMTP_HOST})`);
     }
 
     this.isConfigured = Boolean(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS);
@@ -78,9 +104,41 @@ export class MailService {
   }
 
   /**
+   * Ensures the transporter has a fresh IPv4 connection target, caching the resolved IP
+   * for 5 minutes (DNS_CACHE_TTL_MS) to pick up DNS updates while preventing redundant lookups.
+   */
+  private async ensureTransporter(): Promise<Transporter> {
+    const now = Date.now();
+    const isExpired = now - this.lastDnsLookupTime > MailService.DNS_CACHE_TTL_MS;
+
+    if (isExpired) {
+      if (!this.dnsLookupPromise) {
+        this.dnsLookupPromise = (async () => {
+          const resolvedIp = await this.resolveIpv4Address(env.SMTP_HOST);
+          if (resolvedIp !== this.currentHost || !this.transporter) {
+            this.currentHost = resolvedIp;
+            this.transporter = this.createTransporter(resolvedIp);
+            console.log(`[MailService] Updated SMTP transporter host to IPv4: ${resolvedIp}`);
+          }
+          this.lastDnsLookupTime = Date.now();
+        })().finally(() => {
+          this.dnsLookupPromise = null;
+        });
+      }
+      await this.dnsLookupPromise;
+    } else if (this.dnsLookupPromise) {
+      await this.dnsLookupPromise;
+    }
+
+    return this.transporter;
+  }
+
+  /**
    * Verifies SMTP server handshake and credentials.
    */
   public async verifyConnection(): Promise<SmtpConnectionStatus> {
+    await this.ensureTransporter();
+
     const status: SmtpConnectionStatus = {
       connected: false,
       host: env.SMTP_HOST,
@@ -93,7 +151,9 @@ export class MailService {
     try {
       await this.transporter.verify();
       status.connected = true;
-      console.log(`[MailService] ✅ SMTP Connection Verified: ${env.SMTP_HOST}:${env.SMTP_PORT} as ${env.SMTP_USER}`);
+      console.log(
+        `[MailService] ✅ SMTP Connection Verified: ${this.currentHost}:${env.SMTP_PORT} (SNI: ${env.SMTP_HOST}) as ${env.SMTP_USER}`
+      );
       return status;
     } catch (err: any) {
       status.connected = false;
@@ -122,6 +182,7 @@ export class MailService {
     };
 
     try {
+      await this.ensureTransporter();
       const info = await this.transporter.sendMail(mailOptions);
       console.log(`[MailService] ✉️  Email sent: "${options.subject}" to ${JSON.stringify(options.to)} (ID: ${info.messageId})`);
 
