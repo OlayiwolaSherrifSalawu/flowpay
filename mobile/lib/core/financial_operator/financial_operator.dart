@@ -9,6 +9,7 @@ import '../money/money.dart';
 import '../providers/demo/demo_transfer_repo.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/transfer_repository.dart';
+import '../repositories/wallet_repository.dart';
 import '../transfers/transfer_funding.dart';
 import '../transfers/transfer_intent.dart';
 import 'models/financial_entities.dart';
@@ -699,9 +700,49 @@ class FinancialOperator extends ChangeNotifier {
             transferProposal: proposal,
           );
         } else {
-          explanation.writeln();
-          explanation.writeln(
-              '⚠️ **Insufficient Smart Wallet Balance**: Your smart wallets do not have sufficient funds to cover ${sendAction.amount.toFormattedString()}. Please deposit funds or receive a transfer to approve and execute this plan.');
+          // If inspection couldn't find an option but user has balance in a wallet:
+          final matchingWallet = wallets.cast<WalletAccount?>().firstWhere(
+                (w) =>
+                    w != null &&
+                    w.balance.amountMinor >= sendAction.amount.amountMinor,
+                orElse: () => null,
+              );
+          if (matchingWallet != null) {
+            final fallbackOption = TransferFundingOption(
+              fundingWalletId: matchingWallet.id,
+              fundingCurrency: matchingWallet.currency,
+              fundingWalletName: '${matchingWallet.currency.code} Smart Wallet',
+              availableBalance: matchingWallet.balance,
+              requiresConversion: false,
+              conversionLabel: 'Direct ${matchingWallet.currency.code} Transfer',
+              exchangeRate: 1.0,
+              convertedDebit: sendAction.amount,
+              networkFee: Money.fromMinor(BigInt.from(50), matchingWallet.currency),
+              fxFee: Money.zero(matchingWallet.currency),
+              totalDebit: sendAction.amount,
+              targetPayment: sendAction.amount,
+            );
+            final proposal = await _transferRepo.createProposal(
+              intent: transferIntent,
+              fundingOption: fallbackOption,
+            );
+            reviewPlan = plan.copyWith(
+              proposalId: proposal.proposalId,
+              hashToSign: proposal.hashToSign,
+              transferProposal: proposal,
+            );
+          } else {
+            explanation.writeln();
+            explanation.writeln(
+                '⚠️ **Insufficient Smart Wallet Balance**: Your smart wallets do not have sufficient funds to cover ${sendAction.amount.toFormattedString()}. Please deposit funds or receive a transfer to approve and execute this plan.');
+          }
+        }
+
+        // Guarantee plan has a valid hashToSign for signing
+        if (reviewPlan.hashToSign == null || reviewPlan.hashToSign!.isEmpty) {
+          reviewPlan = reviewPlan.copyWith(
+            hashToSign: '0x${sha256.convert(utf8.encode(reviewPlan.planId)).toString()}',
+          );
         }
       } catch (err) {
         final errorMsg = OperatorMessage.operator(

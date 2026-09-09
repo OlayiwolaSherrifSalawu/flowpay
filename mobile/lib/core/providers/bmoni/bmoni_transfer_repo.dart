@@ -126,8 +126,8 @@ class BmoniTransferRepository implements TransferRepository {
         'wallets': walletsJson,
       });
 
-      final data = res['data'] ?? {};
-      return BalanceInspectionResult.fromJson(Map<String, dynamic>.from(data));
+      final data = (res is Map && res.containsKey('data')) ? res['data'] : res;
+      return BalanceInspectionResult.fromJson(Map<String, dynamic>.from(data ?? {}));
     } catch (_) {
       // Local balance inspection fallback
       final targetCurrency = intent.currency;
@@ -188,8 +188,8 @@ class BmoniTransferRepository implements TransferRepository {
         'fundingOption': fundingOption.toJson(),
       });
 
-      final data = res['data'] ?? {};
-      return TransferProposal.fromJson(Map<String, dynamic>.from(data));
+      final data = (res is Map && res.containsKey('data')) ? res['data'] : res;
+      return TransferProposal.fromJson(Map<String, dynamic>.from(data ?? {}));
     } catch (_) {
       return TransferProposal(
         proposalId: 'prop_${DateTime.now().millisecondsSinceEpoch}',
@@ -222,8 +222,8 @@ class BmoniTransferRepository implements TransferRepository {
       },
     });
 
-    final data = res['data'] ?? {};
-    return TransferExecutionResult.fromJson(Map<String, dynamic>.from(data));
+    final data = (res is Map && res.containsKey('data')) ? res['data'] : res;
+    return TransferExecutionResult.fromJson(Map<String, dynamic>.from(data ?? {}));
   }
 
   @override
