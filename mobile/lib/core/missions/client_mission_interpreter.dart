@@ -109,6 +109,89 @@ class ClientMissionInterpreter {
       );
     }
 
+    // Directive Type Conditional: Balance Threshold Transfer (e.g. "if my usd wallet is greater than 2000 usd send 300 usd to my mom")
+    final thresholdConditionMatch = RegExp(
+      r'(?:if|when)\s+(?:my\s+)?(?:([a-z]+)\s+)?(?:wallet|balance|account)?\s*(?:is\s+)?(?:greater\s+than|exceeds|above|over|>)\s*(?:[\$₦€£]|\bUSD|\bNGN|\bMXN|\bCAD|\bEUR)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+
+    final transferActionMatch = RegExp(
+      r'(?:send|transfer|pay|sweep)\s+(?:[\$₦€£]|\bUSD|\bNGN|\bMXN|\bCAD|\bEUR)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+
+    if (thresholdConditionMatch != null && transferActionMatch != null) {
+      final thresholdStr =
+          thresholdConditionMatch.group(2)!.replaceAll(',', '');
+      final thresholdDouble = double.tryParse(thresholdStr) ?? 2000.0;
+
+      final actionAmtStr = transferActionMatch.group(1)!.replaceAll(',', '');
+      final actionAmtDouble = double.tryParse(actionAmtStr) ?? 300.0;
+      final actionMinor = (actionAmtDouble * 100).toInt();
+
+      String recipient = 'Recipient';
+      final toMatch = RegExp(
+        r'(?:to|for)\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)',
+        caseSensitive: false,
+      ).firstMatch(trimmed);
+      if (toMatch != null) {
+        final raw = toMatch
+            .group(1)!
+            .trim()
+            .replaceAll(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+            .trim();
+        if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
+            .contains(raw.toLowerCase())) {
+          recipient = raw;
+        }
+      }
+
+      final cleanRecipient = recipient[0].toUpperCase() +
+          (recipient.length > 1 ? recipient.substring(1) : '');
+      final ruleTitle =
+          'Send \$${actionAmtDouble.toStringAsFixed(2)} ${sourceCurrency.code} to $cleanRecipient';
+
+      final allocations = [
+        MissionAllocation(
+          id: 'alloc_transfer_${DateTime.now().millisecondsSinceEpoch}',
+          category: MissionAllocationCategory.custom,
+          label: 'Transfer to $cleanRecipient',
+          percentage: 100.0,
+          targetCurrency: sourceCurrency,
+          sourceAmountMinor: actionMinor.toString(),
+          sourceAmountFormatted: actionAmtDouble.toStringAsFixed(2),
+          targetAmountFormatted: '\$${actionAmtDouble.toStringAsFixed(2)}',
+          destinationWalletTag: "$cleanRecipient's Wallet",
+          recipientIdentifier: cleanRecipient,
+          actionType: MissionActionType.transfer,
+        ),
+      ];
+
+      return MissionIntent(
+        intentId: intentId,
+        originalPrompt: trimmed,
+        intentType: MissionIntentType.sendMoney,
+        ruleTitle: ruleTitle,
+        triggerCondition: MissionTriggerCondition(
+          type: 'BALANCE_THRESHOLD',
+          sourceCurrency: sourceCurrency,
+          sourceAmount: actionAmtDouble.toStringAsFixed(2),
+          sourceAmountMinor: actionMinor.toString(),
+          description:
+              'When ${sourceCurrency.code} wallet balance > \$${thresholdDouble >= 1000 ? '${(thresholdDouble ~/ 1000)},${(thresholdDouble.toInt() % 1000).toString().padLeft(3, '0')}' : thresholdDouble.toStringAsFixed(0)}',
+        ),
+        allocations: allocations,
+        destinationWallets: {
+          sourceCurrency.code: "$cleanRecipient's Wallet",
+        },
+        explanation:
+            'When ${sourceCurrency.code} wallet balance exceeds \$${thresholdDouble.toInt()}, automatically send \$${actionAmtDouble.toStringAsFixed(2)} ${sourceCurrency.code} to $cleanRecipient.',
+        confidenceScore: 0.98,
+        requiresExplicitApproval: true,
+        provider: 'deterministic-interpreter',
+      );
+    }
+
     // Directive Type A: Send / Transfer (e.g. "send 500 usd to mom", "pay $200 to mary")
     if (lower.contains('send') ||
         lower.contains('pay') ||

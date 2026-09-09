@@ -280,6 +280,58 @@ Output strictly valid JSON conforming to the schema.`,
       };
     }
 
+    // Rule B.5: Balance Threshold Transfer (e.g. "if my usd wallet is greater than 2000 usd send 300 usd to my mom")
+    const thresholdMatch = trimmed.match(/(?:if|when)\s+(?:my\s+)?(?:([a-z]+)\s+)?(?:wallet|balance|account)?\s*(?:is\s+)?(?:greater\s+than|exceeds|above|over|>)\s*(?:[\$₦€£]|\bUSD|\bNGN|\bMXN|\bCAD|\bEUR)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
+    const actionTransferMatch = trimmed.match(/(?:send|transfer|pay|sweep)\s+(?:[\$₦€£]|\bUSD|\bNGN|\bMXN|\bCAD|\bEUR)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
+
+    if (thresholdMatch && actionTransferMatch) {
+      const thresholdRaw = thresholdMatch[2].replace(/,/g, '');
+      const actionRaw = actionTransferMatch[1].replace(/,/g, '');
+      const actionMoney = Money.fromMajor(actionRaw, sourceCurrency);
+      const actionMinor = actionMoney.amountMinor;
+
+      const recipientMatch = trimmed.match(/(?:to|for)\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?|[A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+      const recipient = recipientMatch && recipientMatch[1] ? recipientMatch[1].trim() : 'Recipient';
+      const cleanRecipient = recipient.replace(/^(?:my\s+)/i, '');
+      const cleanRecipientCap = cleanRecipient.charAt(0).toUpperCase() + cleanRecipient.slice(1);
+
+      allocations.push({
+        id: 'alloc_transfer_threshold',
+        category: 'CUSTOM',
+        label: `Transfer to ${cleanRecipientCap}`,
+        percentage: 100,
+        targetCurrency: sourceCurrency,
+        sourceAmountMinor: actionMinor.toString(),
+        sourceAmountFormatted: actionMoney.toMajorString(),
+        targetAmountFormatted: `$${actionMoney.toMajorString()}`,
+        destinationWalletTag: `${cleanRecipientCap}'s Wallet`,
+        recipientIdentifier: cleanRecipientCap,
+        actionType: 'TRANSFER',
+      });
+
+      return {
+        intentId: id,
+        originalPrompt: trimmed,
+        intentType: 'SEND_MONEY',
+        ruleTitle: `Send $${actionMoney.toMajorString()} ${sourceCurrency} to ${cleanRecipientCap}`,
+        triggerCondition: {
+          type: 'BALANCE_THRESHOLD',
+          sourceCurrency,
+          sourceAmount: actionMoney.toMajorString(),
+          sourceAmountMinor: actionMinor.toString(),
+          description: `When ${sourceCurrency} balance > $${parseFloat(thresholdRaw) >= 1000 ? parseFloat(thresholdRaw).toFixed(0) : thresholdRaw}`,
+        },
+        allocations,
+        destinationWallets: {
+          [sourceCurrency]: `${cleanRecipientCap}'s Wallet`,
+        },
+        explanation: `When ${sourceCurrency} wallet balance exceeds $${thresholdRaw}, automatically send $${actionMoney.toMajorString()} ${sourceCurrency} to ${cleanRecipientCap}.`,
+        confidenceScore: 0.98,
+        requiresExplicitApproval: true,
+        provider: 'deterministic-fallback',
+      };
+    }
+
     // Rule C: Send / Transfer directive (e.g. "send $500 to mom", "pay 200 usd to mary")
     const transferMatch = trimmed.match(/(?:send|pay|transfer)\s+(?:[\$₦€£]?[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?\s*(?:usd|ngn|mxn|cad|eur)?)\s+(?:to|for)\s+([A-Za-z0-9._%+-]+(?:@[A-Za-z0-9.-]+\.[A-Za-z]{2,})?|[A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
     if (transferMatch || /(?:send|pay|transfer)/i.test(trimmed)) {
@@ -448,7 +500,13 @@ Output strictly valid JSON conforming to the schema.`,
   ): MissionIntent {
     const trigger = parsed.triggerCondition || {};
     const sourceCurrency: SupportedCurrency = trigger.sourceCurrency || 'USD';
-    const sourceAmount = trigger.sourceAmount ? String(trigger.sourceAmount).replace(/,/g, '') : '2000.00';
+    let sourceAmount = trigger.sourceAmount ? String(trigger.sourceAmount).replace(/,/g, '') : '2000.00';
+    if (trigger.type === 'BALANCE_THRESHOLD') {
+      const actionMatch = prompt.match(/(?:send|transfer|pay|sweep)\s+(?:[\$₦€£]|\bUSD|\bNGN|\bMXN|\bCAD|\bEUR)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
+      if (actionMatch && actionMatch[1]) {
+        sourceAmount = actionMatch[1].replace(/,/g, '');
+      }
+    }
     const sourceMoney = Money.fromMajor(sourceAmount, sourceCurrency);
     const sourceMinor = sourceMoney.amountMinor;
 

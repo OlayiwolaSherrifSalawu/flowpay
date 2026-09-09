@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
+import 'package:flowpay_mobile/core/money/currency.dart';
+import 'package:flowpay_mobile/core/design_system/states.dart';
 import 'package:flowpay_mobile/modules/personal/components/mission_card.dart';
 import 'package:flowpay_mobile/modules/personal/components/mission_preview_modal.dart';
 import 'package:flowpay_mobile/modules/personal/money_missions_screen.dart';
@@ -252,6 +254,102 @@ void main() {
             '⚡ Mission triggered & executed successfully via BMONI rails!'),
         findsOneWidget,
       );
+    });
+
+    testWidgets(
+        'Balance threshold directive properly decouples threshold and allocation, debits wallet, and logs activity',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final appState = AppState();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MoneyMissionsScreen(appState: appState),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify starting USD balance
+      final initialWallets =
+          await tester.runAsync(() => appState.walletRepo.getWallets()) ?? [];
+      final usdWallet =
+          initialWallets.firstWhere((w) => w.currency == Currency.usd);
+      final initialBalance = usdWallet.balance.majorUnits;
+
+      // 1. Enter natural language directive into the input field
+      final inputFinder = find.byType(TextField);
+      expect(inputFinder, findsOneWidget);
+      await tester.enterText(
+        inputFinder,
+        'if my usd wallet is greater than 2000 usd send 300 usd to my mom',
+      );
+      await tester.pumpAndSettle();
+
+      // Tap "Interpret Directive"
+      final interpretBtn = find.text('Interpret Directive');
+      await tester.tap(interpretBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      // 2. Verify Preview Modal renders
+      expect(find.text('Mission Plan Preview'), findsOneWidget);
+      expect(find.text('BALANCE THRESHOLD TRIGGER'), findsOneWidget);
+      expect(find.textContaining('When USD wallet balance > \$2,000'),
+          findsOneWidget);
+
+      // Verify Mom's allocation is $300.00 (NOT $2,000!)
+      expect(find.text('Transfer to Mom'), findsOneWidget);
+      expect(find.text('\$300.00'), findsOneWidget);
+
+      // Verify Approve Mission button
+      final approveBtn = find.text('Approve Mission');
+      expect(approveBtn, findsOneWidget);
+      await tester.tap(approveBtn);
+      await tester.pumpAndSettle();
+
+      // 3. Enter PIN: 123456
+      expect(find.text('Sign Money Mission'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('pin_key_1')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('pin_key_2')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('pin_key_3')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('pin_key_4')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('pin_key_5')));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.byKey(const Key('pin_key_6')));
+      await tester.pumpAndSettle();
+
+      // 4. Celebration modal
+      expect(find.text('Mission Activated & Signed!'), findsOneWidget);
+      await tester.tap(find.text('View Active Missions'));
+      await tester.pumpAndSettle();
+
+      // 5. Verify USD wallet balance was debited by $300
+      final updatedWallets =
+          await tester.runAsync(() => appState.walletRepo.getWallets()) ?? [];
+      final updatedUsdWallet =
+          updatedWallets.firstWhere((w) => w.currency == Currency.usd);
+      expect(updatedUsdWallet.balance.majorUnits, equals(initialBalance - 300));
+
+      // 6. Verify activity feed logged transfer with amount $300 USD (not null or Free)
+      final activities = await tester
+              .runAsync(() => appState.activityRepo.getRecentActivities()) ??
+          [];
+      final momTransfer =
+          activities.firstWhere((a) => a.title.contains('Mom'));
+      expect(momTransfer.amount?.majorUnits, equals(300.0));
+      expect(momTransfer.currency, equals(Currency.usd));
+      expect(momTransfer.status, equals(FlowPayAppStatus.completed));
     });
   });
 }

@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
 import { prisma } from '../../db/index.js';
 import { FinancialSafetyError } from '../../core/errors.js';
+import { WalletService } from '../wallets/service.js';
+import { recordInMemoryActivity } from '../../routes/activity.routes.js';
 import type {
   MissionAllocation,
   MissionExecutionResult,
@@ -531,20 +533,37 @@ export class MoneyMissionService {
       }
     }
 
-    // Update mission in database to ACTIVE if available
+    // Resolve allocations and action details
+    let allocationsList: MissionAllocation[] = [];
+    let missionTitle = 'Autonomous Money Mission';
+    let missionCurrency = 'USD';
+    let missionAmount = '0.00';
+
+    if (inMem) {
+      allocationsList = inMem.allocations || [];
+      missionTitle = inMem.title || missionTitle;
+      const cond = inMem.condition as any;
+      missionCurrency = cond?.sourceCurrency || 'USD';
+      missionAmount = cond?.sourceAmount || '0.00';
+    }
+
     if (isPostgresDb()) {
       try {
         const existing = await prisma.moneyMission.findUnique({
           where: { id: missionId },
         });
 
-        const currentAction = parseJsonField(existing?.actionJson);
-        const allocations = (currentAction.allocations as any[]) || [];
-        if (allocations.length > 0) {
-          allocationsCount = allocations.length;
-        }
-
         if (existing) {
+          missionTitle = existing.title || missionTitle;
+          const currentAction = parseJsonField(existing.actionJson);
+          const currentCondition = parseJsonField(existing.conditionJson);
+          missionCurrency = (currentCondition?.sourceCurrency as string) || missionCurrency;
+          missionAmount = (currentCondition?.sourceAmount as string) || missionAmount;
+          if (Array.isArray(currentAction.allocations)) {
+            allocationsList = currentAction.allocations as MissionAllocation[];
+          }
+          allocationsCount = allocationsList.length || allocationsCount;
+
           await prisma.moneyMission.update({
             where: { id: missionId },
             data: {
@@ -555,35 +574,95 @@ export class MoneyMissionService {
                 lastExecutedAt: executedIso,
                 lastTransactionReference: reference,
                 lastSignature: signature,
-                nextExecution: 'On Incoming Transfer ($2,000.00)',
+                nextExecution: 'Active • Monitored',
               } as any,
             },
           });
         }
+      } catch (err) {
+        console.warn(
+          '[MoneyMissionService] DB execution update error (non-fatal):',
+          (err as any)?.message || err
+        );
+      }
+    }
 
-        // Write immutable audit log entry
+    // Determine actual amount to debit and execute
+    let totalDebitAmt = 0;
+    let primaryRecipient: string | undefined;
+
+    for (const alloc of allocationsList) {
+      const amtStr = alloc.sourceAmountFormatted || '0';
+      const num = parseFloat(amtStr.replace(/[^0-9.]/g, '')) || 0;
+      if (alloc.actionType === 'TRANSFER' || alloc.actionType === 'SWEEP_VAULT' || alloc.actionType === 'CONVERT_FX') {
+        totalDebitAmt += num;
+        if (!primaryRecipient && alloc.recipientIdentifier) {
+          primaryRecipient = alloc.recipientIdentifier;
+        }
+      }
+    }
+
+    if (totalDebitAmt === 0 && parseFloat(missionAmount) > 0) {
+      totalDebitAmt = parseFloat(missionAmount);
+    }
+
+    // 1. Deduct balance from sender's funding wallet
+    if (totalDebitAmt > 0) {
+      try {
+        const walletTarget = missionCurrency === 'USD' ? 'USDB' : missionCurrency;
+        await WalletService.debitWallet(walletTarget, totalDebitAmt);
+      } catch (debitErr) {
+        console.warn('[MoneyMissionService] Wallet debit notice:', debitErr);
+      }
+    }
+
+    // 2. Structured activity details
+    const finalAmountStr = totalDebitAmt > 0 ? totalDebitAmt.toFixed(2) : missionAmount;
+    const auditDetails = {
+      missionId,
+      reference,
+      signatureHex:
+        signature.length > 20
+          ? `${signature.substring(0, 10)}...${signature.substring(signature.length - 8)}`
+          : signature,
+      pinValidated,
+      allocationsCount: allocationsList.length || allocationsCount,
+      executedAt: executedIso,
+      amount: finalAmountStr,
+      currency: missionCurrency,
+      recipient: primaryRecipient || 'BMONI Settlement Rails',
+      counterparty: primaryRecipient || 'BMONI Settlement Rails',
+      fundingWallet: `${missionCurrency} Smart Wallet`,
+      totalDebited: `$${finalAmountStr}`,
+      rule: missionTitle,
+      status: 'COMPLETED',
+    };
+
+    // 3. Persist to in-memory activities for instant query reflection
+    recordInMemoryActivity({
+      id: auditId,
+      category: 'PERSONAL',
+      action: primaryRecipient ? 'TRANSFER_COMPLETED' : 'MONEY_MISSION_EXECUTED',
+      actor: 'B-Key Enclave (PIN Confirmed)',
+      detailsJson: auditDetails,
+      createdAt: executedIso,
+    });
+
+    // 4. Persist to PostgreSQL audit log entry if DB connected
+    if (isPostgresDb()) {
+      try {
         await prisma.auditActivity.create({
           data: {
             id: auditId,
             category: 'PERSONAL',
-            action: 'MONEY_MISSION_EXECUTED',
+            action: primaryRecipient ? 'TRANSFER_COMPLETED' : 'MONEY_MISSION_EXECUTED',
             actor: 'B-Key Enclave (PIN Confirmed)',
-            detailsJson: {
-              missionId,
-              reference,
-              signatureHex:
-                signature.length > 20
-                  ? `${signature.substring(0, 10)}...${signature.substring(signature.length - 8)}`
-                  : signature,
-              pinValidated,
-              allocationsCount,
-              executedAt: executedIso,
-            } as any,
+            detailsJson: auditDetails as any,
           },
         });
       } catch (err) {
         console.warn(
-          '[MoneyMissionService] DB execution update error (non-fatal):',
+          '[MoneyMissionService] DB audit write error (non-fatal):',
           (err as any)?.message || err
         );
       }

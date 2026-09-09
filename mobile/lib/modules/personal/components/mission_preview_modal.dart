@@ -122,9 +122,12 @@ class MissionPreviewModal extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'WHEN PAYMENT ARRIVES',
-                          style: TextStyle(
+                        Text(
+                          intent.triggerCondition.type.toUpperCase() ==
+                                  'BALANCE_THRESHOLD'
+                              ? 'BALANCE THRESHOLD TRIGGER'
+                              : 'WHEN PAYMENT ARRIVES',
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             color: FlowPayColors.darkTextSecondary,
@@ -133,17 +136,26 @@ class MissionPreviewModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          sourceAmountStr.contains('2000') ||
-                                  sourceAmountStr == '2000.00'
-                              ? '\$2,000 incoming'
-                              : (sourceAmountStr.isNotEmpty
-                                  ? '\$$sourceAmountStr incoming'
-                                  : 'Any incoming'),
+                          intent.triggerCondition.type.toUpperCase() ==
+                                  'BALANCE_THRESHOLD'
+                              ? intent.triggerCondition.description
+                              : (sourceAmountStr.contains('2000') ||
+                                      sourceAmountStr == '2000.00'
+                                  ? '\$2,000 incoming'
+                                  : (sourceAmountStr.isNotEmpty
+                                      ? '\$$sourceAmountStr incoming'
+                                      : 'Any incoming')),
                           style: FlowPayTypography.amount(
                             color: isDark
                                 ? FlowPayColors.darkTextPrimary
                                 : FlowPayColors.lightTextPrimary,
-                          ).copyWith(fontSize: 22, fontWeight: FontWeight.bold),
+                          ).copyWith(
+                            fontSize: intent.triggerCondition.type.toUpperCase() ==
+                                    'BALANCE_THRESHOLD'
+                                ? 16
+                                : 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
