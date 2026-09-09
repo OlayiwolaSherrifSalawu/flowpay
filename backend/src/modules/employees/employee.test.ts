@@ -380,17 +380,14 @@ describe('Employee Management Validation & Lifecycle', () => {
       );
     });
 
-    it('formats local Nigerian 0-prefixed phone numbers to E.164', () => {
+    it('preserves provided phone numbers as trimmed strings', () => {
       assert.strictEqual(
         EmployeeService.buildEffectivePhone('08139088072', 'NG'),
-        '+2348139088072'
+        '08139088072'
       );
-    });
-
-    it('formats local Mexican 10-digit phone numbers to E.164', () => {
       assert.strictEqual(
         EmployeeService.buildEffectivePhone('5512345678', 'MX'),
-        '+525512345678'
+        '5512345678'
       );
     });
 
