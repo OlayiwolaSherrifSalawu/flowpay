@@ -36,6 +36,11 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default(''),
   MAIL_FROM_NAME: z.string().default('FlowPay'),
   MAIL_FROM_ADDRESS: z.string().default('fwaffiyyi@gmail.com'),
+  // Paystack Configuration
+  PAYSTACK_SECRET_KEY: z.string().optional(),
+  PAYSTACK_BASE_URL: z.string().default('https://api.paystack.co').transform((url) => {
+    return url.replace(/\/$/, '');
+  }),
 });
 
 export const env = envSchema.parse(process.env);
