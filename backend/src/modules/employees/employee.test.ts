@@ -367,5 +367,120 @@ describe('Employee Management Validation & Lifecycle', () => {
       }
     });
   });
+
+  describe('Effective Phone Number Resolution & Deduplication', () => {
+    it('preserves existing E.164 phone numbers', () => {
+      assert.strictEqual(
+        EmployeeService.buildEffectivePhone('+2348012345678', 'NG'),
+        '+2348012345678'
+      );
+      assert.strictEqual(
+        EmployeeService.buildEffectivePhone('+525512345678', 'MX'),
+        '+525512345678'
+      );
+    });
+
+    it('formats local Nigerian 0-prefixed phone numbers to E.164', () => {
+      assert.strictEqual(
+        EmployeeService.buildEffectivePhone('08139088072', 'NG'),
+        '+2348139088072'
+      );
+    });
+
+    it('formats local Mexican 10-digit phone numbers to E.164', () => {
+      assert.strictEqual(
+        EmployeeService.buildEffectivePhone('5512345678', 'MX'),
+        '+525512345678'
+      );
+    });
+
+    it('generates valid country-specific sandbox phones when null/undefined/empty', () => {
+      const ngPhone = EmployeeService.buildEffectivePhone(undefined, 'NG');
+      assert.ok(ngPhone.startsWith('+23480'), `Expected +23480..., got ${ngPhone}`);
+      assert.strictEqual(ngPhone.length, 14);
+
+      const mxPhone = EmployeeService.buildEffectivePhone('', 'MX');
+      assert.ok(mxPhone.startsWith('+5255'), `Expected +5255..., got ${mxPhone}`);
+      assert.strictEqual(mxPhone.length, 13);
+
+      const usPhone = EmployeeService.buildEffectivePhone(null, 'US');
+      assert.ok(usPhone.startsWith('+1415555'), `Expected +1415555..., got ${usPhone}`);
+    });
+  });
+
+  describe('retryBmoniUserCreation Lifecycle & Invite Email Dispatch', () => {
+    it('uses effective phone and dispatches employee invite email on successful retry', async () => {
+      const { bmoniClient } = await import('../../bmoni/client.js');
+      const { mailService } = await import('../mail/service.js');
+      const { inMemoryEmployees } = await import('./service.js');
+
+      const testEmpId = `emp_retry_test_${Date.now()}`;
+      const fakeEmployee = {
+        id: testEmpId,
+        firstName: 'RetryFirst',
+        lastName: 'RetryLast',
+        email: 'retry.test@flowpay.finance',
+        phoneNumber: null, // intentionally missing to test BUG A
+        country: 'NG',
+        targetCurrency: 'NGN',
+        payrollAmountMinor: 5000000,
+        payrollCurrency: 'NGN',
+        status: 'FAILED',
+        failedStage: 'BMONI_USER_CREATION',
+        bmoniUserId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      inMemoryEmployees.set(testEmpId, fakeEmployee);
+
+      let capturedPhone: string | undefined;
+      const originalCreate = bmoniClient.createEmployeeUser;
+      bmoniClient.createEmployeeUser = async (input: any) => {
+        capturedPhone = input.phoneNumber;
+        return {
+          id: 'usr_retry_bmoni_success',
+          bmoniUserId: 'usr_retry_bmoni_success',
+          firstName: input.firstName,
+          lastName: input.lastName,
+          email: input.email,
+          partnerId: 'part_flowpay_01',
+          createdAt: new Date().toISOString(),
+        };
+      };
+
+      let inviteEmailSent = false;
+      let inviteParams: any;
+      const originalSend = mailService.sendEmployeeInvite;
+      mailService.sendEmployeeInvite = async (params: any) => {
+        inviteEmailSent = true;
+        inviteParams = params;
+        return { success: true, messageId: 'msg_test_retry_invite' };
+      };
+
+      try {
+        const updated = await EmployeeService.retryBmoniUserCreation(testEmpId);
+
+        // BUG A assertion: phone number must NOT be undefined/empty; must be generated effective phone
+        assert.ok(capturedPhone, 'phoneNumber must be passed to BMONI');
+        assert.ok(capturedPhone.startsWith('+23480'), 'Generated phone must match country format');
+
+        // Verify status and bmoniUserId updated
+        assert.strictEqual(updated.status, 'INVITED');
+        assert.strictEqual(updated.bmoniUserId, 'usr_retry_bmoni_success');
+        assert.strictEqual(updated.failedStage, null);
+
+        // Wait small tick for non-blocking mailService call to execute
+        await new Promise((r) => setTimeout(r, 50));
+
+        // BUG B assertion: invite email must be sent
+        assert.strictEqual(inviteEmailSent, true, 'sendEmployeeInvite must be called on successful retry');
+        assert.strictEqual(inviteParams.to, 'retry.test@flowpay.finance');
+        assert.ok(inviteParams.inviteUrl, 'inviteUrl must be provided in invite email');
+      } finally {
+        bmoniClient.createEmployeeUser = originalCreate;
+        mailService.sendEmployeeInvite = originalSend;
+      }
+    });
+  });
 });
 

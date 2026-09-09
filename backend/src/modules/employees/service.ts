@@ -126,6 +126,42 @@ export class EmployeeService {
     return crypto.randomBytes(24).toString('hex');
   }
 
+  /**
+   * Resolves or generates an effective E.164 phone number for BMONI user creation.
+   * Formats the provided phone number if available, or generates a valid sandbox phone keyed on country
+   * (+2348... for NG, +5255... for MX, +1415555... fallback).
+   */
+  static buildEffectivePhone(phoneNumber: string | undefined | null, country: string): string {
+    const raw = (phoneNumber || '').trim();
+    const c = (country || '').trim().toUpperCase();
+
+    if (raw) {
+      if (raw.startsWith('+')) {
+        return raw;
+      }
+      // Local Nigerian number starting with 0 (e.g. 08139088072 -> +2348139088072)
+      if (c === 'NG' && raw.startsWith('0')) {
+        return `+234${raw.substring(1)}`;
+      }
+      // Local Mexican 10-digit number
+      if (c === 'MX' && raw.length === 10) {
+        return `+52${raw}`;
+      }
+      if (/^\d+$/.test(raw)) {
+        if (c === 'NG') return `+234${raw}`;
+        if (c === 'MX') return `+52${raw}`;
+        return `+${raw}`;
+      }
+      return raw;
+    }
+
+    return c === 'NG'
+      ? `+23480${Math.floor(10000000 + Math.random() * 90000000)}`
+      : c === 'MX'
+        ? `+5255${Math.floor(10000000 + Math.random() * 90000000)}`
+        : `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+
   static async createEmployee(data: CreateEmployeeInput): Promise<{
     employee: EmployeeRecord;
     bmoniUserId?: string;
@@ -145,20 +181,14 @@ export class EmployeeService {
     let failureReason: string | undefined;
 
     // BMONI requires a phone number for user creation; format or generate a valid sandbox phone
-    const defaultPhone =
-      country === 'NG'
-        ? `+23480${Math.floor(10000000 + Math.random() * 90000000)}`
-        : country === 'MX'
-        ? `+5255${Math.floor(10000000 + Math.random() * 90000000)}`
-        : `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
-    const effectivePhone = data.phoneNumber?.trim() || defaultPhone;
+    const effectivePhone = this.buildEffectivePhone(data.phoneNumber, country);
 
     // Fail fast with a clear reason if the key is obviously misconfigured,
     // rather than making a doomed round trip that returns an opaque 401.
     if (bmoniClient.isApiKeyLikelyMisconfigured()) {
       console.error(
         '[EmployeeService] BMONI_API_KEY appears to be a placeholder/invalid. ' +
-          'POST /v1/users will 401. Set a real BMONI_API_KEY (pk_...).'
+        'POST /v1/users will 401. Set a real BMONI_API_KEY (pk_...).'
       );
     }
 
@@ -179,6 +209,7 @@ export class EmployeeService {
         console.warn(
           `[EmployeeService] BMONI reported 409 (user already exists) for ${data.email}. Treating as recovered.`
         );
+        console.log('[DEBUG] Full 409 error details:', JSON.stringify(err?.details ?? err));
         failureReason =
           'A BMONI user already exists with this email or phone number. Use a different email/phone, or recover the existing user.';
         createError = err;
@@ -327,35 +358,68 @@ export class EmployeeService {
       throw err;
     }
 
+    const effectivePhone = this.buildEffectivePhone(employee.phoneNumber, employee.country);
+
     let bmoniUserId: string | undefined;
+    let registeredPhone = effectivePhone;
     try {
       const user = await bmoniClient.createEmployeeUser({
         firstName: employee.firstName.trim(),
         lastName: employee.lastName.trim(),
         email: employee.email.trim().toLowerCase(),
-        phoneNumber: (employee.phoneNumber || '').trim() || undefined,
+        phoneNumber: effectivePhone,
       });
       bmoniUserId = user.bmoniUserId || user.id;
     } catch (err: any) {
       const status = err?.statusCode ?? err?.status;
-      const msg = err?.message || 'BMONI user creation failed';
-      const reason =
-        status === 401
-          ? `BMONI rejected the request (401 Unauthorized) — check BMONI_API_KEY. (${msg})`
-          : status === 409
-          ? `A BMONI user already exists with this email or phone. Use a different email/phone. (${msg})`
-          : `BMONI user creation failed${status ? ` (HTTP ${status})` : ''}: ${msg}`;
-      const wrapped = new Error(reason) as Error & { statusCode?: number };
-      wrapped.statusCode = status || 502;
-      throw wrapped;
+
+      // 409 = a user already exists with this email/phone. Per BMONI docs,
+      // recover the existing user identity rather than failing the retry.
+      if (status === 409) {
+        try {
+          const listRes = await (bmoniClient as any).request('/v1/users') as {
+            users?: Array<{ id: string; bmoniUserId?: string; email: string; phoneNumber?: string }>;
+          };
+          const matched = listRes?.users?.find(
+            (u) => u.email?.toLowerCase() === employee.email.trim().toLowerCase()
+          );
+          if (matched) {
+            bmoniUserId = matched.bmoniUserId || matched.id;
+            if (matched.phoneNumber) {
+              registeredPhone = matched.phoneNumber;
+            }
+            console.log(
+              `[EmployeeService] Recovered existing BMONI user ${bmoniUserId} on 409 conflict for ${employee.email}`
+            );
+          }
+        } catch (recoverErr) {
+          console.warn('[EmployeeService] Failed to recover existing BMONI user on 409:', recoverErr);
+        }
+      }
+
+      if (!bmoniUserId) {
+        const msg = err?.message || 'BMONI user creation failed';
+        const reason =
+          status === 401
+            ? `BMONI rejected the request (401 Unauthorized) — check BMONI_API_KEY. (${msg})`
+            : status === 409
+              ? `A BMONI user already exists with this email or phone. Use a different email/phone. (${msg})`
+              : `BMONI user creation failed${status ? ` (HTTP ${status})` : ''}: ${msg}`;
+        const wrapped = new Error(reason) as Error & { statusCode?: number };
+        wrapped.statusCode = status || 502;
+        throw wrapped;
+      }
     }
 
-    const updateData = {
+    const updateData: Record<string, any> = {
       bmoniUserId: bmoniUserId || null,
       status: 'INVITED',
       failedStage: null,
       updatedAt: new Date(),
     };
+    if (!employee.phoneNumber || !employee.phoneNumber.startsWith('+')) {
+      updateData.phoneNumber = registeredPhone;
+    }
 
     let updated: EmployeeRecord | undefined;
     if (isPostgresDb()) {
@@ -367,6 +431,65 @@ export class EmployeeService {
     }
     const merged = { ...(inMemoryEmployees.get(employeeId) || employee), ...updateData } as EmployeeRecord;
     inMemoryEmployees.set(employeeId, merged);
+
+    // Resolve existing active invite or generate a fresh 72h single-use invite
+    let inviteToken: string | undefined;
+    for (const [tok, rec] of employeeInvites.entries()) {
+      if (rec.employeeId === employeeId && !rec.usedAt && new Date() <= rec.expiresAt) {
+        rec.bmoniUserId = bmoniUserId;
+        inviteToken = tok;
+        break;
+      }
+    }
+
+    if (!inviteToken) {
+      inviteToken = this.generateInviteToken();
+      const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+      employeeInvites.set(inviteToken, {
+        token: inviteToken,
+        employeeId,
+        bmoniUserId,
+        email: merged.email,
+        firstName: merged.firstName,
+        lastName: merged.lastName,
+        country: merged.country,
+        targetCurrency: merged.targetCurrency,
+        payrollAmountMinor: merged.payrollAmountMinor,
+        expiresAt,
+      });
+    }
+
+    const baseUrl = env.APP_URL.replace(/\/$/, '');
+    const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
+
+    // Dispatch branded invitation email (non-blocking fire-and-forget, same as createEmployee)
+    mailService
+      .sendEmployeeInvite({
+        to: merged.email,
+        recipientName: `${merged.firstName} ${merged.lastName}`.trim(),
+        employerName: 'FlowPay Technologies Ltd',
+        companyName: 'FlowPay Technologies Ltd',
+        country: merged.country,
+        currency: merged.payrollCurrency || undefined,
+        payrollAmount: (merged.payrollAmountMinor / 100).toFixed(2),
+        inviteUrl,
+      })
+      .then((res) => {
+        if (res.success) {
+          console.log(
+            `[EmployeeService] ✅ Invite email successfully dispatched to ${merged.email} (ID: ${res.messageId})`
+          );
+        } else {
+          console.warn(
+            `[EmployeeService] ⚠️ Invite email delivery notification for ${merged.email}:`,
+            res.error
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+      });
+
     return (updated || merged) as EmployeeRecord;
   }
 
@@ -396,7 +519,7 @@ export class EmployeeService {
           dbEmployee = await prisma.employee.findFirst({
             where: { OR: [{ id: tokenOrId }, { email: tokenOrId }] },
           }) ?? undefined;
-        } catch (_) {}
+        } catch (_) { }
       }
       if (!dbEmployee) {
         dbEmployee = inMemoryEmployees.get(tokenOrId) as EmployeeRecord | undefined;
@@ -496,7 +619,7 @@ export class EmployeeService {
         if (dbUser && dbUser.email.toLowerCase() === targetEmail) {
           isMatch = true;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!isMatch) {
