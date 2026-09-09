@@ -5,6 +5,7 @@ import '../../repositories/activity_repository.dart';
 import '../../repositories/wallet_repository.dart';
 import '../../financial_operator/services/execution_provider.dart' show ExecutionResult;
 import '../models/quote_model.dart';
+import '../models/reservation_ledger.dart';
 import '../models/smart_payment_plan.dart';
 import '../models/wallet_balance_model.dart';
 import 'execution_provider.dart';
@@ -177,6 +178,12 @@ class DemoExecutionProvider implements ExecutionProvider {
       final wallets = await walletRepo!.getWallets();
       return wallets.map<WalletBalanceDetails>((w) {
         final existing = _wallets[w.currency];
+        final ledgerReserved = ReservationLedger().getTotalReserved(w.id, w.currency);
+        final effectiveReserved = ledgerReserved.minorUnits > 0
+            ? ledgerReserved
+            : (existing?.reserved ?? Money.zero(w.currency));
+        final effectiveProtected = existing?.protectedAmount ?? Money.zero(w.currency);
+
         return WalletBalanceDetails(
           walletId: w.id,
           walletName: '${w.currency.code} Smart Wallet',
@@ -184,15 +191,25 @@ class DemoExecutionProvider implements ExecutionProvider {
           currency: w.currency,
           stablecoinToken: w.stablecoinToken,
           available: w.balance,
-          reserved: Money.zero(w.currency),
+          reserved: effectiveReserved,
           pending: Money.zero(w.currency),
-          isProtected: existing?.isProtected ?? false,
-          protectedAmount: existing?.protectedAmount ?? Money.zero(w.currency),
+          isProtected: existing?.isProtected ?? (effectiveReserved.minorUnits > 0),
+          protectedAmount: effectiveProtected.minorUnits > 0 ? effectiveProtected : effectiveReserved,
           purpose: existing?.purpose,
         );
       }).toList();
     }
-    return List.unmodifiable(_wallets.values);
+    return _wallets.values.map<WalletBalanceDetails>((w) {
+      final ledgerReserved = ReservationLedger().getTotalReserved(w.walletId, w.currency);
+      if (ledgerReserved.minorUnits > 0 && w.reserved.minorUnits == 0) {
+        return w.copyWith(
+          reserved: ledgerReserved,
+          isProtected: true,
+          protectedAmount: ledgerReserved,
+        );
+      }
+      return w;
+    }).toList();
   }
 
   @override

@@ -36,6 +36,8 @@ class WalletAccount {
       status: status ?? this.status,
     );
   }
+
+  String get name => '${currency.code} Wallet ($stablecoinToken)';
 }
 
 /// WalletRepository is a thin wrapper that directly implements

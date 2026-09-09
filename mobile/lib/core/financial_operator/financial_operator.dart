@@ -18,6 +18,8 @@ import 'models/financial_intent_types.dart';
 import 'models/financial_plan_models.dart';
 import 'models/operator_session_models.dart';
 import '../financial_engine/financial_engine.dart';
+import '../financial_engine/models/reservation_ledger.dart';
+import '../missions/mission_runtime_engine.dart';
 import 'services/clarification_engine.dart';
 import 'services/context_resolver.dart';
 import 'services/execution_provider.dart';
@@ -97,6 +99,176 @@ class FinancialOperator extends ChangeNotifier {
       }
 
       final lower = text.toLowerCase();
+
+      // A. Mission percentage adjustment (Conversation 3: "Actually make it 25%")
+      final pctMatch = RegExp(
+        r'(?:actually\s+)?(?:make|change|set)(?:\s+it)?\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*%',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (pctMatch != null) {
+        final newPct = double.parse(pctMatch.group(1)!);
+        final updated = MissionRuntimeEngine().updateMissionPercentage('tax', newPct);
+        final missionName = updated?.name ?? 'Tax Mission';
+        final confirmMsg = OperatorMessage.operator(
+          'Updated your $missionName. Whenever USD arrives, I will now reserve ${newPct.toStringAsFixed(0)}% for taxes.\n'
+          '• Target: Tax Reserve\n'
+          '• Rate: ${newPct.toStringAsFixed(0)}%\n'
+          '• Status: ${updated?.state.name.toUpperCase() ?? 'ACTIVE'}',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, confirmMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // B. Multi-action mission rule extension (Conversation 4: "Also send 200 to my designer whenever there's enough")
+      final alsoSendMatch = RegExp(
+        r'also\s+(?:send|pay)\s+\$?(\d+(?:\.\d+)?)\s*(?:usd)?\s+to\s+(?:my\s+)?([a-zA-Z0-9\s]+?)(?:\s+whenever|\s+when|\s+if|$)',
+        caseSensitive: false,
+      ).firstMatch(text);
+      if (alsoSendMatch != null) {
+        final amt = double.parse(alsoSendMatch.group(1)!);
+        final recipient = alsoSendMatch.group(2)!.trim();
+        final money = Money.fromMajorString(amt.toStringAsFixed(2), Currency.usd);
+
+        final newRule = MissionActionRule(
+          id: 'rule_designer_${DateTime.now().millisecondsSinceEpoch}',
+          type: MissionActionRuleType.sendFixedAmount,
+          fixedAmount: money,
+          targetBeneficiary: Beneficiary(
+            id: 'ben_designer',
+            nickname: recipient,
+            legalName: recipient,
+            relationship: 'Contractor',
+            destinationCountry: 'United States',
+            countryFlag: '🇺🇸',
+            currency: Currency.usd,
+            accountOrAddress: 'designer@flowpay.finance',
+            isVerified: true,
+          ),
+          targetCurrency: Currency.usd,
+          description: 'Send ${money.toFormattedString()} to $recipient from spendable balance',
+        );
+
+        final updated = MissionRuntimeEngine().appendActionRule('tax', newRule);
+        final primaryPct = updated?.rules.firstWhere((r) => r.percentage != null, orElse: () => newRule).percentage ?? 25.0;
+
+        final confirmMsg = OperatorMessage.operator(
+          'I\'ve added this rule to your ${updated?.name ?? 'USD Inflow'} Mission. Here is the deterministic order of execution on each USD inflow:\n'
+          '1. Reserve ${primaryPct.toStringAsFixed(0)}% for taxes happens first into your Tax Reserve.\n'
+          '2. Send ${money.toFormattedString()} to your $recipient happens second, strictly from remaining spendable balance.\n\n'
+          'Deterministic Safety Guarantee: If your spendable balance is less than ${money.toFormattedString()} after tax reservation, the $recipient payment will not execute, your tax reserve will remain untouched, and you will be notified.',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, confirmMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // C. Mission pause (Conversation 7: "Pause my tax mission")
+      if (lower.contains('pause') && (lower.contains('mission') || lower.contains('tax') || lower.contains('it'))) {
+        final paused = MissionRuntimeEngine().pauseMission('tax');
+        final confirmMsg = OperatorMessage.operator(
+          'I\'ve paused your ${paused?.name ?? 'Tax Savings Mission'}. No new reservations or automated payments will trigger on future USD inflows. Your existing reserves remain safely locked in your Tax Reserve.',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, confirmMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // D. Mission resume (Conversation 7: "Resume it" / "Resume tax mission")
+      if (lower.contains('resume') || (lower.contains('reactivate') && (lower.contains('mission') || lower.contains('it')))) {
+        final resumed = MissionRuntimeEngine().resumeMission('tax');
+        final confirmMsg = OperatorMessage.operator(
+          'I\'ve resumed your ${resumed?.name ?? 'Tax Savings Mission'}. It is now active and will automatically enforce your tax reservation and automated payments on upcoming USD inflows.',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, confirmMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // E. Balance and Spendable Inquiry (Conversation 6: "How much can I spend from my USD wallet?")
+      if ((lower.contains('how much') || lower.contains('what') || lower.contains('can i spend')) &&
+          (lower.contains('spend') || lower.contains('spendable'))) {
+        final usdWallet = await contextService.getWalletForCurrency(Currency.usd);
+        if (usdWallet != null) {
+          final details = ReservationLedger().getWalletBalanceDetails(
+            usdWallet.id,
+            Currency.usd,
+            usdWallet.balance,
+          );
+          final buffer = StringBuffer();
+          buffer.writeln('You have ${details.total.toFormattedString()} in your USD wallet:');
+          if (details.hasReservations) {
+            final activeRes = ReservationLedger().getActiveReservations(walletId: usdWallet.id);
+            for (final r in activeRes) {
+              buffer.writeln('• ${r.amount.toFormattedString()} reserved for ${r.purpose} (${r.missionTag ?? 'Tax Mission'})');
+            }
+          }
+          buffer.writeln('• ${details.spendable.toFormattedString()} spendable balance');
+
+          final replyMsg = OperatorMessage.operator(buffer.toString().trim());
+          _session = _session.copyWith(
+            status: OperatorSessionStatus.idle,
+            messages: [..._session.messages, replyMsg],
+          );
+          notifyListeners();
+          return;
+        }
+      }
+
+      // F. Reservation Inquiry / Reason (Conversation 6: "Why can't I spend this money?" / "Why is my balance reserved?")
+      if ((lower.contains('why') || lower.contains('what')) &&
+          (lower.contains('reserved') ||
+              lower.contains('locked') ||
+              lower.contains('spend') ||
+              lower.contains('cannot') ||
+              lower.contains("can't") ||
+              lower.contains("cant"))) {
+        final activeRes = ReservationLedger().getActiveReservations();
+        final buffer = StringBuffer();
+        if (activeRes.isNotEmpty) {
+          buffer.writeln('Your funds are reserved by your active missions:');
+          for (final r in activeRes) {
+            buffer.writeln('• ${r.amount.toFormattedString()} is reserved for ${r.purpose} (${r.missionTag ?? 'Tax Mission'}).');
+          }
+          buffer.writeln('\nThis guarantees that your tax obligations and financial policies are fulfilled before discretionary spending. You can adjust or pause the mission anytime (e.g., "Pause my tax mission" or "Make it 10%").');
+        } else {
+          buffer.writeln('You currently have no funds reserved by active missions. Your entire balance is available to spend.');
+        }
+
+        final replyMsg = OperatorMessage.operator(buffer.toString().trim());
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, replyMsg],
+        );
+        notifyListeners();
+        return;
+      }
+
+      // G. Tax savings inquiry (Conversation 6: "How much have I saved for taxes?")
+      if (lower.contains('how much') && lower.contains('tax')) {
+        final taxSaved = ReservationLedger().getReservedAmountByPurpose('taxes', Currency.usd);
+        final replyMsg = OperatorMessage.operator(
+          'You currently have ${taxSaved.toFormattedString()} reserved for taxes in your Tax Reserve.',
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.idle,
+          messages: [..._session.messages, replyMsg],
+        );
+        notifyListeners();
+        return;
+      }
 
       // Check if user is asking "Why did you use my EUR?"
       if (_session.activePlan?.routeExplanation != null &&
@@ -461,13 +633,24 @@ class FinancialOperator extends ChangeNotifier {
               notifyListeners();
               return;
             }
-          } else if (prompt.field == 'destination') {
-            // Resolve destination from answer: e.g. "Put it in my USD savings"
+          } else if (prompt.field == 'destination' ||
+              prompt.field == 'mission_destination') {
+            // Resolve destination from answer: e.g. "Save it for taxes", "Put it in my USD savings"
             String destName = 'USD Savings';
-            if (answer.toLowerCase().contains('create')) {
+            String purpose = 'savings';
+            final lowerAns = answer.toLowerCase();
+            if (lowerAns.contains('tax')) {
               destName = 'Tax Reserve';
-            } else if (answer.toLowerCase().contains('wallet')) {
+              purpose = 'taxes';
+            } else if (lowerAns.contains('emergency')) {
+              destName = 'Emergency Fund';
+              purpose = 'emergency';
+            } else if (lowerAns.contains('create')) {
+              destName = 'Tax Reserve';
+              purpose = 'taxes';
+            } else if (lowerAns.contains('wallet')) {
               destName = 'USD Wallet';
+              purpose = 'spending';
             }
 
             final usdWallet =
@@ -483,6 +666,7 @@ class FinancialOperator extends ChangeNotifier {
                   resolvedCurrency: Currency.usd,
                   knowledgeState: EntityKnowledgeState.known,
                 ),
+                purpose: purpose,
                 description: 'Reserve ${act.amount.formattedDisplay} in $destName',
               ),
             );
@@ -604,6 +788,30 @@ class FinancialOperator extends ChangeNotifier {
     StructuredIntent intent, {
     Currency? overrideFundingCurrency,
   }) async {
+    if (intent.primaryIntent == FinancialIntentType.createMission) {
+      final act = intent.actions.first;
+      final pct = act.amount.percentage ?? 20.0;
+      final destName = act.destination?.resolvedWalletName ?? 'Tax Reserve';
+
+      MissionRuntimeEngine().updateMissionTargetReserve('tax', destName);
+      MissionRuntimeEngine().updateMissionPercentage('tax', pct);
+
+      final replyMsg = OperatorMessage.operator(
+        'I\'ve configured and activated your $destName Mission.\n'
+        '• Trigger: USD inflow arrives\n'
+        '• Action: Reserve ${pct.toStringAsFixed(0)}% to $destName\n'
+        '• Status: ACTIVE\n\n'
+        'You can modify this rule anytime (e.g., "Actually make it 25%" or "Pause my tax mission").',
+      );
+
+      _session = _session.copyWith(
+        status: OperatorSessionStatus.idle,
+        messages: [..._session.messages, replyMsg],
+      );
+      notifyListeners();
+      return;
+    }
+
     final plan = await _planner.createPlan(
       intent,
       overrideFundingCurrency: overrideFundingCurrency,
@@ -657,7 +865,12 @@ class FinancialOperator extends ChangeNotifier {
       explanation.writeln('Here\'s what I\'ll do:\n');
       for (int i = 0; i < plan.actions.length; i++) {
         final act = plan.actions[i];
-        if (act.destinationCurrency != null &&
+        if (act.type == PlannedActionType.convert &&
+            act.destinationAmount != null &&
+            act.destinationCurrency != null) {
+          explanation.writeln(
+              '${i + 1}. Convert ${act.amount.toFormattedString()} from ${act.sourceWalletName} → ~${act.destinationAmount!.toFormattedString()} into ${act.destinationName} (${act.fxRate != null ? "Rate: ${act.fxRate}" : "Live FX"}).');
+        } else if (act.destinationCurrency != null &&
             act.destinationAmount != null &&
             act.destinationCurrency != act.amount.currency) {
           explanation.writeln(

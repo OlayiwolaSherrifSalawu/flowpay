@@ -163,9 +163,52 @@ class FinancialPlanner {
         destType = 'wallet';
       } else if (act.intentType == FinancialIntentType.convertCurrency) {
         plannedType = PlannedActionType.convert;
-        destId = 'fx_conversion';
-        destName = 'Currency Swap';
-        destType = 'fx';
+        final srcCurr = act.amount.currency;
+        final destCurr = act.destinationCurrency ??
+            (srcCurr == Currency.usd ? Currency.ngn : Currency.usd);
+
+        final srcWallet = await contextService.getWalletForCurrency(srcCurr);
+        final dstWallet = await contextService.getWalletForCurrency(destCurr);
+
+        destId = dstWallet?.id ?? 'sw_${destCurr.code.toLowerCase()}';
+        destName = dstWallet?.name ?? '${destCurr.code} Wallet';
+        destType = 'wallet';
+
+        PaymentQuote? quote;
+        try {
+          quote = await _fundingPlanner.executionProvider.getQuote(
+            source: srcCurr,
+            destination: destCurr,
+            amount: amount,
+            isSourceAmount: true,
+          );
+          fee = quote.providerFee.add(quote.networkFee);
+        } catch (_) {
+          fee = Money.zero(srcCurr);
+        }
+
+        plannedActions.add(
+          PlannedFinancialAction(
+            id: 'item_${planId}_other_${i + 1}',
+            type: plannedType,
+            amount: amount,
+            sourceWalletId: srcWallet?.id ?? 'sw_${srcCurr.code.toLowerCase()}',
+            sourceWalletName: srcWallet?.name ?? '${srcCurr.code} Wallet',
+            destinationId: destId,
+            destinationName: destName,
+            destinationType: destType,
+            description: act.description.isNotEmpty
+                ? act.description
+                : 'Transfer to $destName',
+            fee: fee,
+            destinationAmount: quote?.destinationAmount,
+            destinationCurrency: destCurr,
+            fundingCurrency: srcCurr,
+            fxRate: quote?.formattedRate,
+            dependsOn: act.dependsOn,
+          ),
+        );
+        continue;
       }
 
       plannedActions.add(
@@ -191,36 +234,86 @@ class FinancialPlanner {
     }
 
     // 3. Aggregate totals and balance changes
+    final primaryCurrency = plannedActions.isNotEmpty
+        ? (plannedActions.first.fundingCurrency ??
+            plannedActions.first.amount.currency)
+        : Currency.usd;
+
     int totalDebitMinor = 0;
     int totalFeeMinor = 0;
 
     for (final act in plannedActions) {
-      totalDebitMinor += act.amount.minorUnits;
-      totalFeeMinor += act.fee.minorUnits;
+      if (act.amount.currency == primaryCurrency) {
+        totalDebitMinor += act.amount.minorUnits;
+      }
+      if (act.fee.currency == primaryCurrency) {
+        totalFeeMinor += act.fee.minorUnits;
+      }
     }
 
-    final totalDebit = Money.fromMinor(totalDebitMinor, Currency.usd);
-    final totalFee = Money.fromMinor(totalFeeMinor, Currency.usd);
+    final totalDebit = Money.fromMinor(totalDebitMinor, primaryCurrency);
+    final totalFee = Money.fromMinor(totalFeeMinor, primaryCurrency);
 
     final balanceImpacts = <BalanceImpact>[];
 
     if (batchPlan != null) {
       balanceImpacts.addAll(batchPlan.expectedBalanceChanges);
     } else {
-      // Fallback single balance impact for non-send actions
-      final usdWallet = await contextService.getWalletForCurrency(Currency.usd);
-      final currentBal =
-          usdWallet?.balance ?? Money.fromMajorString('24500.00', Currency.usd);
-      balanceImpacts.add(
-        BalanceImpact(
-          walletId: usdWallet?.id ?? 'sw_demo_usdb_01',
-          walletName: 'USD Wallet (USDB)',
-          currency: Currency.usd,
-          currentBalance: currentBal,
-          projectedBalance: currentBal.subtract(totalDebit),
-          delta: Money.fromMinor(-totalDebitMinor, Currency.usd),
-        ),
-      );
+      final convertActions =
+          plannedActions.where((a) => a.type == PlannedActionType.convert).toList();
+      if (convertActions.isNotEmpty) {
+        for (final cAct in convertActions) {
+          final srcWallet =
+              await contextService.getWalletForCurrency(cAct.amount.currency);
+          final currentSrc =
+              srcWallet?.balance ?? Money.zero(cAct.amount.currency);
+          final debitTotal = cAct.amount.add(cAct.fee);
+          balanceImpacts.add(
+            BalanceImpact(
+              walletId: cAct.sourceWalletId,
+              walletName: cAct.sourceWalletName,
+              currency: cAct.amount.currency,
+              currentBalance: currentSrc,
+              projectedBalance: currentSrc.subtract(debitTotal),
+              delta: Money.fromMinor(-debitTotal.minorUnits, cAct.amount.currency),
+            ),
+          );
+
+          if (cAct.destinationCurrency != null &&
+              cAct.destinationAmount != null) {
+            final dstWallet = await contextService
+                .getWalletForCurrency(cAct.destinationCurrency!);
+            final currentDst =
+                dstWallet?.balance ?? Money.zero(cAct.destinationCurrency!);
+            balanceImpacts.add(
+              BalanceImpact(
+                walletId: cAct.destinationId,
+                walletName: cAct.destinationName,
+                currency: cAct.destinationCurrency!,
+                currentBalance: currentDst,
+                projectedBalance: currentDst.add(cAct.destinationAmount!),
+                delta: cAct.destinationAmount!,
+              ),
+            );
+          }
+        }
+      } else {
+        // Fallback single balance impact for non-send, non-convert actions
+        final fundingWallet =
+            await contextService.getWalletForCurrency(primaryCurrency);
+        final currentBal =
+            fundingWallet?.balance ?? Money.zero(primaryCurrency);
+        balanceImpacts.add(
+          BalanceImpact(
+            walletId: fundingWallet?.id ?? 'sw_primary',
+            walletName: fundingWallet?.name ?? 'Primary Wallet',
+            currency: primaryCurrency,
+            currentBalance: currentBal,
+            projectedBalance: currentBal.subtract(totalDebit),
+            delta: Money.fromMinor(-totalDebitMinor, primaryCurrency),
+          ),
+        );
+      }
     }
 
     // Add positive impact for reserves or savings allocations
@@ -258,7 +351,7 @@ class FinancialPlanner {
           : 'READY_FOR_REVIEW',
       routeExplanation: batchPlan?.routeExplanation,
       availableRouteOverrides: batchPlan?.availableRouteOverrides ?? const [],
-      selectedFundingCurrency: batchPlan?.selectedFundingCurrency,
+      selectedFundingCurrency: batchPlan?.selectedFundingCurrency ?? primaryCurrency,
       quoteExpiresAt: batchPlan?.quoteExpiresAt,
       shortfall: batchPlan?.shortfall,
     );
@@ -274,6 +367,10 @@ class FinancialPlanner {
       List<PlannedFinancialAction> actions, Money total) {
     if (actions.isEmpty) return 'Financial Plan';
     if (actions.length == 1) {
+      final a = actions.first;
+      if (a.type == PlannedActionType.convert && a.destinationCurrency != null) {
+        return 'Convert ${a.amount.toFormattedString()} to ${a.destinationCurrency!.code}';
+      }
       return '${actions.first.type.displayName} ${actions.first.amount.toFormattedString()}';
     }
     return '${total.toFormattedString()} Multi-Action Plan (${actions.length} steps)';
@@ -283,8 +380,13 @@ class FinancialPlanner {
     final buffer = StringBuffer();
     for (int i = 0; i < actions.length; i++) {
       final act = actions[i];
-      buffer.write(
-          '${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}');
+      if (act.type == PlannedActionType.convert && act.destinationAmount != null) {
+        buffer.write(
+            '${i + 1}. Convert ${act.amount.toFormattedString()} from ${act.sourceWalletName} to ~${act.destinationAmount!.toFormattedString()} in ${act.destinationName}');
+      } else {
+        buffer.write(
+            '${i + 1}. ${act.type.displayName} ${act.amount.toFormattedString()} to ${act.destinationName}');
+      }
       if (i < actions.length - 1) buffer.write(' • ');
     }
     return buffer.toString();

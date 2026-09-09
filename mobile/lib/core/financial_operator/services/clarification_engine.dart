@@ -1,4 +1,5 @@
 import '../models/financial_entities.dart';
+import '../models/financial_intent_types.dart';
 import '../models/operator_session_models.dart';
 
 /// FlowPay Clarification Engine
@@ -10,8 +11,20 @@ class ClarificationEngine {
   /// Check if the intent requires clarification, and if so, return the next prompt
   static ClarificationPrompt? evaluateClarification(StructuredIntent intent) {
     for (final action in intent.actions) {
+      // Skip internal wallet-to-wallet transfers / conversions
+      if (action.isInternalTransfer) {
+        continue;
+      }
+
       // 1. Check for Person / Recipient issues
       if (action.person != null) {
+        final rawPerson = action.person!.rawInput.trim().toLowerCase();
+        if (rawPerson.contains('wallet') ||
+            ['usd', 'dollars', 'dollar', 'naira', 'ngn', 'cngn', 'pesos', 'peso', 'mxn', 'euros', 'euro', 'eur', 'cad', 'gbp', 'pounds']
+                .contains(rawPerson)) {
+          continue;
+        }
+
         final otherResolvedNames = intent.actions
             .where((a) =>
                 a.id != action.id &&
@@ -86,7 +99,46 @@ class ClarificationEngine {
         }
       }
 
-      // 2. Check for Destination (Wallet / Reserve) issues
+      // 2. Check for Mission Reserve Destination
+      if (action.intentType == FinancialIntentType.createMission &&
+          (action.destination == null ||
+              action.destination!.knowledgeState != EntityKnowledgeState.known)) {
+        final amountText = action.amount.type == AmountType.percentage &&
+                action.amount.percentage != null
+            ? '${action.amount.percentage!.toStringAsFixed(0)}%'
+            : action.amount.formattedDisplay;
+        return ClarificationPrompt(
+          id: 'clarify_mission_dest_${action.id}',
+          targetActionId: action.id,
+          field: 'mission_destination',
+          question:
+              'Got it. Whenever USD arrives, I\'ll reserve $amountText. Where should the $amountText go — your Tax Reserve, Emergency Reserve, or General Savings?',
+          description:
+              'Choose a reserve destination or reply naturally (e.g. "Save it for taxes").',
+          options: [
+            const ClarificationOptionData(
+              id: 'tax_reserve',
+              label: 'Tax Reserve',
+              subtitle: 'Automated tax withholding vault',
+              value: 'Tax Reserve',
+            ),
+            const ClarificationOptionData(
+              id: 'emergency_reserve',
+              label: 'Emergency Reserve',
+              subtitle: 'Emergency buffer fund',
+              value: 'Emergency Fund',
+            ),
+            const ClarificationOptionData(
+              id: 'general_savings',
+              label: 'General Savings',
+              subtitle: 'USD Savings vault',
+              value: 'USD Savings',
+            ),
+          ],
+        );
+      }
+
+      // 3. Check for Destination (Wallet / Reserve) issues
       if (action.destination != null &&
           action.destination!.knowledgeState != EntityKnowledgeState.known) {
         final raw = action.destination!.rawInput.trim();

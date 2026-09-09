@@ -205,12 +205,13 @@ class FundingPlanner {
       }
 
       if (chosenCandidate == null || chosenShortfallQuote == null || chosenSourceRequired == null) {
-        // Check if user has protected funds (e.g. Tax Reserve)
-        final protectedWallets = balances.where((b) => b.isProtected && b.protectedAmount.minorUnits > 0).toList();
+        // Check if user has protected funds or active reservations (e.g. Tax Reserve)
+        final protectedWallets = balances.where((b) => b.isProtected || b.reserved.minorUnits > 0 || b.protectedAmount.minorUnits > 0).toList();
         if (protectedWallets.isNotEmpty) {
           final p = protectedWallets.first;
+          final resAmt = p.reserved.minorUnits > 0 ? p.reserved : p.protectedAmount;
           validationErrors.add(
-            'You have ${p.protectedAmount.toFormattedString()} in your ${p.purpose ?? "Tax Reserve"}, but it is protected and unavailable for this payment.',
+            'You have ${p.total.toFormattedString()} in your ${p.walletName}, but ${resAmt.toFormattedString()} is reserved by your savings mission, so only ${p.spendableBalance.toFormattedString()} is currently available to spend.',
           );
         } else if (balances.where((b) => b.currency != displayCurrency).isEmpty) {
           validationErrors.add(
