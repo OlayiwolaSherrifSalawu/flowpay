@@ -113,6 +113,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Added on-device hardware isolation security banner with Hardware Keystore / Secure Enclave indicators.
       * Upgraded configured multi-currency wallet list and modernized simulated receive/deposit bottom sheet with copyable address chips and QR code mockup.
       * Verified with `mobile/test/personal_integration_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 6: Send Money & Cross-Border Payments (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `SendMoneyScreen`: Redesigned Global Security Rail Header (`'FlowPay BMONI Rail'`), Natural Language Payment Input card with suggestion pills (`'send_money_nl_input'`), Paystack NUBAN bank resolver with bank picker bottom sheet (`FlowPayRadii.sheet`), standard recipient field (`send_money_recipient_field`), amount field (`send_money_amount_field`), purpose/memo input, and theme-adaptive Paper/Obsidian canvas.
+      * Upgraded Balance-Aware Auto-Funding Analysis Card (`balance_aware_funding_card`): Radio wallet cards with `FlowPayRadii.cardSmall`, available balances, conversion chips, and transparent route notices.
+      * Upgraded `TransferReviewModal`: 28dp sheet radius (`FlowPayRadii.sheet`), theme-adaptive text and containers, emerald approval button (`transfer_review_approve_button`), and preserved trust copy (`"Nothing moves until you approve."`).
+      * Upgraded `TransferReceiptDialog`: 24dp card dialog, 16dp reference hash pill with copy action, and completed state badges.
+      * Verified with `mobile/test/personal_integration_flow_test.dart` (Journey 3 Send Money full flow passes), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

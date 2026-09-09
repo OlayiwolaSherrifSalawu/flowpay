@@ -158,173 +158,217 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     final searchController = TextEditingController();
     List<BankInfo> filteredBanks = List.from(_availableBanks);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.darkSurface,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => DraggableScrollableSheet(
-          initialChildSize: 0.75,
-          minChildSize: 0.5,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (ctx, scrollController) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: FlowPayColors.darkBorder,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(Icons.account_balance_outlined,
-                        color: FlowPayColors.primaryLight, size: 22),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Select Nigerian Bank',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+        builder: (ctx, setModalState) => Container(
+          decoration: BoxDecoration(
+            color: isDark ? FlowPayColors.darkSurface : Colors.white,
+            borderRadius: FlowPayRadii.sheet,
+            border: Border.all(
+              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+            ),
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (ctx, scrollController) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: FlowPayColors.darkTextSecondary),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: searchController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search bank (e.g. GTB, OPay, Zenith, Kuda, Access)',
-                    hintStyle: const TextStyle(
-                      color: FlowPayColors.darkTextSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20),
+                          borderRadius: FlowPayRadii.avatar,
+                        ),
+                        child: const Icon(Icons.account_balance_outlined,
+                            color: FlowPayColors.emerald600, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Select Nigerian Bank',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : FlowPayColors.ink,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.close,
+                            color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                            size: 20),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: searchController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : FlowPayColors.ink,
                       fontSize: 13,
                     ),
-                    prefixIcon: const Icon(Icons.search, color: FlowPayColors.primaryLight, size: 20),
-                    filled: true,
-                    fillColor: FlowPayColors.darkSurfaceElevated,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: FlowPayColors.darkBorder),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: FlowPayColors.darkBorder),
-                    ),
-                  ),
-                  onChanged: (q) {
-                    setModalState(() {
-                      if (q.trim().isEmpty) {
-                        filteredBanks = List.from(_availableBanks);
-                      } else {
-                        final term = q.trim().toLowerCase();
-                        filteredBanks = _availableBanks.where((b) {
-                          return b.name.toLowerCase().contains(term) ||
-                              b.code.contains(term) ||
-                              b.slug.toLowerCase().contains(term);
-                        }).toList();
-                      }
-                    });
-                  },
-                ),
-                const SizedBox(height: 14),
-                Expanded(
-                  child: ListView.separated(
-                    controller: scrollController,
-                    itemCount: filteredBanks.length,
-                    separatorBuilder: (_, __) => const Divider(
-                      color: FlowPayColors.darkBorder,
-                      height: 1,
-                    ),
-                    itemBuilder: (ctx, index) {
-                      final bank = filteredBanks[index];
-                      final isSelected = _selectedBank?.code == bank.code;
-
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        leading: CircleAvatar(
-                          backgroundColor: isSelected
-                              ? FlowPayColors.primaryLight.withValues(alpha: 0.2)
-                              : FlowPayColors.darkSurfaceElevated,
-                          child: Icon(
-                            Icons.account_balance_rounded,
-                            color: isSelected ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
-                            size: 18,
-                          ),
+                    decoration: InputDecoration(
+                      hintText: 'Search bank (e.g. GTB, OPay, Zenith, Kuda, Access)',
+                      hintStyle: TextStyle(
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(Icons.search,
+                          color: FlowPayColors.emerald600, size: 20),
+                      filled: true,
+                      fillColor: isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF9FAFB),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: FlowPayRadii.input,
+                        borderSide: BorderSide(
+                          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                         ),
-                        title: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                bank.name,
-                                style: TextStyle(
-                                  color: isSelected ? FlowPayColors.primaryLight : Colors.white,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                  fontSize: 14,
-                                ),
-                              ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: FlowPayRadii.input,
+                        borderSide: BorderSide(
+                          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                        ),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: FlowPayRadii.input,
+                        borderSide: BorderSide(
+                          color: FlowPayColors.emerald600,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                    onChanged: (q) {
+                      setModalState(() {
+                        if (q.trim().isEmpty) {
+                          filteredBanks = List.from(_availableBanks);
+                        } else {
+                          final term = q.trim().toLowerCase();
+                          filteredBanks = _availableBanks.where((b) {
+                            return b.name.toLowerCase().contains(term) ||
+                                b.code.contains(term) ||
+                                b.slug.toLowerCase().contains(term);
+                          }).toList();
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: filteredBanks.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                        height: 1,
+                      ),
+                      itemBuilder: (ctx, index) {
+                        final bank = filteredBanks[index];
+                        final isSelected = _selectedBank?.code == bank.code;
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25)
+                                  : (isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF3F4F6)),
+                              borderRadius: FlowPayRadii.avatar,
                             ),
-                            if (bank.isPopular)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                margin: const EdgeInsets.only(left: 6),
-                                decoration: BoxDecoration(
-                                  color: FlowPayColors.primary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'Popular',
+                            child: Icon(
+                              Icons.account_balance_rounded,
+                              color: isSelected
+                                  ? FlowPayColors.emerald600
+                                  : (isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
+                              size: 18,
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  bank.name,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    color: FlowPayColors.primaryLight,
-                                    fontWeight: FontWeight.bold,
+                                    color: isSelected
+                                        ? FlowPayColors.emerald600
+                                        : (isDark ? Colors.white : FlowPayColors.ink),
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                        subtitle: Text(
-                          'Code: ${bank.code}',
-                          style: const TextStyle(
-                            color: FlowPayColors.darkTextSecondary,
-                            fontSize: 11,
+                              if (bank.isPopular)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  margin: const EdgeInsets.only(left: 6),
+                                  decoration: BoxDecoration(
+                                    color: FlowPayColors.emerald600.withAlpha(isDark ? 30 : 20),
+                                    borderRadius: FlowPayRadii.chip,
+                                  ),
+                                  child: const Text(
+                                    'Popular',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: FlowPayColors.emerald600,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: FlowPayColors.primaryLight, size: 20)
-                            : null,
-                        onTap: () {
-                          setState(() {
-                            _selectedBank = bank;
-                          });
-                          Navigator.of(ctx).pop();
-                          if (_bankAccountController.text.trim().length == 10) {
-                            _resolveBankAccount(_bankAccountController.text.trim(), bank.code);
-                          }
-                        },
-                      );
-                    },
+                          subtitle: Text(
+                            'Code: ${bank.code}',
+                            style: TextStyle(
+                              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: FlowPayColors.emerald600, size: 20)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _selectedBank = bank;
+                            });
+                            Navigator.of(ctx).pop();
+                            if (_bankAccountController.text.trim().length == 10) {
+                              _resolveBankAccount(_bankAccountController.text.trim(), bank.code);
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -701,10 +745,11 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Widget bodyContent = _isLoadingWallets
         ? const Center(
-            child: CircularProgressIndicator(color: FlowPayColors.primary))
+            child: CircularProgressIndicator(color: FlowPayColors.emerald600))
         : ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             children: [
@@ -713,24 +758,34 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      FlowPayColors.darkSurfaceElevated,
-                      FlowPayColors.darkSurface,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                  borderRadius: FlowPayRadii.cardSmall,
+                  border: Border.all(
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: FlowPayColors.primary.withAlpha(50)),
+                  boxShadow: isDark
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Color(0x080F1712),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shield_outlined,
-                        color: FlowPayColors.primaryLight, size: 20),
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20),
+                        borderRadius: FlowPayRadii.avatar,
+                      ),
+                      child: const Icon(Icons.shield_outlined,
+                          color: FlowPayColors.emerald600, size: 18),
+                    ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -739,108 +794,139 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
                             ),
                           ),
                           Text(
                             'Balance-Aware • AI Extracts • Hardware PIN Signed',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: FlowPayColors.darkTextSecondary),
+                              fontSize: 11,
+                              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: FlowPayColors.primary.withAlpha(30),
-                        borderRadius: BorderRadius.circular(8),
+                        color: FlowPayColors.emerald600.withAlpha(isDark ? 30 : 20),
+                        borderRadius: FlowPayRadii.chip,
+                        border: Border.all(
+                          color: FlowPayColors.emerald600.withAlpha(isDark ? 70 : 50),
+                        ),
                       ),
                       child: const Text(
                         'FlowPay BMONI Rail',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: FlowPayColors.primaryLight,
+                          color: FlowPayColors.emerald600,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // 1. Natural Language Entry Box
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.darkSurface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: FlowPayColors.darkBorder),
+                  color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                  borderRadius: FlowPayRadii.cardMedium,
+                  border: Border.all(
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  ),
+                  boxShadow: isDark
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Color(0x080F1712),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.auto_awesome,
-                            color: FlowPayColors.primaryLight, size: 18),
-                        SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.auto_awesome,
+                              color: FlowPayColors.emerald600, size: 16),
+                        ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'Natural Language Entry',
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'Tell FlowPay where and how much you want to send in plain words.',
                       style: TextStyle(
-                          fontSize: 12, color: FlowPayColors.darkTextSecondary),
+                        fontSize: 12,
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                      ),
                     ),
                     const SizedBox(height: 12),
 
                     TextField(
                       key: const Key('send_money_nl_input'),
                       controller: _nlController,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : FlowPayColors.ink,
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'e.g. "Send \$500 to my designer in Ghana."',
-                        hintStyle: const TextStyle(
-                            color: FlowPayColors.darkTextSecondary,
-                            fontSize: 13),
+                        hintStyle: TextStyle(
+                          color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                          fontSize: 13,
+                        ),
                         filled: true,
-                        fillColor: FlowPayColors.darkSurfaceElevated,
+                        fillColor: isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF9FAFB),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: FlowPayColors.primary, width: 1.5),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: FlowPayColors.emerald600,
+                            width: 1.5,
+                          ),
                         ),
                         suffixIcon: IconButton(
                           key: const Key('send_money_analyze_button'),
                           icon: const Icon(Icons.arrow_forward_rounded,
-                              color: FlowPayColors.primaryLight),
+                              color: FlowPayColors.emerald600),
                           onPressed: () =>
                               _handleAnalyzeNaturalLanguage(_nlController.text),
                           tooltip: 'Analyze',
@@ -849,7 +935,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       onSubmitted: _handleAnalyzeNaturalLanguage,
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
                     // Suggestion Chips
                     Wrap(
@@ -863,22 +949,23 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             _nlController.text = chip;
                             _handleAnalyzeNaturalLanguage(chip);
                           },
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: FlowPayRadii.chip,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
+                                horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: FlowPayColors.darkSurfaceElevated,
-                              borderRadius: BorderRadius.circular(20),
+                              color: isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF3F4F6),
+                              borderRadius: FlowPayRadii.chip,
                               border: Border.all(
-                                  color: FlowPayColors.darkBorder),
+                                color: isDark ? FlowPayColors.darkBorder : const Color(0xFFE5E7EB),
+                              ),
                             ),
                             child: Text(
                               chip,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w500,
+                                color: isDark ? Colors.white70 : const Color(0xFF374151),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -895,10 +982,10 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(14),
+                    color: FlowPayColors.emerald600.withAlpha(isDark ? 30 : 15),
+                    borderRadius: FlowPayRadii.cardSmall,
                     border: Border.all(
-                        color: FlowPayColors.primary.withAlpha(60)),
+                        color: FlowPayColors.emerald600.withAlpha(isDark ? 80 : 50)),
                   ),
                   child: Row(
                     children: [
@@ -906,7 +993,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: FlowPayColors.primaryLight),
+                            strokeWidth: 2, color: FlowPayColors.emerald600),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -915,7 +1002,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: FlowPayColors.primaryLight,
+                            color: FlowPayColors.emerald600,
                           ),
                         ),
                       ),
@@ -964,7 +1051,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: FlowPayColors.error.withAlpha(20),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: FlowPayRadii.cardSmall,
                     border: Border.all(
                         color: FlowPayColors.error.withAlpha(80)),
                   ),
@@ -988,28 +1075,39 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                 ),
               ],
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // 4. Form Fields (Recipient, Amount, Currency, Purpose)
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.darkSurface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: FlowPayColors.darkBorder),
+                  color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                  borderRadius: FlowPayRadii.cardMedium,
+                  border: Border.all(
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  ),
+                  boxShadow: isDark
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Color(0x080F1712),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Recipient / Beneficiary',
                             style: TextStyle(
                               fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: FlowPayColors.darkTextSecondary,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF4B5563),
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1024,18 +1122,18 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                               }
                             });
                           },
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: FlowPayRadii.chip,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: _isBankMode
-                                  ? FlowPayColors.primary.withValues(alpha: 0.18)
-                                  : FlowPayColors.darkSurfaceElevated,
-                              borderRadius: BorderRadius.circular(8),
+                                  ? FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25)
+                                  : (isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF3F4F6)),
+                              borderRadius: FlowPayRadii.chip,
                               border: Border.all(
                                 color: _isBankMode
-                                    ? FlowPayColors.primaryLight
-                                    : FlowPayColors.darkBorder,
+                                    ? FlowPayColors.emerald600
+                                    : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
                               ),
                             ),
                             child: Row(
@@ -1043,16 +1141,16 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                               children: [
                                 Icon(
                                   _isBankMode ? Icons.account_balance : Icons.account_balance_outlined,
-                                  size: 12,
-                                  color: _isBankMode ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
+                                  size: 13,
+                                  color: _isBankMode ? FlowPayColors.emerald600 : (isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _isBankMode ? 'NGN Bank' : 'Resolve Bank',
+                                  _isBankMode ? 'NGN Bank Rail' : 'Switch to NGN Bank',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: _isBankMode ? FontWeight.bold : FontWeight.w500,
-                                    color: _isBankMode ? FlowPayColors.primaryLight : FlowPayColors.darkTextSecondary,
+                                    color: _isBankMode ? FlowPayColors.emerald600 : (isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
                                   ),
                                 ),
                               ],
@@ -1066,27 +1164,40 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                     if (_isBankMode) ...[
                       InkWell(
                         onTap: _openBankSelectorBottomSheet,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: FlowPayRadii.input,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: FlowPayColors.darkSurfaceElevated,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: FlowPayColors.darkBorder),
+                            color: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
+                            borderRadius: FlowPayRadii.input,
+                            border: Border.all(
+                              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                            ),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.account_balance_rounded,
-                                  color: FlowPayColors.primaryLight, size: 20),
-                              const SizedBox(width: 10),
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25),
+                                  borderRadius: FlowPayRadii.avatar,
+                                ),
+                                child: const Icon(
+                                  Icons.account_balance_rounded,
+                                  color: FlowPayColors.emerald600,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       _selectedBank?.name ?? 'Select Bank (GTB, OPay, Zenith...)',
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : FlowPayColors.ink,
                                         fontWeight: FontWeight.w600,
                                         fontSize: 13,
                                       ),
@@ -1095,16 +1206,18 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                       _selectedBank != null
                                           ? 'Bank Code: ${_selectedBank!.code} • Tap to change bank'
                                           : 'Tap to browse Nigerian banks',
-                                      style: const TextStyle(
-                                        color: FlowPayColors.darkTextSecondary,
+                                      style: TextStyle(
+                                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                                         fontSize: 11,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.keyboard_arrow_down_rounded,
-                                  color: FlowPayColors.darkTextSecondary),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                              ),
                             ],
                           ),
                         ),
@@ -1114,8 +1227,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         controller: _bankAccountController,
                         keyboardType: TextInputType.number,
                         maxLength: 10,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : FlowPayColors.ink,
                           fontSize: 15,
                           letterSpacing: 1.5,
                           fontWeight: FontWeight.bold,
@@ -1123,30 +1236,34 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         decoration: InputDecoration(
                           counterText: '',
                           prefixIcon: const Icon(Icons.pin_outlined,
-                              color: FlowPayColors.primaryLight, size: 20),
+                              color: FlowPayColors.emerald600, size: 20),
                           hintText: 'Enter 10-digit NUBAN account number',
-                          hintStyle: const TextStyle(
-                            color: FlowPayColors.darkTextSecondary,
+                          hintStyle: TextStyle(
+                            color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
                             fontSize: 13,
                             letterSpacing: 0,
                             fontWeight: FontWeight.normal,
                           ),
                           filled: true,
-                          fillColor: FlowPayColors.darkSurfaceElevated,
+                          fillColor: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                            borderRadius: FlowPayRadii.input,
+                            borderSide: BorderSide(
+                              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                            borderRadius: FlowPayRadii.input,
+                            borderSide: BorderSide(
+                              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                            ),
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                                color: FlowPayColors.primary, width: 1.5),
+                          focusedBorder: const OutlineInputBorder(
+                            borderRadius: FlowPayRadii.input,
+                            borderSide: BorderSide(
+                                color: FlowPayColors.emerald600, width: 1.5),
                           ),
                           suffixIcon: _isResolvingAccount
                               ? const Padding(
@@ -1156,7 +1273,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: FlowPayColors.primaryLight,
+                                      color: FlowPayColors.emerald600,
                                     ),
                                   ),
                                 )
@@ -1176,7 +1293,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                               'Resolving account with Paystack & NIBSS...',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: FlowPayColors.primaryLight,
+                                color: FlowPayColors.emerald600,
                               ),
                             ),
                           ],
@@ -1187,9 +1304,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: FlowPayColors.success.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: FlowPayColors.success.withValues(alpha: 0.4)),
+                            color: FlowPayColors.success.withValues(alpha: isDark ? 0.15 : 0.08),
+                            borderRadius: FlowPayRadii.cardSmall,
+                            border: Border.all(color: FlowPayColors.success.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -1202,8 +1319,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                   children: [
                                     Text(
                                       _resolvedBankAccount!.accountName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : FlowPayColors.ink,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
                                       ),
@@ -1212,7 +1329,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                     Text(
                                       '${_resolvedBankAccount!.bankName} • ${_resolvedBankAccount!.accountNumber}',
                                       style: TextStyle(
-                                        color: FlowPayColors.success.withValues(alpha: 0.8),
+                                        color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -1222,7 +1339,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                       Text(
                                         _resolvedBankAccount!.testNotice!,
                                         style: TextStyle(
-                                          color: Colors.amber.withValues(alpha: 0.9),
+                                          color: Colors.amber.shade700,
                                           fontSize: 10,
                                         ),
                                       ),
@@ -1240,7 +1357,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: FlowPayColors.error.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: FlowPayRadii.cardSmall,
                             border: Border.all(color: FlowPayColors.error.withValues(alpha: 0.3)),
                           ),
                           child: Row(
@@ -1267,34 +1384,39 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                     TextField(
                       key: const Key('send_money_recipient_field'),
                       controller: _recipientController,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : FlowPayColors.ink,
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.person_search_outlined,
-                            color: FlowPayColors.primaryLight, size: 20),
+                            color: FlowPayColors.emerald600, size: 20),
                         hintText:
                             _isBankMode ? 'Resolved recipient name' : 'e.g. my designer in Ghana or name@example.com',
-                        hintStyle: const TextStyle(
-                            color: FlowPayColors.darkTextSecondary,
-                            fontSize: 13),
+                        hintStyle: TextStyle(
+                          color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                          fontSize: 13,
+                        ),
                         filled: true,
-                        fillColor: FlowPayColors.darkSurfaceElevated,
+                        fillColor: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: FlowPayColors.primary, width: 1.5),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                              color: FlowPayColors.emerald600, width: 1.5),
                         ),
                       ),
                       onChanged: (_) => _runBalanceInspection(),
@@ -1308,12 +1430,12 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                     ],
 
                     const SizedBox(height: 18),
-                    const Text(
+                    Text(
                       'Transfer Amount',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: FlowPayColors.darkTextSecondary,
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF4B5563),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -1326,10 +1448,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       onCurrencyTap: () {
                         showModalBottomSheet(
                           context: context,
-                          backgroundColor: FlowPayColors.darkSurface,
+                          backgroundColor: isDark ? FlowPayColors.darkSurface : Colors.white,
                           shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(24)),
+                            borderRadius: FlowPayRadii.sheet,
                           ),
                           builder: (ctx) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 20),
@@ -1349,32 +1470,34 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                 ].map((c) {
                                   return ListTile(
                                     leading: CircleAvatar(
-                                      backgroundColor:
-                                          FlowPayColors.darkSurfaceElevated,
+                                      backgroundColor: isDark
+                                          ? FlowPayColors.darkSurfaceElevated
+                                          : FlowPayColors.mint100,
                                       child: Text(
                                         c.symbol,
                                         style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          color: FlowPayColors.primaryLight,
+                                          color: FlowPayColors.emerald700,
                                         ),
                                       ),
                                     ),
                                     title: Text(
                                       c.name,
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                                      style: TextStyle(
+                                        color: isDark ? Colors.white : FlowPayColors.ink,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     subtitle: Text(
                                       '${c.stablecoinToken} Rail',
-                                      style: const TextStyle(
-                                          color: FlowPayColors.darkTextSecondary,
-                                          fontSize: 12),
+                                      style: TextStyle(
+                                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                                        fontSize: 12,
+                                      ),
                                     ),
                                     trailing: _selectedCurrency == c
                                         ? const Icon(Icons.check_circle,
-                                            color: FlowPayColors.primary)
+                                            color: FlowPayColors.emerald600)
                                         : null,
                                     onTap: () {
                                       setState(() => _selectedCurrency = c);
@@ -1390,42 +1513,47 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       },
                     ),
                     const SizedBox(height: 18),
-                    const Text(
+                    Text(
                       'Purpose / Memo (Optional)',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: FlowPayColors.darkTextSecondary,
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF4B5563),
                       ),
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _purposeController,
-                      style:
-                          const TextStyle(color: Colors.white, fontSize: 14),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : FlowPayColors.ink,
+                        fontSize: 14,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'e.g. Design services, contractor payment',
-                        hintStyle: const TextStyle(
-                            color: FlowPayColors.darkTextSecondary,
-                            fontSize: 13),
+                        hintStyle: TextStyle(
+                          color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                          fontSize: 13,
+                        ),
                         filled: true,
-                        fillColor: FlowPayColors.darkSurfaceElevated,
+                        fillColor: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: FlowPayColors.darkBorder),
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: FlowPayColors.primary, width: 1.5),
+                        focusedBorder: const OutlineInputBorder(
+                          borderRadius: FlowPayRadii.input,
+                          borderSide: BorderSide(
+                              color: FlowPayColors.emerald600, width: 1.5),
                         ),
                       ),
                     ),
@@ -1441,13 +1569,22 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                   key: const Key('balance_aware_funding_card'),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.darkSurface,
-                    borderRadius: BorderRadius.circular(18),
+                    color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                    borderRadius: FlowPayRadii.cardMedium,
                     border: Border.all(
                       color: _selectedFundingOption?.requiresConversion == true
-                          ? FlowPayColors.primary.withAlpha(120)
-                          : FlowPayColors.darkBorder,
+                          ? FlowPayColors.emerald600.withAlpha(120)
+                          : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
                     ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(8),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1455,13 +1592,13 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Row(
                               children: [
-                                Icon(Icons.account_balance_wallet_outlined,
-                                    color: FlowPayColors.primaryLight,
+                                const Icon(Icons.account_balance_wallet_outlined,
+                                    color: FlowPayColors.emerald600,
                                     size: 18),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     'Funding Source & Routing',
@@ -1469,7 +1606,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                                      color: isDark ? Colors.white : FlowPayColors.ink,
                                     ),
                                   ),
                                 ),
@@ -1483,17 +1620,17 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: FlowPayColors.primary.withAlpha(40),
-                                borderRadius: BorderRadius.circular(6),
+                                color: FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25),
+                                borderRadius: FlowPayRadii.chip,
                                 border: Border.all(
-                                    color: FlowPayColors.primary.withAlpha(80)),
+                                    color: FlowPayColors.emerald600.withAlpha(80)),
                               ),
                               child: Text(
                                 _selectedFundingOption!.conversionLabel,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: FlowPayColors.primaryLight,
+                                  color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                                 ),
                               ),
                             ),
@@ -1508,23 +1645,23 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
-                            color: FlowPayColors.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(10),
+                            color: FlowPayColors.emerald600.withAlpha(isDark ? 25 : 15),
+                            borderRadius: FlowPayRadii.cardSmall,
                             border: Border.all(
-                                color: FlowPayColors.primary.withAlpha(50)),
+                                color: FlowPayColors.emerald600.withAlpha(50)),
                           ),
                           child: Row(
                             children: [
                               const Icon(Icons.lightbulb_outline,
                                   size: 16,
-                                  color: FlowPayColors.primaryLight),
+                                  color: FlowPayColors.emerald600),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Balance-Aware Auto-Funding: Insufficient ${_selectedCurrency.code}. FlowPay routes settlement via ${_selectedFundingOption!.fundingWalletName} (${_selectedFundingOption!.availableBalance.formatFormatted()} available).',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.white70,
+                                    color: isDark ? Colors.white70 : const Color(0xFF374151),
                                     height: 1.3,
                                   ),
                                 ),
@@ -1537,11 +1674,11 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
 
                       // Funding source selector / row
                       if (_inspectionResult!.allFundingOptions.length > 1) ...[
-                        const Text(
+                        Text(
                           'Choose Funding Wallet:',
                           style: TextStyle(
                               fontSize: 12,
-                              color: FlowPayColors.darkTextSecondary),
+                              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
                         ),
                         const SizedBox(height: 6),
                         ..._inspectionResult!.allFundingOptions.map((opt) {
@@ -1552,20 +1689,20 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             onTap: () {
                               setState(() => _selectedFundingOption = opt);
                             },
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: FlowPayRadii.cardSmall,
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 6),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? FlowPayColors.darkSurfaceElevated
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
+                                    ? (isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.mint100.withAlpha(50))
+                                    : (isDark ? FlowPayColors.darkSurface : const Color(0xFFF9FAFB)),
+                                borderRadius: FlowPayRadii.cardSmall,
                                 border: Border.all(
                                   color: isSelected
-                                      ? FlowPayColors.primary
-                                      : FlowPayColors.darkBorder,
+                                      ? FlowPayColors.emerald600
+                                      : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
                                 ),
                               ),
                               child: Row(
@@ -1581,8 +1718,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                               : Icons.radio_button_off,
                                           size: 16,
                                           color: isSelected
-                                              ? FlowPayColors.primary
-                                              : FlowPayColors.darkTextSecondary,
+                                              ? FlowPayColors.emerald600
+                                              : (isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF)),
                                         ),
                                         const SizedBox(width: 8),
                                         Flexible(
@@ -1594,7 +1731,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                               fontWeight: isSelected
                                                   ? FontWeight.bold
                                                   : FontWeight.w500,
-                                              color: Colors.white,
+                                              color: isDark ? Colors.white : FlowPayColors.ink,
                                             ),
                                           ),
                                         ),
@@ -1604,10 +1741,10 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                   const SizedBox(width: 8),
                                   Text(
                                     opt.availableBalance.formatFormatted(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: FlowPayColors.primaryLight,
+                                      color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                                     ),
                                   ),
                                 ],
@@ -1622,17 +1759,18 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             Expanded(
                               child: Text(
                                 _selectedFundingOption!.fundingWalletName,
-                                style: const TextStyle(
-                                    fontSize: 13, color: Colors.white70),
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark ? Colors.white70 : FlowPayColors.ink),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               '${_selectedFundingOption!.availableBalance.formatFormatted()} available',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 13,
-                                  color: FlowPayColors.primaryLight,
+                                  color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                                   fontWeight: FontWeight.bold),
                             ),
                           ],
@@ -1643,9 +1781,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         const SizedBox(height: 6),
                         Text(
                           'Exchange Rate: 1 ${_selectedCurrency.code} = ${_selectedFundingOption!.exchangeRate!.toStringAsFixed(2)} ${_selectedFundingOption!.fundingCurrency.code}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 11,
-                              color: FlowPayColors.darkTextSecondary),
+                              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
                         ),
                       ],
                     ],
@@ -1668,18 +1806,19 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
 
     if (canPop) {
       return Scaffold(
-        backgroundColor: FlowPayColors.darkBackground,
+        backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
         appBar: AppBar(
-          backgroundColor: FlowPayColors.darkBackground,
+          backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
           elevation: 0,
-          title: const Text(
+          title: Text(
             'Send Money',
             style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold),
+                color: isDark ? Colors.white : FlowPayColors.ink,
+                fontWeight: FontWeight.bold),
           ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new,
-                color: Colors.white, size: 18),
+            icon: Icon(Icons.arrow_back_ios_new,
+                color: isDark ? Colors.white : FlowPayColors.ink, size: 18),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -1688,7 +1827,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     }
 
     return Material(
-      color: FlowPayColors.darkBackground,
+      color: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
       child: bodyContent,
     );
   }
