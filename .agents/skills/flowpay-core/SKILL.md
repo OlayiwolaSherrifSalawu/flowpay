@@ -172,7 +172,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
     * Enhanced mobile `EmployeeModel` and `_EmployeeRowCard` with `simpleStatusLabel` ('Pending', 'Onboarded', 'Failed') and human-friendly `displayWalletId` indicator.
     * Synced all 16 Prisma models with the local Docker PostgreSQL instance (`flowpay-postgres` on port 5435) via `npx prisma db push`.
     * Added `GET /api/health/db` endpoint and `dbConnected` boolean indicator in `GET /api/health` for immediate observability of PostgreSQL connection state on both local and Render deployments.
-  * Full test suite passing: 92/92 backend tests passed (100%), 144/144 Flutter mobile tests passed (100%), 0 analyzer lints.
+    * **Employee Onboarding Retry & Phone Deduplication (`backend/src/modules/employees/service.ts`)**:
+      * Extracted `EmployeeService.buildEffectivePhone(phoneNumber, country)` helper shared across `createEmployee()` and `retryBmoniUserCreation()`, normalizing existing numbers (including Nigerian `081...` to `+23481...` and Mexican 10-digit numbers) and generating valid sandbox phones (+2348..., +5255..., +1415555...) to prevent BMONI HTTP 400 "Validation failed".
+      * Wired non-blocking `mailService.sendEmployeeInvite` dispatch in `retryBmoniUserCreation()` after successful DB update, logging dispatch success/failure.
+      * Added recovery of existing BMONI identity on HTTP 409 conflict per BMONI error specifications.
+      * Configured `dns.setDefaultResultOrder('ipv4first')` and connection retry in `backend/src/db/index.ts` for rock-solid Supabase pooler connectivity.
+  * Full test suite passing: 115/115 backend tests passed (100%), 144/144 Flutter mobile tests passed (100%), 0 analyzer lints.
 * [x] **Signup Screen, Context-Aware KYC, and Personal vs Business Separation**:
   * **Onboarding & Signup Screen (`mobile/lib/modules/auth/signup_screen.dart`)**:
     * Clean BMoni Dark Obsidian aesthetic (`BMoniColors.offbrand950`, `brand500` magenta accents).

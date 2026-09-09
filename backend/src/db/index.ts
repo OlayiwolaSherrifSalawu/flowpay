@@ -1,5 +1,10 @@
+import dns from 'node:dns';
 import { PrismaClient } from '@prisma/client';
 import { env } from '../config/env.js';
+
+if (typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 // ---------------------------------------------------------------------------
 // Prisma Client — singleton pattern (safe for dev hot-reload via tsx)
@@ -55,8 +60,16 @@ export async function initDatabase(): Promise<void> {
     await seedDemoDataIfNeeded();
     console.log('[DB] PostgreSQL connected & demo records verified.');
   } catch (err: any) {
-    isDbConnected = false;
-    console.warn('[DB] PostgreSQL unreachable at startup (using in-memory persistence fallback):', err.message || err);
+    try {
+      await new Promise((r) => setTimeout(r, 500));
+      await prisma.$connect();
+      isDbConnected = true;
+      await seedDemoDataIfNeeded();
+      console.log('[DB] PostgreSQL connected on retry & demo records verified.');
+    } catch (retryErr: any) {
+      isDbConnected = false;
+      console.warn('[DB] PostgreSQL unreachable at startup (using in-memory persistence fallback):', retryErr.message || retryErr);
+    }
   }
 }
 

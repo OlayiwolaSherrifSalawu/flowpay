@@ -187,10 +187,13 @@ export class BmoniClient {
    * Returns bmoniUserId needed for all user-scoped operations
    */
   async createEmployeeUser(input: CreateUserRequest): Promise<CreateUserResponse> {
-    return this.request<CreateUserResponse>('/v1/users', {
+    const raw = await this.request<{ user?: CreateUserResponse } & CreateUserResponse>('/v1/users', {
       method: 'POST',
       body: input,
     });
+    // BMONI wraps the created user in a top-level "user" object; unwrap it,
+    // but stay tolerant in case a future BMONI response is ever unwrapped.
+    return (raw.user ?? raw) as CreateUserResponse;
   }
 
   // --- BMONI Global KYC & Onboarding ---
