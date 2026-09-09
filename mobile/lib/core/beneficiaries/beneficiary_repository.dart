@@ -133,6 +133,22 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       paymentCount: 5,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 6)),
     ),
+    Beneficiary(
+      id: 'ben_dad_06',
+      nickname: 'Dad',
+      legalName: 'Ade Fashola',
+      aliases: const ['Dad', 'Father', 'Papa'],
+      relationship: 'Father',
+      destinationCountry: 'Nigeria',
+      countryFlag: '🇳🇬',
+      destinationType: 'bank_account',
+      currency: Currency.ngn,
+      preferredFundingCurrency: Currency.usd,
+      accountOrAddress: '0198765432 (Zenith Bank Nigeria)',
+      isVerified: true,
+      paymentCount: 11,
+      lastPaymentDate: DateTime.now().subtract(const Duration(days: 8)),
+    ),
   ];
 
   @override

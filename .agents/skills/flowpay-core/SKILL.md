@@ -639,6 +639,30 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Verification**:
         * Backend: `npx tsc --noEmit -p .` clean with 0 errors; 92/92 tests passing across all suites (`dist/**/*.test.js`).
         * Mobile: `flutter analyze` clean with 0 issues; 147/147 Flutter unit and widget tests passing (100%).
+    * **FlowPay AI — Multi-Action & Multi-Intent Interpretation Engine (Section 20 & 21)**:
+      * **Core Breakthrough**: Eliminated single-action truncation bug where multi-intent requests (e.g., `"send 20 usd to mom and 30 usd to dad"`) prematurely stopped after the first action. Natural language input is now evaluated as a full set of independent financial instructions end-to-end.
+      * **Backend AI Interpretation Layer (`backend/src/modules/ai/`)**:
+        * Defined `FinancialIntent` model with `actions: FinancialAction[]` union (`SendMoneyAction`, `ConvertCurrencyAction`, `AllocateMoneyAction`, `CreateReserveAction`, etc.) and `CompletenessReport`.
+        * Upgraded `FinancialIntentInterpreter` to extract all actionable instructions with clause splitting on conjunctions and punctuation (`and`, `then`, `also`, `plus`, `,`, `;`), implicit verb inheritance, shared wallet constraint extraction (`from my USD wallet`), word number normalization, and dependency linking (`convert EUR to USD and use it to send to Mom`).
+        * Built deterministic `validateCompleteness` checking monetary signals against extracted action count, triggering `repairExtractedActions` pass on missing actions.
+        * Upgraded `FinancialSafetyValidator` to evaluate total batch requested amounts against available balance and validate all actions.
+        * Added 14 unit tests in `safety.test.ts` covering single transfers, basic multi-transfers, 3 transfers, mixed intents, reserve + send, word numbers, sentence structures, shared wallets, dependencies, completeness checks, and batch balance limits. 99/99 backend tests passing.
+      * **Mobile Pipeline (`mobile/lib/core/financial_operator/`)**:
+        * Extended `ActionIntent` (`dependsOn`, `destinationCurrency`, `sourceWallet`), `StructuredIntent` (`CompletenessReport completeness`), `FinancialPlan` (`transferProposals: List<TransferProposal>`), and `PlannedFinancialAction` (`status`, `txHash`, `executionError`, `dependsOn`, `proposalId`).
+        * Added default beneficiary `Ade Fashola` (`Dad`, `ben_dad_06`) to `DemoBeneficiaryRepository`.
+        * Upgraded `FinancialIntentEngine`: Multi-action clause parsing, number word normalization, shared wallet constraint inheritance, implicit verb inheritance for amount-recipient clauses, currency conversion pairs, dependency linking, and `_validateCompleteness` with automated `_repairExtractedActions`.
+        * Contextualized `ClarificationEngine`: Disambiguates ambiguous entities while explicitly acknowledging already-resolved recipients.
+        * Upgraded `FinancialPlanner`: Evaluates full batch planning via `FundingPlanner`, creates fallback beneficiary entities, and preserves dependencies.
+        * Upgraded `FinancialOperator`:
+          * Disambiguates candidates naturally against `prompt.disambiguationCandidates`.
+          * In `_compileAndPresentPlan`: Generates transfer proposals for all send actions, tracking them in `transferProposals` and per-action `proposalId`.
+          * In `approveAndExecute`: Executes all batch actions independently according to dependencies, updating each action's `status` (`COMPLETED`/`FAILED`), recording independent audit activities, and providing detailed status summaries.
+        * Upgraded `AiFinancialPlanCard`: Added batch count badge (`N PAYMENTS`), prominent Total Amount summary box, and per-action execution status indicators.
+      * **Verification**:
+        * All 12 Section 20 test requirements and Section 21 Critical Acceptance Test (`"send 20 usd to mom and 30 usd to dad"`) verified in `financial_operator_test.dart`.
+        * Full test suite: **163/163 Flutter unit, widget, and flow tests passing (100% green)**.
+        * **99/99 backend tests passing across 8 test suites (100% green)**.
+        * **0 Dart analyzer warnings or errors (`flutter analyze`)**.
 
 
 ---

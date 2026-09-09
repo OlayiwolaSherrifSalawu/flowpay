@@ -1,12 +1,23 @@
 import { Money } from '../../core/money.js';
 import { FinancialSafetyError } from '../../core/errors.js';
-import type { StructuredFinancialIntent } from './interpreter.js';
+import type { FinancialIntent, SendMoneyAction } from './types.js';
+
+export interface ActionPreviewItem {
+  id: string;
+  type: string;
+  summary: string;
+  amountFormatted: string;
+  currency: string;
+  recipient?: string;
+  dependsOn?: string[];
+}
 
 export interface OperationPreview {
   previewId: string;
   intentId: string;
   operationType: string;
   summary: string;
+  actions: ActionPreviewItem[];
   sourceAmountFormatted: string;
   sourceCurrency: string;
   estimatedFeeFormatted: string;
@@ -19,52 +30,110 @@ export interface OperationPreview {
 
 export class FinancialSafetyValidator {
   /**
-   * Deterministic validation guard:
-   * 1. Validates that the amount is strictly positive and non-zero
-   * 2. Validates recipient presence and format
+   * Deterministic validation guard across all actions in a FinancialIntent:
+   * 1. Validates that every action amount is strictly positive and non-zero
+   * 2. Validates recipient presence for transfers
    * 3. Validates currency boundaries
-   * 4. Validates that source account has sufficient balance
-   * 5. Builds an immutable Preview for explicit user confirmation
+   * 4. Validates that total requested amount does not exceed available balance
+   * 5. Builds an immutable multi-action preview for explicit user confirmation
    */
   static validateAndPreview(
-    intent: StructuredFinancialIntent,
+    intent: FinancialIntent,
     availableBalanceMinor: bigint
   ): OperationPreview {
     const warnings: string[] = [];
 
-    if (!intent.parameters.amountMinor || BigInt(intent.parameters.amountMinor) <= 0n) {
-      throw new FinancialSafetyError('Financial safety guard rejected: Amount must be strictly greater than zero.');
+    if (!intent.actions || intent.actions.length === 0) {
+      throw new FinancialSafetyError('Financial safety guard rejected: No financial actions found in plan.');
     }
 
-    const requestedAmount = BigInt(intent.parameters.amountMinor);
+    let totalRequestedMinor = 0n;
+    const actionPreviews: ActionPreviewItem[] = [];
 
-    // Balance check
-    if (requestedAmount > availableBalanceMinor) {
+    for (const action of intent.actions) {
+      if ('amountMinor' in action) {
+        const amt = BigInt(action.amountMinor || '0');
+        if (amt <= 0n) {
+          throw new FinancialSafetyError('Financial safety guard rejected: Amount must be strictly greater than zero.');
+        }
+        totalRequestedMinor += amt;
+      }
+
+      if (action.type === 'SEND_MONEY') {
+        const send = action as SendMoneyAction;
+        if (!send.recipient || send.recipient.trim() === '') {
+          throw new FinancialSafetyError('Financial safety guard rejected: Recipient identifier is required.');
+        }
+        actionPreviews.push({
+          id: send.id,
+          type: send.type,
+          summary: send.description,
+          amountFormatted: send.amount,
+          currency: send.currency,
+          recipient: send.recipient,
+          dependsOn: send.dependsOn,
+        });
+      } else if (action.type === 'CONVERT_CURRENCY') {
+        actionPreviews.push({
+          id: action.id,
+          type: action.type,
+          summary: action.description,
+          amountFormatted: action.amount,
+          currency: action.sourceCurrency,
+          dependsOn: action.dependsOn,
+        });
+      } else if (action.type === 'CREATE_RESERVE' || action.type === 'UPDATE_RESERVE') {
+        actionPreviews.push({
+          id: action.id,
+          type: action.type,
+          summary: action.description,
+          amountFormatted: action.amount,
+          currency: action.currency,
+          recipient: action.purpose,
+          dependsOn: action.dependsOn,
+        });
+      } else {
+        actionPreviews.push({
+          id: action.id,
+          type: action.type,
+          summary: action.description,
+          amountFormatted: '0.00',
+          currency: 'USD',
+          dependsOn: action.dependsOn,
+        });
+      }
+    }
+
+    // Balance check across the entire multi-action batch
+    if (totalRequestedMinor > availableBalanceMinor) {
       throw new FinancialSafetyError(
-        `Insufficient funds: Requested amount exceeds available balance. Available: ${availableBalanceMinor.toString()} minor units, Requested: ${requestedAmount.toString()}`
+        `Insufficient funds: Requested total amount exceeds available balance. Available: ${availableBalanceMinor.toString()} minor units, Requested: ${totalRequestedMinor.toString()}`
       );
     }
 
-    if (!intent.parameters.recipientIdentifier && intent.operationType === 'TRANSFER') {
-      throw new FinancialSafetyError('Financial safety guard rejected: Recipient identifier is required.');
-    }
+    // Fee simulation (10 minor units per action)
+    const primaryCurrency = intent.actions[0] && 'currency' in intent.actions[0]
+      ? (intent.actions[0] as any).currency
+      : 'USD';
 
-    // Fixed fee simulation (e.g. 10 cents / 10 kobo)
-    const sourceMoney = Money.fromMinor(requestedAmount, intent.parameters.sourceCurrency);
-    const feeMoney = Money.fromMinor(10n, intent.parameters.sourceCurrency);
+    const sourceMoney = Money.fromMinor(totalRequestedMinor, primaryCurrency);
+    const feeMoney = Money.fromMinor(BigInt(10 * intent.actions.length), primaryCurrency);
     const totalMoney = sourceMoney.add(feeMoney);
+
+    const firstRecipient = actionPreviews.find((a) => a.recipient)?.recipient ?? 'Multiple recipients';
 
     return {
       previewId: `prev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       intentId: intent.intentId,
-      operationType: intent.operationType,
-      summary: `Transfer ${sourceMoney.toMajorString()} ${sourceMoney.currency} to ${intent.parameters.recipientIdentifier}`,
+      operationType: intent.actions.length === 1 ? intent.actions[0].type : 'MULTI_ACTION_BATCH',
+      summary: intent.explanation,
+      actions: actionPreviews,
       sourceAmountFormatted: sourceMoney.toMajorString(),
       sourceCurrency: sourceMoney.currency,
       estimatedFeeFormatted: feeMoney.toMajorString(),
       estimatedTotalFormatted: totalMoney.toMajorString(),
-      recipient: intent.parameters.recipientIdentifier ?? 'N/A',
-      requiresOnDeviceSigning: true, // Requires on-device EVM private key signature
+      recipient: firstRecipient,
+      requiresOnDeviceSigning: true,
       warnings,
     };
   }

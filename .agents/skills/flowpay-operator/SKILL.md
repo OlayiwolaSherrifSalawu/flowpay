@@ -84,7 +84,15 @@ description: >-
 * [x] Routed approved transfer plans through `transferRepo.executeProposal(proposalId, signature, proposal)` with enclave signature verification.
 * [x] Passed all 18 tests in `mobile/test/financial_operator_test.dart` (including Issue 1 chat bypass and Issue 2 dynamic signature verification).
 * [x] Passed all 13 tests in `mobile/test/smart_payment_engine_test.dart` (including the full Hero Multi-Payment Batch scenario).
-* [x] Passed all 146 tests in the mobile suite and 77 tests in the backend suite.
+* [x] **Multi-Action & Multi-Intent Interpretation Engine (Section 20 & 21)**:
+  * Implemented end-to-end multi-action pipeline in `FinancialIntentEngine` and backend `FinancialIntentInterpreter`.
+  * Support for multiple transfers ("send 20 usd to mom and 30 usd to dad"), mixed intents, implicit verbs, dependencies, word numbers, and shared wallet constraints.
+  * Deterministic completeness validation with automated repair pass.
+  * Contextualized entity clarification acknowledging resolved contacts.
+  * Multi-proposal compilation in `FinancialPlan.transferProposals` and independent per-action execution in `FinancialOperator.approveAndExecute`.
+  * Multi-payment card UI in `AiFinancialPlanCard` with batch badge, total box, and action statuses.
+  * Passed all 12 Section 20 requirements and Section 21 Critical Acceptance Test.
+* [x] Passed all 163 tests in the mobile suite and 99 tests in the backend suite with 0 analyzer lints.
 
 ---
 

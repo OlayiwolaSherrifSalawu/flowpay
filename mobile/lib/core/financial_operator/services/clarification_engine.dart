@@ -12,9 +12,24 @@ class ClarificationEngine {
     for (final action in intent.actions) {
       // 1. Check for Person / Recipient issues
       if (action.person != null) {
+        final otherResolvedNames = intent.actions
+            .where((a) =>
+                a.id != action.id &&
+                a.person?.knowledgeState == EntityKnowledgeState.known &&
+                a.person?.resolvedBeneficiary != null)
+            .map((a) => a.person!.resolvedBeneficiary!.nickname.isNotEmpty
+                ? a.person!.resolvedBeneficiary!.nickname
+                : a.person!.resolvedBeneficiary!.legalName)
+            .toList();
+
         if (action.person!.knowledgeState == EntityKnowledgeState.unknown) {
           final raw = action.person!.rawInput.trim();
-          final title = raw.isNotEmpty ? 'Who is $raw?' : 'Who should receive this transfer?';
+          final prefix = otherResolvedNames.isNotEmpty
+              ? 'I found ${otherResolvedNames.join(", ")}, but '
+              : '';
+          final title = raw.isNotEmpty
+              ? '$prefix${prefix.isEmpty ? "Who" : "who"} is $raw?'
+              : 'Who should receive this transfer?';
           return ClarificationPrompt(
             id: 'clarify_recipient_${action.id}',
             targetActionId: action.id,
@@ -38,12 +53,19 @@ class ClarificationEngine {
           );
         } else if (action.person!.knowledgeState == EntityKnowledgeState.ambiguous) {
           final count = action.person!.candidates.length;
+          final prefix = otherResolvedNames.isNotEmpty
+              ? 'I found ${otherResolvedNames.join(", ")}, but there are '
+              : 'I found ';
+          final amtStr = action.amount.formattedDisplay;
+          final question = otherResolvedNames.isNotEmpty
+              ? '$prefix$count contacts matching ${action.person!.rawInput}. Which ${action.person!.rawInput} should receive $amtStr?'
+              : 'I found $count beneficiaries matching "${action.person!.rawInput}". Which one do you mean?';
+
           return ClarificationPrompt(
             id: 'clarify_ambiguous_${action.id}',
             targetActionId: action.id,
             field: 'recipient',
-            question:
-                'I found $count beneficiaries matching "${action.person!.rawInput}". Which one do you mean?',
+            question: question,
             description: 'Select the intended recipient to prevent accidental transfers.',
             options: action.person!.candidates.map((c) {
               return ClarificationOptionData(

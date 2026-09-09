@@ -5,6 +5,7 @@ import 'package:flowpay_mobile/core/beneficiaries/beneficiary_repository.dart';
 import 'package:flowpay_mobile/core/financial_operator/financial_operator.dart';
 import 'package:flowpay_mobile/core/financial_operator/models/financial_entities.dart';
 import 'package:flowpay_mobile/core/financial_operator/models/financial_intent_types.dart';
+import 'package:flowpay_mobile/core/financial_operator/models/financial_plan_models.dart';
 import 'package:flowpay_mobile/core/financial_operator/models/operator_session_models.dart';
 import 'package:flowpay_mobile/core/financial_operator/services/clarification_engine.dart';
 import 'package:flowpay_mobile/core/financial_operator/services/context_resolver.dart';
@@ -303,11 +304,11 @@ void main() {
         executionProvider: executionProvider,
       );
 
-      // 1. Process request with unknown beneficiary "Dad"
-      await op.processInput('Send 500 to dad');
+      // 1. Process request with unknown beneficiary "Uncle"
+      await op.processInput('Send 500 to uncle');
 
       expect(op.status, equals(OperatorSessionStatus.waitingForClarification));
-      expect(op.pendingClarification?.question, contains('dad'));
+      expect(op.pendingClarification?.question, contains('uncle'));
       expect(
         op.pendingClarification?.options
             .any((o) => o.value == 'ADD_BENEFICIARY'),
@@ -315,19 +316,19 @@ void main() {
       );
 
       // 2. Resolve with a newly created beneficiary
-      const newDad = Beneficiary(
-        id: 'ben_dad_test_01',
-        nickname: 'Dad',
-        legalName: 'Ade Fashola',
-        relationship: 'Father',
+      const newUncle = Beneficiary(
+        id: 'ben_uncle_test_01',
+        nickname: 'Uncle',
+        legalName: 'Kayode Fashola',
+        relationship: 'Uncle',
         destinationCountry: 'Nigeria',
         countryFlag: '🇳🇬',
         currency: Currency.ngn,
         accountOrAddress: '0123456789 (GTBank)',
         isVerified: true,
       );
-      await contextService.addBeneficiary(newDad);
-      await op.resolvePendingClarificationWithBeneficiary(newDad);
+      await contextService.addBeneficiary(newUncle);
+      await op.resolvePendingClarificationWithBeneficiary(newUncle);
 
       // 3. Verify session resolves to ready and plan is compiled
       expect(op.status, equals(OperatorSessionStatus.readyForReview));
@@ -335,7 +336,7 @@ void main() {
       expect(op.activePlan, isNotNull);
       expect(op.activePlan!.validation.isValid, isTrue);
       expect(
-          op.activePlan!.actions.first.destinationName, contains('Ade Fashola'));
+          op.activePlan!.actions.first.destinationName, contains('Kayode Fashola'));
     });
 
     test('15. Possessive Recipient: "send 80 usd to my sister" resolves directly to Sarah Jenkins',
@@ -445,6 +446,231 @@ void main() {
         op.messages.last.text,
         contains('Valid on-device signature is required'),
       );
+    });
+  });
+
+  group('FlowPay Financial Operator — Multi-Action & Section 20/21 Requirements', () {
+    late DemoWalletRepository walletRepo;
+    late DemoBeneficiaryRepository beneficiaryRepo;
+    late DemoActivityRepository activityRepo;
+    late FinancialContextService contextService;
+    late DemoFinancialExecutionProvider executionProvider;
+
+    setUp(() {
+      walletRepo = DemoWalletRepository();
+      beneficiaryRepo = DemoBeneficiaryRepository();
+      activityRepo = DemoActivityRepository();
+      contextService = FinancialContextService(
+        walletRepo: walletRepo,
+        beneficiaryRepo: beneficiaryRepo,
+        activityRepo: activityRepo,
+      );
+      executionProvider = DemoFinancialExecutionProvider(
+        walletRepo: walletRepo,
+        activityRepo: activityRepo,
+      );
+    });
+
+    test('Critical Acceptance Test (Section 21): "send 20 usd to mom and 30 usd to dad"',
+        () async {
+      final operator = FinancialOperator(
+        contextService: contextService,
+        executionProvider: executionProvider,
+      );
+
+      // 1. Process multi-action input
+      await operator.processInput('send 20 usd to mom and 30 usd to dad');
+
+      // Verify state is ready for review with both recipients resolved
+      expect(operator.status, equals(OperatorSessionStatus.readyForReview));
+      expect(operator.activePlan, isNotNull);
+
+      final plan = operator.activePlan!;
+
+      // 2. Intent interpretation: Exactly 2 actions
+      expect(plan.actions.length, equals(2));
+
+      // Action 1: Send $20 USD to Mom (Mary Fashola)
+      expect(plan.actions[0].type, equals(PlannedActionType.send));
+      expect(plan.actions[0].amount.toMajorString(), equals('20.00'));
+      expect(plan.actions[0].amount.currency, equals(Currency.usd));
+      expect(plan.actions[0].destinationName, contains('Mary Fashola'));
+
+      // Action 2: Send $30 USD to Dad (Ade Fashola)
+      expect(plan.actions[1].type, equals(PlannedActionType.send));
+      expect(plan.actions[1].amount.toMajorString(), equals('30.00'));
+      expect(plan.actions[1].amount.currency, equals(Currency.usd));
+      expect(plan.actions[1].destinationName, contains('Ade Fashola'));
+
+      // 3. Plan Review: Total Amount $50.00 USD
+      expect(plan.totalDebit.toMajorString(), equals('50.00'));
+      expect(plan.totalDebit.currency, equals(Currency.usd));
+
+      // Proposals generated for both send actions
+      expect(plan.transferProposals, isNotNull);
+      expect(plan.transferProposals.length, equals(2));
+      expect(plan.actions[0].proposalId, isNotNull);
+      expect(plan.actions[1].proposalId, isNotNull);
+
+      // 4. Execution: Approve and execute with PIN
+      await operator.approveAndExecute(pin: '123456');
+
+      expect(operator.status, equals(OperatorSessionStatus.completed));
+      expect(operator.activePlan!.executionState, equals('COMPLETED'));
+
+      // Both actions executed with independent status and distinct txHash
+      expect(operator.activePlan!.actions[0].status, equals('COMPLETED'));
+      expect(operator.activePlan!.actions[0].txHash, isNotNull);
+      expect(operator.activePlan!.actions[1].status, equals('COMPLETED'));
+      expect(operator.activePlan!.actions[1].txHash, isNotNull);
+
+      // Execution receipt includes both actions
+      final receipt = operator.session.messages.last.executionReceipt;
+      expect(receipt, isNotNull);
+      expect(receipt!['actionsCount'], equals(2));
+      final receiptActions = receipt['actions'] as List;
+      expect(receiptActions.length, equals(2));
+    });
+
+    test('Section 20.2: Three transfers: "send 20 to mom, 30 to dad, and 40 to my brother"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 20 to mom, 30 to dad, and 40 to my brother');
+      expect(parsed.actions.length, equals(3));
+
+      final resolver = ContextResolver(contextService: contextService);
+      final resolved = await resolver.resolve(parsed);
+
+      expect(resolved.actions[0].amount.fixedAmount?.toMajorString(), equals('20.00'));
+      expect(resolved.actions[0].person?.resolvedBeneficiary?.legalName, equals('Mary Fashola'));
+
+      expect(resolved.actions[1].amount.fixedAmount?.toMajorString(), equals('30.00'));
+      expect(resolved.actions[1].person?.resolvedBeneficiary?.legalName, equals('Ade Fashola'));
+
+      expect(resolved.actions[2].amount.fixedAmount?.toMajorString(), equals('40.00'));
+      expect(resolved.actions[2].person?.resolvedBeneficiary?.legalName, equals('Tunde Fashola'));
+    });
+
+    test('Section 20.3: Same intent type without deduplication: "send 500 to mom and 2000 to designer"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 500 to mom and 2000 to designer');
+      expect(parsed.actions.length, equals(2));
+
+      final resolver = ContextResolver(contextService: contextService);
+      final resolved = await resolver.resolve(parsed);
+
+      expect(resolved.actions[0].person?.resolvedBeneficiary?.nickname, equals('Mom'));
+      expect(resolved.actions[0].amount.fixedAmount?.toMajorString(), equals('500.00'));
+
+      expect(resolved.actions[1].person?.resolvedBeneficiary?.nickname, equals('Designer'));
+      expect(resolved.actions[1].amount.fixedAmount?.toMajorString(), equals('2000.00'));
+    });
+
+    test('Section 20.4: Mixed intents: "send 500 to mom and convert 100 eur to usd"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 500 to mom and convert 100 eur to usd');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].intentType, equals(FinancialIntentType.sendMoney));
+      expect(parsed.actions[0].amount.fixedAmount?.toMajorString(), equals('500.00'));
+      expect(parsed.actions[0].person?.rawInput, equals('mom'));
+
+      expect(parsed.actions[1].intentType, equals(FinancialIntentType.convertCurrency));
+      expect(parsed.actions[1].amount.fixedAmount?.toMajorString(), equals('100.00'));
+      expect(parsed.actions[1].amount.currency, equals(Currency.eur));
+      expect(parsed.actions[1].destinationCurrency, equals(Currency.usd));
+    });
+
+    test('Section 20.5: Transfer + reserve: "send 500 to mom and keep 300 for taxes"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 500 to mom and keep 300 for taxes');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].intentType, equals(FinancialIntentType.sendMoney));
+      expect(parsed.actions[0].amount.fixedAmount?.toMajorString(), equals('500.00'));
+
+      expect(parsed.actions[1].intentType, equals(FinancialIntentType.createReserve));
+      expect(parsed.actions[1].amount.fixedAmount?.toMajorString(), equals('300.00'));
+      expect(parsed.actions[1].purpose, equals('tax'));
+    });
+
+    test('Section 20.6: Four actions: "send 500 to mom, send 200 to dad, convert 100 eur to usd, and keep 300 for tax"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 500 to mom, send 200 to dad, convert 100 eur to usd, and keep 300 for tax');
+      expect(parsed.actions.length, equals(4));
+
+      expect(parsed.actions[0].intentType, equals(FinancialIntentType.sendMoney));
+      expect(parsed.actions[1].intentType, equals(FinancialIntentType.sendMoney));
+      expect(parsed.actions[2].intentType, equals(FinancialIntentType.convertCurrency));
+      expect(parsed.actions[3].intentType, equals(FinancialIntentType.createReserve));
+    });
+
+    test('Section 20.7: Word numbers: "send twenty dollars to mom and thirty to dad"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send twenty dollars to mom and thirty to dad');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].amount.fixedAmount?.toMajorString(), equals('20.00'));
+      expect(parsed.actions[0].person?.rawInput, equals('mom'));
+
+      expect(parsed.actions[1].amount.fixedAmount?.toMajorString(), equals('30.00'));
+      expect(parsed.actions[1].person?.rawInput, equals('dad'));
+    });
+
+    test('Section 20.8: Sentence structures: "I need to send 20 to mom and also 30 to dad"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'I need to send 20 to mom and also 30 to dad');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].amount.fixedAmount?.toMajorString(), equals('20.00'));
+      expect(parsed.actions[0].person?.rawInput, equals('mom'));
+
+      expect(parsed.actions[1].amount.fixedAmount?.toMajorString(), equals('30.00'));
+      expect(parsed.actions[1].person?.rawInput, equals('dad'));
+    });
+
+    test('Section 20.9: Shared wallet constraint: "send 20 to mom and 30 to dad from my usd wallet"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'send 20 to mom and 30 to dad from my usd wallet');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].sourceWallet, equals('USD Wallet'));
+      expect(parsed.actions[1].sourceWallet, equals('USD Wallet'));
+    });
+
+    test('Section 20.10: Dependent actions: "convert 1000 eur to usd and use it to send 500 to mom"',
+        () async {
+      final parsed = FinancialIntentEngine.parse(
+          'convert 1000 eur to usd and use it to send 500 to mom');
+      expect(parsed.actions.length, equals(2));
+
+      expect(parsed.actions[0].intentType, equals(FinancialIntentType.convertCurrency));
+      expect(parsed.actions[1].intentType, equals(FinancialIntentType.sendMoney));
+      expect(parsed.actions[1].dependsOn, contains(parsed.actions[0].id));
+    });
+
+    test('Section 20.11: Deterministic Completeness Checker reports full coverage',
+        () async {
+      final parsed = FinancialIntentEngine.parse('send 20 to mom and 30 to dad');
+      expect(parsed.completeness.score, equals(1.0));
+      expect(parsed.completeness.isReparseSuggested, isFalse);
+      expect(parsed.completeness.detectedActionCount, equals(2));
+      expect(parsed.completeness.unresolvedActionCount, equals(0));
+    });
+
+    test('Section 20.12 & Invariant: Never truncate multi-action request to single action',
+        () async {
+      final parsed =
+          FinancialIntentEngine.parse('send 20 usd to mom and 30 usd to dad');
+      expect(parsed.actions.length, isNot(equals(1)));
+      expect(parsed.actions.length, equals(2));
     });
   });
 }
