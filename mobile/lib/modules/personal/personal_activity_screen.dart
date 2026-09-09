@@ -524,9 +524,9 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                       )
                     else
                       Text(
-                        'Free',
+                        '—',
                         style: FlowPayTypography.bodySm.copyWith(
-                          color: FlowPayColors.accentLight,
+                          color: FlowPayColors.darkTextTertiary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

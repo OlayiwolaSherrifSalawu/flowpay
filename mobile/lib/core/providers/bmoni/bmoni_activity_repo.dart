@@ -1,4 +1,6 @@
 import '../../design_system/states.dart';
+import '../../money/currency.dart';
+import '../../money/money.dart';
 import '../../network/api_client.dart';
 import '../../repositories/activity_repository.dart';
 
@@ -33,14 +35,80 @@ class BmoniActivityRepository implements ActivityRepository {
           if (catStr.contains('fx')) cat = ActivityCategory.fx;
           if (catStr.contains('payroll')) cat = ActivityCategory.payroll;
 
+          final details = (item['details_json'] ?? item['detailsJson'])
+              as Map<String, dynamic>?;
+
+          // Parse amount & currency safely
+          Money? amount;
+          if (details != null && details['amount'] != null) {
+            final rawAmt = details['amount'].toString().replaceAll(',', '');
+            final currStr =
+                (details['currency'] ?? 'USD').toString().toUpperCase();
+            final cur = Currency.fromCode(currStr);
+            if (double.tryParse(rawAmt) != null) {
+              amount = Money.fromMajorString(rawAmt, cur);
+            } else if (int.tryParse(rawAmt) != null) {
+              amount = Money.fromMinor(int.parse(rawAmt), cur);
+            }
+          } else if (item['amount'] != null) {
+            final rawAmt = item['amount'].toString().replaceAll(',', '');
+            final currStr =
+                (item['currency'] ?? 'USD').toString().toUpperCase();
+            final cur = Currency.fromCode(currStr);
+            if (double.tryParse(rawAmt) != null) {
+              amount = Money.fromMajorString(rawAmt, cur);
+            }
+          }
+
+          final recipient = details?['recipient']?.toString() ??
+              details?['counterparty']?.toString();
+          final counterparty = recipient ??
+              (item['actor']?.toString() ?? 'FlowPay Rail');
+
+          ActivityType actType = ActivityType.wallet;
+          if (cat == ActivityCategory.transfer) actType = ActivityType.transfer;
+          if (cat == ActivityCategory.mission) actType = ActivityType.mission;
+          if (cat == ActivityCategory.card) actType = ActivityType.card;
+          if (cat == ActivityCategory.fx) actType = ActivityType.conversion;
+          if (cat == ActivityCategory.payroll) actType = ActivityType.transfer;
+
+          String title = item['action']?.toString() ?? 'Account Activity';
+          if (recipient != null &&
+              recipient.isNotEmpty &&
+              (title == 'TRANSFER_COMPLETED' || title.contains('TRANSFER'))) {
+            title = 'Transfer to $recipient';
+          } else if (title == 'MONEY_MISSION_EXECUTED' &&
+              details?['rule'] != null) {
+            title = '⚡ Mission: ${details!['rule']}';
+          }
+
+          final statusStr = (details?['status'] ??
+                  details?['bmoniStatus'] ??
+                  item['status'] ??
+                  'COMPLETED')
+              .toString()
+              .toUpperCase();
+          FlowPayAppStatus status = FlowPayAppStatus.completed;
+          if (statusStr.contains('FAIL')) status = FlowPayAppStatus.failed;
+          if (statusStr.contains('PENDING')) status = FlowPayAppStatus.pending;
+          if (statusStr.contains('CANCEL')) status = FlowPayAppStatus.cancelled;
+
           return ActivityModel(
             id: item['id']?.toString() ??
                 'act_${DateTime.now().millisecondsSinceEpoch}',
-            title: item['action']?.toString() ?? 'Account Activity',
-            description:
-                item['actor']?.toString() ?? 'BMONI rail event recorded',
+            title: title,
+            description: details?['description']?.toString() ??
+                (item['actor']?.toString() ?? 'BMONI rail event recorded'),
             category: cat,
-            status: FlowPayAppStatus.completed,
+            type: actType,
+            status: status,
+            amount: amount,
+            currency: amount?.currency,
+            counterparty: counterparty,
+            source: details?['fundingWallet']?.toString() ??
+                details?['source']?.toString(),
+            destination: details?['destination']?.toString() ??
+                (recipient != null ? "$recipient's Wallet" : null),
             timestamp: item['created_at'] != null
                 ? DateTime.tryParse(item['created_at'].toString()) ??
                     DateTime.now()
@@ -48,9 +116,11 @@ class BmoniActivityRepository implements ActivityRepository {
                     ? DateTime.tryParse(item['createdAt'].toString()) ??
                         DateTime.now()
                     : DateTime.now()),
-            reference: item['id']?.toString(),
-            metadata: (item['details_json'] ?? item['detailsJson'])
-                as Map<String, dynamic>?,
+            reference: details?['transferId']?.toString() ??
+                details?['reference']?.toString() ??
+                item['id']?.toString() ??
+                '',
+            metadata: details,
           );
         }).toList();
       }

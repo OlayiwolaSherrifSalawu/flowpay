@@ -4,6 +4,7 @@ import '../../core/design_system/design_system.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
 import '../../core/money/money.dart';
+import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/mission_repository.dart';
 import '../../core/navigation/personal_tab_provider.dart';
 import '../../core/state/app_state.dart';
@@ -220,6 +221,84 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
         // Persist into repository
         await widget.appState.missionRepo.createMission(newMission);
+
+        // Check if condition is already satisfied to trigger execution immediately
+        bool conditionMet = false;
+        if (intent.triggerCondition.type == 'BALANCE_THRESHOLD') {
+          try {
+            final wallets = await widget.appState.walletRepo.getWallets();
+            final matchingWallet = wallets.firstWhere(
+              (w) => w.currency == srcCur,
+              orElse: () => wallets.first,
+            );
+            final thresholdMatch =
+                RegExp(r'([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)')
+                    .firstMatch(intent.triggerCondition.description);
+            final thresholdNum = thresholdMatch != null
+                ? double.tryParse(
+                        thresholdMatch.group(1)!.replaceAll(',', '')) ??
+                    0.0
+                : 0.0;
+            if (matchingWallet.balance.majorUnits >= thresholdNum &&
+                matchingWallet.balance.minorUnits >= amt.minorUnits) {
+              conditionMet = true;
+            }
+          } catch (_) {
+            conditionMet = true;
+          }
+        }
+
+        if (conditionMet) {
+          // Debit funding wallet immediately
+          try {
+            final wallets = await widget.appState.walletRepo.getWallets();
+            final matchingWallet = wallets.firstWhere(
+              (w) => w.currency == amt.currency,
+              orElse: () => wallets.first,
+            );
+            if (matchingWallet.balance.minorUnits >= amt.minorUnits) {
+              await widget.appState.walletRepo.debitWallet(
+                walletId: matchingWallet.id,
+                amount: amt,
+              );
+            }
+          } catch (_) {}
+
+          // Record transfer activity
+          final recipient =
+              intent.allocations.first.recipientIdentifier ?? 'Mom';
+          await widget.appState.activityRepo.recordActivity(
+            ActivityModel(
+              id: 'act_msn_${DateTime.now().millisecondsSinceEpoch}',
+              title: 'Transfer to $recipient',
+              description:
+                  'Autonomous execution triggered by ${intent.ruleTitle}',
+              amount: amt,
+              currency: amt.currency,
+              type: ActivityType.transfer,
+              category: ActivityCategory.transfer,
+              counterparty: 'Mary Fashola ($recipient)',
+              status: FlowPayAppStatus.completed,
+              timestamp: DateTime.now(),
+              reference:
+                  'FP-MSN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+              source: 'Personal Smart Wallet (${amt.currency.code})',
+              destination: "$recipient's Wallet",
+              fee: Money.zero(amt.currency),
+              exchangeRate: '1 USD = 1.00 USD',
+              bmoniReference: result['transactionReference']?.toString() ??
+                  'rail_tx_active',
+              metadata: {
+                'missionId': missionId,
+                'rule': intent.ruleTitle,
+                'recipient': recipient,
+              },
+            ),
+          );
+        }
+
+        // Notify app state so balances and activity feeds react across all tabs
+        widget.appState.notifyStateChanged();
 
         setState(() {
           missions.insert(0, newMission);
@@ -500,6 +579,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       setState(() {
         missions[idx] = updated;
       });
+
+      widget.appState.notifyStateChanged();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
