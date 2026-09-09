@@ -40,6 +40,7 @@ class EmployeeModel {
   final String? walletAddress;
   final String? cardId;
   final String? cardLast4;
+  final String? failureReason;
 
   const EmployeeModel({
     required this.id,
@@ -61,6 +62,7 @@ class EmployeeModel {
     this.walletAddress,
     this.cardId,
     this.cardLast4,
+    this.failureReason,
   });
 
   String get fullName => '$firstName $lastName';
@@ -155,6 +157,25 @@ class EmployeeModel {
 
     final rawStatus = (json['status'] ?? 'CREATED').toString().toUpperCase();
 
+    final walletAddr = json['wallet_address'] ?? json['walletAddress'];
+    final cardIdVal = json['card_id'] ?? json['cardId'];
+
+    // Derive wallet/card status TRUTHFULLY. The backend does not send
+    // wallet_status/card_status columns, so we must infer them from real data
+    // instead of fabricating 'ACTIVE'. Showing a fake ACTIVE wallet/card on a
+    // FAILED or not-yet-onboarded employee hides real state in a fintech app.
+    final explicitWalletStatus = json['wallet_status'] ?? json['walletStatus'];
+    final derivedWalletStatus = explicitWalletStatus ??
+        ((walletAddr != null && walletAddr.toString().isNotEmpty)
+            ? 'ACTIVE'
+            : 'NONE');
+
+    final explicitCardStatus = json['card_status'] ?? json['cardStatus'];
+    final derivedCardStatus = explicitCardStatus ??
+        ((cardIdVal != null && cardIdVal.toString().isNotEmpty)
+            ? 'ACTIVE'
+            : 'NONE');
+
     return EmployeeModel(
       id: json['id'] ?? '',
       bmoniUserId: json['bmoni_user_id'] ?? json['bmoniUserId'],
@@ -169,13 +190,15 @@ class EmployeeModel {
       failedStage: json['failed_stage'] ?? json['failedStage'],
       onboardingStatus:
           json['onboarding_status'] ?? json['onboardingStatus'] ?? rawStatus,
-      walletStatus: json['wallet_status'] ?? json['walletStatus'] ?? 'ACTIVE',
-      cardStatus: json['card_status'] ?? json['cardStatus'] ?? 'ACTIVE',
+      walletStatus: derivedWalletStatus,
+      cardStatus: derivedCardStatus,
       payrollAmount: payroll,
       usdPayrollAmount: usdPayroll,
-      walletAddress: json['wallet_address'] ?? json['walletAddress'],
-      cardId: json['card_id'] ?? json['cardId'],
-      cardLast4: json['card_last4'] ?? json['cardLast4'] ?? '4289',
+      walletAddress: walletAddr,
+      cardId: cardIdVal,
+      // Only surface a real last-4; never invent one.
+      cardLast4: json['card_last4'] ?? json['cardLast4'],
+      failureReason: json['failure_reason'] ?? json['failureReason'],
     );
   }
 
@@ -200,6 +223,7 @@ class EmployeeModel {
       'walletAddress': walletAddress,
       'cardId': cardId,
       'cardLast4': cardLast4,
+      'failureReason': failureReason,
     };
   }
 }
@@ -383,6 +407,10 @@ abstract class EmployeeRepository {
 
   /// Resolves employee invitation details (email, company, salary, currency) by inviteToken or inviteCode.
   Future<Map<String, dynamic>> getInviteDetails(String codeOrId);
+
+  /// Re-attempts BMONI user creation for an employee stuck at FAILED /
+  /// BMONI_USER_CREATION. Returns the updated employee record.
+  Future<EmployeeModel> retryUserCreation(String employeeId);
 
   /// Links the employee's on-device self-custody smart wallet to the invited employee record.
   Future<Map<String, dynamic>> linkEmployeeWallet({

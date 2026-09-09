@@ -19,6 +19,21 @@ interface SandboxWalletRecord {
 const sandboxWallets: Map<string, SandboxWalletRecord> = new Map([
   // --- Account A: Master / Waffiyyi (usr_flowpay_sandbox_master) ---
   [
+    'sw_usdb_sandbox_01',
+    {
+      id: 'sw_usdb_sandbox_01',
+      userId: 'usr_flowpay_sandbox_master',
+      name: 'USD Smart Wallet',
+      address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+      currency: 'USDB',
+      balance: 24500.0,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  [
     'sw_usdb_live_01',
     {
       id: 'sw_usdb_live_01',
@@ -450,6 +465,7 @@ export class WalletService {
       const all = await this.getWallets(userId);
       const found = all.find(w => w.id === walletId) ||
                     all.find(w => walletId.toLowerCase().includes(w.currency.toLowerCase())) ||
+                    sandboxWallets.get(walletId) ||
                     all[0];
       return found ? { ...found, id: walletId } : all[0];
     }

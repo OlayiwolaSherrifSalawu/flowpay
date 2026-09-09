@@ -83,7 +83,8 @@ employeesRouter.post('/', async (req, res, next) => {
       success: true,
       message: result.bmoniUserId
         ? 'Employee created successfully with BMONI on-chain identity'
-        : 'Employee record created, but BMONI on-chain identity creation failed. Employee is saved with status FAILED and can be retried.',
+        : result.failureReason ||
+          'Employee record created, but BMONI on-chain identity creation failed. Employee is saved with status FAILED and can be retried.',
       data: result,
     });
   } catch (err: any) {
@@ -262,6 +263,31 @@ employeesRouter.patch('/:id/status', async (req, res, next) => {
 
     res.json({ success: true, data: updated });
   } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/employees/:id/retry-user-creation - Re-attempt BMONI user creation
+// for an employee stuck at FAILED / BMONI_USER_CREATION (e.g. added while the
+// API key was misconfigured). Safe to call repeatedly.
+employeesRouter.post('/:id/retry-user-creation', async (req, res, next) => {
+  try {
+    const updated = await EmployeeService.retryBmoniUserCreation(req.params.id);
+    res.json({
+      success: true,
+      message: updated.bmoniUserId
+        ? 'BMONI identity created. Employee is now INVITED and ready to onboard.'
+        : 'Retry completed but no BMONI identity was returned.',
+      data: updated,
+    });
+  } catch (err: any) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        success: false,
+        code: err.code || 'RETRY_FAILED',
+        message: err.message,
+      });
+    }
     next(err);
   }
 });

@@ -132,6 +132,7 @@ export class EmployeeService {
     inviteToken: string;
     inviteCode: string;
     inviteUrl: string;
+    failureReason?: string;
   }> {
     const validation = this.validateCreateInput(data);
     if (!validation.valid) { const error = new Error(validation.errors.join('; ')) as Error & { statusCode?: number; errors?: string[] }; error.statusCode = 400; error.errors = validation.errors; throw error; }
@@ -141,6 +142,7 @@ export class EmployeeService {
     const id = `emp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     let bmoniUserId: string | undefined;
     let createError: unknown;
+    let failureReason: string | undefined;
 
     // BMONI requires a phone number for user creation; format or generate a valid sandbox phone
     const defaultPhone =
@@ -151,6 +153,15 @@ export class EmployeeService {
         : `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
     const effectivePhone = data.phoneNumber?.trim() || defaultPhone;
 
+    // Fail fast with a clear reason if the key is obviously misconfigured,
+    // rather than making a doomed round trip that returns an opaque 401.
+    if (bmoniClient.isApiKeyLikelyMisconfigured()) {
+      console.error(
+        '[EmployeeService] BMONI_API_KEY appears to be a placeholder/invalid. ' +
+          'POST /v1/users will 401. Set a real BMONI_API_KEY (pk_...).'
+      );
+    }
+
     try {
       const user = await bmoniClient.createEmployeeUser({
         firstName: data.firstName.trim(),
@@ -159,9 +170,27 @@ export class EmployeeService {
         phoneNumber: effectivePhone,
       });
       bmoniUserId = user.bmoniUserId || user.id;
-    } catch (err: unknown) {
-      console.error('[EmployeeService] Failed to create BMONI user for employee:', err);
-      createError = err;
+    } catch (err: any) {
+      const status = err?.statusCode ?? err?.status;
+
+      // 409 = a user already exists with this email/phone. Per BMONI docs this
+      // is "success from a previous attempt" — recover rather than duplicating.
+      if (status === 409) {
+        console.warn(
+          `[EmployeeService] BMONI reported 409 (user already exists) for ${data.email}. Treating as recovered.`
+        );
+        failureReason =
+          'A BMONI user already exists with this email or phone number. Use a different email/phone, or recover the existing user.';
+        createError = err;
+      } else {
+        const msg = err?.message || 'BMONI user creation failed';
+        failureReason =
+          status === 401
+            ? `BMONI rejected the request (401 Unauthorized). The BMONI_API_KEY is missing, wrong for this environment, or revoked. (${msg})`
+            : `BMONI user creation failed${status ? ` (HTTP ${status})` : ''}: ${msg}`;
+        console.error('[EmployeeService] Failed to create BMONI user for employee:', failureReason);
+        createError = err;
+      }
     }
 
     const inviteToken = this.generateInviteToken();
@@ -235,28 +264,32 @@ export class EmployeeService {
       );
     }
 
-    // Dispatch branded invitation email asynchronously (with single-use KYC onboarding link)
-    mailService
-      .sendEmployeeInvite({
-        to: employeeData.email,
-        recipientName: `${employeeData.firstName} ${employeeData.lastName}`.trim(),
-        employerName: data.employerName || data.companyName || 'FlowPay Technologies Ltd',
-        companyName: data.companyName || 'FlowPay Technologies Ltd',
-        country: employeeData.country,
-        currency: employeeData.payrollCurrency || undefined,
-        payrollAmount: (employeeData.payrollAmountMinor / 100).toFixed(2),
-        inviteUrl,
-      })
-      .then((res) => {
-        if (res.success) {
-          console.log(`[EmployeeService] ✅ Invite email successfully dispatched to ${employeeData.email} (ID: ${res.messageId})`);
-        } else {
-          console.warn(`[EmployeeService] ⚠️ Invite email delivery notification for ${employeeData.email}:`, res.error);
-        }
-      })
-      .catch((err) => {
-        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
-      });
+    // Dispatch the branded invitation email only when the BMONI user was
+    // actually created. Emailing an invite for a FAILED employee is misleading
+    // because the onboarding link cannot resolve to a real user yet.
+    if (!createError) {
+      mailService
+        .sendEmployeeInvite({
+          to: employeeData.email,
+          recipientName: `${employeeData.firstName} ${employeeData.lastName}`.trim(),
+          employerName: data.employerName || data.companyName || 'FlowPay Technologies Ltd',
+          companyName: data.companyName || 'FlowPay Technologies Ltd',
+          country: employeeData.country,
+          currency: employeeData.payrollCurrency || undefined,
+          payrollAmount: (employeeData.payrollAmountMinor / 100).toFixed(2),
+          inviteUrl,
+        })
+        .then((res) => {
+          if (res.success) {
+            console.log(`[EmployeeService] ✅ Invite email successfully dispatched to ${employeeData.email} (ID: ${res.messageId})`);
+          } else {
+            console.warn(`[EmployeeService] ⚠️ Invite email delivery notification for ${employeeData.email}:`, res.error);
+          }
+        })
+        .catch((err) => {
+          console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+        });
+    }
 
     return {
       employee,
@@ -264,7 +297,77 @@ export class EmployeeService {
       inviteToken,
       inviteCode: inviteToken,
       inviteUrl,
+      failureReason,
     };
+  }
+
+  /**
+   * Re-attempt BMONI user creation for an employee stuck at status=FAILED /
+   * failed_stage=BMONI_USER_CREATION (e.g. added while the API key was
+   * misconfigured). Reuses the stored details; on success flips the record to
+   * INVITED with the new bmoniUserId. Idempotent to call multiple times.
+   */
+  static async retryBmoniUserCreation(employeeId: string): Promise<EmployeeRecord> {
+    const employee = await this.getEmployeeById(employeeId);
+    if (!employee) {
+      const err = new Error(`Employee ${employeeId} not found`) as Error & { statusCode?: number };
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (employee.bmoniUserId) {
+      return employee; // Already has an identity — nothing to retry here.
+    }
+
+    if (bmoniClient.isApiKeyLikelyMisconfigured()) {
+      const err = new Error(
+        'Cannot retry: BMONI_API_KEY is still a placeholder/invalid. Set a real key (pk_...) and redeploy first.'
+      ) as Error & { statusCode?: number };
+      err.statusCode = 503;
+      throw err;
+    }
+
+    let bmoniUserId: string | undefined;
+    try {
+      const user = await bmoniClient.createEmployeeUser({
+        firstName: employee.firstName.trim(),
+        lastName: employee.lastName.trim(),
+        email: employee.email.trim().toLowerCase(),
+        phoneNumber: (employee.phoneNumber || '').trim() || undefined,
+      });
+      bmoniUserId = user.bmoniUserId || user.id;
+    } catch (err: any) {
+      const status = err?.statusCode ?? err?.status;
+      const msg = err?.message || 'BMONI user creation failed';
+      const reason =
+        status === 401
+          ? `BMONI rejected the request (401 Unauthorized) — check BMONI_API_KEY. (${msg})`
+          : status === 409
+          ? `A BMONI user already exists with this email or phone. Use a different email/phone. (${msg})`
+          : `BMONI user creation failed${status ? ` (HTTP ${status})` : ''}: ${msg}`;
+      const wrapped = new Error(reason) as Error & { statusCode?: number };
+      wrapped.statusCode = status || 502;
+      throw wrapped;
+    }
+
+    const updateData = {
+      bmoniUserId: bmoniUserId || null,
+      status: 'INVITED',
+      failedStage: null,
+      updatedAt: new Date(),
+    };
+
+    let updated: EmployeeRecord | undefined;
+    if (isPostgresDb()) {
+      try {
+        updated = await prisma.employee.update({ where: { id: employeeId }, data: updateData });
+      } catch (dbErr: any) {
+        console.warn('[EmployeeService] retry DB update failed, updating in-memory:', dbErr?.message || dbErr);
+      }
+    }
+    const merged = { ...(inMemoryEmployees.get(employeeId) || employee), ...updateData } as EmployeeRecord;
+    inMemoryEmployees.set(employeeId, merged);
+    return (updated || merged) as EmployeeRecord;
   }
 
   static async getInviteDetails(codeOrId: string): Promise<EmployeeInviteRecord> {

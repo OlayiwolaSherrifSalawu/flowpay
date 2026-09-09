@@ -128,6 +128,7 @@ describe('Employee Management Validation & Lifecycle', () => {
       assert.strictEqual(result.employee.failedStage, 'BMONI_USER_CREATION');
       assert.strictEqual(result.bmoniUserId, undefined);
       assert.strictEqual(result.employee.bmoniUserId, null, 'Must never assign a fake bmoniUserId');
+      assert.ok(result.failureReason, 'Must include failureReason');
 
       if (isPostgresDb()) {
         const record = await prisma.employee.findFirst({
