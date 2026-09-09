@@ -33,7 +33,7 @@ export class BmoniClient {
   }
 
   /**
-   * Internal HTTP dispatcher
+   * Internal HTTP dispatcher with bounded retry on network errors & transient 5xx
    */
   private async request<T>(
     endpoint: string,
@@ -46,53 +46,77 @@ export class BmoniClient {
     const { method = 'GET', body, headers = {} } = options;
     const url = `${this.baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
     const reqHeaders: Record<string, string> = {
       'x-api-key': this.apiKey,
       'Content-Type': 'application/json',
       ...headers,
     };
 
-    try {
-      this.safeLog(`BMONI [${method}] ${endpoint}`);
-      const response = await fetch(url, {
-        method,
-        headers: reqHeaders,
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
+    const maxRetries = 2; // max 2 retries (3 attempts total)
 
-      const responseText = await response.text();
-      let responseJson: any = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+
       try {
-        responseJson = responseText ? JSON.parse(responseText) : {};
-      } catch {
-        responseJson = { raw: responseText };
-      }
+        this.safeLog(`BMONI [${method}] ${endpoint}`);
+        const response = await fetch(url, {
+          method,
+          headers: reqHeaders,
+          body: body ? JSON.stringify(body) : undefined,
+          signal: controller.signal,
+        });
 
-      if (!response.ok) {
-        const message = Array.isArray(responseJson?.message)
-          ? responseJson.message.join('; ')
-          : responseJson?.message || response.statusText || 'BMONI Request Failed';
+        const responseText = await response.text();
+        let responseJson: any = null;
+        try {
+          responseJson = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          responseJson = { raw: responseText };
+        }
 
-        // Idempotent recovery for user creation: If 409 Conflict, returns message with details
-        throw new BmoniApiError(message, response.status, responseJson?.error, responseJson);
-      }
+        if (!response.ok) {
+          const message = Array.isArray(responseJson?.message)
+            ? responseJson.message.join('; ')
+            : responseJson?.message || response.statusText || 'BMONI Request Failed';
 
-      return responseJson as T;
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        throw new BmoniApiError(`BMONI request to ${endpoint} timed out after ${this.timeoutMs}ms`, 504);
+          // Idempotent recovery for user creation: If 409 Conflict, returns message with details
+          throw new BmoniApiError(message, response.status, responseJson?.error, responseJson);
+        }
+
+        return responseJson as T;
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          throw new BmoniApiError(`BMONI request to ${endpoint} timed out after ${this.timeoutMs}ms`, 504);
+        }
+
+        const isRetryable =
+          !(err instanceof BmoniApiError) ||
+          (typeof err.statusCode === 'number' && [500, 502, 503, 504].includes(err.statusCode));
+
+        if (isRetryable && attempt < maxRetries) {
+          const retryAttempt = attempt + 1;
+          const baseDelay = retryAttempt === 1 ? 300 : 900;
+          const jitter = Math.floor(Math.random() * 201) - 100;
+          const delay = Math.max(0, baseDelay + jitter);
+
+          this.safeLog(
+            `BMONI [${method}] ${endpoint} — retry ${retryAttempt}/${maxRetries} after network error: ${err.message}`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        if (err instanceof BmoniApiError) {
+          throw err;
+        }
+        throw new BmoniApiError(err.message || 'Unknown network error communicating with BMONI', 500);
+      } finally {
+        clearTimeout(timeoutId);
       }
-      if (err instanceof BmoniApiError) {
-        throw err;
-      }
-      throw new BmoniApiError(err.message || 'Unknown network error communicating with BMONI', 500);
-    } finally {
-      clearTimeout(timeoutId);
     }
+
+    throw new BmoniApiError('Unknown network error communicating with BMONI', 500);
   }
 
   private safeLog(message: string): void {

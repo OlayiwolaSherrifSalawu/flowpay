@@ -50,7 +50,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Typed configuration in `config/env.ts` with strict origin-only URL parsing (strips `/v1` to prevent 404s).
   * Relational persistence in SQLite (`db/schema.sql`, `db/index.ts`) for employees, payroll runs, money missions, audit logs, and webhooks.
   * Central `Money` abstraction (`core/money.ts`) using integer minor units, zero float drift, and currency safety.
-  * Production-grade BMONI client (`bmoni/client.ts`) with safe logging, structured error parsing (400 validation arrays, 401, 403, 409 idempotency recovery, 500 curve errors).
+  * Production-grade BMONI client (`bmoni/client.ts`) with safe logging, structured error parsing (400 validation arrays, 401, 403, 409 idempotency recovery, 500 curve errors), and bounded retry-with-backoff on network errors and transient 5xx responses (max 2 retries, 300ms/900ms exponential backoff with +/-100ms jitter, fresh timeout windows per attempt, immediate fast-fail on 4xx and timeouts).
   * Webhook listener (`bmoni/webhooks.ts`, `routes/webhook.routes.ts`) verifying HMAC-SHA256 signatures over raw Buffer bytes in constant time.
   * Multi-country aggregate payroll engine (`modules/payroll/service.ts`, `routes/payroll.routes.ts`).
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
