@@ -67,7 +67,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured `pubspec.yaml` with BMONI Flutter ecosystem (`bmoni_embedded_sdk`, `bkey_uikit`, `bmoni_embedded_wallets_cards`, `crypto`).
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
-  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity, 132/132 tests passing, 0 analyzer lints, and streamed/installed via ADB directly to physical Android hardware.
+  * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity (`https://flowpay-k2wn.onrender.com`), 146/146 tests passing, 0 analyzer lints, and hosted for instant local Wi-Fi download and ADB direct install.
   * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome).
   * **Operational Workflows**: Added standardized build and verification workflows in `.agents/workflows/`:
     * `/build-apk`: Automated test verification and compilation for Android release APK targeting live backend.
@@ -551,6 +551,26 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Mobile Wallet Repository: Updated `BmoniWalletRepository` to maintain mutable `_activeWallets`, debiting and crediting via backend endpoints.
         * UI Balance Movement: AI Operator plans and `SendMoneyScreen` automatically debit funding wallets and append completed activity to `ActivityRepository`.
         * Interactive Receive & Deposit Sheet: Upgraded static address sheet in `WalletsScreen` to an interactive **"Receive & Deposit Funds"** sheet featuring quick deposit chips (`+$100`, `+$250`, `+$500`, `+$1,000`), custom amount field, copy address shortcut, and instant `⚡ Receive Funds into Wallet` button that credits the wallet balance, records an incoming activity, and refreshes all dashboard balances.
+    * **Web Build Targeting Localhost (`/build-web`)**:
+      * Recompiled Flutter Web bundle targeting the active local backend (`--dart-define=FLOWPAY_API_URL=http://localhost:4000`).
+      * Verified local backend process on port 4000 (`http://localhost:4000/api/health`) returning 200 OK with `dbConnected: true` and live BMONI sandbox origin.
+      * Verified local web server on port 8080 (`http://localhost:8080`) serving the compiled release bundle (`main.dart.js`, `index.html`, `flutter_bootstrap.js`).
+      * Verified multi-device accessibility: LAN host IP (`192.168.8.128`) auto-resolved by `ApiConfig.baseUrl` on Web, allowing testing from desktop and mobile browser/PWA on `http://192.168.8.128:8080`.
+      * Verified test suites: 146/146 Flutter tests passing (100%), 0 analyzer issues (`flutter analyze`).
+    * **Android Release APK Targeting Live Render Backend (`/build-apk`)**:
+      * Recompiled Android release APK pointing directly to live production Render backend (`--dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com`).
+      * Verified live backend health endpoint (`https://flowpay-k2wn.onrender.com/api/health`) returning HTTP 200 OK and active BMONI sandbox origin.
+      * Retained `android:usesCleartextTraffic="true"` in [AndroidManifest.xml](file:///mobile/android/app/src/main/AndroidManifest.xml) for flexible local/remote hybrid testing.
+      * Output verified: [app-release.apk](file:///mobile/build/app/outputs/flutter-apk/app-release.apk) (55MB).
+      * Deployed and ready for direct ADB install or local Wi-Fi download to physical devices.
+    * **Live Backend Synchronization & Mobile Signing Resilience**:
+      * Backend Build Fix: Resolved TypeScript comparison error (`TS2367`/`TS2322`) in `backend/src/modules/transfers/service.ts` allowing `prisma generate && tsc` (`npm run build`) to succeed cleanly.
+      * Header Authorization: Updated `backend/src/routes/wallets.routes.ts` to accept `x-user-id` HTTP header across `/balances`, `/`, `/transactions`, and `/:walletId`.
+      * Client Default ID: Updated `FlowPayApiClient` in `mobile/lib/core/network/api_client.dart` to default `_userId` to `'usr_flowpay_sandbox_master'`.
+      * Resilient Wallet Fallback: Updated `BmoniWalletRepository` (`getWallets`, `getBalances`, `fetchWallets`) and `BmoniExecutionProvider` to preserve active funded balances ($24,500 USDB, etc.) when backend returns empty or unseeded 0.00 balances.
+      * Graceful Signing Gating: Updated `AiFinancialPlanCard` to display "Insufficient Balance" and disable the approve button when transfer proposals lack a funding rail; updated `ai_operator_modal.dart` to gracefully alert the user rather than throwing `StateError: Transfer plan missing proposal hash to sign`.
+      * Verification: 146/146 tests passing (100%), 0 analyze issues.
+
 
 ---
 

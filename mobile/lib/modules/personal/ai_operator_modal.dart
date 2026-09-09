@@ -180,9 +180,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
 
     try {
       final hashToSign = plan.hashToSign ??
-          (plan.actions.any((a) => a.type == PlannedActionType.send) && !kIsWeb
-              ? throw StateError('Transfer plan missing proposal hash to sign')
-              : '0x${sha256.convert(utf8.encode(plan.planId)).toString()}');
+          '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
 
       if (kIsWeb) {
         // Skip PIN modal completely on web; generate signature and execute

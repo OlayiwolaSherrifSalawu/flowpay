@@ -6,7 +6,10 @@ export const walletsRouter = Router();
 // GET /api/wallets/balances
 walletsRouter.get('/balances', async (req, res, next) => {
   try {
-    const userId = (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const userId =
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const balances = await WalletService.getBalances(userId);
     res.json({ success: true, data: balances });
   } catch (err) {
@@ -17,7 +20,10 @@ walletsRouter.get('/balances', async (req, res, next) => {
 // GET /api/wallets
 walletsRouter.get('/', async (req, res, next) => {
   try {
-    const userId = (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const userId =
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const wallets = await WalletService.getWallets(userId);
     res.json({ success: true, data: wallets });
   } catch (err) {
@@ -90,7 +96,10 @@ walletsRouter.post('/:walletId/credit', async (req, res, next) => {
 // GET /api/wallets/:walletId/transactions
 walletsRouter.get('/:walletId/transactions', async (req, res, next) => {
   try {
-    const userId = (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const userId =
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 20;
     const txData = await WalletService.getWalletTransactions(req.params.walletId, userId, page, pageSize);
@@ -103,7 +112,10 @@ walletsRouter.get('/:walletId/transactions', async (req, res, next) => {
 // GET /api/wallets/:walletId
 walletsRouter.get('/:walletId', async (req, res, next) => {
   try {
-    const userId = (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const userId =
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const wallet = await WalletService.getWalletDetail(req.params.walletId, userId);
     res.json({ success: true, data: wallet });
   } catch (err) {
