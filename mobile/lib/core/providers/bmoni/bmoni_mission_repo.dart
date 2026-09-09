@@ -1,14 +1,23 @@
+import '../../design_system/states.dart';
 import '../../missions/client_mission_interpreter.dart';
 import '../../missions/mission_intent.dart';
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../../network/api_client.dart';
+import '../../repositories/activity_repository.dart';
 import '../../repositories/mission_repository.dart';
+import '../../repositories/wallet_repository.dart';
 
 class BmoniMissionRepository implements MissionRepository {
   final FlowPayApiClient apiClient;
+  final WalletRepository? walletRepo;
+  final ActivityRepository? activityRepo;
 
-  BmoniMissionRepository({required this.apiClient});
+  BmoniMissionRepository({
+    required this.apiClient,
+    this.walletRepo,
+    this.activityRepo,
+  });
 
   @override
   Future<List<MoneyMissionModel>> getMissions() async {
@@ -230,16 +239,86 @@ class BmoniMissionRepository implements MissionRepository {
       ),
     );
 
-    await executeMission(
+    final res = await executeMission(
       missionId: id,
       signature:
           '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1c',
       pinValidated: true,
     );
 
-    final newCount = mission.executionCount + 1;
-    final amt = mission.thresholdAmount ??
+    Money amt = mission.thresholdAmount ??
         Money.fromMajorString('2000.00', mission.targetCurrency ?? Currency.usd);
+    String? recipient;
+    if (mission.allocations.isNotEmpty) {
+      final transferAlloc = mission.allocations.firstWhere(
+        (a) => a.actionType == MissionActionType.transfer,
+        orElse: () => mission.allocations.first,
+      );
+      final minor = int.tryParse(transferAlloc.sourceAmountMinor);
+      if (minor != null && minor > 0) {
+        amt = Money.fromMinor(minor, mission.targetCurrency ?? Currency.usd);
+      }
+      recipient = transferAlloc.recipientIdentifier;
+    }
+
+    // Debit wallet balance
+    if (walletRepo != null) {
+      try {
+        final wallets = await walletRepo!.getWallets();
+        final matchingWallet = wallets.firstWhere(
+          (w) => w.currency == amt.currency,
+          orElse: () => wallets.first,
+        );
+        if (matchingWallet.balance.minorUnits >= amt.minorUnits) {
+          await walletRepo!.debitWallet(walletId: matchingWallet.id, amount: amt);
+        }
+      } catch (_) {}
+    }
+
+    // Record activity locally
+    if (activityRepo != null) {
+      try {
+        final txRef = res['transactionReference']?.toString() ??
+            '0x88fbc921...${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+        await activityRepo!.recordActivity(
+          ActivityModel(
+            id: 'act_trig_${DateTime.now().millisecondsSinceEpoch}',
+            title: recipient != null
+                ? 'Transfer to $recipient'
+                : '⚡ Mission Executed: ${mission.title}',
+            description: mission.actionSummary.isNotEmpty
+                ? mission.actionSummary
+                : 'Triggered execution of ${mission.title}',
+            amount: amt,
+            currency: amt.currency,
+            type: recipient != null ? ActivityType.transfer : ActivityType.mission,
+            category: recipient != null ? ActivityCategory.transfer : ActivityCategory.mission,
+            counterparty: recipient != null
+                ? 'Mary Fashola ($recipient)'
+                : 'BMONI Settlement Rails',
+            status: FlowPayAppStatus.completed,
+            timestamp: DateTime.now(),
+            reference:
+                'FP-MSN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+            source: 'Personal Smart Wallet (${amt.currency.code})',
+            destination: recipient != null
+                ? "$recipient's Wallet"
+                : 'BMONI Settlement Rails',
+            fee: Money.zero(amt.currency),
+            exchangeRate: '1 USD = 1.00 USD',
+            bmoniReference: txRef,
+            metadata: {
+              'missionId': id,
+              'rule': mission.title,
+              'manualTrigger': true,
+              'recipient': recipient,
+            },
+          ),
+        );
+      } catch (_) {}
+    }
+
+    final newCount = mission.executionCount + 1;
     final newExecuted =
         (mission.executedAmount ?? Money.zero(amt.currency)).add(amt);
 

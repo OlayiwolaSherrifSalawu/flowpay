@@ -239,8 +239,20 @@ class DemoMissionRepository implements MissionRepository {
     final idx = _missions.indexWhere((m) => m.id == id);
     if (idx != -1) {
       final current = _missions[idx];
-      final amt = current.thresholdAmount ??
+      Money amt = current.thresholdAmount ??
           Money.fromMajorString('2000.00', current.targetCurrency ?? Currency.usd);
+      String? recipient;
+      if (current.allocations.isNotEmpty) {
+        final transferAlloc = current.allocations.firstWhere(
+          (a) => a.actionType == MissionActionType.transfer,
+          orElse: () => current.allocations.first,
+        );
+        final minor = int.tryParse(transferAlloc.sourceAmountMinor);
+        if (minor != null && minor > 0) {
+          amt = Money.fromMinor(minor, current.targetCurrency ?? Currency.usd);
+        }
+        recipient = transferAlloc.recipientIdentifier;
+      }
       final newCount = current.executionCount + 1;
       final newExecuted =
           (current.executedAmount ?? Money.zero(amt.currency)).add(amt);
@@ -276,15 +288,17 @@ class DemoMissionRepository implements MissionRepository {
           await activityRepo!.recordActivity(
             ActivityModel(
               id: 'act_trig_${DateTime.now().millisecondsSinceEpoch}',
-              title: '⚡ Mission Executed: ${updated.title}',
+              title: recipient != null
+                  ? 'Transfer to $recipient'
+                  : '⚡ Mission Executed: ${updated.title}',
               description: updated.actionSummary.isNotEmpty
                   ? updated.actionSummary
                   : 'Triggered split: 30% USD Vault, 50% NGN Expenses, 20% Tax Escrow',
               amount: amt,
               currency: amt.currency,
-              type: ActivityType.mission,
-              category: ActivityCategory.mission,
-              counterparty: 'BMONI Settlement Rails',
+              type: recipient != null ? ActivityType.transfer : ActivityType.mission,
+              category: recipient != null ? ActivityCategory.transfer : ActivityCategory.mission,
+              counterparty: recipient != null ? 'Mary Fashola ($recipient)' : 'BMONI Settlement Rails',
               status: FlowPayAppStatus.completed,
               timestamp: DateTime.now(),
               reference:

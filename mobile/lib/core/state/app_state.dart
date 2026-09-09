@@ -80,8 +80,11 @@ class AppState extends ChangeNotifier {
       BmoniPayrollRepository(apiClient: _apiClient);
   late final BmoniActivityRepository _bmoniActivity =
       BmoniActivityRepository(apiClient: _apiClient);
-  late final BmoniMissionRepository _bmoniMission =
-      BmoniMissionRepository(apiClient: _apiClient);
+  late final BmoniMissionRepository _bmoniMission = BmoniMissionRepository(
+    apiClient: _apiClient,
+    walletRepo: _bmoniWallet,
+    activityRepo: _bmoniActivity,
+  );
   late final BmoniApprovalRepository _bmoniApproval =
       BmoniApprovalRepository(apiClient: _apiClient);
   late final BmoniBusinessAuditRepository _bmoniAudit =
@@ -200,5 +203,9 @@ class AppState extends ChangeNotifier {
   void toggleTheme() {
     setThemeMode(
         _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
+  }
+
+  void notifyStateChanged() {
+    notifyListeners();
   }
 }

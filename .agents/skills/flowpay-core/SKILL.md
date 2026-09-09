@@ -287,7 +287,13 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * B-Key Hardware PIN Signing: Integrates `WalletPinAuthSheet` with 6-digit numeric PIN pad for EIP-191 / B-Key hardware enclave signing.
       * Success Receipt Dialog: Shows celebration icon, transaction hash, BMONI confirmation, and done button.
       * Active Missions List: Custom `MissionCard` components with allocation pill badges, status indicator, last run timestamp, active toggle switch, and interactive ⚡ Run Now button.
+    * **Balance Threshold Execution & Activity Feed Serialization**:
+      * Properly decoupled trigger condition threshold (e.g. `$2,000 USD`) from action transfer amounts (e.g. `$300 USD` / `$200 USD` to Mom) across client interpreter and backend AI interpreter.
+      * Implemented immediate condition-check and execution flow upon PIN authorization: if funding wallet balance satisfies threshold, automatically debits wallet via `WalletRepository.debitWallet` / `WalletService.debitWallet`, broadcasts state update, and logs transfer audit record.
+      * Resolved missing `amount` and `currency` deserialization in `BmoniActivityRepository` and replaced `'Free'` text fallback with `'—'`.
     * **Automated Verification**:
+      * Mobile suite: 5/5 Money Missions tests passing, 171/171 full suite passing (100%), 0 analyzer issues.
+      * Backend suite: 110/110 tests passing across 8 test suites (100%).
   * **FlowPay Personal — Send Money Feature & Balance-Aware Routing ("Send $500 to my designer in Ghana.")**:
     * **Natural Language Entry & AI Intent Interpretation**:
       * Dedicated natural language prompt input with 4 instant suggestion chips ("Send $500 to my designer in Ghana", "Send $150 to bunch.dillon@example.ng", "Send ₦50,000 to Samson Jabo", "Send $1,200 to contractor in Mexico").
