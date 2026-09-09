@@ -76,6 +76,19 @@ export class EmployeeService {
     switch (country.toUpperCase()) { case 'NG': return 'NGN'; case 'MX': return 'MXN'; case 'CA': return 'CAD'; default: return 'USD'; }
   }
 
+  // BMONI requires a phone number for user creation. If none was given,
+  // generate a valid sandbox-format one based on country. Shared by both
+  // createEmployee and retryBmoniUserCreation so retries can't send an
+  // undefined phone number the way the original bug did.
+  static buildEffectivePhone(phoneNumber: string | undefined | null, country: string): string {
+    const trimmed = (phoneNumber || '').trim();
+    if (trimmed) return trimmed;
+    const c = country.toUpperCase();
+    if (c === 'NG') return `+23480${Math.floor(10000000 + Math.random() * 90000000)}`;
+    if (c === 'MX') return `+5255${Math.floor(10000000 + Math.random() * 90000000)}`;
+    return `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
+  }
+
   static async listEmployees(statusFilter?: string): Promise<EmployeeRecord[]> {
     let dbRows: EmployeeRecord[] = [];
     if (isPostgresDb()) {
@@ -124,42 +137,6 @@ export class EmployeeService {
 
   static generateInviteToken(): string {
     return crypto.randomBytes(24).toString('hex');
-  }
-
-  /**
-   * Resolves or generates an effective E.164 phone number for BMONI user creation.
-   * Formats the provided phone number if available, or generates a valid sandbox phone keyed on country
-   * (+2348... for NG, +5255... for MX, +1415555... fallback).
-   */
-  static buildEffectivePhone(phoneNumber: string | undefined | null, country: string): string {
-    const raw = (phoneNumber || '').trim();
-    const c = (country || '').trim().toUpperCase();
-
-    if (raw) {
-      if (raw.startsWith('+')) {
-        return raw;
-      }
-      // Local Nigerian number starting with 0 (e.g. 08139088072 -> +2348139088072)
-      if (c === 'NG' && raw.startsWith('0')) {
-        return `+234${raw.substring(1)}`;
-      }
-      // Local Mexican 10-digit number
-      if (c === 'MX' && raw.length === 10) {
-        return `+52${raw}`;
-      }
-      if (/^\d+$/.test(raw)) {
-        if (c === 'NG') return `+234${raw}`;
-        if (c === 'MX') return `+52${raw}`;
-        return `+${raw}`;
-      }
-      return raw;
-    }
-
-    return c === 'NG'
-      ? `+23480${Math.floor(10000000 + Math.random() * 90000000)}`
-      : c === 'MX'
-        ? `+5255${Math.floor(10000000 + Math.random() * 90000000)}`
-        : `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
   }
 
   static async createEmployee(data: CreateEmployeeInput): Promise<{
@@ -361,13 +338,12 @@ export class EmployeeService {
     const effectivePhone = this.buildEffectivePhone(employee.phoneNumber, employee.country);
 
     let bmoniUserId: string | undefined;
-    let registeredPhone = effectivePhone;
     try {
       const user = await bmoniClient.createEmployeeUser({
         firstName: employee.firstName.trim(),
         lastName: employee.lastName.trim(),
         email: employee.email.trim().toLowerCase(),
-        phoneNumber: effectivePhone,
+        phoneNumber: this.buildEffectivePhone(employee.phoneNumber, employee.country),
       });
       bmoniUserId = user.bmoniUserId || user.id;
     } catch (err: any) {
@@ -385,9 +361,6 @@ export class EmployeeService {
           );
           if (matched) {
             bmoniUserId = matched.bmoniUserId || matched.id;
-            if (matched.phoneNumber) {
-              registeredPhone = matched.phoneNumber;
-            }
             console.log(
               `[EmployeeService] Recovered existing BMONI user ${bmoniUserId} on 409 conflict for ${employee.email}`
             );
@@ -417,9 +390,6 @@ export class EmployeeService {
       failedStage: null,
       updatedAt: new Date(),
     };
-    if (!employee.phoneNumber || !employee.phoneNumber.startsWith('+')) {
-      updateData.phoneNumber = registeredPhone;
-    }
 
     let updated: EmployeeRecord | undefined;
     if (isPostgresDb()) {
@@ -431,66 +401,52 @@ export class EmployeeService {
     }
     const merged = { ...(inMemoryEmployees.get(employeeId) || employee), ...updateData } as EmployeeRecord;
     inMemoryEmployees.set(employeeId, merged);
+    const finalEmployee = (updated || merged) as EmployeeRecord;
 
-    // Resolve existing active invite or generate a fresh 72h single-use invite
-    let inviteToken: string | undefined;
-    for (const [tok, rec] of employeeInvites.entries()) {
-      if (rec.employeeId === employeeId && !rec.usedAt && new Date() <= rec.expiresAt) {
-        rec.bmoniUserId = bmoniUserId;
-        inviteToken = tok;
-        break;
-      }
-    }
-
-    if (!inviteToken) {
-      inviteToken = this.generateInviteToken();
-      const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
-      employeeInvites.set(inviteToken, {
-        token: inviteToken,
-        employeeId,
-        bmoniUserId,
-        email: merged.email,
-        firstName: merged.firstName,
-        lastName: merged.lastName,
-        country: merged.country,
-        targetCurrency: merged.targetCurrency,
-        payrollAmountMinor: merged.payrollAmountMinor,
-        expiresAt,
-      });
-    }
-
+    // Unlike createEmployee, a retry can happen long after the original
+    // invite token was generated (and that token only ever lived in the
+    // in-memory employeeInvites map, so it may no longer exist after a
+    // redeploy). Generate a fresh one so the invite email actually has a
+    // resolvable link, the same way createEmployee does on first success.
+    const inviteToken = this.generateInviteToken();
     const baseUrl = env.APP_URL.replace(/\/$/, '');
     const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
+    employeeInvites.set(inviteToken, {
+      token: inviteToken,
+      employeeId: finalEmployee.id,
+      bmoniUserId: bmoniUserId || undefined,
+      email: finalEmployee.email,
+      firstName: finalEmployee.firstName,
+      lastName: finalEmployee.lastName,
+      country: finalEmployee.country,
+      targetCurrency: finalEmployee.targetCurrency,
+      payrollAmountMinor: finalEmployee.payrollAmountMinor,
+      expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+    });
 
-    // Dispatch branded invitation email (non-blocking fire-and-forget, same as createEmployee)
     mailService
       .sendEmployeeInvite({
-        to: merged.email,
-        recipientName: `${merged.firstName} ${merged.lastName}`.trim(),
+        to: finalEmployee.email,
+        recipientName: `${finalEmployee.firstName} ${finalEmployee.lastName}`.trim(),
         employerName: 'FlowPay Technologies Ltd',
         companyName: 'FlowPay Technologies Ltd',
-        country: merged.country,
-        currency: merged.payrollCurrency || undefined,
-        payrollAmount: (merged.payrollAmountMinor / 100).toFixed(2),
+        country: finalEmployee.country,
+        currency: finalEmployee.payrollCurrency || undefined,
+        payrollAmount: (finalEmployee.payrollAmountMinor / 100).toFixed(2),
         inviteUrl,
       })
       .then((res) => {
         if (res.success) {
-          console.log(
-            `[EmployeeService] ✅ Invite email successfully dispatched to ${merged.email} (ID: ${res.messageId})`
-          );
+          console.log(`[EmployeeService] ✅ Retry invite email dispatched to ${finalEmployee.email} (ID: ${res.messageId})`);
         } else {
-          console.warn(
-            `[EmployeeService] ⚠️ Invite email delivery notification for ${merged.email}:`,
-            res.error
-          );
+          console.warn(`[EmployeeService] ⚠️ Retry invite email delivery notification for ${finalEmployee.email}:`, res.error);
         }
       })
       .catch((err) => {
-        console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+        console.warn('[EmployeeService] Failed to dispatch retry invite email:', err.message || err);
       });
 
-    return (updated || merged) as EmployeeRecord;
+    return finalEmployee;
   }
 
   static async getInviteDetails(codeOrId: string): Promise<EmployeeInviteRecord> {
