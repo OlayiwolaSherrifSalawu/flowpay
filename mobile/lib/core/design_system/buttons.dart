@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
+import '../theme/radii.dart';
 import '../theme/spacing.dart';
 
 enum FlowPayButtonVariant { primary, secondary, outline, ghost, danger }
 
 enum FlowPayButtonSize { small, medium, large }
 
+/// Dribbble-inspired FlowPay Pill Button
+/// Features full pill geometry (9999dp), confident Emerald 600 primary action styling,
+/// tactile padding, and built-in loading indicator.
 class FlowPayButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -44,25 +48,28 @@ class FlowPayButton extends StatelessWidget {
 
     switch (variant) {
       case FlowPayButtonVariant.primary:
-        bg = FlowPayColors.primary;
+        bg = FlowPayColors.emerald600;
         fg = Colors.white;
         break;
       case FlowPayButtonVariant.secondary:
         bg = isDark
             ? FlowPayColors.darkSurfaceElevated
-            : FlowPayColors.lightSurfaceElevated;
+            : FlowPayColors.mint100.withAlpha(120);
         fg = isDark
             ? FlowPayColors.darkTextPrimary
-            : FlowPayColors.lightTextPrimary;
+            : FlowPayColors.ink;
         borderSide = BorderSide(
-          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+          color: isDark
+              ? FlowPayColors.darkBorderLight
+              : FlowPayColors.mint100,
           width: 1,
         );
         break;
       case FlowPayButtonVariant.outline:
         bg = Colors.transparent;
-        fg = FlowPayColors.primary;
-        borderSide = const BorderSide(color: FlowPayColors.primary, width: 1.5);
+        fg = FlowPayColors.emerald600;
+        borderSide =
+            const BorderSide(color: FlowPayColors.emerald600, width: 1.5);
         break;
       case FlowPayButtonVariant.ghost:
         bg = Colors.transparent;
@@ -79,22 +86,26 @@ class FlowPayButton extends StatelessWidget {
     EdgeInsets padding;
     double fontSize;
     double iconSize;
+    double? minHeight;
 
     switch (size) {
       case FlowPayButtonSize.small:
-        padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 8);
+        padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8);
         fontSize = 13;
         iconSize = 16;
+        minHeight = 36;
         break;
       case FlowPayButtonSize.medium:
-        padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 12);
+        padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 12);
         fontSize = 14;
         iconSize = 18;
+        minHeight = 46;
         break;
       case FlowPayButtonSize.large:
         padding = const EdgeInsets.symmetric(horizontal: 28, vertical: 16);
         fontSize = 16;
         iconSize = 20;
+        minHeight = 54;
         break;
     }
 
@@ -116,7 +127,7 @@ class FlowPayButton extends StatelessWidget {
                 text,
                 style: TextStyle(
                   fontSize: fontSize,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: fg,
                   letterSpacing: -0.2,
                 ),
@@ -130,6 +141,7 @@ class FlowPayButton extends StatelessWidget {
 
     return SizedBox(
       width: isFullWidth ? double.infinity : null,
+      height: minHeight,
       child: ElevatedButton(
         onPressed: isLoading || disabled ? null : onPressed,
         style: ElevatedButton.styleFrom(
@@ -138,9 +150,10 @@ class FlowPayButton extends StatelessWidget {
           padding: padding,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: FlowPaySpacing.borderRadiusMd,
+            borderRadius: FlowPayRadii.button,
             side: borderSide,
           ),
+          shadowColor: Colors.transparent,
         ),
         child: content,
       ),
@@ -211,8 +224,7 @@ class FlowPayIconButton extends StatelessWidget {
   }
 }
 
-// Backward-compatibility aliases during UI revamp migration
+// Backward-compatibility aliases
 typedef BMoniButton = FlowPayButton;
 typedef BMoniButtonVariant = FlowPayButtonVariant;
 typedef BMoniButtonSize = FlowPayButtonSize;
-

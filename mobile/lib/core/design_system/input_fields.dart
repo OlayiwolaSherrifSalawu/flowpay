@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/colors.dart';
+import '../theme/radii.dart';
 import '../theme/spacing.dart';
 import '../theme/typography.dart';
 
@@ -116,7 +117,7 @@ class FlowPayTextField extends StatelessWidget {
               vertical: FlowPaySpacing.md,
             ),
             border: OutlineInputBorder(
-              borderRadius: FlowPaySpacing.borderRadiusMd,
+              borderRadius: FlowPayRadii.input,
               borderSide: BorderSide(
                 color: isDark
                     ? FlowPayColors.darkBorder
@@ -125,7 +126,7 @@ class FlowPayTextField extends StatelessWidget {
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: FlowPaySpacing.borderRadiusMd,
+              borderRadius: FlowPayRadii.input,
               borderSide: BorderSide(
                 color: isDark
                     ? FlowPayColors.darkBorder
@@ -133,23 +134,23 @@ class FlowPayTextField extends StatelessWidget {
                 width: 1,
               ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: FlowPaySpacing.borderRadiusMd,
-              borderSide: const BorderSide(
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: FlowPayRadii.input,
+              borderSide: BorderSide(
                 color: FlowPayColors.primary,
                 width: 1.5,
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: FlowPaySpacing.borderRadiusMd,
-              borderSide: const BorderSide(
+            errorBorder: const OutlineInputBorder(
+              borderRadius: FlowPayRadii.input,
+              borderSide: BorderSide(
                 color: FlowPayColors.error,
                 width: 1.5,
               ),
             ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: FlowPaySpacing.borderRadiusMd,
-              borderSide: const BorderSide(
+            focusedErrorBorder: const OutlineInputBorder(
+              borderRadius: FlowPayRadii.input,
+              borderSide: BorderSide(
                 color: FlowPayColors.error,
                 width: 2,
               ),
@@ -194,7 +195,7 @@ class FlowPayAmountField extends StatelessWidget {
             color: isDark
                 ? FlowPayColors.darkSurfaceElevated
                 : FlowPayColors.lightSurfaceElevated,
-            borderRadius: FlowPaySpacing.borderRadiusLg,
+            borderRadius: FlowPayRadii.input,
             border: Border.all(
               color: errorText != null
                   ? FlowPayColors.error
@@ -209,15 +210,15 @@ class FlowPayAmountField extends StatelessWidget {
               // Currency Selector Pill
               InkWell(
                 onTap: onCurrencyTap,
-                borderRadius: FlowPaySpacing.borderRadiusSm,
+                borderRadius: FlowPayRadii.chip,
                 child: Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: isDark
                         ? FlowPayColors.darkSurfaceSubtle
                         : FlowPayColors.lightSurface,
-                    borderRadius: FlowPaySpacing.borderRadiusSm,
+                    borderRadius: FlowPayRadii.chip,
                     border: Border.all(
                       color: isDark
                           ? FlowPayColors.darkBorderLight
@@ -449,7 +450,7 @@ class BMoniTextFormField extends StatelessWidget {
                   : FlowPayColors.lightTextMuted,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: FlowPayRadii.input,
               borderSide: BorderSide(
                 color: isDark
                     ? FlowPayColors.darkBorder
@@ -457,23 +458,23 @@ class BMoniTextFormField extends StatelessWidget {
               ),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: FlowPayRadii.input,
               borderSide: BorderSide(
                 color: isDark
                     ? FlowPayColors.darkBorder
                     : FlowPayColors.lightBorder,
               ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: FlowPayRadii.input,
+              borderSide: BorderSide(
                 color: FlowPayColors.primary,
                 width: 1.5,
               ),
             ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
+            errorBorder: const OutlineInputBorder(
+              borderRadius: FlowPayRadii.input,
+              borderSide: BorderSide(
                 color: FlowPayColors.error,
                 width: 1.5,
               ),

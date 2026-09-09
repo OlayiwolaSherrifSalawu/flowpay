@@ -6,7 +6,7 @@ import '../../core/navigation/personal_routes.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/components.dart';
-
+import '../../core/design_system/logo.dart';
 import '../../core/navigation/personal_tab_provider.dart';
 
 /// Independent Navigation Shell for Personal Account Mode.
@@ -46,23 +46,61 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final capabilitiesAsync = ref.watch(accountCapabilitiesProvider);
     final hasBothModes = capabilitiesAsync.asData?.value.hasBothModes ?? true;
     final currentIndex = ref.watch(personalTabIndexProvider);
 
+    final bgColor = isDark
+        ? FlowPayColors.darkBackground
+        : FlowPayColors.lightBackground;
+    final surfaceColor = isDark
+        ? FlowPayColors.darkSurface
+        : FlowPayColors.lightSurface;
+    final borderColor = isDark
+        ? FlowPayColors.darkBorder
+        : FlowPayColors.lightBorder;
+    final iconColor = isDark
+        ? FlowPayColors.darkTextPrimary
+        : FlowPayColors.ink;
+
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: bgColor,
         scrolledUnderElevation: 0,
         elevation: 0,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.mint100,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.emerald400.withAlpha(80),
+                  width: 1,
+                ),
+              ),
+              child: const Center(
+                child: FlowPayLogo(size: 20),
+              ),
+            ),
+          ),
+        ),
+        leadingWidth: 54,
         title: hasBothModes
             ? FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Revolut-style Segmented Role Switch
                     SegmentedRoleSwitch(
                       isPersonal: true,
                       onRoleChanged: (isPersonal) {
@@ -81,23 +119,54 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
             : const PoweredByBmoniBadge(),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.lock_outline,
-                color: FlowPayColors.ink, size: 20),
-            tooltip: 'Lock FlowPay',
-            onPressed: () {
-              ref.read(appLockStateProvider.notifier).lockApp();
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.lock_outline_rounded,
+                    color: iconColor, size: 18),
+                tooltip: 'Lock FlowPay',
+                onPressed: () {
+                  ref.read(appLockStateProvider.notifier).lockApp();
+                },
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout,
-                color: FlowPayColors.ink, size: 20),
-            tooltip: 'Log Out',
-            onPressed: () {
-              ref.read(appLockStateProvider.notifier).logout();
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Container(
+              width: 36,
+              height: 36,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? FlowPayColors.darkSurfaceElevated
+                    : FlowPayColors.lightSurfaceElevated,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor, width: 1),
+              ),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.logout_rounded,
+                    color: iconColor, size: 18),
+                tooltip: 'Log Out',
+                onPressed: () {
+                  ref.read(appLockStateProvider.notifier).logout();
+                },
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
         ],
       ),
       body: IndexedStack(
@@ -111,49 +180,86 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
         ],
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: FlowPayColors.surface,
+        decoration: BoxDecoration(
+          color: surfaceColor,
           border: Border(
-            top: BorderSide(color: FlowPayColors.hairline, width: 1),
+            top: BorderSide(color: borderColor, width: 1),
           ),
         ),
-        child: NavigationBar(
-          selectedIndex: currentIndex,
-          backgroundColor: FlowPayColors.surface,
-          indicatorColor: FlowPayColors.surfaceAlt,
-          elevation: 0,
-          onDestinationSelected: (idx) {
-            ref.read(personalTabIndexProvider.notifier).state = idx;
-            _appState.setPersonalTabIndex(idx);
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home, color: FlowPayColors.ink),
-              label: 'Overview',
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            height: 66,
+            backgroundColor: surfaceColor,
+            indicatorColor: isDark
+                ? FlowPayColors.emerald600.withAlpha(50)
+                : FlowPayColors.mint100,
+            indicatorShape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9999),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              selectedIcon:
-                  Icon(Icons.account_balance_wallet, color: FlowPayColors.ink),
-              label: 'Wallets',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.bolt_outlined),
-              selectedIcon: Icon(Icons.bolt, color: FlowPayColors.ink),
-              label: 'Missions',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history, color: FlowPayColors.ink),
-              label: 'Activity',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.shield_outlined),
-              selectedIcon: Icon(Icons.shield, color: FlowPayColors.ink),
-              label: 'Security',
-            ),
-          ],
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final isSelected = states.contains(WidgetState.selected);
+              return TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? (isDark
+                        ? FlowPayColors.emerald400
+                        : FlowPayColors.emerald700)
+                    : (isDark
+                        ? FlowPayColors.darkTextTertiary
+                        : FlowPayColors.lightTextTertiary),
+              );
+            }),
+            iconTheme: WidgetStateProperty.resolveWith((states) {
+              final isSelected = states.contains(WidgetState.selected);
+              return IconThemeData(
+                size: 22,
+                color: isSelected
+                    ? (isDark
+                        ? FlowPayColors.emerald400
+                        : FlowPayColors.emerald600)
+                    : (isDark
+                        ? FlowPayColors.darkTextTertiary
+                        : FlowPayColors.lightTextTertiary),
+              );
+            }),
+          ),
+          child: NavigationBar(
+            selectedIndex: currentIndex,
+            backgroundColor: surfaceColor,
+            elevation: 0,
+            onDestinationSelected: (idx) {
+              ref.read(personalTabIndexProvider.notifier).state = idx;
+              _appState.setPersonalTabIndex(idx);
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Overview',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: Icon(Icons.account_balance_wallet_rounded),
+                label: 'Wallets',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.bolt_outlined),
+                selectedIcon: Icon(Icons.bolt_rounded),
+                label: 'Missions',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history_rounded),
+                label: 'Activity',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.shield_outlined),
+                selectedIcon: Icon(Icons.shield_rounded),
+                label: 'Security',
+              ),
+            ],
+          ),
         ),
       ),
     );

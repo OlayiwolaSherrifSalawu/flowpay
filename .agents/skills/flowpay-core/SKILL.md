@@ -83,6 +83,23 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Deterministic `DemoProvider` implementations loaded with BMONI sandbox personas (Bunch Dillon BVN 99999999999, Samson Jabo BVN 22222222222).
   * Live `BMONIProvider` implementations communicating via backend proxy.
   * **13 FlowPay Design System Primitives (`lib/core/design_system/`)**:
+    * **Complete Redesign — Phase 1: Design System Foundation (Dribbble 'Smart Fintech' & FlowPay 'Current' Palette)**:
+      * Extracted and bundled official flowing 'F' mark in 4 resolutions (`assets/images/flowpay_logo_64.png`, `128.png`, `256.png`, `512.png`) and added `FlowPayLogo` component with horizontal brand lockup.
+      * Updated `FlowPayColors` to approved FlowPay "Current" palette: Emerald 700 (`#0B6E4F`), Emerald 600 primary (`#128A63`), Emerald 400 (`#3FAE85`), Mint 100 surface (`#D8F0E4`), Ink (`#0F1712`), Paper canvas (`#FAF9F6`), and transaction states (Success `#12A150`, Pending `#D8A400`, Error `#D14343`).
+      * Updated `FlowPayRadii` and `FlowPaySpacing` to Dribbble reference geometry (24dp standard card radius, 28dp large/hero card radius, 16dp pillowed input radius, 28dp sheet radius, 18dp squircle quick action radius).
+      * Updated `FlowPayTheme` with Paper canvas in Light Mode and Obsidian-Emerald in Dark Mode.
+      * Verified with dedicated test suite `mobile/test/design_system_foundation_test.dart` (175/175 tests passing, 0 analyzer lints).
+    * **Complete Redesign — Phase 2: Shared FlowPay Component Library**:
+      * Built `FlowPayScallopedCard` and `FlowPayCardDeck` with 24–28dp radii, gradient cards, masked account number, balance, and tactile action pills.
+      * Built `FlowPayQuickActionRow` with 4 squircle buttons (Deposit, Transfer, Withdraw, More) and tactile background.
+      * Built `FlowPayMetricPill` and `FlowPayIncomeExpenseRow` (Amber Income `↑` / Mint Expense `↓`) with tabular numerals.
+      * Built `FlowPayAnalyticsCard` with dark rounded container, vertical pill bars, peak highlight in emerald, and period dropdown pill selector.
+      * Upgraded `FlowPayButton` to universal 9999dp pill geometry and `FlowPayTextField` / `FlowPayAmountField` to 16dp pillowed inputs.
+      * Verified with dedicated test suite `mobile/test/phase2_components_test.dart`.
+    * **Complete Redesign — Phase 3: Global Application Shell & Navigation**:
+      * Redesigned `PersonalShell` & `BusinessShell`: Theme-adaptive AppBar with leading FlowPay logo mark, `SegmentedRoleSwitch` (`[ Personal | Business ]`), `FlowPayBrandBadge` (`FLOWPAY AI`), and tactile action buttons for Lock and Logout.
+      * Redesigned `NavigationBarTheme`: Custom pill indicator in emerald, theme-adaptive icons, and high-contrast typography.
+      * Verified with `mobile/test/app_shell_test.dart` (all 6 tests passing, 180 total tests passing, 0 analyzer lints).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

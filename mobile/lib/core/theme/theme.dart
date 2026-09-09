@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
-import 'spacing.dart';
+import 'radii.dart';
 import 'typography.dart';
 
 /// FlowPay Theme Configuration
-/// Independent, premium fintech design system and typography delivering
-/// an ultra-polished, Linear-level aesthetic in both Dark and Light modes.
+/// Source of Truth: Approved FlowPay "Current" Palette & Dribbble Smart Fintech Reference
+/// Delivering an ultra-polished, trustworthy, and intelligent fintech atmosphere
+/// in both Paper Light Mode and Obsidian-Emerald Dark Mode.
 class FlowPayTheme {
-  // Dark Theme Definition
+  // ─── Dark Theme Definition (Obsidian-Emerald) ─────────────────────────────
   static ThemeData dark() {
-    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
+    final baseTextTheme =
+        GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
 
     return ThemeData(
       useMaterial3: true,
@@ -18,26 +20,40 @@ class FlowPayTheme {
       scaffoldBackgroundColor: FlowPayColors.darkBackground,
       primaryColor: FlowPayColors.primary,
       textTheme: baseTextTheme.copyWith(
-        displayLarge: FlowPayTypography.headingLg.copyWith(color: FlowPayColors.darkTextPrimary),
-        displayMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.darkTextPrimary),
-        displaySmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
-        headlineMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.darkTextPrimary),
-        headlineSmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
-        titleLarge: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.darkTextPrimary),
-        titleMedium: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
-        titleSmall: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
-        bodyLarge: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.darkTextPrimary),
-        bodyMedium: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.darkTextSecondary),
-        bodySmall: FlowPayTypography.bodySm.copyWith(color: FlowPayColors.darkTextSecondary),
-        labelLarge: FlowPayTypography.caption.copyWith(color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
-        labelMedium: FlowPayTypography.caption.copyWith(color: FlowPayColors.darkTextSecondary),
-        labelSmall: FlowPayTypography.overline.copyWith(color: FlowPayColors.darkTextMuted),
+        displayLarge: FlowPayTypography.headingLg
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        displayMedium: FlowPayTypography.headingMd
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        displaySmall: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        headlineMedium: FlowPayTypography.headingMd
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        headlineSmall: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        titleLarge: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        titleMedium: FlowPayTypography.bodyLg.copyWith(
+            color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: FlowPayTypography.bodyMd.copyWith(
+            color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        bodyLarge: FlowPayTypography.bodyLg
+            .copyWith(color: FlowPayColors.darkTextPrimary),
+        bodyMedium: FlowPayTypography.bodyMd
+            .copyWith(color: FlowPayColors.darkTextSecondary),
+        bodySmall: FlowPayTypography.bodySm
+            .copyWith(color: FlowPayColors.darkTextSecondary),
+        labelLarge: FlowPayTypography.caption.copyWith(
+            color: FlowPayColors.darkTextPrimary, fontWeight: FontWeight.w600),
+        labelMedium: FlowPayTypography.caption
+            .copyWith(color: FlowPayColors.darkTextSecondary),
+        labelSmall: FlowPayTypography.overline
+            .copyWith(color: FlowPayColors.darkTextMuted),
       ),
       colorScheme: const ColorScheme.dark(
         primary: FlowPayColors.primary,
-        onPrimary: Color(0xFF090A0F),
-        secondary: FlowPayColors.accent,
-        onSecondary: Colors.white,
+        onPrimary: Color(0xFF0C1210),
+        secondary: FlowPayColors.darkAccent,
+        onSecondary: Color(0xFF0C1210),
         surface: FlowPayColors.darkSurface,
         onSurface: FlowPayColors.darkTextPrimary,
         error: FlowPayColors.error,
@@ -52,12 +68,12 @@ class FlowPayTheme {
         centerTitle: false,
         titleTextStyle: FlowPayTypography.headingSm,
       ),
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: FlowPayColors.darkSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: FlowPaySpacing.borderRadiusLg,
-          side: const BorderSide(color: FlowPayColors.darkBorder, width: 1),
+          borderRadius: FlowPayRadii.card,
+          side: BorderSide(color: FlowPayColors.darkBorder, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -65,15 +81,14 @@ class FlowPayTheme {
         backgroundColor: FlowPayColors.darkSurfaceElevated,
         modalBackgroundColor: FlowPayColors.darkSurfaceElevated,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(FlowPaySpacing.radiusXl)),
+          borderRadius: FlowPayRadii.sheet,
         ),
       ),
-      dialogTheme: DialogThemeData(
+      dialogTheme: const DialogThemeData(
         backgroundColor: FlowPayColors.darkSurfaceElevated,
         shape: RoundedRectangleBorder(
-          borderRadius: FlowPaySpacing.borderRadiusXl,
-          side: const BorderSide(color: FlowPayColors.darkBorder, width: 1),
+          borderRadius: FlowPayRadii.cardLarge,
+          side: BorderSide(color: FlowPayColors.darkBorder, width: 1),
         ),
       ),
       dividerTheme: const DividerThemeData(
@@ -83,14 +98,14 @@ class FlowPayTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: FlowPayColors.darkSurface,
-        indicatorColor: FlowPayColors.primary.withAlpha(40),
+        indicatorColor: FlowPayColors.emerald700.withAlpha(80),
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: FlowPayColors.primaryLight,
+              color: FlowPayColors.darkAccent,
             );
           }
           return const TextStyle(
@@ -103,36 +118,51 @@ class FlowPayTheme {
     );
   }
 
-  // Light Theme Definition
+  // ─── Light Theme Definition (Paper Canvas & Crisp Typography) ──────────────
   static ThemeData light() {
-    final baseTextTheme = GoogleFonts.interTextTheme(ThemeData.light().textTheme);
+    final baseTextTheme =
+        GoogleFonts.interTextTheme(ThemeData.light().textTheme);
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: FlowPayColors.lightBackground,
-      primaryColor: FlowPayColors.primaryDark,
+      scaffoldBackgroundColor: FlowPayColors.lightBackground, // #FAF9F6 Paper
+      primaryColor: FlowPayColors.primary, // #128A63 Emerald 600
       textTheme: baseTextTheme.copyWith(
-        displayLarge: FlowPayTypography.headingLg.copyWith(color: FlowPayColors.lightTextPrimary),
-        displayMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.lightTextPrimary),
-        displaySmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
-        headlineMedium: FlowPayTypography.headingMd.copyWith(color: FlowPayColors.lightTextPrimary),
-        headlineSmall: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
-        titleLarge: FlowPayTypography.headingSm.copyWith(color: FlowPayColors.lightTextPrimary),
-        titleMedium: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
-        titleSmall: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
-        bodyLarge: FlowPayTypography.bodyLg.copyWith(color: FlowPayColors.lightTextPrimary),
-        bodyMedium: FlowPayTypography.bodyMd.copyWith(color: FlowPayColors.lightTextSecondary),
-        bodySmall: FlowPayTypography.bodySm.copyWith(color: FlowPayColors.lightTextSecondary),
-        labelLarge: FlowPayTypography.caption.copyWith(color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
-        labelMedium: FlowPayTypography.caption.copyWith(color: FlowPayColors.lightTextSecondary),
-        labelSmall: FlowPayTypography.overline.copyWith(color: FlowPayColors.lightTextMuted),
+        displayLarge: FlowPayTypography.headingLg
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        displayMedium: FlowPayTypography.headingMd
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        displaySmall: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        headlineMedium: FlowPayTypography.headingMd
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        headlineSmall: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        titleLarge: FlowPayTypography.headingSm
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        titleMedium: FlowPayTypography.bodyLg.copyWith(
+            color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        titleSmall: FlowPayTypography.bodyMd.copyWith(
+            color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        bodyLarge: FlowPayTypography.bodyLg
+            .copyWith(color: FlowPayColors.lightTextPrimary),
+        bodyMedium: FlowPayTypography.bodyMd
+            .copyWith(color: FlowPayColors.lightTextSecondary),
+        bodySmall: FlowPayTypography.bodySm
+            .copyWith(color: FlowPayColors.lightTextSecondary),
+        labelLarge: FlowPayTypography.caption.copyWith(
+            color: FlowPayColors.lightTextPrimary, fontWeight: FontWeight.w600),
+        labelMedium: FlowPayTypography.caption
+            .copyWith(color: FlowPayColors.lightTextSecondary),
+        labelSmall: FlowPayTypography.overline
+            .copyWith(color: FlowPayColors.lightTextMuted),
       ),
       colorScheme: const ColorScheme.light(
-        primary: FlowPayColors.primaryDark,
+        primary: FlowPayColors.primary, // #128A63
         onPrimary: Colors.white,
-        secondary: FlowPayColors.accent,
-        onSecondary: Colors.white,
+        secondary: FlowPayColors.emerald400,
+        onSecondary: FlowPayColors.ink,
         surface: FlowPayColors.lightSurface,
         onSurface: FlowPayColors.lightTextPrimary,
         error: FlowPayColors.error,
@@ -151,12 +181,12 @@ class FlowPayTheme {
           color: FlowPayColors.lightTextPrimary,
         ),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: FlowPayColors.lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: FlowPaySpacing.borderRadiusLg,
-          side: const BorderSide(color: FlowPayColors.lightBorder, width: 1),
+          borderRadius: FlowPayRadii.card,
+          side: BorderSide(color: FlowPayColors.lightBorder, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -164,15 +194,14 @@ class FlowPayTheme {
         backgroundColor: FlowPayColors.lightSurface,
         modalBackgroundColor: FlowPayColors.lightSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-              top: Radius.circular(FlowPaySpacing.radiusXl)),
+          borderRadius: FlowPayRadii.sheet,
         ),
       ),
-      dialogTheme: DialogThemeData(
+      dialogTheme: const DialogThemeData(
         backgroundColor: FlowPayColors.lightSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: FlowPaySpacing.borderRadiusXl,
-          side: const BorderSide(color: FlowPayColors.lightBorder, width: 1),
+          borderRadius: FlowPayRadii.cardLarge,
+          side: BorderSide(color: FlowPayColors.lightBorder, width: 1),
         ),
       ),
       dividerTheme: const DividerThemeData(
@@ -182,14 +211,14 @@ class FlowPayTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: FlowPayColors.lightSurface,
-        indicatorColor: FlowPayColors.primary.withAlpha(35),
+        indicatorColor: FlowPayColors.mint100,
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: FlowPayColors.primaryDark,
+              color: FlowPayColors.primary,
             );
           }
           return const TextStyle(

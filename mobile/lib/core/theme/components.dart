@@ -14,24 +14,36 @@ class FlowPayBrandBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: FlowPayColors.surfaceAlt,
+        color: isDark ? const Color(0xFF16241D) : FlowPayColors.mint100,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: FlowPayColors.hairline),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFF243A2E)
+              : FlowPayColors.emerald400.withAlpha(80),
+          width: 1,
+        ),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt, size: 12, color: FlowPayColors.primary),
-          SizedBox(width: 5),
+          Icon(
+            Icons.bolt_rounded,
+            size: 13,
+            color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald600,
+          ),
+          const SizedBox(width: 4),
           Text(
             'FLOWPAY AI',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
-              color: FlowPayColors.ink,
+              color:
+                  isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
               letterSpacing: 0.8,
             ),
           ),
@@ -58,38 +70,68 @@ class SegmentedRoleSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: const BoxDecoration(
-        color: FlowPayColors.surfaceAlt,
+      decoration: BoxDecoration(
+        color: isDark
+            ? FlowPayColors.darkSurfaceElevated
+            : const Color(0xFFEDEBE6),
         borderRadius: FlowPayRadii.button,
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildSegment('Personal', isPersonal, () => onRoleChanged(true)),
-          _buildSegment('Business', !isPersonal, () => onRoleChanged(false)),
+          _buildSegment(
+              context, 'Personal', isPersonal, () => onRoleChanged(true)),
+          _buildSegment(
+              context, 'Business', !isPersonal, () => onRoleChanged(false)),
         ],
       ),
     );
   }
 
-  Widget _buildSegment(String label, bool active, VoidCallback onTap) {
+  Widget _buildSegment(
+      BuildContext context, String label, bool active, VoidCallback onTap) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? FlowPayColors.ink : Colors.transparent,
+          color: active
+              ? (isDark ? FlowPayColors.emerald600 : FlowPayColors.ink)
+              : Colors.transparent,
           borderRadius: FlowPayRadii.button,
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color:
+                        (isDark ? FlowPayColors.emerald600 : FlowPayColors.ink)
+                            .withAlpha(isDark ? 80 : 40),
+                    blurRadius: 6,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: active ? Colors.white : FlowPayColors.textSecondary,
+            color: active
+                ? Colors.white
+                : (isDark
+                    ? FlowPayColors.darkTextSecondary
+                    : FlowPayColors.lightTextSecondary),
           ),
         ),
       ),

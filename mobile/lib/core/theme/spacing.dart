@@ -27,12 +27,14 @@ class FlowPaySpacing {
   static const EdgeInsets horizontalMd = EdgeInsets.symmetric(horizontal: md);
   static const EdgeInsets horizontalLg = EdgeInsets.symmetric(horizontal: lg);
   static const EdgeInsets horizontalXl = EdgeInsets.symmetric(horizontal: xl);
+  static const EdgeInsets horizontalXxl = EdgeInsets.symmetric(horizontal: xxl);
 
   // Vertical presets
   static const EdgeInsets verticalSm = EdgeInsets.symmetric(vertical: sm);
   static const EdgeInsets verticalMd = EdgeInsets.symmetric(vertical: md);
   static const EdgeInsets verticalLg = EdgeInsets.symmetric(vertical: lg);
   static const EdgeInsets verticalXl = EdgeInsets.symmetric(vertical: xl);
+  static const EdgeInsets verticalXxl = EdgeInsets.symmetric(vertical: xxl);
 
   // Border Radii
   static const double radiusXs = 4.0;
@@ -40,13 +42,15 @@ class FlowPaySpacing {
   static const double radiusMd = 12.0;
   static const double radiusLg = 16.0;
   static const double radiusXl = 24.0;
-  static const double radiusPill = 999.0;
+  static const double radiusXxl = 28.0;
+  static const double radiusPill = 9999.0;
 
   static final BorderRadius borderRadiusXs = BorderRadius.circular(radiusXs);
   static final BorderRadius borderRadiusSm = BorderRadius.circular(radiusSm);
   static final BorderRadius borderRadiusMd = BorderRadius.circular(radiusMd);
   static final BorderRadius borderRadiusLg = BorderRadius.circular(radiusLg);
   static final BorderRadius borderRadiusXl = BorderRadius.circular(radiusXl);
+  static final BorderRadius borderRadiusXxl = BorderRadius.circular(radiusXxl);
   static final BorderRadius borderRadiusPill =
       BorderRadius.circular(radiusPill);
 }
