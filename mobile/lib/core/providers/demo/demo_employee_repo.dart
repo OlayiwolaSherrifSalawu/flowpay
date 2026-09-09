@@ -462,6 +462,39 @@ class DemoEmployeeRepository implements EmployeeRepository {
   }
 
   @override
+  Future<EmployeeModel> retryUserCreation(String employeeId) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    final idx = _employees.indexWhere((e) => e.id == employeeId);
+    if (idx == -1) {
+      throw Exception('Employee not found');
+    }
+    final old = _employees[idx];
+    final updated = EmployeeModel(
+      id: old.id,
+      bmoniUserId: 'usr_bmoni_demo_${old.id}',
+      firstName: old.firstName,
+      lastName: old.lastName,
+      email: old.email,
+      phoneNumber: old.phoneNumber,
+      country: old.country,
+      countryName: old.countryName,
+      targetCurrency: old.targetCurrency,
+      status: EmployeeLifecycleStages.invited,
+      failedStage: null,
+      onboardingStatus: EmployeeLifecycleStages.invited,
+      walletStatus: old.walletStatus,
+      cardStatus: old.cardStatus,
+      payrollAmount: old.payrollAmount,
+      usdPayrollAmount: old.usdPayrollAmount,
+      walletAddress: old.walletAddress,
+      cardId: old.cardId,
+      cardLast4: old.cardLast4,
+    );
+    _employees[idx] = updated;
+    return updated;
+  }
+
+  @override
   Future<Map<String, dynamic>> linkEmployeeWallet({
     required String employeeId,
     required String inviteToken,

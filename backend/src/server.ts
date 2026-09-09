@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { env } from './config/env.js';
+import { bmoniClient } from './bmoni/client.js';
 import { FlowPayError, sanitizeBmoniError } from './core/errors.js';
 import { initDatabase, isPostgresDb, prisma } from './db/index.js';
 import { activityRouter } from './routes/activity.routes.js';
@@ -39,6 +40,18 @@ app.get('/api/health', (req: Request, res: Response) => {
     dbConnected: isPostgresDb(),
     bmoniOrigin: env.BMONI_BASE_URL,
     timestamp: new Date().toISOString(),
+  });
+});
+
+// BMONI connectivity + auth probe. Hit this after deploy to confirm the API
+// key actually works BEFORE trying to add employees. A 200 with
+// authenticated:true means user creation will work; authenticated:false means
+// every employee will fail at BMONI_USER_CREATION until BMONI_API_KEY is fixed.
+app.get('/api/health/bmoni', async (req: Request, res: Response) => {
+  const result = await bmoniClient.checkConnectivity();
+  res.status(result.ok ? 200 : 503).json({
+    status: result.ok ? 'ok' : 'error',
+    ...result,
   });
 });
 
@@ -126,6 +139,27 @@ if (process.env.NODE_ENV !== 'test') {
     mailService.verifyConnection().catch((err) => {
       console.warn('[Server] Initial SMTP connection verification warning:', err.message || err);
     });
+
+    // Verify BMONI API key at startup so a misconfigured key is loud and
+    // obvious in the deploy logs instead of silently failing every employee.
+    if (bmoniClient.isApiKeyLikelyMisconfigured()) {
+      console.warn(
+        '[Server] ⚠️  BMONI_API_KEY looks like a placeholder or is not a pk_ key. ' +
+          'Employee creation (POST /v1/users) will fail with 401 until this is set correctly.'
+      );
+    }
+    bmoniClient
+      .checkConnectivity()
+      .then((r) => {
+        if (r.authenticated) {
+          console.log(`[Server] ✅ BMONI reachable & authenticated at ${r.baseUrl}`);
+        } else {
+          console.warn(`[Server] ⚠️  BMONI auth check failed: ${r.detail}`);
+        }
+      })
+      .catch((err) => {
+        console.warn('[Server] BMONI connectivity check warning:', err.message || err);
+      });
   });
 }
 

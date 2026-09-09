@@ -295,6 +295,26 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                                 ),
                               );
                             },
+                            onRetry: emp.status.toUpperCase() == 'FAILED'
+                                ? () async {
+                                    final messenger =
+                                        ScaffoldMessenger.of(context);
+                                    try {
+                                      await widget.appState.businessProvider
+                                          .retryEmployeeUserCreation(emp.id);
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Retry succeeded — employee is now invited.'),
+                                        ),
+                                      );
+                                    } catch (e) {
+                                      messenger.showSnackBar(
+                                        SnackBar(content: Text('Retry failed: $e')),
+                                      );
+                                    }
+                                  }
+                                : null,
                           );
                         }),
                       ],

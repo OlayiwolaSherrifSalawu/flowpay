@@ -621,6 +621,24 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * **Verification**:
         * Backend: `npx tsc --noEmit -p .` clean with 0 errors; all 92/92 tests passing in `npm test` (`employee.test.ts` and `onboarding.test.ts`).
         * Mobile: `flutter analyze` clean with 0 issues; all 146/146 Flutter tests passing (`+146: All tests passed!`).
+    * **FlowPay Business — Fix "Add Employee → FAILED / BMONI_USER_CREATION" & Truthful UI State (Sections A, B, C)**:
+      * **Section A (Working Sandbox Credentials & Base URL)**:
+        * Updated `backend/src/config/env.ts` default `BMONI_API_KEY` from placeholder to documented shared sandbox key `pk_a025cacbf33a_76fb864113f3540909de5b1da39cc146906e35b1c6d4d1e4` and default `BMONI_BASE_URL` to `https://embedded-dev.bmoni.com`.
+        * Synchronized `backend/.env` and root `.env` with identical sandbox credentials.
+      * **Section B (Diagnosable Failures & Backend Recovery Pipeline)**:
+        * `backend/src/bmoni/client.ts`: Added `checkConnectivity()` lightweight auth/connectivity probe exercising `POST /v1/users` (distinguishes 401 Unauthorized from 400 validation success) and `isApiKeyLikelyMisconfigured()`.
+        * `backend/src/server.ts`: Exposed `GET /api/health/bmoni` health check endpoint returning connectivity and authentication status; added startup check in `app.listen()` logging clear warnings for placeholder/misconfigured keys.
+        * `backend/src/modules/employees/service.ts`: Added `failureReason` propagation in `createEmployee`, handled HTTP 409 (existing user) gracefully, gated email invitation dispatch strictly to successfully created BMONI identities, and implemented `retryBmoniUserCreation(employeeId)` for stuck FAILED records.
+        * `backend/src/routes/employees.routes.ts`: Mounted `POST /api/employees/:id/retry-user-creation` and enriched `POST /` response messages with explicit failure reasons.
+      * **Section C (Truthful Mobile UI State & Onboarding Retry Flow)**:
+        * `mobile/lib/core/repositories/employee_repository.dart`: Added `failureReason` field to `EmployeeModel`; eliminated fabricated `'ACTIVE'` status and `'4289'` fake last-4 in `EmployeeModel.fromJson`, deriving truthful `'ACTIVE'` vs `'NONE'` based on presence of real `walletAddress` and `cardId`; added `retryUserCreation(employeeId)` to `EmployeeRepository`.
+        * `mobile/lib/core/providers/bmoni/bmoni_employee_repo.dart` & `demo_employee_repo.dart`: Implemented `retryUserCreation(employeeId)`.
+        * `mobile/lib/core/state/business_provider.dart`: Added `retryEmployeeUserCreation(employeeId)` with automated list re-synchronization and `notifyListeners()`.
+        * `mobile/lib/modules/business/components/employee_preview_card.dart`: Added `onRetry` callback, `_walletDisplay()` ("Not provisioned" instead of "0x...Ready"), `_cardDisplay()` ("Not issued" instead of "•••• 4289"), and rendered high-contrast error banner with failure reason and interactive "Retry onboarding" button for `status == 'FAILED'`.
+        * `mobile/lib/modules/business/business_dashboard_screen.dart`: Wired `onRetry` to `businessProvider.retryEmployeeUserCreation` with ScaffoldMessenger snackbars.
+      * **Verification**:
+        * Backend: `npx tsc --noEmit -p .` clean with 0 errors; 92/92 tests passing across all suites (`dist/**/*.test.js`).
+        * Mobile: `flutter analyze` clean with 0 issues; 147/147 Flutter unit and widget tests passing (100%).
 
 
 ---

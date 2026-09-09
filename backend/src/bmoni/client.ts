@@ -101,6 +101,77 @@ export class BmoniClient {
     }
   }
 
+  /**
+   * Lightweight connectivity + auth probe. Sends an intentionally invalid
+   * payload to POST /v1/users so we exercise the auth layer without creating
+   * a user. Interprets the response to distinguish a bad/missing API key
+   * (401) from a reachable, authenticated endpoint (400 validation, etc.).
+   * Used by the /api/health/bmoni endpoint and at startup so a misconfigured
+   * key is caught immediately instead of once per employee creation.
+   */
+  async checkConnectivity(): Promise<{
+    ok: boolean;
+    reachable: boolean;
+    authenticated: boolean;
+    baseUrl: string;
+    detail: string;
+  }> {
+    const looksPlaceholder =
+      !this.apiKey ||
+      this.apiKey.includes('placeholder') ||
+      !this.apiKey.startsWith('pk_');
+
+    try {
+      // Empty body -> should be 400 validation if authenticated, 401 if not.
+      await this.request('/v1/users', { method: 'POST', body: {} });
+      return {
+        ok: true,
+        reachable: true,
+        authenticated: true,
+        baseUrl: this.baseUrl,
+        detail: 'Reachable and authenticated (unexpected 2xx on empty create).',
+      };
+    } catch (err: any) {
+      const status = err?.statusCode ?? err?.status;
+      if (status === 401) {
+        return {
+          ok: false,
+          reachable: true,
+          authenticated: false,
+          baseUrl: this.baseUrl,
+          detail: looksPlaceholder
+            ? 'BMONI rejected the API key (401). BMONI_API_KEY looks like a placeholder or is not a pk_ key — set a real sandbox/production key.'
+            : 'BMONI rejected the API key (401 Unauthorized). Check BMONI_API_KEY matches the environment BMONI_BASE_URL points at.',
+        };
+      }
+      if (status === 400) {
+        return {
+          ok: true,
+          reachable: true,
+          authenticated: true,
+          baseUrl: this.baseUrl,
+          detail: 'Reachable and authenticated (400 validation on probe body, as expected).',
+        };
+      }
+      return {
+        ok: false,
+        reachable: false,
+        authenticated: false,
+        baseUrl: this.baseUrl,
+        detail: `Could not reach BMONI at ${this.baseUrl}: ${err?.message || err}`,
+      };
+    }
+  }
+
+  /** True when the configured key is obviously not a real BMONI key. */
+  isApiKeyLikelyMisconfigured(): boolean {
+    return (
+      !this.apiKey ||
+      this.apiKey.includes('placeholder') ||
+      !this.apiKey.startsWith('pk_')
+    );
+  }
+
   // --- Users & Onboarding ---
 
   async createUser(input: { email?: string; phoneNumber?: string }): Promise<BmoniUser> {

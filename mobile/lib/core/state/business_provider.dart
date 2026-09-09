@@ -260,6 +260,24 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
+  /// Retry BMONI user creation for an employee stuck at FAILED /
+  /// BMONI_USER_CREATION, then re-sync the list so the row updates in place.
+  Future<EmployeeModel> retryEmployeeUserCreation(String employeeId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final updated = await employeeRepo.retryUserCreation(employeeId);
+      _employees = await employeeRepo.getEmployees();
+      return updated;
+    } catch (e) {
+      _errorMessage = 'Retry failed: $e';
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Compute canonical 32-byte hash for a payroll proposal item
   static String computeProposalHash({
     required String runId,

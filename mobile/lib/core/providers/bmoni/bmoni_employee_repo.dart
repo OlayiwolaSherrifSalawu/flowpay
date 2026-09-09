@@ -234,6 +234,16 @@ class BmoniEmployeeRepository implements EmployeeRepository {
   }
 
   @override
+  Future<EmployeeModel> retryUserCreation(String employeeId) async {
+    final res =
+        await apiClient.post('/api/employees/$employeeId/retry-user-creation');
+    final data = (res is Map && res['data'] is Map)
+        ? Map<String, dynamic>.from(res['data'] as Map)
+        : (res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{});
+    return EmployeeModel.fromJson(data);
+  }
+
+  @override
   Future<Map<String, dynamic>> linkEmployeeWallet({
     required String employeeId,
     required String inviteToken,

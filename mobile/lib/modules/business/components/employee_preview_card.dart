@@ -12,12 +12,37 @@ import '../../../core/theme/typography.dart';
 class EmployeePreviewCard extends StatelessWidget {
   final EmployeeModel employee;
   final VoidCallback? onTap;
+  final VoidCallback? onRetry;
 
   const EmployeePreviewCard({
     super.key,
     required this.employee,
     this.onTap,
+    this.onRetry,
   });
+
+  bool get _isFailed => employee.status.toUpperCase() == 'FAILED';
+
+  /// Truthful wallet line — never invents a "0x...Ready" address.
+  String _walletDisplay(EmployeeModel e) {
+    final addr = e.walletAddress;
+    if (addr != null && addr.isNotEmpty) {
+      final short = addr.length > 12
+          ? '${addr.substring(0, 6)}…${addr.substring(addr.length - 4)}'
+          : addr;
+      return '${e.walletStatus} • $short';
+    }
+    return 'Not provisioned';
+  }
+
+  /// Truthful card line — never invents a "•••• 4289".
+  String _cardDisplay(EmployeeModel e) {
+    final last4 = e.cardLast4;
+    if (last4 != null && last4.isNotEmpty) {
+      return '${e.cardStatus} • •••• $last4';
+    }
+    return 'Not issued';
+  }
 
   Color _getCurrencyBg(String code) {
     switch (code.toUpperCase()) {
@@ -219,7 +244,7 @@ class EmployeePreviewCard extends StatelessWidget {
                                     .copyWith(fontSize: 9),
                               ),
                               Text(
-                                '${employee.walletStatus} • ${employee.walletAddress ?? "0x...Ready"}',
+                                _walletDisplay(employee),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -258,7 +283,7 @@ class EmployeePreviewCard extends StatelessWidget {
                                     .copyWith(fontSize: 9),
                               ),
                               Text(
-                                '${employee.cardStatus} • •••• ${employee.cardLast4 ?? "4289"}',
+                                _cardDisplay(employee),
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -275,6 +300,82 @@ class EmployeePreviewCard extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Failure banner + Retry — only for employees whose BMONI identity
+            // creation failed, so the employer can see WHY and fix it without
+            // re-entering everything.
+            if (_isFailed) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: FlowPayColors.error.withAlpha(26),
+                  borderRadius: FlowPayRadii.input,
+                  border: Border.all(color: FlowPayColors.error.withAlpha(77)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        size: 16, color: FlowPayColors.error),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Onboarding failed',
+                            style: FlowPayTypography.captionStyle(
+                                    color: FlowPayColors.error)
+                                .copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            employee.failureReason ??
+                                (employee.failedStage == 'BMONI_USER_CREATION'
+                                    ? 'BMONI identity could not be created. Check the BMONI API key, then retry.'
+                                    : 'This employee could not be onboarded. Tap retry to try again.'),
+                            style: FlowPayTypography.captionStyle(
+                                color: FlowPayColors.textSecondary),
+                          ),
+                          if (onRetry != null) ...[
+                            const SizedBox(height: 8),
+                            InkWell(
+                              onTap: onRetry,
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: FlowPayColors.error,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.refresh_rounded,
+                                        size: 14, color: Colors.white),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Retry onboarding',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
