@@ -576,6 +576,28 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * **Backend Resilient Normalizer**: Updated `TransferExecuteSchema` and `TransferService.executeTransfer` in `backend/` to accept and normalize incoming signatures into 65 bytes.
         * **Verification**: 11/11 backend transfer tests passing (100%), 146/146 Flutter tests passing (100%), 0 analyze issues, fresh 55MB release APK compiled.
       * Verification: 146/146 tests passing (100%), 0 analyze issues.
+    * **User Account Wallet Isolation & 0x EVM Recipient Resolution (Bugfixes)**:
+      * **Root Cause 1 (Colliding Balances & Shared Master Wallets)**:
+        * In `backend/src/modules/wallets/service.ts`, unseeded `userId` requests fell back to returning `usr_flowpay_sandbox_master`'s seeded wallets ($24,500 at `0x3A9a...`).
+        * In `mobile/lib/core/providers/bmoni/bmoni_wallet_repo.dart`, `_activeWallets` was a shared static list across the runtime, overriding non-master balances with master defaults.
+        * In `BMONISigner.kt`, on-device keypair seeds and addresses remained cached in `SharedPreferences` on logout, preventing fresh key generation on subsequent user signups.
+      * **Root Cause 2 (Recipient "User Not Found" on 0x EVM Address)**:
+        * In `mobile/lib/core/beneficiaries/beneficiary_repository.dart`, `resolveAlias` only checked named contacts (Mom, Designer, etc.) and returned `ResolutionStatus.notFound` for 42-character `0x` addresses.
+        * In `financial_intent_engine.dart`, regex `[A-Za-z]+` rejected strings with numeric hexadecimal digits.
+        * In `backend/src/modules/transfers/service.ts`, `executeTransfer` only looked for hardcoded strings like "bunch" and failed to resolve `0x` addresses to their owner wallet.
+      * **Backend Isolation & Registration (`backend/`)**:
+        * Added `WalletService.ensureUserWallets(userId, userOwnerAddress)` providing isolated smart wallets and realistic starting credits ($1,000 USDB, ₦500,000 CNGN, Mex$15,000 MEXe, C$500 CADC) per unique user.
+        * Exposed `POST /api/wallets/register` allowing mobile clients to register the device-generated keypair address with their backend user record.
+        * In `TransferService.executeTransfer`, resolved `recipient.startsWith('0x')` via `WalletService.findWalletByAddress`, dynamically crediting the recipient account upon transfer execution.
+        * Updated `TransferInterpreter.interpretDeterministic` to extract 42-char `0x` addresses directly as valid recipients.
+      * **Mobile Recipient & Keypair Lifecycle Fixes (`mobile/`)**:
+        * In `BeneficiaryRepository.resolveAlias`, added instant detection for `^0x[a-fA-F0-9]{40}$`, returning `BeneficiaryResolutionResult.unique` with a verified smart wallet recipient.
+        * In `financial_intent_engine.dart`, updated `_parseSendClause` regexes to capture EVM addresses without truncation.
+        * In `send_money_screen.dart`, enabled continuous beneficiary resolution so entering a 0x address verifies it instantly.
+        * In `bmoni_wallet_repo.dart`, transitioned `_activeWallets` to user-scoped caching (`_userWalletsCache` keyed by `userId`).
+        * In `set_pin_screen.dart`, registered device wallet address with `/api/wallets/register` upon initial setup.
+        * In `auth_providers.dart`, updated `resetToSignup()` and `logout()` to call `BmoniSdkService.deleteWallet()`, ensuring each signup generates a unique keypair.
+      * **Verification**: All 11 backend transfer tests passing (100%), 147/147 Flutter tests passing (100%), 0 analyzer lints, fresh release APK compiled and served.
 
 
 ---

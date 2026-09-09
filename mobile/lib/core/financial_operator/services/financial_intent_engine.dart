@@ -202,27 +202,36 @@ class FinancialIntentEngine {
     // Extract recipient: e.g. "to Mom", "to Mary Fashola", "to my designer", "pay my designer $2,000"
     String? recipient;
 
-    // 1. Check for "to/for (my )?<recipient>" (e.g. "Send $500 to Mom", "send 80 usd to my sister")
-    final toMatch = RegExp(
-            r'(?:to|for)\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)',
-            caseSensitive: false)
-        .firstMatch(clause);
+    // 1. Check for EVM address (e.g. "0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242")
+    final addrMatch =
+        RegExp(r'(0x[a-fA-F0-9]{40})', caseSensitive: false).firstMatch(clause);
+    if (addrMatch != null) {
+      recipient = addrMatch.group(1);
+    }
 
-    if (toMatch != null) {
-      final raw = toMatch.group(1)!.trim();
-      // Avoid capturing words like "tax" or "savings" as recipient
-      if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
-          .contains(raw.toLowerCase())) {
-        recipient = raw
-            .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
-            .trim();
+    // 2. Check for "to/for (my )?<recipient>" (e.g. "Send $500 to Mom", "send 80 usd to my sister")
+    if (recipient == null) {
+      final toMatch = RegExp(
+              r'(?:to|for)\s+(?:my\s+|our\s+)?(0x[a-fA-F0-9]{40}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)',
+              caseSensitive: false)
+          .firstMatch(clause);
+
+      if (toMatch != null) {
+        final raw = toMatch.group(1)!.trim();
+        // Avoid capturing words like "tax" or "savings" as recipient
+        if (!['tax', 'savings', 'emergency', 'reserve', 'wallet']
+            .contains(raw.toLowerCase())) {
+          recipient = raw
+              .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+              .trim();
+        }
       }
     }
 
-    // 2. If not matched, check for "pay (my )?<recipient> <amount>" (e.g. "pay my designer $2,000 USD")
+    // 3. If not matched, check for "pay (my )?<recipient> <amount>" (e.g. "pay my designer $2,000 USD")
     if (recipient == null) {
       final payMatch = RegExp(
-              r'pay\s+(?:my\s+|our\s+)?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z]+(?:\s+[A-Za-z]+)?)\s+(?:[\$₦€£GH₵]?[0-9]+|\$[0-9]+)',
+              r'pay\s+(?:my\s+|our\s+)?(0x[a-fA-F0-9]{40}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)\s+(?:[\$₦€£GH₵]?[0-9]+|\$[0-9]+)',
               caseSensitive: false)
           .firstMatch(clause);
       if (payMatch != null) {

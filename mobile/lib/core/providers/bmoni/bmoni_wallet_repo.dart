@@ -82,7 +82,7 @@ class BmoniWalletRepository implements WalletRepository {
       }
 
       // If backend returned empty list, fall back to default active wallets
-      final fallbackWallets = _activeWallets.map((w) {
+      final fallbackWallets = _getActiveWallets().map((w) {
         return EmbeddedWallet(
           walletId: w.id,
           name: '${w.currency.code} Smart Wallet',
@@ -256,40 +256,96 @@ class BmoniWalletRepository implements WalletRepository {
   // 4. Legacy Convenience Methods
   // =========================================================
 
-  static final List<WalletAccount> _activeWallets = [
-    WalletAccount(
-      id: 'sw_usdb_live_01',
-      address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
-      currency: Currency.usd,
-      stablecoinToken: 'USDB',
-      balance: Money.fromMajorString('24500.00', Currency.usd),
-      status: 'active',
-    ),
-    WalletAccount(
-      id: 'sw_cngn_live_02',
-      address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
-      currency: Currency.ngn,
-      stablecoinToken: 'CNGN',
-      balance: Money.fromMajorString('6820000.00', Currency.ngn),
-      status: 'active',
-    ),
-    WalletAccount(
-      id: 'sw_mexe_live_03',
-      address: '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
-      currency: Currency.mxn,
-      stablecoinToken: 'MEXe',
-      balance: Money.fromMajorString('45000.00', Currency.mxn),
-      status: 'active',
-    ),
-    WalletAccount(
-      id: 'sw_cadc_live_04',
-      address: '0x889218F9ab92193cb98129031209384019238410',
-      currency: Currency.cad,
-      stablecoinToken: 'CADC',
-      balance: Money.fromMajorString('3200.00', Currency.cad),
-      status: 'active',
-    ),
-  ];
+  // Cache of user-isolated wallets keyed by userId
+  static final Map<String, List<WalletAccount>> _userWalletsCache = {};
+
+  List<WalletAccount> _getActiveWallets() {
+    final uid = apiClient.userId;
+    if (_userWalletsCache.containsKey(uid)) {
+      return _userWalletsCache[uid]!;
+    }
+
+    if (uid == 'usr_flowpay_sandbox_master') {
+      final master = [
+        WalletAccount(
+          id: 'sw_usdb_live_01',
+          address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+          currency: Currency.usd,
+          stablecoinToken: 'USDB',
+          balance: Money.fromMajorString('24500.00', Currency.usd),
+          status: 'active',
+        ),
+        WalletAccount(
+          id: 'sw_cngn_live_02',
+          address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+          currency: Currency.ngn,
+          stablecoinToken: 'CNGN',
+          balance: Money.fromMajorString('6820000.00', Currency.ngn),
+          status: 'active',
+        ),
+        WalletAccount(
+          id: 'sw_mexe_live_03',
+          address: '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
+          currency: Currency.mxn,
+          stablecoinToken: 'MEXe',
+          balance: Money.fromMajorString('45000.00', Currency.mxn),
+          status: 'active',
+        ),
+        WalletAccount(
+          id: 'sw_cadc_live_04',
+          address: '0x889218F9ab92193cb98129031209384019238410',
+          currency: Currency.cad,
+          stablecoinToken: 'CADC',
+          balance: Money.fromMajorString('3200.00', Currency.cad),
+          status: 'active',
+        ),
+      ];
+      _userWalletsCache[uid] = master;
+      return master;
+    }
+
+    // Isolated user wallets with standard sandbox starting credit
+    final clean = uid.replaceAll(RegExp(r'[^a-fA-F0-9]'), '');
+    final suffix = clean.length >= 8 ? clean.substring(clean.length - 8) : '00000000';
+    final userAddr = '0x${suffix.padRight(40, '0')}';
+
+    final userWallets = [
+      WalletAccount(
+        id: 'sw_usdb_$uid',
+        address: userAddr,
+        currency: Currency.usd,
+        stablecoinToken: 'USDB',
+        balance: Money.fromMajorString('1000.00', Currency.usd),
+        status: 'active',
+      ),
+      WalletAccount(
+        id: 'sw_cngn_$uid',
+        address: userAddr,
+        currency: Currency.ngn,
+        stablecoinToken: 'CNGN',
+        balance: Money.fromMajorString('500000.00', Currency.ngn),
+        status: 'active',
+      ),
+      WalletAccount(
+        id: 'sw_mexe_$uid',
+        address: userAddr,
+        currency: Currency.mxn,
+        stablecoinToken: 'MEXe',
+        balance: Money.fromMajorString('15000.00', Currency.mxn),
+        status: 'active',
+      ),
+      WalletAccount(
+        id: 'sw_cadc_$uid',
+        address: userAddr,
+        currency: Currency.cad,
+        stablecoinToken: 'CADC',
+        balance: Money.fromMajorString('500.00', Currency.cad),
+        status: 'active',
+      ),
+    ];
+    _userWalletsCache[uid] = userWallets;
+    return userWallets;
+  }
 
   @override
   Future<List<WalletAccount>> getWallets() async {
@@ -298,27 +354,8 @@ class BmoniWalletRepository implements WalletRepository {
       if (res is List && res.isNotEmpty) {
         final list = res.map((w) {
           final cur = Currency.fromToken(w['currency'] ?? 'USDB');
-          final backendBalStr = w['balance']?.toString();
-          Money balance;
-          if (backendBalStr != null && backendBalStr.isNotEmpty && backendBalStr != '0.00') {
-            balance = Money.fromMajorString(backendBalStr, cur);
-          } else {
-            // Find existing fallback balance if available
-            final existing = _activeWallets.firstWhere(
-              (a) => a.id == w['id'] || a.currency == cur,
-              orElse: () => WalletAccount(
-                id: w['id'] ?? '',
-                address: w['address'] ?? '',
-                currency: cur,
-                stablecoinToken: w['currency'] ?? cur.stablecoinToken,
-                balance: Money.fromMajorString('0.00', cur),
-                status: w['status'] ?? 'active',
-              ),
-            );
-            balance = existing.balance.amountMinor > BigInt.zero
-                ? existing.balance
-                : Money.fromMajorString('0.00', cur);
-          }
+          final backendBalStr = w['balance']?.toString() ?? '0.00';
+          final balance = Money.fromMajorString(backendBalStr, cur);
 
           return WalletAccount(
             id: w['id'] ?? '',
@@ -330,13 +367,13 @@ class BmoniWalletRepository implements WalletRepository {
           );
         }).toList();
 
-        // Update local _activeWallets with backend values
+        final active = _getActiveWallets();
         for (final w in list) {
-          final idx = _activeWallets.indexWhere((a) => a.id == w.id || a.currency == w.currency);
+          final idx = active.indexWhere((a) => a.id == w.id || a.currency == w.currency);
           if (idx != -1) {
-            _activeWallets[idx] = w;
+            active[idx] = w;
           } else {
-            _activeWallets.add(w);
+            active.add(w);
           }
         }
         return list;
@@ -344,7 +381,7 @@ class BmoniWalletRepository implements WalletRepository {
     } catch (_) {
       // Graceful offline fallback
     }
-    return _activeWallets;
+    return _getActiveWallets();
   }
 
   @override
@@ -357,17 +394,12 @@ class BmoniWalletRepository implements WalletRepository {
           final balStr = b['balance']?.toString() ?? '0.00';
           return Money.fromMajorString(balStr, cur);
         }).toList();
-
-        // If all returned balances are 0.00 (e.g. unseeded backend), fall back to _activeWallets
-        if (balances.every((m) => m.amountMinor == BigInt.zero)) {
-          return _activeWallets.map((w) => w.balance).toList();
-        }
         return balances;
       }
     } catch (_) {
       // Graceful offline fallback
     }
-    return _activeWallets.map((w) => w.balance).toList();
+    return _getActiveWallets().map((w) => w.balance).toList();
   }
 
   @override
@@ -394,12 +426,13 @@ class BmoniWalletRepository implements WalletRepository {
   @override
   Future<bool> debitWallet(
       {required String walletId, required Money amount}) async {
-    final idx = _activeWallets.indexWhere(
+    final active = _getActiveWallets();
+    final idx = active.indexWhere(
         (w) => w.id == walletId || w.currency == amount.currency);
     if (idx != -1) {
-      final current = _activeWallets[idx];
+      final current = active[idx];
       final newMinor = (current.balance.minorUnits - amount.minorUnits).clamp(0, 1 << 50);
-      _activeWallets[idx] = current.copyWith(
+      active[idx] = current.copyWith(
         balance: Money.fromMinor(newMinor, current.currency),
       );
     }
@@ -417,12 +450,13 @@ class BmoniWalletRepository implements WalletRepository {
   @override
   Future<bool> creditWallet(
       {required String walletId, required Money amount}) async {
-    final idx = _activeWallets.indexWhere(
+    final active = _getActiveWallets();
+    final idx = active.indexWhere(
         (w) => w.id == walletId || w.currency == amount.currency);
     if (idx != -1) {
-      final current = _activeWallets[idx];
+      final current = active[idx];
       final newMinor = current.balance.minorUnits + amount.minorUnits;
-      _activeWallets[idx] = current.copyWith(
+      active[idx] = current.copyWith(
         balance: Money.fromMinor(newMinor, current.currency),
       );
     }

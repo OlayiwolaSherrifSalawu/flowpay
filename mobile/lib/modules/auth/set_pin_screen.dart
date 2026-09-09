@@ -112,7 +112,28 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       final storage = ref.read(secureStorageServiceProvider);
       await storage.setFallbackPin(_initialPin);
 
-      // 4. Link employee's self-custody wallet to payroll roster if invite flow
+      // 4. Register on-device wallet keypair with FlowPay backend
+      try {
+        final walletAddr =
+            await BmoniSdkService.walletAddress() ?? generatedAddress;
+        if (!SecureStorageService.isTestEnv) {
+          await http.post(
+            Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-user-id': widget.userProfile.userId,
+            },
+            body: jsonEncode({
+              'userId': widget.userProfile.userId,
+              'address': walletAddr,
+            }),
+          ).timeout(const Duration(seconds: 4));
+        }
+      } catch (regErr) {
+        debugPrint('[SetPinScreen] register wallet notice: $regErr');
+      }
+
+      // 5. Link employee's self-custody wallet to payroll roster if invite flow
       if (widget.employeeInviteToken != null &&
           widget.employeeInviteToken!.trim().isNotEmpty) {
         try {

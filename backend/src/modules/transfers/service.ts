@@ -302,7 +302,23 @@ export class TransferService {
       let recipientLocalCurrency: 'CNGN' | 'MEXe' | null = null;
       let fxRateToLocal: number = 1.0;
 
-      if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng')) {
+      if (recipient.startsWith('0x')) {
+        const found = WalletService.findWalletByAddress(recipient);
+        if (found) {
+          recipientUserId = found.userId;
+          if (found.currency === 'CNGN') {
+            recipientLocalCurrency = 'CNGN';
+            fxRateToLocal = 1550.0;
+          } else if (found.currency === 'MEXe') {
+            recipientLocalCurrency = 'MEXe';
+            fxRateToLocal = 17.5;
+          }
+        } else {
+          const adHocUserId = `usr_evm_${recipient.substring(2, 10).toLowerCase()}`;
+          WalletService.ensureUserWallets(adHocUserId, recipient);
+          recipientUserId = adHocUserId;
+        }
+      } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng')) {
         recipientUserId = 'usr_bmoni_dillon_ngn';
         recipientLocalCurrency = 'CNGN';
         fxRateToLocal = 1550.0; // 1 USD = 1,550 NGN

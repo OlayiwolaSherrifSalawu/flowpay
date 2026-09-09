@@ -144,7 +144,30 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
   @override
   Future<BeneficiaryResolutionResult> resolveAlias(String query) async {
     await Future.delayed(const Duration(milliseconds: 80));
-    var q = query.trim().toLowerCase();
+    final trimmed = query.trim();
+    if (RegExp(r'^0x[a-fA-F0-9]{40}$').hasMatch(trimmed)) {
+      final shortAddr =
+          '${trimmed.substring(0, 6)}...${trimmed.substring(trimmed.length - 4)}';
+      return BeneficiaryResolutionResult.unique(
+        Beneficiary(
+          id: 'ben_evm_${trimmed.toLowerCase()}',
+          nickname: shortAddr,
+          legalName: 'EVM Account ($shortAddr)',
+          aliases: [trimmed, trimmed.toLowerCase(), shortAddr],
+          relationship: 'Smart Wallet Recipient',
+          destinationCountry: 'Global',
+          countryFlag: '🌐',
+          destinationType: 'evm_wallet',
+          currency: Currency.usd,
+          preferredFundingCurrency: Currency.usd,
+          accountOrAddress: trimmed,
+          isVerified: true,
+        ),
+        query,
+      );
+    }
+
+    var q = trimmed.toLowerCase();
     q = q.replaceFirst(RegExp(r'^(?:my\s+|our\s+)'), '').trim();
     if (q.isEmpty) {
       return BeneficiaryResolutionResult.notFound(query);

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { bmoniClient } from '../../bmoni/client.js';
 import { prisma, isPostgresDb } from '../../db/index.js';
 import type { OwnerProofChallenge, SmartWallet, WalletBalance } from '../../bmoni/types.js';
@@ -156,10 +157,122 @@ function matchesCurrency(walletCur: string, targetCur: string): boolean {
 }
 
 export class WalletService {
+  /**
+   * Ensures that a user has their own distinct smart wallets with isolated balances and addresses.
+   * Eliminates cross-user balance and address collision in sandbox mode.
+   */
+  static ensureUserWallets(userId: string = 'usr_flowpay_sandbox_master', userOwnerAddress?: string): SandboxWalletRecord[] {
+    const existing = Array.from(sandboxWallets.values()).filter((w) => w.userId === userId);
+    if (existing.length > 0) {
+      if (userOwnerAddress && userOwnerAddress.startsWith('0x')) {
+        for (const w of existing) {
+          w.userOwnerAddress = userOwnerAddress;
+          if (w.currency === 'USDB' || w.currency === 'CNGN') {
+            w.address = userOwnerAddress;
+          }
+        }
+      }
+      return existing;
+    }
+
+    // Default seeded master account
+    if (userId === 'usr_flowpay_sandbox_master') {
+      return Array.from(sandboxWallets.values()).filter((w) => w.userId === 'usr_flowpay_sandbox_master');
+    }
+
+    // Deterministically derive unique smart wallet addresses per user from userId hash
+    const hashUsd = crypto.createHash('sha256').update(`flowpay_user_wallet_${userId}`).digest('hex');
+    const defaultAddr = userOwnerAddress && userOwnerAddress.startsWith('0x')
+      ? userOwnerAddress
+      : `0x${hashUsd.substring(0, 40)}`;
+
+    const hashMxn = crypto.createHash('sha256').update(`flowpay_mxn_wallet_${userId}`).digest('hex');
+    const mxnAddr = `0x${hashMxn.substring(0, 40)}`;
+
+    const hashCad = crypto.createHash('sha256').update(`flowpay_cad_wallet_${userId}`).digest('hex');
+    const cadAddr = `0x${hashCad.substring(0, 40)}`;
+
+    const now = new Date().toISOString();
+    const newWallets: SandboxWalletRecord[] = [
+      {
+        id: `sw_usdb_${userId}`,
+        userId,
+        name: 'USD Smart Wallet',
+        address: defaultAddr,
+        currency: 'USDB',
+        balance: 1000.0, // Sandbox starting credit
+        chain: 'base-sepolia',
+        status: 'active',
+        userOwnerAddress: defaultAddr,
+        createdAt: now,
+      },
+      {
+        id: `sw_cngn_${userId}`,
+        userId,
+        name: 'NGN Smart Wallet',
+        address: defaultAddr,
+        currency: 'CNGN',
+        balance: 500000.0, // Sandbox starting credit
+        chain: 'base-sepolia',
+        status: 'active',
+        userOwnerAddress: defaultAddr,
+        createdAt: now,
+      },
+      {
+        id: `sw_mexe_${userId}`,
+        userId,
+        name: 'MEXe Smart Wallet',
+        address: mxnAddr,
+        currency: 'MEXe',
+        balance: 15000.0, // Sandbox starting credit
+        chain: 'base-sepolia',
+        status: 'active',
+        userOwnerAddress: defaultAddr,
+        createdAt: now,
+      },
+      {
+        id: `sw_cadc_${userId}`,
+        userId,
+        name: 'CADC Smart Wallet',
+        address: cadAddr,
+        currency: 'CADC',
+        balance: 500.0, // Sandbox starting credit
+        chain: 'base-sepolia',
+        status: 'active',
+        userOwnerAddress: defaultAddr,
+        createdAt: now,
+      },
+    ];
+
+    for (const w of newWallets) {
+      sandboxWallets.set(w.id, w);
+    }
+
+    return newWallets;
+  }
+
+  /**
+   * Find a wallet record by EVM address across all registered accounts.
+   */
+  static findWalletByAddress(address: string): SandboxWalletRecord | undefined {
+    const clean = address.trim().toLowerCase();
+    return Array.from(sandboxWallets.values()).find(
+      (w) => w.address.toLowerCase() === clean || w.userOwnerAddress.toLowerCase() === clean
+    );
+  }
+
+  /**
+   * Register a user's on-device keypair address with their backend wallets.
+   */
+  static async registerUserWallet(userId: string, address: string): Promise<SandboxWalletRecord[]> {
+    return this.ensureUserWallets(userId, address);
+  }
+
   static async debitWallet(walletIdOrCurrency: string, amount: number, userId?: string): Promise<boolean> {
     let wallet: SandboxWalletRecord | undefined;
 
     if (userId) {
+      this.ensureUserWallets(userId);
       for (const w of sandboxWallets.values()) {
         if (w.userId === userId && (w.id === walletIdOrCurrency || matchesCurrency(w.currency, walletIdOrCurrency))) {
           wallet = w;
@@ -191,6 +304,7 @@ export class WalletService {
     let wallet: SandboxWalletRecord | undefined;
 
     if (userId) {
+      this.ensureUserWallets(userId);
       for (const w of sandboxWallets.values()) {
         if (w.userId === userId && (w.id === walletIdOrCurrency || matchesCurrency(w.currency, walletIdOrCurrency))) {
           wallet = w;
@@ -226,10 +340,9 @@ export class WalletService {
       console.warn('[WalletService] BMONI API getBalances fallback to sandbox defaults:', err);
     }
 
-    const userWallets = Array.from(sandboxWallets.values()).filter((w) => w.userId === userId);
-    const walletsToReturn = userWallets.length > 0 ? userWallets : Array.from(sandboxWallets.values()).filter((w) => w.userId === 'usr_flowpay_sandbox_master');
+    const userWallets = this.ensureUserWallets(userId);
 
-    return walletsToReturn.map((w) => ({
+    return userWallets.map((w) => ({
       currency: w.currency,
       balance: w.balance.toFixed(2),
       symbol: w.currency === 'CNGN' ? '₦' : (w.currency === 'MEXe' ? 'Mex$' : (w.currency === 'CADC' ? 'C$' : '$')),
@@ -272,10 +385,9 @@ export class WalletService {
       }
     }
 
-    const userWallets = Array.from(sandboxWallets.values()).filter((w) => w.userId === userId);
-    const walletsToReturn = userWallets.length > 0 ? userWallets : Array.from(sandboxWallets.values()).filter((w) => w.userId === 'usr_flowpay_sandbox_master');
+    const userWallets = this.ensureUserWallets(userId);
 
-    return walletsToReturn.map((w) => ({
+    return userWallets.map((w) => ({
       id: w.id,
       name: w.name,
       address: w.address,
