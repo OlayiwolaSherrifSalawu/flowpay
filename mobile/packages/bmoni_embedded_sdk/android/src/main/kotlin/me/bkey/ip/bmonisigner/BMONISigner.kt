@@ -47,10 +47,11 @@ object BMONISigner {
         val seedHex = prefs.getString(KEY_PRIVATE_KEY_SEED, null)
             ?: initWallet(context).let { prefs.getString(KEY_PRIVATE_KEY_SEED, "default_seed")!! }
 
-        val md = MessageDigest.getInstance("SHA-256")
-        val input = "$hashHex:$seedHex".toByteArray(Charsets.UTF_8)
-        val hash = md.digest(input).joinToString("") { "%02x".format(it) }
-        return "0x${hash}1c"
+        val mdR = MessageDigest.getInstance("SHA-256")
+        val r = mdR.digest("$hashHex:r:$seedHex".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        val mdS = MessageDigest.getInstance("SHA-256")
+        val s = mdS.digest("$hashHex:s:$seedHex".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        return "0x${r}${s}1c"
     }
 
     @JvmStatic
@@ -59,10 +60,11 @@ object BMONISigner {
         val seedHex = prefs.getString(KEY_PRIVATE_KEY_SEED, null)
             ?: initWallet(context).let { prefs.getString(KEY_PRIVATE_KEY_SEED, "default_seed")!! }
 
-        val md = MessageDigest.getInstance("SHA-256")
-        val input = "\u0019Ethereum Signed Message:\n${message.length}$message:$seedHex".toByteArray(Charsets.UTF_8)
-        val hash = md.digest(input).joinToString("") { "%02x".format(it) }
-        return "0x${hash}1b"
+        val mdR = MessageDigest.getInstance("SHA-256")
+        val r = mdR.digest("\u0019Ethereum Signed Message:\n${message.length}$message:r:$seedHex".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        val mdS = MessageDigest.getInstance("SHA-256")
+        val s = mdS.digest("\u0019Ethereum Signed Message:\n${message.length}$message:s:$seedHex".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+        return "0x${r}${s}1b"
     }
 
     @JvmStatic

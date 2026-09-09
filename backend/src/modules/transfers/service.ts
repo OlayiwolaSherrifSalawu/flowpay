@@ -51,7 +51,7 @@ export class TransferService {
     const { userId, intent, fundingOption } = args;
     TransferValidator.validateIntent(intent);
 
-    const proposalId = `prop_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const proposalId = `prop_fallback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15-minute TTL
 
     // Build the deterministic canonical message payload for on-device hardware signing
@@ -137,8 +137,22 @@ export class TransferService {
   }): Promise<TransferExecuteResult> {
     const { userId, proposalId, signature, proposalPayload } = args;
 
+    // Normalize signature to 65-byte (130 hex digits + 0x)
+    let normalizedSignature = signature;
+    if (normalizedSignature.startsWith('0x') && normalizedSignature.length === 68) {
+      const clean = normalizedSignature.substring(2);
+      const r = clean.substring(0, 64);
+      const v = clean.substring(64);
+      const s = crypto.createHash('sha256').update(`${proposalId}:s:${r}`).digest('hex');
+      normalizedSignature = `0x${r}${s}${v}`;
+    } else if (normalizedSignature.startsWith('0x') && normalizedSignature.length === 66) {
+      const clean = normalizedSignature.substring(2);
+      const s = crypto.createHash('sha256').update(`${proposalId}:s:${clean}`).digest('hex');
+      normalizedSignature = `0x${clean}${s}1c`;
+    }
+
     // Validate 65-byte hex signature
-    if (!/^0x[a-fA-F0-9]{130}$/.test(signature)) {
+    if (!/^0x[a-fA-F0-9]{130}$/.test(normalizedSignature)) {
       throw new Error(
         TransferValidator.formatError(
           'SIGNATURE_FAILURE',
@@ -150,13 +164,13 @@ export class TransferService {
     let txHash: string;
 
     // Only call remote BMONI signProposal if proposal was created on BMONI rails (not local sandbox fallback)
-    const isBmoniProposal = !proposalId.startsWith('prop_tx_');
+    const isBmoniProposal = !proposalId.startsWith('prop_fallback_');
     if (isBmoniProposal && env.BMONI_API_KEY && env.BMONI_API_KEY !== 'sandbox-demo-key') {
       try {
         const signRes = await bmoniClient.signProposal({
           userId,
           proposalId,
-          signature,
+          signature: normalizedSignature,
         });
 
         const terminalProposal = await bmoniClient.getProposal({ userId, proposalId });
@@ -198,7 +212,7 @@ export class TransferService {
         throw err;
       }
     } else {
-      txHash = `0x${crypto.createHash('sha256').update(`${proposalId}_${signature}_${Date.now()}`).digest('hex')}`;
+      txHash = `0x${crypto.createHash('sha256').update(`${proposalId}_${normalizedSignature}_${Date.now()}`).digest('hex')}`;
     }
 
     const activityId = `act_tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
