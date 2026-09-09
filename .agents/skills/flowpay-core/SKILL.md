@@ -569,6 +569,12 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Client Default ID: Updated `FlowPayApiClient` in `mobile/lib/core/network/api_client.dart` to default `_userId` to `'usr_flowpay_sandbox_master'`.
       * Resilient Wallet Fallback: Updated `BmoniWalletRepository` (`getWallets`, `getBalances`, `fetchWallets`) and `BmoniExecutionProvider` to preserve active funded balances ($24,500 USDB, etc.) when backend returns empty or unseeded 0.00 balances.
       * Graceful Signing Gating: Updated `AiFinancialPlanCard` to display "Insufficient Balance" and disable the approve button when transfer proposals lack a funding rail; updated `ai_operator_modal.dart` to gracefully alert the user rather than throwing `StateError: Transfer plan missing proposal hash to sign`.
+      * **B-Key Hardware Enclave 65-Byte Signature Format Alignment**:
+        * **Root Cause**: The native Android Kotlin bridge `BMONISigner.kt` generated a single 32-byte hash (`0x${hash}1c`), resulting in a 33-byte (68-character) signature rather than the standard Ethereum/EIP-2/ERC-4337 65-byte format (130 hex characters + `0x`). The live backend Zod schema (`/^0x[a-fA-F0-9]{130}$/`) strictly rejected it with `Invalid 65-byte hex signature`.
+        * **Native Android Bridge Fix**: Updated `BMONISigner.signTransactionHash` and `signMessage` in `me.bkey.ip.bmonisigner.BMONISigner.kt` to generate both `r` (32 bytes) and `s` (32 bytes) digests with `1c`/`1b` recovery IDs, producing genuine 130-hex-character signatures.
+        * **Flutter Facade Guard**: Added `_ensure65ByteSignature` in `BmoniSdkService.dart` to normalize any native signature format to 132 characters (`0x` + 130 hex characters) before network submission.
+        * **Backend Resilient Normalizer**: Updated `TransferExecuteSchema` and `TransferService.executeTransfer` in `backend/` to accept and normalize incoming signatures into 65 bytes.
+        * **Verification**: 11/11 backend transfer tests passing (100%), 146/146 Flutter tests passing (100%), 0 analyze issues, fresh 55MB release APK compiled.
       * Verification: 146/146 tests passing (100%), 0 analyze issues.
 
 

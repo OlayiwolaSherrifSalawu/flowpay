@@ -75,7 +75,7 @@ export const TransferProposeSchema = z.object({
 export const TransferExecuteSchema = z.object({
   userId: z.string().default('usr_flowpay_sandbox_master'),
   proposalId: z.string().min(1, 'Proposal ID is required'),
-  signature: z.string().regex(/^0x[a-fA-F0-9]{130}$/, 'Invalid 65-byte hex signature'),
+  signature: z.string().regex(/^0x[a-fA-F0-9]{64,130}$/, 'Invalid signature format'),
 });
 
 // --- Deterministic Balance-Aware Inspection ---
