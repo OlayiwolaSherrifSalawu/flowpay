@@ -26,7 +26,9 @@ class ApiConfig {
       return _runtimeOverrideUrl!;
     }
     const envUrl = String.fromEnvironment('FLOWPAY_API_URL');
-    String target = envUrl.isNotEmpty ? envUrl : localBackendUrl;
+    String target = envUrl.isNotEmpty
+        ? envUrl
+        : (kReleaseMode ? liveBackendUrl : localBackendUrl);
 
     // In web, if accessing via local network IP (e.g. 192.168.x.x on mobile phone),
     // automatically adapt localhost to the hosting IP so the phone can reach the backend.
