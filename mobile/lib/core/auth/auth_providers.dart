@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../bmoni_sdk/bmoni_sdk_service.dart';
 import 'account_capabilities.dart';
 import 'app_lock_service.dart';
 import 'secure_storage_service.dart';
@@ -341,6 +342,9 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
   Future<void> resetToSignup() async {
     await _storage.resetSession();
     await _ref.read(currentUserProfileProvider.notifier).clearProfile();
+    try {
+      await BmoniSdkService.deleteWallet();
+    } catch (_) {}
     state = state.copyWith(isLocked: true, hasSession: false);
   }
 
@@ -362,6 +366,25 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     await setAccountMode(mode);
     await _ref.read(currentUserProfileProvider.notifier).saveProfile(profile);
     await _ref.read(currentUserProfileProvider.notifier).setKycVerified();
+
+    // Register active wallet address with backend
+    try {
+      final addr = await BmoniSdkService.walletAddress();
+      if (addr != null && addr.isNotEmpty && !SecureStorageService.isTestEnv) {
+        await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': profile.userId,
+          },
+          body: jsonEncode({
+            'userId': profile.userId,
+            'address': addr,
+          }),
+        ).timeout(const Duration(seconds: 3));
+      }
+    } catch (_) {}
+
     state = state.copyWith(isLocked: false, hasSession: true, activeMode: mode);
   }
 }

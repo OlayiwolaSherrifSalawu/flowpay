@@ -171,10 +171,21 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     final recipient = _recipientController.text.trim();
 
     // Check alias on manual entry
-    if (intentOverride == null && _resolvedBeneficiary == null && recipient.isNotEmpty) {
-      final res = await widget.appState.beneficiaryRepo.resolveAlias(recipient);
-      if (res.isUnique) {
-        _resolvedBeneficiary = res.match;
+    if (intentOverride == null) {
+      if (recipient.isNotEmpty) {
+        if (_resolvedBeneficiary == null ||
+            !_resolvedBeneficiary!.allAliases.any(
+                (a) => a.toLowerCase() == recipient.toLowerCase())) {
+          final res =
+              await widget.appState.beneficiaryRepo.resolveAlias(recipient);
+          if (res.isUnique) {
+            _resolvedBeneficiary = res.match;
+          } else {
+            _resolvedBeneficiary = null;
+          }
+        }
+      } else {
+        _resolvedBeneficiary = null;
       }
     }
 

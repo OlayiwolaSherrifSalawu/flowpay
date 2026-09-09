@@ -9,6 +9,7 @@ import 'package:flowpay_mobile/core/repositories/wallet_repository.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/core/transfers/transfer_funding.dart';
 import 'package:flowpay_mobile/core/transfers/transfer_intent.dart';
+import 'package:flowpay_mobile/core/beneficiaries/beneficiary_repository.dart';
 import 'package:flowpay_mobile/modules/personal/components/transfer_review_modal.dart';
 import 'package:flowpay_mobile/modules/personal/send_money_screen.dart';
 
@@ -178,6 +179,17 @@ void main() {
       // Verify that activity was persisted into ActivityRepository
       final recent = await activityRepo.getRecentActivities();
       expect(recent.any((a) => a.category == ActivityCategory.transfer), true);
+    });
+
+    test('BeneficiaryRepository: resolves 0x EVM smart wallet address as unique beneficiary without error', () async {
+      final repo = DemoBeneficiaryRepository();
+      const testAddr = '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242';
+      final res = await repo.resolveAlias(testAddr);
+      expect(res.isUnique, isTrue);
+      expect(res.match, isNotNull);
+      expect(res.match!.accountOrAddress, testAddr);
+      expect(res.match!.isVerified, isTrue);
+      expect(res.match!.nickname, '0x3A9a...F242');
     });
   });
 

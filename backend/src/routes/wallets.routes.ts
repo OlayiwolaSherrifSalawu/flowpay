@@ -31,6 +31,21 @@ walletsRouter.get('/', async (req, res, next) => {
   }
 });
 
+// POST /api/wallets/register
+walletsRouter.post('/register', async (req, res, next) => {
+  try {
+    const { userId, address } = req.body;
+    const effectiveUserId =
+      userId ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
+    const wallets = await WalletService.registerUserWallet(effectiveUserId, address);
+    res.json({ success: true, data: wallets });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /api/wallets/owner-proof-challenge
 walletsRouter.post('/owner-proof-challenge', async (req, res, next) => {
   try {

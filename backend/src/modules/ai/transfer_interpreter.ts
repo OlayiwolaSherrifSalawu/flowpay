@@ -147,20 +147,24 @@ Never invent financial parameters. Never execute transactions.`,
     let recipient = 'Beneficiary';
     let purpose: string | undefined;
 
-    const toMatch = trimmed.match(/(?:to|for)\s+([^,.;]+?)(?:\s+(?:for|via|as|in)\s+([^,.;]+))?$/i);
-    if (toMatch && toMatch[1]) {
-      recipient = toMatch[1].trim();
-      if (toMatch[2]) {
-        purpose = toMatch[2].trim();
+    const addrMatch = trimmed.match(/(0x[a-fA-F0-9]{40})/i);
+    if (addrMatch) {
+      recipient = addrMatch[1];
+      const forMatch = trimmed.match(/(?:for|via|as|in)\s+([^,.;]+)$/i);
+      if (forMatch && forMatch[1]) {
+        purpose = forMatch[1].trim();
       }
     } else {
-      const emailMatch = trimmed.match(/([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/);
-      if (emailMatch) {
-        recipient = emailMatch[1].trim();
+      const toMatch = trimmed.match(/(?:to|for)\s+([^,.;]+?)(?:\s+(?:for|via|as|in)\s+([^,.;]+))?$/i);
+      if (toMatch && toMatch[1]) {
+        recipient = toMatch[1].trim();
+        if (toMatch[2]) {
+          purpose = toMatch[2].trim();
+        }
       } else {
-        const addrMatch = trimmed.match(/(0x[a-fA-F0-9]{40})/);
-        if (addrMatch) {
-          recipient = addrMatch[1];
+        const emailMatch = trimmed.match(/([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/);
+        if (emailMatch) {
+          recipient = emailMatch[1].trim();
         }
       }
     }
