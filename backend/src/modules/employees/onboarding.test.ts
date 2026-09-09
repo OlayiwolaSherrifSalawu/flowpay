@@ -127,7 +127,10 @@ describe('Employee Onboarding: Stablecoin Mapping & Country-Specific Rules', () 
   });
 
   it('throws error when requestOwnerChallenge is called for employee without bmoniUserId', async () => {
-    const { prisma } = await import('../../db/index.js');
+    const { prisma, isPostgresDb, setPostgresConnected } = await import('../../db/index.js');
+    const wasConnected = isPostgresDb();
+    setPostgresConnected(true);
+
     const originalFind = prisma.employee.findUnique;
     (prisma.employee as any).findUnique = async () => ({
       id: 'emp_no_bmoni',
@@ -148,11 +151,15 @@ describe('Employee Onboarding: Stablecoin Mapping & Country-Specific Rules', () 
       );
     } finally {
       (prisma.employee as any).findUnique = originalFind;
+      setPostgresConnected(wasConnected);
     }
   });
 
   it('propagates BMONI failure in requestOwnerChallenge without fabricating fake challenge', async () => {
-    const { prisma } = await import('../../db/index.js');
+    const { prisma, isPostgresDb, setPostgresConnected } = await import('../../db/index.js');
+    const wasConnected = isPostgresDb();
+    setPostgresConnected(true);
+
     const { bmoniClient } = await import('../../bmoni/client.js');
     const { FlowPayError } = await import('../../core/errors.js');
 
@@ -185,11 +192,15 @@ describe('Employee Onboarding: Stablecoin Mapping & Country-Specific Rules', () 
       (prisma.employee as any).findUnique = originalFind;
       bmoniClient.createOwnerProofChallenge = originalChallenge;
       (prisma.employee as any).update = originalUpdate;
+      setPostgresConnected(wasConnected);
     }
   });
 
   it('returns ready: false when checkKycReadiness fails on BMONI query', async () => {
-    const { prisma } = await import('../../db/index.js');
+    const { prisma, isPostgresDb, setPostgresConnected } = await import('../../db/index.js');
+    const wasConnected = isPostgresDb();
+    setPostgresConnected(true);
+
     const { bmoniClient } = await import('../../bmoni/client.js');
 
     const originalFind = prisma.employee.findUnique;
@@ -212,6 +223,7 @@ describe('Employee Onboarding: Stablecoin Mapping & Country-Specific Rules', () 
     } finally {
       (prisma.employee as any).findUnique = originalFind;
       bmoniClient.getKycReadiness = originalReadiness;
+      setPostgresConnected(wasConnected);
     }
   });
 });

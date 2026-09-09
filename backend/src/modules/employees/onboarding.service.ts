@@ -1,7 +1,8 @@
 import { bmoniClient } from '../../bmoni/client.js';
-import { prisma } from '../../db/index.js';
+import { prisma, isPostgresDb } from '../../db/index.js';
 import { getStablecoinForCountry, getStablecoinForCurrency } from '../../core/currencies.js';
 import { FlowPayError, BmoniUnavailableError } from '../../core/errors.js';
+import { inMemoryEmployees } from './service.js';
 import type { EmployeeRecord } from './service.js';
 
 export type OnboardingState = 'Not Started' | 'In Progress' | 'Ready' | 'Failed';
@@ -74,17 +75,51 @@ export interface CountryKycPayload {
 }
 
 export class EmployeeOnboardingService {
-  /**
-   * Helper to fetch employee and ensure BMONI identity exists
-   */
   private static async getEmployee(employeeId: string): Promise<EmployeeRecord> {
-    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employee) {
-      const error = new Error(`Employee ${employeeId} not found`) as Error & { statusCode?: number };
-      error.statusCode = 404;
-      throw error;
+    // Employee creation falls back to an in-memory record whenever the Postgres
+    // write fails (see EmployeeService.createEmployee). Onboarding must be able
+    // to find those same records, or every subsequent onboarding/KYC call for
+    // that employee 404s even though the employee genuinely exists.
+    if (isPostgresDb()) {
+      try {
+        const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+        if (employee) return employee;
+      } catch (err) {
+        console.warn('[OnboardingService] getEmployee DB error, falling back to in-memory:', err);
+      }
     }
-    return employee;
+
+    const fallback = inMemoryEmployees.get(employeeId);
+    if (fallback) return fallback as EmployeeRecord;
+
+    const error = new Error(`Employee ${employeeId} not found`) as Error & { statusCode?: number };
+    error.statusCode = 404;
+    throw error;
+  }
+
+  /**
+   * Dual-write helper: persists to Postgres when connected, and always mirrors
+   * the update into the in-memory store so onboarding state stays readable
+   * even for employees whose original insert fell back to memory.
+   */
+  private static async updateEmployee(
+    employeeId: string,
+    data: Record<string, unknown>
+  ): Promise<EmployeeRecord> {
+    let updated: EmployeeRecord | undefined;
+    if (isPostgresDb()) {
+      try {
+        updated = await prisma.employee.update({ where: { id: employeeId }, data: data as any });
+      } catch (err) {
+        console.warn('[OnboardingService] updateEmployee DB error, falling back to in-memory:', err);
+      }
+    }
+
+    const existing = inMemoryEmployees.get(employeeId) || {};
+    const merged = { ...existing, ...data, id: employeeId, updatedAt: new Date() };
+    inMemoryEmployees.set(employeeId, merged);
+
+    return (updated || merged) as EmployeeRecord;
   }
 
   /**
@@ -183,9 +218,9 @@ export class EmployeeOnboardingService {
         userOwnerAddress,
       });
 
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { status: 'WALLET_PENDING', failedStage: null },
+      await this.updateEmployee(employeeId, {
+        status: 'WALLET_PENDING',
+        failedStage: null,
       });
 
       return {
@@ -196,10 +231,7 @@ export class EmployeeOnboardingService {
       };
     } catch (err: any) {
       console.error('[OnboardingService] Owner proof challenge failed:', err.message || err);
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { failedStage: 'WALLET' },
-      });
+      await this.updateEmployee(employeeId, { failedStage: 'WALLET' });
       if (err instanceof FlowPayError) {
         throw err;
       }
@@ -246,10 +278,7 @@ export class EmployeeOnboardingService {
       });
     } catch (err: any) {
       console.error('[OnboardingService] createManagedSmartWallet failed:', err.message || err);
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { failedStage: 'WALLET' },
-      });
+      await this.updateEmployee(employeeId, { failedStage: 'WALLET' });
       if (err instanceof FlowPayError) {
         throw err;
       }
@@ -260,14 +289,11 @@ export class EmployeeOnboardingService {
     const walletAddress = (managedWallet as any).address || (managedWallet as any).walletAddress || input.userOwnerAddress;
 
     // Update employee record only on real success
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: {
-        walletId,
-        walletAddress,
-        status: 'KYC_PENDING',
-        failedStage: null,
-      },
+    await this.updateEmployee(employeeId, {
+      walletId,
+      walletAddress,
+      status: 'KYC_PENDING',
+      failedStage: null,
     });
 
     return {
@@ -446,10 +472,7 @@ export class EmployeeOnboardingService {
       });
     } catch (err: any) {
       console.error('[OnboardingService] submitKycProfile failed:', err.message || err);
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { failedStage: 'KYC' },
-      });
+      await this.updateEmployee(employeeId, { failedStage: 'KYC' });
       if (err instanceof FlowPayError) {
         throw err;
       }
@@ -498,19 +521,16 @@ export class EmployeeOnboardingService {
       });
     } catch (err: any) {
       console.error('[OnboardingService] activateKyc failed:', err.message || err);
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { failedStage: 'KYC' },
-      });
+      await this.updateEmployee(employeeId, { failedStage: 'KYC' });
       if (err instanceof FlowPayError) {
         throw err;
       }
       throw new BmoniUnavailableError(err.message || 'BMONI KYC activation failed');
     }
 
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: { status: 'ONBOARDING', failedStage: null },
+    await this.updateEmployee(employeeId, {
+      status: 'ONBOARDING',
+      failedStage: null,
     });
 
     return { success: true, status: 'ACTIVATED' };
@@ -575,19 +595,16 @@ export class EmployeeOnboardingService {
         });
       } catch (err: any) {
         console.error('[OnboardingService] startNigeriaOnboarding failed:', err.message || err);
-        await prisma.employee.update({
-          where: { id: employeeId },
-          data: { failedStage: 'RAIL' },
-        });
+        await this.updateEmployee(employeeId, { failedStage: 'RAIL' });
         if (err instanceof FlowPayError) {
           throw err;
         }
         throw new BmoniUnavailableError(err.message || 'BMONI Nigeria rail activation failed');
       }
 
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { status: 'ONBOARDING', failedStage: null },
+      await this.updateEmployee(employeeId, {
+        status: 'ONBOARDING',
+        failedStage: null,
       });
 
       return {
@@ -620,19 +637,16 @@ export class EmployeeOnboardingService {
         });
       } catch (err: any) {
         console.error('[OnboardingService] activateMexicoKyc failed:', err.message || err);
-        await prisma.employee.update({
-          where: { id: employeeId },
-          data: { failedStage: 'RAIL' },
-        });
+        await this.updateEmployee(employeeId, { failedStage: 'RAIL' });
         if (err instanceof FlowPayError) {
           throw err;
         }
         throw new BmoniUnavailableError(err.message || 'BMONI Mexico rail activation failed');
       }
 
-      await prisma.employee.update({
-        where: { id: employeeId },
-        data: { status: 'ONBOARDING', failedStage: null },
+      await this.updateEmployee(employeeId, {
+        status: 'ONBOARDING',
+        failedStage: null,
       });
 
       return {
@@ -784,9 +798,9 @@ export class EmployeeOnboardingService {
       resumeStatus = 'KYC_PENDING';
     }
 
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: { status: resumeStatus, failedStage: null },
+    await this.updateEmployee(employeeId, {
+      status: resumeStatus,
+      failedStage: null,
     });
 
     return this.getOnboardingStatus(employeeId);
@@ -796,9 +810,9 @@ export class EmployeeOnboardingService {
    * Sandbox utility: Simulate the asynchronous onboarding.completed webhook
    */
   static async simulateOnboardingCompleted(employeeId: string): Promise<EmployeeOnboardingStatusResult> {
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: { status: 'READY', failedStage: null },
+    await this.updateEmployee(employeeId, {
+      status: 'READY',
+      failedStage: null,
     });
     return this.getOnboardingStatus(employeeId);
   }

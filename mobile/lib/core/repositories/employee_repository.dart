@@ -69,6 +69,38 @@ class EmployeeModel {
   bool get isReady => status.toUpperCase() == EmployeeLifecycleStages.ready;
   bool get isFailed => status.toUpperCase() == EmployeeLifecycleStages.failed;
 
+  /// Collapses the detailed lifecycle stage into the simple 3-state label
+  /// product/design actually wants surfaced in list rows: Pending, Onboarded,
+  /// or Failed. Use `status`/`onboardingStatus` directly when you need the
+  /// full-fidelity stage (e.g. for the multi-stage onboarding screen).
+  String get simpleStatusLabel {
+    final s = status.toUpperCase();
+    if (s == EmployeeLifecycleStages.ready ||
+        s == 'ACTIVE' ||
+        s == 'LINKED') {
+      return 'Onboarded';
+    }
+    if (s == EmployeeLifecycleStages.failed) {
+      return 'Failed';
+    }
+    // INVITED, CREATED, WALLET_PENDING, KYC_PENDING, ONBOARDING all read as
+    // "Pending" to a business owner glancing at the team list.
+    return 'Pending';
+  }
+
+  /// Short, human-friendly wallet identifier for list/detail display.
+  /// Falls back to the wallet id if the on-chain address isn't set yet.
+  String? get displayWalletId {
+    final addr = walletAddress;
+    if (addr != null && addr.isNotEmpty) {
+      if (addr.length > 12) {
+        return '${addr.substring(0, 6)}…${addr.substring(addr.length - 4)}';
+      }
+      return addr;
+    }
+    return null;
+  }
+
   String get resolvedCountryName {
     if (countryName.isNotEmpty) return countryName;
     switch (country.toUpperCase()) {

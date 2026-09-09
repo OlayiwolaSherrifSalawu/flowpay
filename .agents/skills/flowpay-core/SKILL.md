@@ -598,6 +598,24 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * In `set_pin_screen.dart`, registered device wallet address with `/api/wallets/register` upon initial setup.
         * In `auth_providers.dart`, updated `resetToSignup()` and `logout()` to call `BmoniSdkService.deleteWallet()`, ensuring each signup generates a unique keypair.
       * **Verification**: All 11 backend transfer tests passing (100%), 147/147 Flutter tests passing (100%), 0 analyzer lints, fresh release APK compiled and served.
+    * **FlowPay Business — Employee Invite Safety Net & Dual-Write In-Memory Fallback Synchronization**:
+      * **Root Cause Resolution**: Resolved critical issue where employees created via in-memory fallback (due to transient DB error or connection drop) were 404ing with "Employee not found" across all `/onboarding/*` KYC endpoints because `EmployeeOnboardingService.getEmployee()` queried Postgres exclusively.
+      * **Dual-Write Safety Net in Onboarding**:
+        * In `backend/src/modules/employees/onboarding.service.ts`, updated `getEmployee()` to query PostgreSQL when connected and fall back to `inMemoryEmployees.get(employeeId)`.
+        * Added `updateEmployee(employeeId, data)` helper that persists to PostgreSQL when connected and always mirrors updates into `inMemoryEmployees`.
+        * Routed all 13 lifecycle stage update call sites (`requestOwnerChallenge`, `provisionSmartWallet`, `submitCountryKyc`, `activateKyc`, `activateRail` Nigeria/Mexico, `retryStage`, `simulateOnboardingCompleted`) through `updateEmployee`.
+      * **Add Employee Modal & Failure Visibility**:
+        * In `backend/src/modules/employees/service.ts`, replaced throwing on BMONI user creation failure with honest logging, returning a 201 response containing the committed employee and invite records with status `FAILED` and `failedStage: 'BMONI_USER_CREATION'`, eliminating silent failure in the Add Employee modal.
+        * In `backend/src/routes/employees.routes.ts`, dynamically tailored the 201 response message to inform the user when BMONI identity creation failed and can be retried.
+        * In `EmployeeService.listEmployees()`, merged PostgreSQL records and in-memory fallback records by ID, preventing single fallback employees from staying invisible when other employees exist in the DB.
+      * **Database Stubbing Alignment in Unit Tests**:
+        * Updated `backend/src/modules/employees/onboarding.test.ts` to activate `setPostgresConnected(true)` when stubbing `prisma.employee.findUnique/update` and restore state in `finally` blocks.
+      * **Frontend Status Label & Wallet ID Display**:
+        * In `mobile/lib/core/repositories/employee_repository.dart`, added `simpleStatusLabel` getter ('Onboarded', 'Failed', 'Pending') and `displayWalletId` truncated formatting getter.
+        * In `mobile/lib/modules/business/employees_screen.dart`, updated `_EmployeeRowCard` to display `FlowPayBadge` with `simpleStatusLabel` and added an onboarding-aware wallet ID indicator row.
+      * **Verification**:
+        * Backend: `npx tsc --noEmit -p .` clean with 0 errors; all 92/92 tests passing in `npm test` (`employee.test.ts` and `onboarding.test.ts`).
+        * Mobile: `flutter analyze` clean with 0 issues; all 146/146 Flutter tests passing (`+146: All tests passed!`).
 
 
 ---
