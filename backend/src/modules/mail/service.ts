@@ -55,6 +55,9 @@ export class MailService {
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE, // false for port 587 (uses STARTTLS)
       requireTLS: true,
+      family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
       auth: {
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,

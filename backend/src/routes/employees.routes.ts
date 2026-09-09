@@ -83,8 +83,7 @@ employeesRouter.post('/', async (req, res, next) => {
       success: true,
       message: result.bmoniUserId
         ? 'Employee created successfully with BMONI on-chain identity'
-        : result.failureReason ||
-          'Employee record created, but BMONI on-chain identity creation failed. Employee is saved with status FAILED and can be retried.',
+        : 'Employee record created, but BMONI on-chain identity creation failed. Employee is saved with status FAILED and can be retried.',
       data: result,
     });
   } catch (err: any) {

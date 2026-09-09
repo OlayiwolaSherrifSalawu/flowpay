@@ -54,7 +54,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Webhook listener (`bmoni/webhooks.ts`, `routes/webhook.routes.ts`) verifying HMAC-SHA256 signatures over raw Buffer bytes in constant time.
   * Multi-country aggregate payroll engine (`modules/payroll/service.ts`, `routes/payroll.routes.ts`).
   * AI Financial Safety Engine (`modules/ai/interpreter.ts`, `modules/ai/validator.ts`) enforcing deterministic validation and previews.
-  * Production Gmail SMTP Mail Relay (`modules/mail/`, `routes/mail.routes.ts`) with STARTTLS (`smtp.gmail.com:587`), non-blocking startup verification, dark-mode fintech email templates (OTP, Welcome, Employee Invite, Payroll Receipt, Transfer, Security Alerts), and integration with employee invitation dispatch.
+  * Production Gmail SMTP Mail Relay (`modules/mail/`, `routes/mail.routes.ts`) with STARTTLS (`smtp.gmail.com:587`), IPv4 DNS family resolution (`family: 4`) to prevent container `ENETUNREACH` failures on IPv6 egress-less platforms like Render, 10s connection & greeting timeouts, non-blocking startup verification, dark-mode fintech email templates (OTP, Welcome, Employee Invite, Payroll Receipt, Transfer, Security Alerts), and integration with employee invitation dispatch.
   * Automated unit tests passing for Money arithmetic, HMAC verification, AI safety guards, and mail templates/service.
   * **Database & ORM Synchronization (Supabase & Prisma)**:
     * Created and verified `public.businesses` in Supabase PostgreSQL (`mxjbzexlnenooclmaawe`) linked to `users` and `employees`.
@@ -166,6 +166,10 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * **Database Persistence & Mobile Onboarding Synchronization**:
     * Fixed missing `phoneNumber` forwarding from `AddEmployeeModal` (`_phoneCtrl`) through `BusinessProvider.addEmployee` down to `EmployeeRepository` and BMONI user creation API, preventing BMONI 400 Bad Request ("phoneNumber should not be empty").
     * Added resilient country-aware phone formatting in `backend/src/modules/employees/service.ts` so BMONI sandbox user creation never fails on missing phone numbers.
+    * Implemented dual-write fallback in `backend/src/modules/employees/onboarding.service.ts` (`getEmployee`, `updateEmployee`) ensuring employees whose creation fell back to in-memory storage never 404 during subsequent `/onboarding/*` KYC lifecycle calls.
+    * Fixed silent employee invitation failure: `createEmployee` commits record and surfaces non-blocking 201 response with real FAILED status/badge and retry support if BMONI identity creation fails, preventing dropped invite URLs.
+    * Updated `listEmployees` to merge PostgreSQL records and in-memory fallback stores, eliminating invisible fallback employees.
+    * Enhanced mobile `EmployeeModel` and `_EmployeeRowCard` with `simpleStatusLabel` ('Pending', 'Onboarded', 'Failed') and human-friendly `displayWalletId` indicator.
     * Synced all 16 Prisma models with the local Docker PostgreSQL instance (`flowpay-postgres` on port 5435) via `npx prisma db push`.
     * Added `GET /api/health/db` endpoint and `dbConnected` boolean indicator in `GET /api/health` for immediate observability of PostgreSQL connection state on both local and Render deployments.
   * Full test suite passing: 92/92 backend tests passed (100%), 144/144 Flutter mobile tests passed (100%), 0 analyzer lints.
