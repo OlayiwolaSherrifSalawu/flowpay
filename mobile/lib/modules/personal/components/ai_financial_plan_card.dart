@@ -98,6 +98,23 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
             spacing: 8,
             runSpacing: 6,
             children: [
+              if (plan.actions.length > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.primary.withAlpha(30),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${plan.actions.length} PAYMENTS',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: FlowPayColors.primary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
               if (plan.quoteExpiresAt != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -183,7 +200,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
 
           // Actions List
           Text(
-            'ACTIONS TO EXECUTE',
+            'ACTIONS TO EXECUTE (${plan.actions.length})',
             style: FlowPayTypography.captionStyle(
               color: FlowPayColors.darkTextMuted,
             ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8),
@@ -191,6 +208,63 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
           const SizedBox(height: 8),
 
           ...plan.actions.map((act) => _buildActionRow(context, act, isDark)),
+
+          // Batch Total Box
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? FlowPayColors.darkSurfaceSubtle : FlowPayColors.lightSurfaceElevated,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Amount',
+                      style: FlowPayTypography.bodyMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                      ),
+                    ),
+                    Text(
+                      plan.totalRequested.toFormattedString(),
+                      style: FlowPayTypography.titleMedium.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        color: FlowPayColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                if (plan.totalFee.minorUnits > 0) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Estimated Fees',
+                        style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.darkTextSecondary,
+                        ),
+                      ),
+                      Text(
+                        plan.totalFee.toFormattedString(),
+                        style: FlowPayTypography.captionStyle(
+                          color: FlowPayColors.darkTextSecondary,
+                        ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
 
           // Route Explanation ("Why this route?")
           if (plan.routeExplanation != null) ...[

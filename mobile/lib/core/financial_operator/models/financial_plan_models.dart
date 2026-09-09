@@ -91,6 +91,11 @@ class PlannedFinancialAction {
   final Currency? destinationCurrency;
   final String? destinationRail;
   final Currency? fundingCurrency;
+  final String status; // 'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'
+  final String? txHash;
+  final String? executionError;
+  final List<String> dependsOn;
+  final String? proposalId;
 
   const PlannedFinancialAction({
     required this.id,
@@ -109,7 +114,60 @@ class PlannedFinancialAction {
     this.destinationCurrency,
     this.destinationRail,
     this.fundingCurrency,
+    this.status = 'PENDING',
+    this.txHash,
+    this.executionError,
+    this.dependsOn = const [],
+    this.proposalId,
   });
+
+  PlannedFinancialAction copyWith({
+    String? id,
+    PlannedActionType? type,
+    Money? amount,
+    String? percentageLabel,
+    String? sourceWalletId,
+    String? sourceWalletName,
+    String? destinationId,
+    String? destinationName,
+    String? destinationType,
+    String? description,
+    String? fxRate,
+    Money? fee,
+    Money? destinationAmount,
+    Currency? destinationCurrency,
+    String? destinationRail,
+    Currency? fundingCurrency,
+    String? status,
+    String? txHash,
+    String? executionError,
+    List<String>? dependsOn,
+    String? proposalId,
+  }) {
+    return PlannedFinancialAction(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      percentageLabel: percentageLabel ?? this.percentageLabel,
+      sourceWalletId: sourceWalletId ?? this.sourceWalletId,
+      sourceWalletName: sourceWalletName ?? this.sourceWalletName,
+      destinationId: destinationId ?? this.destinationId,
+      destinationName: destinationName ?? this.destinationName,
+      destinationType: destinationType ?? this.destinationType,
+      description: description ?? this.description,
+      fxRate: fxRate ?? this.fxRate,
+      fee: fee ?? this.fee,
+      destinationAmount: destinationAmount ?? this.destinationAmount,
+      destinationCurrency: destinationCurrency ?? this.destinationCurrency,
+      destinationRail: destinationRail ?? this.destinationRail,
+      fundingCurrency: fundingCurrency ?? this.fundingCurrency,
+      status: status ?? this.status,
+      txHash: txHash ?? this.txHash,
+      executionError: executionError ?? this.executionError,
+      dependsOn: dependsOn ?? this.dependsOn,
+      proposalId: proposalId ?? this.proposalId,
+    );
+  }
 }
 
 /// Structured Financial Plan
@@ -136,6 +194,7 @@ class FinancialPlan {
   final String? proposalId;
   final String? hashToSign;
   final TransferProposal? transferProposal;
+  final List<TransferProposal> transferProposals;
 
   const FinancialPlan({
     required this.planId,
@@ -158,6 +217,7 @@ class FinancialPlan {
     this.proposalId,
     this.hashToSign,
     this.transferProposal,
+    this.transferProposals = const [],
   });
 
   bool get isQuoteExpired =>
@@ -192,6 +252,7 @@ class FinancialPlan {
     String? proposalId,
     String? hashToSign,
     TransferProposal? transferProposal,
+    List<TransferProposal>? transferProposals,
   }) {
     return FinancialPlan(
       planId: planId ?? this.planId,
@@ -217,6 +278,7 @@ class FinancialPlan {
       proposalId: proposalId ?? this.proposalId,
       hashToSign: hashToSign ?? this.hashToSign,
       transferProposal: transferProposal ?? this.transferProposal,
+      transferProposals: transferProposals ?? this.transferProposals,
     );
   }
 }

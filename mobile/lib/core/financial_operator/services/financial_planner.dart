@@ -1,3 +1,4 @@
+import '../../beneficiaries/beneficiary_model.dart';
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../../financial_engine/financial_engine.dart';
@@ -62,7 +63,26 @@ class FinancialPlanner {
             act.amount.fixedAmount ??
             Money.zero(act.amount.currency);
 
-        final recipient = act.person?.resolvedBeneficiary;
+        final recipient = act.person?.resolvedBeneficiary ??
+            (act.person != null
+                ? Beneficiary(
+                    id: 'ben_${act.person!.rawInput.toLowerCase().replaceAll(' ', '_')}',
+                    nickname: act.person!.rawInput,
+                    legalName: act.person!.rawInput,
+                    aliases: [act.person!.rawInput],
+                    relationship: 'Beneficiary',
+                    destinationCountry: 'Nigeria',
+                    countryFlag: '🇳🇬',
+                    destinationType: 'bank_account',
+                    currency: act.amount.currency == Currency.usd
+                        ? Currency.ngn
+                        : act.amount.currency,
+                    preferredFundingCurrency: Currency.usd,
+                    accountOrAddress: 'Pending Account Details',
+                    isVerified: false,
+                  )
+                : null);
+
         if (recipient != null) {
           paymentRequests.add(
             PaymentRequest(
@@ -84,6 +104,11 @@ class FinancialPlanner {
 
         // Convert batch items into planned financial actions
         for (final item in batchPlan.items) {
+          final originalAct = sendActions.cast<ActionIntent?>().firstWhere(
+                (a) => a?.id == item.id,
+                orElse: () => null,
+              );
+
           plannedActions.add(
             PlannedFinancialAction(
               id: 'item_${planId}_${item.id}',
@@ -105,6 +130,7 @@ class FinancialPlanner {
               destinationAmount: item.destinationAmount,
               destinationCurrency: item.destinationCurrency,
               fundingCurrency: batchPlan.selectedFundingCurrency,
+              dependsOn: originalAct?.dependsOn ?? const [],
             ),
           );
         }
@@ -158,6 +184,8 @@ class FinancialPlanner {
           destinationType: destType,
           description: act.description,
           fee: fee,
+          destinationCurrency: act.destinationCurrency,
+          dependsOn: act.dependsOn,
         ),
       );
     }
