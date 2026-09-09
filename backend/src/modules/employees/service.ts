@@ -177,6 +177,9 @@ export class EmployeeService {
         phoneNumber: effectivePhone,
       });
       bmoniUserId = user.bmoniUserId || user.id;
+      if (!bmoniUserId) {
+        throw new Error('BMONI returned a 2xx response but no user ID was present in the body.');
+      }
     } catch (err: any) {
       const status = err?.statusCode ?? err?.status;
 
