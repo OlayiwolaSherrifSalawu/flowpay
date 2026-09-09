@@ -31,19 +31,36 @@ class WalletBalanceDetails {
     this.purpose,
   });
 
-  /// Total balance across available and reserved funds
+  /// Total balance held in wallet
   Money get total => available.add(reserved);
 
-  /// Effective spendable balance strictly excluding protected funds
+  /// Effective spendable balance strictly excluding reservations and pending holds
   Money get spendableBalance {
-    if (!isProtected || protectedAmount.minorUnits <= 0) {
-      return available;
-    }
-    final remainingMinor = available.minorUnits - protectedAmount.minorUnits;
+    final locked = reserved.minorUnits > protectedAmount.minorUnits
+        ? reserved.minorUnits
+        : protectedAmount.minorUnits;
+    final effectiveAvailable = (available.minorUnits >= locked && reserved.minorUnits == 0)
+        ? available.minorUnits - locked
+        : available.minorUnits;
+    final afterPending = effectiveAvailable - pending.minorUnits;
     return Money.fromMinor(
-      remainingMinor < 0 ? 0 : remainingMinor,
+      afterPending < 0 ? 0 : afterPending,
       currency,
     );
+  }
+
+  Money get spendable => spendableBalance;
+
+  bool get hasReservations =>
+      reserved.minorUnits > 0 || protectedAmount.minorUnits > 0;
+
+  /// Human-friendly explanation of wallet balances
+  String get balanceSummary {
+    if (reserved.minorUnits > 0 || protectedAmount.minorUnits > 0) {
+      final resAmt = reserved.minorUnits > 0 ? reserved : protectedAmount;
+      return 'Total: ${total.toFormattedString()} • Reserved: ${resAmt.toFormattedString()} • Spendable: ${spendableBalance.toFormattedString()}';
+    }
+    return 'Total: ${total.toFormattedString()} • Spendable: ${spendableBalance.toFormattedString()}';
   }
 
   WalletBalanceDetails copyWith({

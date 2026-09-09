@@ -197,10 +197,27 @@ class FinancialIntentEngine {
     );
 
     // Strip trailing shared constraint e.g. "from my USD wallet" so it doesn't break clause splits
-    cleaned = cleaned.replaceFirst(
-      RegExp(r',?\s*(?:from|using)\s+(?:my\s+)?[A-Za-z0-9]+\s+wallet', caseSensitive: false),
-      '',
-    );
+    // but preserve when part of a "from ... wallet to ... wallet" transfer
+    final isCrossWalletTransfer = RegExp(
+      r'(?:from|using)\s+(?:my\s+)?[A-Za-z0-9]+\s+wallet.*(?:to|into)\s+(?:my\s+)?[A-Za-z0-9]+\s+wallet',
+      caseSensitive: false,
+    ).hasMatch(cleaned);
+
+    if (!isCrossWalletTransfer) {
+      cleaned = cleaned.replaceFirst(
+        RegExp(r',?\s*(?:from|using)\s+(?:my\s+)?[A-Za-z0-9]+\s+wallet', caseSensitive: false),
+        '',
+      );
+    }
+
+    // For mission rules like "Whenever I get paid in USD, keep 20%", do not split the condition from the rule on comma
+    if (cleaned.toLowerCase().startsWith('whenever') ||
+        cleaned.toLowerCase().startsWith('every time')) {
+      cleaned = cleaned.replaceFirstMapped(
+        RegExp(r'^(whenever|every time)[^,;]+,', caseSensitive: false),
+        (match) => match.group(0)!.replaceAll(',', ' '),
+      );
+    }
 
     // Split on delimiters: comma, semicolon, period, and, then, also, plus, as well as, &
     final rawParts = cleaned.split(RegExp(
@@ -248,13 +265,17 @@ class FinancialIntentEngine {
       return _parseRemainderClause(clause, actionId);
     }
 
-    // 4. Convert currency (e.g. "Convert $1,000 to Naira", "convert 100 eur to usd")
+    // 4. Cross-wallet transfer / Conversion (e.g. "Send 100,000 from my naira wallet to my usd wallet", "move 100k from naira to dollars")
+    final crossWallet = _parseCrossWalletClause(clause, actionId, sharedSourceWallet: sharedSourceWallet);
+    if (crossWallet != null) return crossWallet;
+
+    // 5. Convert currency (e.g. "Convert $1,000 to Naira", "convert 100 eur to usd")
     if (lower.contains('convert') || lower.contains('swap')) {
       final conv = _parseConvertClause(clause, actionId);
       if (conv != null) return conv;
     }
 
-    // 5. Send money / Pay beneficiary (e.g. "Send $500 to Mom", "30 usd to dad", "Mom gets $20", "Give Mom 20 dollars")
+    // 6. Send money / Pay beneficiary (e.g. "Send $500 to Mom", "30 usd to dad", "Mom gets $20", "Give Mom 20 dollars")
     final send = _parseSendClause(clause, actionId, sharedSourceWallet: sharedSourceWallet);
     if (send != null) return send;
 
@@ -314,14 +335,17 @@ class FinancialIntentEngine {
         if (RegExp(r'^(?:send|pay|wire|transfer|give|convert|keep|reserve)\b', caseSensitive: false).hasMatch(rawLower)) {
           continue;
         }
-        // Avoid capturing reserved words
-        if (!['tax', 'taxes', 'savings', 'emergency', 'reserve', 'wallet']
-            .contains(rawLower)) {
-          recipient = raw
-              .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
-              .trim();
-          break;
+        // Avoid capturing reserved words or wallet destinations
+        if (rawLower.endsWith('wallet') ||
+            rawLower.endsWith('wallets') ||
+            ['tax', 'taxes', 'savings', 'emergency', 'reserve', 'wallet', 'usd', 'dollars', 'dollar', 'naira', 'ngn', 'pesos', 'peso', 'mxn', 'euros', 'euro', 'eur', 'cad', 'gbp', 'pounds']
+                .contains(rawLower)) {
+          continue;
         }
+        recipient = raw
+            .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
+            .trim();
+        break;
       }
     }
 
@@ -333,8 +357,11 @@ class FinancialIntentEngine {
       ).firstMatch(clause);
       if (payMatch != null) {
         final raw = payMatch.group(1)!.trim();
-        if (!['tax', 'taxes', 'savings', 'emergency', 'reserve', 'wallet']
-            .contains(raw.toLowerCase())) {
+        final payLower = raw.toLowerCase();
+        if (!payLower.endsWith('wallet') &&
+            !payLower.endsWith('wallets') &&
+            !['tax', 'taxes', 'savings', 'emergency', 'reserve', 'wallet', 'usd', 'dollars', 'dollar', 'naira', 'ngn', 'pesos', 'peso', 'mxn', 'euros', 'euro', 'eur', 'cad', 'gbp', 'pounds']
+                .contains(payLower)) {
           recipient = raw
               .replaceFirst(RegExp(r'^(?:my\s+|our\s+)', caseSensitive: false), '')
               .trim();
@@ -445,6 +472,124 @@ class FinancialIntentEngine {
       amount: amountEntity,
       purpose: 'mission',
       description: 'Automated Money Mission: $clause',
+    );
+  }
+
+  static ActionIntent? _parseCrossWalletClause(
+    String clause,
+    String actionId, {
+    String? sharedSourceWallet,
+  }) {
+    final lower = clause.toLowerCase();
+
+    final isMoveOrConvert = lower.contains('convert') ||
+        lower.contains('swap') ||
+        lower.contains('change') ||
+        lower.contains('exchange') ||
+        lower.contains('move') ||
+        lower.contains('put') ||
+        lower.contains('transfer') ||
+        lower.contains('send');
+
+    if (!isMoveOrConvert) return null;
+
+    // Pattern A: destination wallet (e.g. "to my usd wallet", "into my dollar wallet")
+    final destWalletMatch = RegExp(
+      r'(?:to|into)\s+(?:my\s+)?([A-Za-z0-9]+)\s+wallet\b',
+      caseSensitive: false,
+    ).firstMatch(clause);
+
+    // Pattern B: destination currency (e.g. "to dollars", "to usd", "to naira", "to ngn")
+    final destCurrMatch = RegExp(
+      r'(?:to|into)\s+(?:my\s+)?(usd|dollars?|naira|ngn|cngn|pesos?|mxn|mexe|cad|cadc|euros?|eur|eure|pounds?|gbp)\b',
+      caseSensitive: false,
+    ).firstMatch(clause);
+
+    // Pattern C: source wallet (e.g. "from my naira wallet", "using my usd wallet")
+    final srcWalletMatch = RegExp(
+      r'(?:from|using)\s+(?:my\s+)?([A-Za-z0-9]+)\s+wallet\b',
+      caseSensitive: false,
+    ).firstMatch(clause);
+
+    // Pattern D: source currency (e.g. "from naira", "from dollars", "from eur")
+    final srcCurrMatch = RegExp(
+      r'(?:from|using)\s+(?:my\s+)?(usd|dollars?|naira|ngn|cngn|pesos?|mxn|mexe|cad|cadc|euros?|eur|eure|pounds?|gbp)\b',
+      caseSensitive: false,
+    ).firstMatch(clause);
+
+    final hasWalletDest = destWalletMatch != null;
+    final hasBothCurrencies = (srcWalletMatch != null || srcCurrMatch != null || sharedSourceWallet != null) &&
+        (destWalletMatch != null || destCurrMatch != null);
+    final isExplicitConvert = (lower.contains('convert') || lower.contains('swap') || lower.contains('change')) &&
+        (destWalletMatch != null || destCurrMatch != null);
+
+    if (!hasWalletDest && !hasBothCurrencies && !isExplicitConvert) {
+      return null;
+    }
+
+    final rawDest = destWalletMatch != null
+        ? destWalletMatch.group(1)!
+        : (destCurrMatch != null ? destCurrMatch.group(1)! : 'USD');
+    final destCurrency = _detectCurrency(rawDest, null);
+    final destWalletName = '${destCurrency.code} Wallet';
+
+    // Resolve source currency and wallet
+    Currency sourceCurrency = Currency.usd;
+    String? sourceWallet = sharedSourceWallet;
+
+    if (srcWalletMatch != null) {
+      sourceCurrency = _detectCurrency(srcWalletMatch.group(1)!, null);
+      sourceWallet = '${sourceCurrency.code} Wallet';
+    } else if (srcCurrMatch != null) {
+      sourceCurrency = _detectCurrency(srcCurrMatch.group(1)!, null);
+      sourceWallet = '${sourceCurrency.code} Wallet';
+    } else if (sharedSourceWallet != null) {
+      sourceCurrency = _detectCurrency(sharedSourceWallet, null);
+      sourceWallet = sharedSourceWallet;
+    } else {
+      if (clause.contains('₦') || lower.contains('naira') || lower.contains('ngn')) {
+        sourceCurrency = Currency.ngn;
+        sourceWallet = 'NGN Wallet';
+      } else if (clause.contains('€') || lower.contains('euro') || lower.contains('eur')) {
+        sourceCurrency = Currency.eur;
+        sourceWallet = 'EUR Wallet';
+      } else if (clause.contains('mex') || lower.contains('peso')) {
+        sourceCurrency = Currency.mxn;
+        sourceWallet = 'MXN Wallet';
+      }
+    }
+
+    AmountEntity amountEntity = _extractAmount(clause);
+    if (amountEntity.knowledgeState != EntityKnowledgeState.known) {
+      return null;
+    }
+
+    // Override currency if source is non-USD and amount itself has no explicit dollar symbol or USD suffix
+    final hasExplicitDollar = RegExp(r'\$\s*[0-9]+').hasMatch(clause);
+    final hasExplicitUsdAmount = RegExp(r'[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?\s*(?:usd|dollars?)\b', caseSensitive: false).hasMatch(clause);
+    if (sourceCurrency != Currency.usd && !hasExplicitDollar && !hasExplicitUsdAmount) {
+      if (amountEntity.fixedAmount != null) {
+        amountEntity = amountEntity.copyWith(
+          fixedAmount: Money.fromMinor(amountEntity.fixedAmount!.minorUnits, sourceCurrency),
+          currency: sourceCurrency,
+        );
+      }
+    }
+
+    return ActionIntent(
+      id: 'act_$actionId',
+      intentType: FinancialIntentType.convertCurrency,
+      amount: amountEntity,
+      destinationCurrency: destCurrency,
+      sourceWallet: sourceWallet ?? '${sourceCurrency.code} Wallet',
+      destination: DestinationEntity(
+        type: DestinationType.wallet,
+        rawInput: destWalletName,
+        resolvedWalletName: destWalletName,
+        resolvedCurrency: destCurrency,
+        knowledgeState: EntityKnowledgeState.known,
+      ),
+      description: 'Transfer ${amountEntity.formattedDisplay} from ${sourceWallet ?? "${sourceCurrency.code} Wallet"} to $destWalletName',
     );
   }
 
@@ -612,6 +757,11 @@ class FinancialIntentEngine {
       res = res.replaceAll(
           RegExp('\\b${entry.key}\\b', caseSensitive: false), entry.value);
     }
+    // Expand shorthand 'k' notation like 100k -> 100000, 50k -> 50000
+    res = res.replaceAllMapped(
+      RegExp(r'(\d+)\s*k\b', caseSensitive: false),
+      (m) => '${m.group(1)}000',
+    );
     return res;
   }
 

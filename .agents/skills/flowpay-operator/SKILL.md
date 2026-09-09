@@ -93,10 +93,27 @@ description: >-
   * Multi-payment card UI in `AiFinancialPlanCard` with batch badge, total box, and action statuses.
   * Passed all 12 Section 20 requirements and Section 21 Critical Acceptance Test.
 * [x] Passed all 163 tests in the mobile suite and 99 tests in the backend suite with 0 analyzer lints.
+* [x] **Financial Intelligence Engine & Real Mission Runtime Overhaul (Conversations 1 to 7)**:
+  * **Financial World Model (`mobile/lib/core/financial_operator/models/financial_world_model.dart`)**: Single cohesive state representing real-time wallets, spendable balances, active reservations, beneficiaries, and active missions, eliminating isolated guesses and command-parsing fragility.
+  * **Reservation Ledger (`mobile/lib/core/financial_engine/models/reservation_ledger.dart`)**: First-class financial service singleton `ReservationLedger.instance` enforcing ledger accounting for fund commitments (`tax`, `savings`, `emergency`). Distinguishes `totalBalance` from `spendableBalance` (`spendableBalance = totalBalance - activeReservations`).
+  * **Mission Runtime Engine (`mobile/lib/core/missions/mission_runtime_engine.dart`)**: Real event-driven mission runtime listening to `WalletInflowEvent`s. Executes rules in strict priority order:
+    1. Reserving percentages in minor integer units.
+    2. Enforcing partial funding protection (if remaining spendable balance < next action amount, records `PAYMENT_NOT_FUNDED` without touching reserves).
+    3. Emitting clear execution logs and audit records.
+  * **7 Target Conversations Fully Supported & Verified (`mobile/test/financial_operator_conversations_test.dart`)**:
+    1. *Conversation 1 (First-class Wallets)*: Cross-wallet transfer & conversion ("Send 100,000 from my naira wallet to my usd wallet") with dual-balance impact projections and live FX quotes.
+    2. *Conversation 2 (Mission Creation with Clarification)*: Trigger-based mission creation ("Whenever I get paid in USD, keep 20%") cleanly identifying missing destination, prompting with 1-tap options ("Tax Reserve", "Emergency Reserve", "General Savings"), and provisioning upon response ("Save it for taxes").
+    3. *Conversation 3 (In-place Mission Modification)*: Seamless in-place rate updates ("Actually make it 25%") modifying the existing mission without creating duplicates.
+    4. *Conversation 4 (Multi-Action Mission with Spendable Balance)*: Appending rules ("Also send 200 to my designer whenever there's enough") with priority-based execution order and spendable-balance conditions.
+    5. *Conversation 5 (Real Inflow Trigger & Partial Funding Protection)*: Simulating $250 USD inflow triggers 25% tax reservation ($62.50 USD), checks remaining spendable balance ($187.50 USD), detects designer action shortfall ($200 USD required), marks designer payment `PAYMENT_NOT_FUNDED`, and preserves reserved funds intact.
+    6. *Conversation 6 (Reservation Ledger & Transparency)*: Inquiries ("How much can I spend from my USD wallet?", "Why can't I spend this money?", "How much have I saved for taxes?") answered truthfully and deterministically from `ReservationLedger`.
+    7. *Conversation 7 (Mission Lifecycle Control)*: Conversational pausing ("Pause my tax mission") and resuming ("Resume it") updating state immediately without duplicate rules.
+  * **Verification**: All 30 core intelligence tests (`financial_operator_test.dart`) and all 7 conversation acceptance tests (`financial_operator_conversations_test.dart`) pass. Full suite: **170/170 mobile tests green (100%), 99/99 backend tests green (100%), 0 analyzer issues**.
 
 ---
 
 ## 🎯 4. What Needs to Be Done
+* [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 * [ ] Integrate with smart contract execution provider once teammate completes contracts.
 * [ ] Add voice input transcription directly into `AiOperatorModal`.
 * [ ] Support recurring schedule cadence triggers in Money Missions.

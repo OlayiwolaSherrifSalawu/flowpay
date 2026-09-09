@@ -1,3 +1,4 @@
+import '../../financial_engine/models/reservation_ledger.dart';
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../models/financial_plan_models.dart';
@@ -70,24 +71,37 @@ class FinancialPolicyValidator {
       }
     }
 
-    // 4. Single-wallet balance sufficiency check (only if multi-wallet funding is NOT active)
+    // 4. Balance sufficiency check (considering active reservations)
     final isMultiWalletFunded = plan.selectedFundingCurrency != null &&
         plan.selectedFundingCurrency != Currency.usd &&
         plan.shortfall != null &&
         plan.shortfall!.minorUnits > 0;
 
     if (!isMultiWalletFunded && plan.validation.errors.isEmpty) {
-      final usdWallet =
-          await contextService.getWalletForCurrency(Currency.usd);
-      final availableBalance =
-          usdWallet?.balance ?? Money.zero(Currency.usd);
+      final fundingCurrency = plan.selectedFundingCurrency ?? plan.totalDebit.currency;
+      final sourceWallet =
+          await contextService.getWalletForCurrency(fundingCurrency);
+      final rawBalance =
+          sourceWallet?.balance ?? Money.zero(fundingCurrency);
+
+      final spendableBalance = sourceWallet != null
+          ? ReservationLedger.instance.getSpendableBalance(sourceWallet.id, rawBalance)
+          : rawBalance;
 
       final totalRequired = plan.totalDebit.minorUnits + plan.totalFee.minorUnits;
 
-      if (totalRequired > availableBalance.minorUnits) {
-        errors.add(
-          'You don\'t have enough ${Currency.usd.code} to complete this plan. Available: ${availableBalance.toFormattedString()}, Requested: ${plan.totalDebit.toFormattedString()} (plus ${plan.totalFee.toFormattedString()} network fee).',
-        );
+      if (totalRequired > spendableBalance.minorUnits) {
+        if (totalRequired <= rawBalance.minorUnits) {
+          final reserved = ReservationLedger.instance.getReservedAmount(
+              sourceWallet?.id ?? '', fundingCurrency);
+          errors.add(
+            'You have ${rawBalance.toFormattedString()} in your ${fundingCurrency.code} wallet, but ${reserved.toFormattedString()} is reserved by your missions, so only ${spendableBalance.toFormattedString()} is currently available to spend.',
+          );
+        } else {
+          errors.add(
+            'You don\'t have enough ${fundingCurrency.code} to complete this plan. Available to spend: ${spendableBalance.toFormattedString()}, Requested: ${plan.totalDebit.toFormattedString()} (plus ${plan.totalFee.toFormattedString()} fee).',
+          );
+        }
       }
     }
 

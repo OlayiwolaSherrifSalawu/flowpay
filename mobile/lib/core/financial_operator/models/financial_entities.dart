@@ -263,12 +263,17 @@ class ActionIntent {
     );
   }
 
+  bool get isInternalTransfer =>
+      destination?.type == DestinationType.wallet ||
+      intentType == FinancialIntentType.convertCurrency;
+
   List<String> get missingFields {
     final list = <String>[];
     if (intentType == FinancialIntentType.sendMoney ||
         intentType == FinancialIntentType.payBeneficiary) {
-      if (person == null ||
-          person!.knowledgeState != EntityKnowledgeState.known) {
+      if (!isInternalTransfer &&
+          (person == null ||
+              person!.knowledgeState != EntityKnowledgeState.known)) {
         list.add('recipient');
       }
     }
