@@ -262,7 +262,9 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     final amountMoney = Money.fromMajorString(amountText, _selectedCurrency);
     final intent = TransferIntent(
       intentId: 'tx_intent_${DateTime.now().millisecondsSinceEpoch}',
-      originalPrompt: _nlController.text.trim(),
+      originalPrompt: _nlController.text.trim().isNotEmpty
+          ? _nlController.text.trim()
+          : 'Send ${amountMoney.toMajorString()} ${_selectedCurrency.code} to $recipient',
       recipient: recipient,
       amount: amountMoney.toMajorString(),
       amountMinor: amountMoney.amountMinor.toString(),
