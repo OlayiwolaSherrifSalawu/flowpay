@@ -105,10 +105,9 @@ describe('Employee Management Validation & Lifecycle', () => {
     assert.strictEqual(EmployeeService.resolveCurrency('US'), 'USD');
   });
 
-  it('rejects and sets status FAILED with null bmoniUserId when BMONI user creation fails', async () => {
+  it('returns status FAILED with null bmoniUserId when BMONI user creation fails', async () => {
     const { bmoniClient } = await import('../../bmoni/client.js');
     const { prisma, isPostgresDb } = await import('../../db/index.js');
-    const { FlowPayError } = await import('../../core/errors.js');
 
     const originalCreate = bmoniClient.createEmployeeUser;
     bmoniClient.createEmployeeUser = async () => {
@@ -117,19 +116,18 @@ describe('Employee Management Validation & Lifecycle', () => {
 
     let createdRecordId: string | undefined;
     try {
-      await assert.rejects(
-        async () => {
-          await EmployeeService.createEmployee({
-            firstName: 'TestFail',
-            lastName: 'User',
-            email: 'fail-test@example.com',
-            country: 'NG',
-            payrollAmountMinor: 100000,
-          });
-        },
-        FlowPayError,
-        'createEmployee must throw FlowPayError / BmoniUnavailableError on failure'
-      );
+      const result = await EmployeeService.createEmployee({
+        firstName: 'TestFail',
+        lastName: 'User',
+        email: 'fail-test@example.com',
+        country: 'NG',
+        payrollAmountMinor: 100000,
+      });
+
+      assert.strictEqual(result.employee.status, 'FAILED');
+      assert.strictEqual(result.employee.failedStage, 'BMONI_USER_CREATION');
+      assert.strictEqual(result.bmoniUserId, undefined);
+      assert.strictEqual(result.employee.bmoniUserId, null, 'Must never assign a fake bmoniUserId');
 
       if (isPostgresDb()) {
         const record = await prisma.employee.findFirst({
