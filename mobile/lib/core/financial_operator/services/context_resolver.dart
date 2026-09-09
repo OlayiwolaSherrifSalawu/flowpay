@@ -1,6 +1,7 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../models/financial_entities.dart';
+import '../models/financial_intent_types.dart';
 import 'financial_context_service.dart';
 
 /// FlowPay Context Resolver
@@ -67,6 +68,40 @@ class ContextResolver {
       );
     }
 
+    final lower = query.toLowerCase();
+
+    // 1. Intercept wallet references so they are never misidentified as beneficiaries
+    if (lower.contains('wallet') ||
+        ['usd', 'dollars', 'dollar', 'naira', 'ngn', 'cngn', 'pesos', 'peso', 'mxn', 'euros', 'euro', 'eur', 'cad', 'gbp', 'pounds']
+            .contains(lower)) {
+      final wallets = await contextService.getWallets();
+      for (final w in wallets) {
+        final code = w.currency.code.toLowerCase();
+        final isUsd = w.currency == Currency.usd && (lower.contains('dollar') || lower.contains('usd'));
+        final isNgn = w.currency == Currency.ngn && (lower.contains('naira') || lower.contains('ngn'));
+        final isMxn = w.currency == Currency.mxn && (lower.contains('peso') || lower.contains('mxn'));
+        final isEur = w.currency == Currency.eur && (lower.contains('euro') || lower.contains('eur'));
+        final isCad = w.currency == Currency.cad && lower.contains('cad');
+
+        if (lower.contains(code) || isUsd || isNgn || isMxn || isEur || isCad) {
+          return action.copyWith(
+            person: null,
+            intentType: FinancialIntentType.convertCurrency,
+            destinationCurrency: w.currency,
+            destination: DestinationEntity(
+              type: DestinationType.wallet,
+              rawInput: '${w.currency.code} Wallet',
+              resolvedWalletId: w.id,
+              resolvedWalletName: '${w.currency.code} Wallet',
+              resolvedCurrency: w.currency,
+              knowledgeState: EntityKnowledgeState.known,
+            ),
+            description: 'Transfer ${action.amount.formattedDisplay} to ${w.currency.code} Wallet',
+          );
+        }
+      }
+    }
+
     final result = await contextService.resolveBeneficiary(query);
 
     if (result.isUnique) {
@@ -120,7 +155,14 @@ class ContextResolver {
     final wallets = await contextService.getWallets();
     for (final w in wallets) {
       final name = '${w.currency.code} Wallet'.toLowerCase();
-      if (name.contains(query) || query.contains(w.currency.code.toLowerCase())) {
+      final code = w.currency.code.toLowerCase();
+      final isUsd = w.currency == Currency.usd && (query.contains('dollar') || query.contains('usd'));
+      final isNgn = w.currency == Currency.ngn && (query.contains('naira') || query.contains('ngn'));
+      final isMxn = w.currency == Currency.mxn && (query.contains('peso') || query.contains('mxn'));
+      final isEur = w.currency == Currency.eur && (query.contains('euro') || query.contains('eur'));
+      final isCad = w.currency == Currency.cad && query.contains('cad');
+
+      if (name.contains(query) || query.contains(code) || isUsd || isNgn || isMxn || isEur || isCad) {
         return action.copyWith(
           destination: dest.copyWith(
             type: DestinationType.wallet,
@@ -133,7 +175,7 @@ class ContextResolver {
       }
     }
 
-    // If destination is Tax or Savings and not matched explicitly, check default savings
+    // If destination is Savings
     if (query.contains('saving')) {
       final usdWallet = await contextService.getWalletForCurrency(Currency.usd);
       return action.copyWith(
@@ -147,7 +189,7 @@ class ContextResolver {
       );
     }
 
-    // Destination is unknown (e.g. Tax Reserve has not been created yet)
+    // Destination is unknown
     return action.copyWith(
       destination: dest.copyWith(
         knowledgeState: EntityKnowledgeState.unknown,

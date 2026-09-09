@@ -72,13 +72,18 @@ class DemoFinancialExecutionProvider implements FinancialExecutionProvider {
     }
 
     try {
-      // 1. Debit wallets according to balance impacts
+      // 1. Debit and credit wallets according to balance impacts
       if (plan.expectedBalanceChanges.isNotEmpty) {
         for (final impact in plan.expectedBalanceChanges) {
           if (impact.isDebit) {
             await walletRepo.debitWallet(
               walletId: impact.walletId,
               amount: Money.fromMinor(impact.delta.minorUnits.abs(), impact.currency),
+            );
+          } else if (impact.isCredit) {
+            await walletRepo.creditWallet(
+              walletId: impact.walletId,
+              amount: impact.delta,
             );
           }
         }
