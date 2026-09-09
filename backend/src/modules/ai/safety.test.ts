@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert';
+import { env } from '../../config/env.js';
 import { FinancialIntentInterpreter } from './interpreter.js';
 import { FinancialSafetyValidator } from './validator.js';
 import { FinancialSafetyError } from '../../core/errors.js';
 import type { SendMoneyAction, ConvertCurrencyAction, CreateReserveAction } from './types.js';
+
+// Ensure safety unit tests run deterministically and offline without hitting Gemini rate limits
+const originalGeminiKey = env.GEMINI_API_KEY;
+env.GEMINI_API_KEY = '';
 
 test('Financial Safety - interprets single transfer with backward compatibility', async () => {
   const prompt = 'Send $500 to bunch.dillon@example.ng';

@@ -29,7 +29,7 @@ export class FinancialIntentInterpreter {
       try {
         const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
         const response = await ai.models.generateContent({
-          model: 'gemini-3.1-flash',
+          model: 'gemini-2.5-flash',
           contents: `Parse this natural language financial request into ALL structured financial actions: "${trimmed}"`,
           config: {
             systemInstruction: `You are the FlowPay Multi-Action Financial AI Interpreter.
@@ -147,15 +147,16 @@ CRITICAL RULES:
               }
 
               // Default to SEND_MONEY
+              const rec = this.capitalize(act.recipient || 'unspecified recipient');
               return {
                 id: actId,
                 type: 'SEND_MONEY',
                 amount: amountFormatted,
                 amountMinor,
                 currency,
-                recipient: act.recipient || 'unspecified recipient',
+                recipient: rec,
                 sourceWallet: act.sourceWallet,
-                description: act.description || `Send ${amountFormatted} ${currency} to ${act.recipient ?? 'recipient'}`,
+                description: act.description || `Send ${amountFormatted} ${currency} to ${rec}`,
                 dependsOn: act.dependsOn,
               } as SendMoneyAction;
             });
@@ -449,6 +450,27 @@ CRITICAL RULES:
       };
     }
 
+    // Pattern 2b: "Dad 30" or "Dad $30" or "Dad 30 dollars" (implicit conjunction clause)
+    const implicitRecipientMatch = clause.match(
+      /^([A-Za-z0-9._%+-]+(?:\s+[A-Za-z0-9]+)?)\s+(?:[\$₦€£])?([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(usd|ngn|eur|mxn|cad|dollars?|naira|pesos?)?\.?$/i
+    );
+    if (implicitRecipientMatch) {
+      const recipient = implicitRecipientMatch[1].trim();
+      const rawAmt = implicitRecipientMatch[2].replace(/,/g, '');
+      const curr = this.normalizeCurrency(implicitRecipientMatch[3] || this.detectCurrency(clause));
+      const money = Money.fromMajor(rawAmt, curr);
+      return {
+        id: actionId,
+        type: 'SEND_MONEY',
+        amount: money.toMajorString(),
+        amountMinor: money.amountMinor.toString(),
+        currency: curr,
+        recipient,
+        sourceWallet,
+        description: `Send ${money.toMajorString()} ${curr} to ${recipient}`,
+      };
+    }
+
     // Pattern 3: Standard "[send/pay/wire] [amt] [curr] to [recipient]" or implicit "[amt] [curr] to [recipient]"
     const standardMatch = clause.match(
       /(?:send|pay|wire|transfer)?\s*(?:[\$₦€£])?([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(usd|ngn|eur|mxn|cad|dollars?|naira|pesos?)?\s+(?:to|for)\s+(?:my\s+|our\s+)?(0x[a-fA-F0-9]{40}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)/i
@@ -507,8 +529,11 @@ CRITICAL RULES:
    * to determine if all intended actions were extracted.
    */
   static validateCompleteness(text: string, actions: FinancialAction[]): CompletenessReport {
-    // Detect all monetary amounts e.g. "$20", "30 usd", "2000 usd", "100 eur", "300 for tax"
-    const amountMatches = text.match(/(?:[\$₦€£]\s*[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?\s*(?:usd|ngn|eur|mxn|cad|dollars?|naira|pesos?|euros?))/gi) || [];
+    // Detect all monetary amounts e.g. "$20", "30 usd", "2000 usd", "100 eur", "300 for tax", "20 to mom"
+    const amountMatches =
+      text.match(
+        /(?:[\$₦€£]\s*[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|\b[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?(?:\s*(?:usd|ngn|eur|mxn|cad|dollars?|naira|pesos?|euros?))?)/gi
+      ) || [];
 
     // Detect all targets: "to <recipient>", "keep <amt> for <target>", "convert <amt> <curr> to <curr>"
     const targetMatches = text.match(/(?:to|for)\s+(?:my\s+)?[A-Za-z0-9._%+-]+/gi) || [];
@@ -550,7 +575,8 @@ CRITICAL RULES:
 
       const alreadyExists = repaired.some(
         (a) =>
-          a.amount === Money.fromMajor(rawAmt, curr).toMajorString() &&
+          'amount' in a &&
+          (a as any).amount === Money.fromMajor(rawAmt, curr).toMajorString() &&
           ((a.type === 'SEND_MONEY' && (a as SendMoneyAction).recipient.toLowerCase() === target.toLowerCase()) ||
             (a.type === 'CREATE_RESERVE' && (a as CreateReserveAction).purpose.toLowerCase() === target.toLowerCase()))
       );
