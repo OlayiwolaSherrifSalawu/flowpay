@@ -12,6 +12,7 @@ import '../repositories/transfer_repository.dart';
 import '../repositories/wallet_repository.dart';
 import '../transfers/transfer_funding.dart';
 import '../transfers/transfer_intent.dart';
+import '../transfers/transfer_models.dart';
 import 'models/financial_entities.dart';
 import 'models/financial_intent_types.dart';
 import 'models/financial_plan_models.dart';
@@ -334,14 +335,33 @@ class FinancialOperator extends ChangeNotifier {
               return;
             }
 
-            // Resolve beneficiary from answer
-            // e.g. "Mary, my Nigerian beneficiary" -> extracts Mary or resolves
-            final beneficiaryQuery = _extractBeneficiaryName(answer);
-            final res = await contextService.resolveBeneficiary(beneficiaryQuery);
+            // Check disambiguation candidates first
+            Beneficiary? match;
+            if (prompt.disambiguationCandidates.isNotEmpty) {
+              final lowerAnswer = answer.toLowerCase();
+              for (final c in prompt.disambiguationCandidates) {
+                final b = c.resolvedBeneficiary;
+                if (b != null) {
+                  if (lowerAnswer.contains(b.legalName.toLowerCase()) ||
+                      lowerAnswer.contains(b.nickname.toLowerCase()) ||
+                      lowerAnswer.contains(b.destinationCountry.toLowerCase()) ||
+                      lowerAnswer.contains(b.accountOrAddress.toLowerCase()) ||
+                      b.aliases.any((a) => lowerAnswer.contains(a.toLowerCase()))) {
+                    match = b;
+                    break;
+                  }
+                }
+              }
+            }
 
-            Beneficiary? match = res.match;
-            if (match == null && res.candidates.isNotEmpty) {
-              match = res.candidates.first;
+            // If not matched by candidates, resolve beneficiary from answer
+            if (match == null) {
+              final beneficiaryQuery = _extractBeneficiaryName(answer);
+              final res = await contextService.resolveBeneficiary(beneficiaryQuery);
+              match = res.match;
+              if (match == null && res.candidates.isNotEmpty) {
+                match = res.candidates.first;
+              }
             }
 
             // If still null, check if any existing beneficiary matches Nigeria / Mary
@@ -652,98 +672,100 @@ class FinancialOperator extends ChangeNotifier {
 
     FinancialPlan reviewPlan = plan;
 
-    // If plan involves an actual transfer, create real backend / demo proposal
-    final sendAction = plan.actions.cast<PlannedFinancialAction?>().firstWhere(
-          (a) => a?.type == PlannedActionType.send,
-          orElse: () => null,
-        );
+    // If plan involves transfer actions, generate proposals for all send actions
+    final sendActions = plan.actions.where((a) => a.type == PlannedActionType.send).toList();
 
-    if (sendAction != null) {
+    if (sendActions.isNotEmpty) {
       try {
-        final transferIntent = TransferIntent(
-          intentId: 'tx_intent_${DateTime.now().millisecondsSinceEpoch}',
-          originalPrompt: intent.originalPrompt,
-          recipient: sendAction.destinationName,
-          amount: sendAction.amount.toMajorString(),
-          amountMinor: sendAction.amount.amountMinor.toString(),
-          currency: sendAction.amount.currency,
-          purpose: sendAction.description,
-          confidenceScore: 0.95,
-          requiresExplicitApproval: true,
-        );
-
         final wallets = await contextService.getWallets();
-        final inspection = await _transferRepo.inspectBalances(
-          intent: transferIntent,
-          wallets: wallets,
-        );
+        final proposals = <TransferProposal>[];
+        final updatedActions = <PlannedFinancialAction>[];
 
-        TransferFundingOption? fundingOption = inspection.recommendedFundingOption;
-        if (overrideFundingCurrency != null) {
-          fundingOption = inspection.allFundingOptions
-              .cast<TransferFundingOption?>()
-              .firstWhere(
-                (o) => o?.fundingCurrency == overrideFundingCurrency,
-                orElse: () => inspection.recommendedFundingOption,
-              );
-        }
-
-        if (fundingOption != null) {
-          final proposal = await _transferRepo.createProposal(
-            intent: transferIntent,
-            fundingOption: fundingOption,
-          );
-
-          reviewPlan = plan.copyWith(
-            proposalId: proposal.proposalId,
-            hashToSign: proposal.hashToSign,
-            transferProposal: proposal,
-          );
-        } else {
-          // If inspection couldn't find an option but user has balance in a wallet:
-          final matchingWallet = wallets.cast<WalletAccount?>().firstWhere(
-                (w) =>
-                    w != null &&
-                    w.balance.amountMinor >= sendAction.amount.amountMinor,
-                orElse: () => null,
-              );
-          if (matchingWallet != null) {
-            final fallbackOption = TransferFundingOption(
-              fundingWalletId: matchingWallet.id,
-              fundingCurrency: matchingWallet.currency,
-              fundingWalletName: '${matchingWallet.currency.code} Smart Wallet',
-              availableBalance: matchingWallet.balance,
-              requiresConversion: false,
-              conversionLabel: 'Direct ${matchingWallet.currency.code} Transfer',
-              exchangeRate: 1.0,
-              convertedDebit: sendAction.amount,
-              networkFee: Money.fromMinor(BigInt.from(50), matchingWallet.currency),
-              fxFee: Money.zero(matchingWallet.currency),
-              totalDebit: sendAction.amount,
-              targetPayment: sendAction.amount,
+        for (final act in plan.actions) {
+          if (act.type == PlannedActionType.send) {
+            final transferIntent = TransferIntent(
+              intentId: 'tx_intent_${act.id}_${DateTime.now().millisecondsSinceEpoch}',
+              originalPrompt: intent.originalPrompt,
+              recipient: act.destinationName,
+              amount: act.amount.toMajorString(),
+              amountMinor: act.amount.amountMinor.toString(),
+              currency: act.amount.currency,
+              purpose: act.description,
+              confidenceScore: 0.95,
+              requiresExplicitApproval: true,
             );
-            final proposal = await _transferRepo.createProposal(
+
+            final inspection = await _transferRepo.inspectBalances(
               intent: transferIntent,
-              fundingOption: fallbackOption,
+              wallets: wallets,
             );
-            reviewPlan = plan.copyWith(
-              proposalId: proposal.proposalId,
-              hashToSign: proposal.hashToSign,
-              transferProposal: proposal,
-            );
+
+            TransferFundingOption? fundingOption = inspection.recommendedFundingOption;
+            if (overrideFundingCurrency != null) {
+              fundingOption = inspection.allFundingOptions
+                  .cast<TransferFundingOption?>()
+                  .firstWhere(
+                    (o) => o?.fundingCurrency == overrideFundingCurrency,
+                    orElse: () => inspection.recommendedFundingOption,
+                  );
+            }
+
+            if (fundingOption != null) {
+              final proposal = await _transferRepo.createProposal(
+                intent: transferIntent,
+                fundingOption: fundingOption,
+              );
+              proposals.add(proposal);
+              updatedActions.add(act.copyWith(proposalId: proposal.proposalId));
+            } else {
+              final matchingWallet = wallets.cast<WalletAccount?>().firstWhere(
+                    (w) =>
+                        w != null &&
+                        w.balance.amountMinor >= act.amount.amountMinor,
+                    orElse: () => null,
+                  );
+              if (matchingWallet != null) {
+                final fallbackOption = TransferFundingOption(
+                  fundingWalletId: matchingWallet.id,
+                  fundingCurrency: matchingWallet.currency,
+                  fundingWalletName: '${matchingWallet.currency.code} Smart Wallet',
+                  availableBalance: matchingWallet.balance,
+                  requiresConversion: false,
+                  conversionLabel: 'Direct ${matchingWallet.currency.code} Transfer',
+                  exchangeRate: 1.0,
+                  convertedDebit: act.amount,
+                  networkFee: Money.fromMinor(BigInt.from(50), matchingWallet.currency),
+                  fxFee: Money.zero(matchingWallet.currency),
+                  totalDebit: act.amount,
+                  targetPayment: act.amount,
+                );
+                final proposal = await _transferRepo.createProposal(
+                  intent: transferIntent,
+                  fundingOption: fallbackOption,
+                );
+                proposals.add(proposal);
+                updatedActions.add(act.copyWith(proposalId: proposal.proposalId));
+              } else {
+                updatedActions.add(act);
+              }
+            }
           } else {
-            explanation.writeln();
-            explanation.writeln(
-                '⚠️ **Insufficient Smart Wallet Balance**: Your smart wallets do not have sufficient funds to cover ${sendAction.amount.toFormattedString()}. Please deposit funds or receive a transfer to approve and execute this plan.');
+            updatedActions.add(act);
           }
         }
 
-        // Guarantee plan has a valid hashToSign for signing
-        if (reviewPlan.hashToSign == null || reviewPlan.hashToSign!.isEmpty) {
-          reviewPlan = reviewPlan.copyWith(
-            hashToSign: '0x${sha256.convert(utf8.encode(reviewPlan.planId)).toString()}',
-          );
-        }
+        final primaryProposal = proposals.isNotEmpty ? proposals.first : null;
+        final hashToSign = primaryProposal != null
+            ? primaryProposal.hashToSign
+            : '0x${sha256.convert(utf8.encode(reviewPlan.planId)).toString()}';
+
+        reviewPlan = plan.copyWith(
+          actions: updatedActions,
+          proposalId: primaryProposal?.proposalId,
+          hashToSign: hashToSign,
+          transferProposal: primaryProposal,
+          transferProposals: proposals,
+        );
       } catch (err) {
         final errorMsg = OperatorMessage.operator(
           'Failed to generate transfer proposal: $err',
@@ -780,7 +802,10 @@ class FinancialOperator extends ChangeNotifier {
         : Money.fromMajorString('2000.00', Currency.usd);
 
     final balancer = WalletBalancer(
-      executionProvider: DemoExecutionProvider(activityRepo: contextService.activityRepo),
+      executionProvider: DemoExecutionProvider(
+        walletRepo: contextService.walletRepo,
+        activityRepo: contextService.activityRepo,
+      ),
     );
 
     final target = BalanceTarget(
@@ -915,95 +940,169 @@ class FinancialOperator extends ChangeNotifier {
     notifyListeners();
 
     try {
-      String txHash = '';
+      final updatedActions = <PlannedFinancialAction>[];
+      final executionHashes = <String>[];
+      bool anyFailed = false;
 
-      // 1. If plan has a transfer proposal, execute via TransferRepository
-      if (plan.proposalId != null && plan.transferProposal != null) {
-        final exec = await _transferRepo.executeProposal(
-          proposalId: plan.proposalId!,
-          signature: resolvedSignature,
-          proposal: plan.transferProposal!,
-        );
-        txHash = exec.transactionHash;
-      }
-
-      // 2. Debit funding wallet for any send actions and record activity
+      // Execute all actions in the batch independently
       for (final act in plan.actions) {
         if (act.type == PlannedActionType.send) {
-          final fundingId = plan.transferProposal != null
-              ? plan.transferProposal!.fundingOption.fundingWalletId
-              : (act.sourceWalletId.isNotEmpty ? act.sourceWalletId : 'sw_usdb_live_01');
+          TransferProposal? matchingProposal = plan.transferProposals
+              .cast<TransferProposal?>()
+              .firstWhere(
+                (p) => p?.proposalId == act.proposalId,
+                orElse: () => null,
+              );
+          matchingProposal ??= plan.transferProposal;
+
           try {
-            await contextService.walletRepo.debitWallet(
-              walletId: fundingId,
-              amount: act.amount,
+            String txHash = '';
+            if (matchingProposal != null) {
+              final exec = await _transferRepo.executeProposal(
+                proposalId: matchingProposal.proposalId,
+                signature: resolvedSignature,
+                proposal: matchingProposal,
+              );
+              txHash = exec.transactionHash;
+            } else {
+              txHash = '0x${sha256.convert(utf8.encode("${act.id}_${DateTime.now().millisecondsSinceEpoch}")).toString()}';
+            }
+
+            executionHashes.add(txHash);
+
+            // Debit funding wallet
+            final fundingId = matchingProposal != null
+                ? matchingProposal.fundingOption.fundingWalletId
+                : (act.sourceWalletId.isNotEmpty ? act.sourceWalletId : 'sw_usdb_live_01');
+            try {
+              await contextService.walletRepo.debitWallet(
+                walletId: fundingId,
+                amount: act.amount,
+              );
+            } catch (_) {}
+
+            // Record activity for this transfer
+            try {
+              final activity = ActivityModel(
+                id: 'act_${act.id}_${DateTime.now().millisecondsSinceEpoch}',
+                title: 'Send ${act.amount.toFormattedString()} to ${act.destinationName}',
+                description: 'Transferred ${act.amount.toFormattedString()} to ${act.destinationName}',
+                amount: act.amount,
+                currency: act.amount.currency,
+                type: ActivityType.transfer,
+                category: ActivityCategory.transfer,
+                status: FlowPayAppStatus.completed,
+                timestamp: DateTime.now(),
+                reference: txHash,
+              );
+              await contextService.activityRepo?.recordActivity(activity);
+            } catch (_) {}
+
+            updatedActions.add(act.copyWith(
+              status: 'COMPLETED',
+              txHash: txHash,
+            ));
+          } catch (err) {
+            anyFailed = true;
+            try {
+              final activity = ActivityModel(
+                id: 'act_fail_${act.id}_${DateTime.now().millisecondsSinceEpoch}',
+                title: 'Failed Transfer to ${act.destinationName}',
+                description: 'Failed: $err',
+                amount: act.amount,
+                currency: act.amount.currency,
+                type: ActivityType.transfer,
+                category: ActivityCategory.transfer,
+                status: FlowPayAppStatus.failed,
+                timestamp: DateTime.now(),
+              );
+              await contextService.activityRepo?.recordActivity(activity);
+            } catch (_) {}
+
+            updatedActions.add(act.copyWith(
+              status: 'FAILED',
+              executionError: err.toString(),
+            ));
+          }
+        } else {
+          // Non-transfer action (reserve, conversion, mission, allocation)
+          try {
+            final execRes = await executionProvider.executePlan(
+              plan.copyWith(actions: [act]),
+              pin: pin ?? '000000',
             );
-          } catch (_) {}
+            if (execRes.success) {
+              executionHashes.add(execRes.txHash);
+              updatedActions.add(act.copyWith(
+                status: 'COMPLETED',
+                txHash: execRes.txHash,
+              ));
+            } else {
+              anyFailed = true;
+              updatedActions.add(act.copyWith(
+                status: 'FAILED',
+                executionError: execRes.errorMessage ?? 'Execution failed',
+              ));
+            }
+          } catch (err) {
+            anyFailed = true;
+            updatedActions.add(act.copyWith(
+              status: 'FAILED',
+              executionError: err.toString(),
+            ));
+          }
         }
       }
 
-      // 3. Execute any non-transfer actions (reserves, missions, allocations)
-      final nonTransferActions = plan.actions
-          .where((a) => a.type != PlannedActionType.send)
-          .toList();
-
-      if (nonTransferActions.isNotEmpty || plan.transferProposal == null) {
-        final execRes = await executionProvider.executePlan(
-          plan.transferProposal != null
-              ? plan.copyWith(actions: nonTransferActions)
-              : plan,
-          pin: pin ?? '000000',
-        );
-        if (!execRes.success && plan.transferProposal == null) {
-          throw Exception(execRes.errorMessage ?? 'Execution failed');
-        }
-        if (txHash.isEmpty) {
-          txHash = execRes.txHash;
-        }
-      }
-
-      // 4. Log completed activity to activity repository
-      try {
-        final act = ActivityModel(
-          id: 'act_plan_${DateTime.now().millisecondsSinceEpoch}',
-          title: plan.summary,
-          description: 'Executed AI Financial Plan: ${plan.summary}',
-          amount: plan.totalDebit,
-          currency: plan.totalDebit.currency,
-          type: ActivityType.transfer,
-          category: ActivityCategory.transfer,
-          status: FlowPayAppStatus.completed,
-          timestamp: DateTime.now(),
-          reference: txHash,
-        );
-        await contextService.activityRepo?.recordActivity(act);
-      } catch (_) {}
+      final combinedTxHash =
+          executionHashes.isNotEmpty ? executionHashes.first : '';
+      final finalExecutionState = anyFailed
+          ? (updatedActions.every((a) => a.status == 'FAILED')
+              ? 'FAILED'
+              : 'PARTIAL_COMPLETION')
+          : 'COMPLETED';
 
       final completedPlan = plan.copyWith(
         isApproved: true,
-        executionState: 'COMPLETED',
-        txHash: txHash,
+        executionState: finalExecutionState,
+        txHash: combinedTxHash,
+        actions: updatedActions,
       );
 
+      final statusLines = updatedActions
+          .map((a) => '• ${a.destinationName} (${a.amount.toFormattedString()}): ${a.status}')
+          .join('\n');
+
       final successMsg = OperatorMessage.operator(
-        'Execution completed successfully!\nTx: ${txHash.length > 10 ? txHash.substring(0, 10) : txHash}...',
+        finalExecutionState == 'COMPLETED'
+            ? 'Execution completed successfully!\n$statusLines'
+            : 'Execution finished with partial status:\n$statusLines',
         plan: completedPlan,
         executionReceipt: {
-          'txHash': txHash,
+          'txHash': combinedTxHash,
           'timestamp': DateTime.now().toIso8601String(),
           'totalDebit': plan.totalDebit.toFormattedString(),
           'actionsCount': plan.actions.length,
+          'actions': updatedActions
+              .map((a) => {
+                    'name': a.destinationName,
+                    'status': a.status,
+                    'amount': a.amount.toFormattedString()
+                  })
+              .toList(),
         },
       );
 
       _session = _session.copyWith(
-        status: OperatorSessionStatus.completed,
+        status: finalExecutionState == 'COMPLETED'
+            ? OperatorSessionStatus.completed
+            : OperatorSessionStatus.error,
         activePlan: completedPlan,
         messages: [..._session.messages, successMsg],
       );
     } catch (err) {
       final errorMsg = OperatorMessage.operator(
-        'Execution failed: $err',
+        'Execution encountered an unexpected error: $err',
         isError: true,
       );
       _session = _session.copyWith(

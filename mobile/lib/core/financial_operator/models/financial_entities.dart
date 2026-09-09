@@ -182,6 +182,35 @@ class AmountEntity {
   }
 }
 
+/// Quality and completeness report for structured intent parsing
+class CompletenessReport {
+  final double score;
+  final int detectedActionCount;
+  final int unresolvedActionCount;
+  final bool isReparseSuggested;
+
+  const CompletenessReport({
+    this.score = 1.0,
+    this.detectedActionCount = 1,
+    this.unresolvedActionCount = 0,
+    this.isReparseSuggested = false,
+  });
+
+  CompletenessReport copyWith({
+    double? score,
+    int? detectedActionCount,
+    int? unresolvedActionCount,
+    bool? isReparseSuggested,
+  }) {
+    return CompletenessReport(
+      score: score ?? this.score,
+      detectedActionCount: detectedActionCount ?? this.detectedActionCount,
+      unresolvedActionCount: unresolvedActionCount ?? this.unresolvedActionCount,
+      isReparseSuggested: isReparseSuggested ?? this.isReparseSuggested,
+    );
+  }
+}
+
 /// A parsed action inside a user financial request
 class ActionIntent {
   final String id;
@@ -191,6 +220,9 @@ class ActionIntent {
   final AmountEntity amount;
   final String? purpose;
   final String description;
+  final List<String> dependsOn;
+  final Currency? destinationCurrency;
+  final String? sourceWallet;
 
   const ActionIntent({
     required this.id,
@@ -200,6 +232,9 @@ class ActionIntent {
     required this.amount,
     this.purpose,
     required this.description,
+    this.dependsOn = const [],
+    this.destinationCurrency,
+    this.sourceWallet,
   });
 
   ActionIntent copyWith({
@@ -210,6 +245,9 @@ class ActionIntent {
     AmountEntity? amount,
     String? purpose,
     String? description,
+    List<String>? dependsOn,
+    Currency? destinationCurrency,
+    String? sourceWallet,
   }) {
     return ActionIntent(
       id: id ?? this.id,
@@ -219,6 +257,9 @@ class ActionIntent {
       amount: amount ?? this.amount,
       purpose: purpose ?? this.purpose,
       description: description ?? this.description,
+      dependsOn: dependsOn ?? this.dependsOn,
+      destinationCurrency: destinationCurrency ?? this.destinationCurrency,
+      sourceWallet: sourceWallet ?? this.sourceWallet,
     );
   }
 
@@ -257,6 +298,7 @@ class StructuredIntent {
   final List<ActionIntent> actions;
   final AmountEntity? incomingAmount;
   final double confidenceScore;
+  final CompletenessReport completeness;
 
   const StructuredIntent({
     required this.id,
@@ -265,6 +307,7 @@ class StructuredIntent {
     required this.actions,
     this.incomingAmount,
     this.confidenceScore = 1.0,
+    this.completeness = const CompletenessReport(),
   });
 
   StructuredIntent copyWith({
@@ -274,6 +317,7 @@ class StructuredIntent {
     List<ActionIntent>? actions,
     AmountEntity? incomingAmount,
     double? confidenceScore,
+    CompletenessReport? completeness,
   }) {
     return StructuredIntent(
       id: id ?? this.id,
@@ -282,6 +326,7 @@ class StructuredIntent {
       actions: actions ?? this.actions,
       incomingAmount: incomingAmount ?? this.incomingAmount,
       confidenceScore: confidenceScore ?? this.confidenceScore,
+      completeness: completeness ?? this.completeness,
     );
   }
 
