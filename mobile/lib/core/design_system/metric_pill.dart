@@ -122,6 +122,8 @@ class FlowPayMetricPill extends StatelessWidget {
 class FlowPayIncomeExpenseRow extends StatelessWidget {
   final String incomeAmount;
   final String expenseAmount;
+  final String incomeLabel;
+  final String expenseLabel;
   final VoidCallback? onIncomeTap;
   final VoidCallback? onExpenseTap;
 
@@ -129,6 +131,8 @@ class FlowPayIncomeExpenseRow extends StatelessWidget {
     super.key,
     required this.incomeAmount,
     required this.expenseAmount,
+    this.incomeLabel = 'Income',
+    this.expenseLabel = 'Expense',
     this.onIncomeTap,
     this.onExpenseTap,
   });
@@ -138,14 +142,14 @@ class FlowPayIncomeExpenseRow extends StatelessWidget {
     return Row(
       children: [
         FlowPayMetricPill(
-          label: 'Income',
+          label: incomeLabel,
           amount: incomeAmount,
           isIncome: true,
           onTap: onIncomeTap,
         ),
         const SizedBox(width: 12),
         FlowPayMetricPill(
-          label: 'Expense',
+          label: expenseLabel,
           amount: expenseAmount,
           isIncome: false,
           onTap: onExpenseTap,

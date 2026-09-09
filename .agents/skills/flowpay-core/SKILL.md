@@ -100,6 +100,13 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Redesigned `PersonalShell` & `BusinessShell`: Theme-adaptive AppBar with leading FlowPay logo mark, `SegmentedRoleSwitch` (`[ Personal | Business ]`), `FlowPayBrandBadge` (`FLOWPAY AI`), and tactile action buttons for Lock and Logout.
       * Redesigned `NavigationBarTheme`: Custom pill indicator in emerald, theme-adaptive icons, and high-contrast typography.
       * Verified with `mobile/test/app_shell_test.dart` (all 6 tests passing, 180 total tests passing, 0 analyzer lints).
+    * **Complete Redesign — Phase 4: Personal Dashboard Screen (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded hero card to `FlowPayScallopedCard` with Emerald gradient (`#0B6E4F` → `#128A63` → `#0F1712`), scalloped geometry, `BMoniWalletCardBalance` with tabular monospace numbers, `USD PRIMARY` badge, and secondary FX valuation (`₦56,506,500 NGN`).
+      * Integrated `FlowPayQuickActionRow` with 4 squircle actions (Create Mission, Send Money, View Wallets, AI Operator).
+      * Integrated `FlowPayIncomeExpenseRow` with customizable labels (Available Balance vs Active Missions).
+      * Redesigned Money Missions feature card with electric emerald bolt icon and tagline (`"Your money. Your rules. AI executes."`).
+      * Redesigned Active Strategy Rules, Multi-Currency Smart Wallets, and Recent Activity cards with `FlowPayRadii.cardSmall` (16dp), light/dark adaptive borders and subtle box shadows.
+      * Verified with `mobile/test/personal_dashboard_test.dart` (5/5 passed), `mobile/test/app_shell_test.dart` (6/6 passed), and full suite (180/180 passed, 0 lints).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
