@@ -3,7 +3,6 @@ import { bmoniClient } from '../../bmoni/client.js';
 import { prisma, isPostgresDb } from '../../db/index.js';
 import { env } from '../../config/env.js';
 import { mailService } from '../mail/service.js';
-import { FlowPayError, BmoniUnavailableError } from '../../core/errors.js';
 
 export type EmployeeLifecycleStage =
   | 'INVITED'
@@ -78,22 +77,37 @@ export class EmployeeService {
   }
 
   static async listEmployees(statusFilter?: string): Promise<EmployeeRecord[]> {
+    let dbRows: EmployeeRecord[] = [];
     if (isPostgresDb()) {
       try {
-        const rows = await prisma.employee.findMany({
+        dbRows = await prisma.employee.findMany({
           where: statusFilter ? { status: statusFilter.toUpperCase() } : undefined,
           orderBy: { createdAt: 'desc' },
         });
-        if (rows && rows.length > 0) return rows;
       } catch (err) {
         console.warn('[EmployeeService] listEmployees DB error, falling back:', err);
       }
     }
-    const all = Array.from(inMemoryEmployees.values());
-    if (statusFilter) {
-      return all.filter((e) => e.status?.toUpperCase() === statusFilter.toUpperCase()) as EmployeeRecord[];
+
+    // Merge in any employees whose create/update fell back to in-memory
+    // storage (e.g. a transient DB error for just that one record) so they
+    // don't silently disappear from the list just because other employees
+    // exist in Postgres. DB rows win on id collision since they're the
+    // more authoritative source once a write there succeeds.
+    const byId = new Map<string, EmployeeRecord>();
+    for (const emp of inMemoryEmployees.values()) {
+      byId.set((emp as any).id, emp as EmployeeRecord);
     }
-    return all as EmployeeRecord[];
+    for (const row of dbRows) {
+      byId.set((row as any).id, row);
+    }
+
+    let all = Array.from(byId.values());
+    if (statusFilter) {
+      all = all.filter((e) => (e as any).status?.toUpperCase() === statusFilter.toUpperCase());
+    }
+    all.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return all;
   }
 
   static async getEmployeeById(id: string): Promise<EmployeeRecord | undefined> {
@@ -204,12 +218,20 @@ export class EmployeeService {
     };
     employeeInvites.set(inviteToken, inviteRecord);
 
+    // NOTE: previously this threw here whenever BMONI user creation failed.
+    // The employee + invite records above are already committed (DB or
+    // in-memory) by this point, so throwing discarded a real, already-saved
+    // record from the API response: the app's "Add Employee" call would
+    // receive a 5xx with no inviteUrl/employee payload, so nothing appeared
+    // to happen even though a FAILED-status employee now existed server-side.
+    // Instead, surface the failure as part of a normal (still 201) response
+    // so the app can render the employee with its real FAILED status/badge
+    // and let the person retry, consistent with how every other onboarding
+    // stage failure in this codebase is handled.
     if (createError) {
-      if (createError instanceof FlowPayError) {
-        throw createError;
-      }
-      throw new BmoniUnavailableError(
-        `Failed to create BMONI user: ${createError instanceof Error ? createError.message : 'BMONI user creation failed'}. Employee record saved with status FAILED.`
+      console.warn(
+        `[EmployeeService] Employee ${id} created with status FAILED (BMONI_USER_CREATION):`,
+        createError instanceof Error ? createError.message : createError
       );
     }
 

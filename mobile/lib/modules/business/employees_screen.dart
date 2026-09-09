@@ -167,8 +167,50 @@ class _EmployeeRowCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Onboarding Lifecycle Stage Badge
-              FlowPayStatusBadge(status: employee.status),
+              // Onboarding Lifecycle Stage Badge — simplified to
+              // Pending / Onboarded / Failed for a quick glance.
+              FlowPayBadge(
+                label: employee.simpleStatusLabel,
+                color: employee.isFailed
+                    ? FlowPayColors.error
+                    : employee.isReady
+                        ? FlowPayColors.accent
+                        : FlowPayColors.warning,
+                icon: employee.isFailed
+                    ? Icons.error_outline_rounded
+                    : employee.isReady
+                        ? Icons.check_circle_rounded
+                        : Icons.schedule_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // Wallet ID row — shows the self-custody wallet once the employee
+          // has completed on-device onboarding; otherwise makes clear it's
+          // still awaiting provisioning rather than showing nothing.
+          Row(
+            children: [
+              const Icon(Icons.account_balance_wallet_outlined,
+                  size: 13, color: FlowPayColors.textTertiary),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  employee.displayWalletId != null
+                      ? 'Wallet ${employee.displayWalletId}'
+                      : 'Wallet not yet generated — awaiting employee onboarding',
+                  style: FlowPayTypography.captionStyle(
+                          color: employee.displayWalletId != null
+                              ? FlowPayColors.textSecondary
+                              : FlowPayColors.textTertiary)
+                      .copyWith(
+                    fontFamily:
+                        employee.displayWalletId != null ? 'monospace' : null,
+                    fontSize: 11,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
