@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/design_system/buttons.dart';
 import '../../../core/repositories/approval_repository.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/spacing.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 class PendingApprovalsCard extends StatelessWidget {
@@ -26,10 +26,11 @@ class PendingApprovalsCard extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: FlowPayColors.darkSurfaceElevated,
-          shape: RoundedRectangleBorder(
-            borderRadius: FlowPaySpacing.borderRadiusXl,
-            side: const BorderSide(color: FlowPayColors.darkBorder),
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? FlowPayColors.darkSurfaceElevated
+              : Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: FlowPayRadii.card,
           ),
           title: const Row(
             children: [
@@ -40,8 +41,7 @@ class PendingApprovalsCard extends StatelessWidget {
                 'Authorize Action',
                 style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -54,7 +54,6 @@ class PendingApprovalsCard extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 4),
@@ -67,7 +66,7 @@ class PendingApprovalsCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Enter 6-Digit B-Key Signing PIN',
+                'Confirm with your PIN',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -81,7 +80,6 @@ class PendingApprovalsCard extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 maxLength: 6,
                 style: const TextStyle(
-                  color: Colors.white,
                   letterSpacing: 8,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -92,13 +90,19 @@ class PendingApprovalsCard extends StatelessWidget {
                       color: FlowPayColors.darkTextMuted, letterSpacing: 8),
                   counterText: '',
                   filled: true,
-                  fillColor: FlowPayColors.darkSurface,
+                  fillColor: Theme.of(context).brightness == Brightness.dark
+                      ? FlowPayColors.darkSurface
+                      : FlowPayColors.lightSurfaceElevated,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(color: FlowPayColors.darkBorder),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.lightBorder,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: FlowPayColors.primary),
                   ),
                 ),
@@ -112,7 +116,7 @@ class PendingApprovalsCard extends StatelessWidget {
                   style: TextStyle(color: FlowPayColors.darkTextSecondary)),
             ),
             FlowPayButton(
-              text: 'Sign & Execute',
+              text: 'Approve',
               icon: Icons.check,
               isLoading: isSubmitting,
               size: FlowPayButtonSize.small,
@@ -137,20 +141,27 @@ class PendingApprovalsCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: FlowPayColors.amber.withAlpha(18),
-        borderRadius: FlowPaySpacing.borderRadiusXl,
+        color: FlowPayColors.amber.withAlpha(isDark ? 20 : 14),
+        borderRadius: FlowPayRadii.card,
         border: Border.all(
-          color: FlowPayColors.amber.withAlpha(90),
+          color: FlowPayColors.amber.withAlpha(80),
           width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: FlowPayColors.amber.withAlpha(10),
+            blurRadius: 14,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
                 Container(
@@ -177,7 +188,7 @@ class PendingApprovalsCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       const Text(
-                        'Explicit authorization required prior to BMONI execution',
+                        'Review and approve before anything moves',
                         style: TextStyle(
                           fontSize: 11,
                           color: FlowPayColors.amber,
@@ -190,7 +201,7 @@ class PendingApprovalsCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: FlowPayColors.amber.withAlpha(30),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: FlowPayRadii.chip,
                     border: Border.all(color: FlowPayColors.amber.withAlpha(70)),
                   ),
                   child: Text(
@@ -205,10 +216,13 @@ class PendingApprovalsCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: FlowPayColors.hairline),
+          Divider(
+            height: 1,
+            color: FlowPayColors.amber.withAlpha(40),
+          ),
           ...pendingApprovals.map((approval) {
             return Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -234,14 +248,16 @@ class PendingApprovalsCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     approval.description,
                     style: FlowPayTypography.captionStyle(
-                      color: FlowPayColors.darkTextSecondary,
+                      color: isDark
+                          ? FlowPayColors.darkTextSecondary
+                          : FlowPayColors.lightTextSecondary,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [

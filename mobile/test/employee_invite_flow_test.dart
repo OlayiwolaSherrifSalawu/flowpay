@@ -184,7 +184,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Complete KYC
-      final submitBtn = find.text('Complete KYC & Set PIN');
+      final submitBtn = find.text('Verify & Set PIN');
       await tester.ensureVisible(submitBtn);
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/design_system/amount_display.dart';
 import '../../../core/design_system/buttons.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/spacing.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/transfers/transfer_funding.dart';
 import '../../../core/transfers/transfer_intent.dart';
@@ -43,9 +43,9 @@ class TransferReviewModal extends StatelessWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.darkBackground,
+      backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => TransferReviewModal(
         intent: intent,
@@ -74,8 +74,8 @@ class TransferReviewModal extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkBackground : FlowPayColors.lightSurface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: isDark ? FlowPayColors.darkSurface : Colors.white,
+        borderRadius: FlowPayRadii.sheet,
         border: Border.all(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
@@ -148,8 +148,8 @@ class TransferReviewModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-                      borderRadius: FlowPaySpacing.borderRadiusXl,
+                      color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.paper,
+                      borderRadius: FlowPayRadii.cardMedium,
                       border: Border.all(
                         color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                       ),
@@ -160,8 +160,8 @@ class TransferReviewModal extends StatelessWidget {
                           'TRANSFER AMOUNT',
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
                             color: FlowPayColors.darkTextSecondary,
                           ),
                         ),
@@ -175,12 +175,12 @@ class TransferReviewModal extends StatelessWidget {
                         const SizedBox(height: 14),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
+                              horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
                             color: isDark
-                                ? FlowPayColors.darkSurfaceElevated
-                                : FlowPayColors.lightSurfaceElevated,
-                            borderRadius: FlowPaySpacing.borderRadiusMd,
+                                ? FlowPayColors.darkSurface
+                                : Colors.white,
+                            borderRadius: FlowPayRadii.input,
                             border: Border.all(
                               color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                             ),
@@ -189,14 +189,14 @@ class TransferReviewModal extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 18,
-                                backgroundColor: FlowPayColors.primary.withAlpha(35),
+                                backgroundColor: FlowPayColors.emerald600.withAlpha(35),
                                 child: Text(
                                   intent.recipient.isNotEmpty
                                       ? intent.recipient[0].toUpperCase()
                                       : 'B',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    color: FlowPayColors.primary,
+                                    color: FlowPayColors.emerald600,
                                   ),
                                 ),
                               ),
@@ -242,8 +242,8 @@ class TransferReviewModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                      borderRadius: FlowPayRadii.cardSmall,
                       border: Border.all(
                         color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                       ),
@@ -274,12 +274,12 @@ class TransferReviewModal extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: fundingOption.requiresConversion
                                       ? FlowPayColors.accent.withAlpha(35)
-                                      : FlowPayColors.primary.withAlpha(30),
-                                  borderRadius: BorderRadius.circular(6),
+                                      : FlowPayColors.emerald600.withAlpha(30),
+                                  borderRadius: FlowPayRadii.chip,
                                   border: Border.all(
                                     color: fundingOption.requiresConversion
                                         ? FlowPayColors.accent.withAlpha(80)
-                                        : FlowPayColors.primary.withAlpha(70),
+                                        : FlowPayColors.emerald600.withAlpha(70),
                                   ),
                                 ),
                                 child: Row(
@@ -299,7 +299,7 @@ class TransferReviewModal extends StatelessWidget {
                                           fontWeight: FontWeight.w700,
                                           color: fundingOption.requiresConversion
                                               ? FlowPayColors.accentLight
-                                              : FlowPayColors.primary,
+                                              : FlowPayColors.emerald600,
                                         ),
                                       ),
                                     ),
@@ -327,27 +327,31 @@ class TransferReviewModal extends StatelessWidget {
                             'Network Fee',
                             fundingOption.networkFee.formatted,
                             isDark),
+                        _buildRow(
+                            'FlowPay Service Fee',
+                            fundingOption.serviceFee.formatted,
+                            isDark),
                         if (fundingOption.requiresConversion)
                           _buildRow(
-                              'FX Conversion Fee',
+                              'Exchange fee',
                               fundingOption.fxFee.formatted,
                               isDark),
                         const Divider(color: FlowPayColors.hairline, height: 18),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Total Debit',
+                            Text(
+                              'Total to pay',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
-                                color: FlowPayColors.ink,
+                                color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink,
                               ),
                             ),
                             Text(
                               fundingOption.totalDebit.formatted,
                               style: FlowPayTypography.amount(
-                                color: FlowPayColors.primary,
+                                color: FlowPayColors.emerald600,
                               ).copyWith(fontSize: 17, fontWeight: FontWeight.w800),
                             ),
                           ],
@@ -361,9 +365,11 @@ class TransferReviewModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: FlowPayColors.surfaceAlt,
-                      borderRadius: FlowPaySpacing.borderRadiusLg,
-                      border: Border.all(color: FlowPayColors.hairline),
+                      color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.paper,
+                      borderRadius: FlowPayRadii.cardSmall,
+                      border: Border.all(
+                        color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,15 +377,15 @@ class TransferReviewModal extends StatelessWidget {
                         const Row(
                           children: [
                             Icon(Icons.analytics_outlined,
-                                size: 16, color: FlowPayColors.primaryLight),
+                                size: 16, color: FlowPayColors.emerald600),
                             SizedBox(width: 8),
                             Text(
                               'AFTER THIS PAYMENT',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: 0.8,
-                                color: FlowPayColors.primaryLight,
+                                letterSpacing: 1.0,
+                                color: FlowPayColors.emerald600,
                               ),
                             ),
                           ],
@@ -402,7 +408,7 @@ class TransferReviewModal extends StatelessWidget {
                                 '$currentBal → $afterBal',
                                 textAlign: TextAlign.right,
                                 style: FlowPayTypography.amount(
-                                  color: FlowPayColors.ink,
+                                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink,
                                 ).copyWith(fontWeight: FontWeight.w700, fontSize: 14),
                               ),
                             ),
@@ -417,32 +423,32 @@ class TransferReviewModal extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: FlowPayColors.primary.withAlpha(20),
-                      borderRadius: FlowPaySpacing.borderRadiusLg,
+                      color: FlowPayColors.emerald600.withAlpha(20),
+                      borderRadius: FlowPayRadii.cardSmall,
                       border: Border.all(
-                        color: FlowPayColors.primary.withAlpha(70),
+                        color: FlowPayColors.emerald600.withAlpha(70),
                         width: 1,
                       ),
                     ),
                     child: Row(
                       children: [
                         const Icon(Icons.verified_user_outlined,
-                            size: 20, color: FlowPayColors.primary),
+                            size: 20, color: FlowPayColors.emerald600),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Nothing moves until you approve.',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
-                                  color: FlowPayColors.ink,
+                                  color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink,
                                 ),
                               ),
                               Text(
-                                'Requires on-device PIN signature • Zero unauthorized movement',
+                                'Requires your PIN • Only you can approve payments',
                                 style: FlowPayTypography.captionStyle(
                                   color: FlowPayColors.darkTextSecondary,
                                 ),

@@ -124,11 +124,16 @@ class DemoTransferRepository implements TransferRepository {
     // 1. Direct Option
     if (directWallet != null) {
       final netFeeMinor = targetCurrency == Currency.ngn
-          ? BigInt.from(77500)
+          ? BigInt.from(1500)
           : targetCurrency == Currency.mxn
-              ? BigInt.from(875)
-              : BigInt.from(50);
-      final totalDebitMinor = targetAmountMinor + netFeeMinor;
+              ? BigInt.from(150)
+              : BigInt.from(5);
+      final serviceFeeMinor = targetCurrency == Currency.ngn
+          ? BigInt.from(2500)
+          : targetCurrency == Currency.mxn
+              ? BigInt.from(250)
+              : BigInt.from(20);
+      final totalDebitMinor = targetAmountMinor + netFeeMinor + serviceFeeMinor;
 
       final directOption = TransferFundingOption(
         fundingWalletId: directWallet.id,
@@ -140,13 +145,14 @@ class DemoTransferRepository implements TransferRepository {
         exchangeRate: 1.0,
         convertedDebit: targetMoney,
         networkFee: Money.fromMinor(netFeeMinor, targetCurrency),
+        serviceFee: Money.fromMinor(serviceFeeMinor, targetCurrency),
         fxFee: Money.fromMinor(BigInt.zero, targetCurrency),
         totalDebit: Money.fromMinor(totalDebitMinor, targetCurrency),
         targetPayment: targetMoney,
       );
 
       if (hasDirectFunds) {
-        allOptions.unshift(directOption);
+        allOptions.insert(0, directOption);
       } else {
         allOptions.add(directOption);
       }
@@ -177,10 +183,16 @@ class DemoTransferRepository implements TransferRepository {
         alt.currency,
       );
 
-      // Fees
-      final netFeeMajor = 0.50 / rate;
+      // Realistic Network Fee: 5 cents USD equiv
+      final netFeeMajor = 0.05 / rate;
       final netFeeMoney = Money.fromMajorString(
         netFeeMajor.toStringAsFixed(2),
+        alt.currency,
+      );
+      // FlowPay Service Fee: 25 bps
+      final serviceFeeMajor = requiredAltMajor * 0.0025;
+      final serviceFeeMoney = Money.fromMajorString(
+        serviceFeeMajor.toStringAsFixed(2),
         alt.currency,
       );
       final fxFeeMajor = requiredAltMajor * 0.0015;
@@ -191,6 +203,7 @@ class DemoTransferRepository implements TransferRepository {
 
       final totalDebitMinor = convertedAltMoney.amountMinor +
           netFeeMoney.amountMinor +
+          serviceFeeMoney.amountMinor +
           fxFeeMoney.amountMinor;
       final totalDebitMoney = Money.fromMinor(totalDebitMinor, alt.currency);
 
@@ -206,6 +219,7 @@ class DemoTransferRepository implements TransferRepository {
         exchangeRate: 1 / rate,
         convertedDebit: convertedAltMoney,
         networkFee: netFeeMoney,
+        serviceFee: serviceFeeMoney,
         fxFee: fxFeeMoney,
         totalDebit: totalDebitMoney,
         targetPayment: targetMoney,
@@ -390,8 +404,4 @@ class DemoTransferRepository implements TransferRepository {
       timestamp: DateTime.now(),
     );
   }
-}
-
-extension _UnshiftList<T> on List<T> {
-  void unshift(T element) => insert(0, element);
 }

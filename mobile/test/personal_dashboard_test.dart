@@ -68,14 +68,13 @@ void main() {
       expect(find.text('Personal Account'), findsWidgets);
       expect(find.text('Your money. Your rules. AI executes.'), findsWidgets);
       expect(find.text('Sandbox Demo'), findsOneWidget);
-      expect(find.text('B-Key Vault'), findsOneWidget);
+      expect(find.text('Secure wallet'), findsOneWidget);
 
       // 2. Portfolio Balance Section
-      expect(find.text('Total Multi-Currency Portfolio'), findsOneWidget);
-      expect(find.text('USD PRIMARY'), findsOneWidget);
+      expect(find.text('Total balance'), findsOneWidget);
       expect(find.textContaining('\$37,671'),
           findsOneWidget); // deterministic minor unit valuation
-      expect(find.textContaining('Avail: \$24,500.00'), findsOneWidget);
+      expect(find.textContaining('\$24,500.00 available'), findsOneWidget);
 
       // 3. Quick Actions
       expect(find.text('Create Mission'), findsOneWidget);
@@ -100,30 +99,34 @@ void main() {
 
       // 7. Scroll to Multi-Currency Smart Wallets & Recent Activity
       await tester.scrollUntilVisible(
-        find.textContaining('CNGN'),
+        find.widgetWithText(FlowPayCurrencyDisplay, 'Nigerian Naira'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Multi-Currency Smart Wallets'), findsOneWidget);
-      expect(find.textContaining('USDB'), findsWidgets);
-      expect(find.textContaining('CNGN'), findsWidgets);
+      expect(find.widgetWithText(FlowPayCurrencyDisplay, 'US Dollar'),
+          findsOneWidget);
+      expect(find.widgetWithText(FlowPayCurrencyDisplay, 'Nigerian Naira'),
+          findsOneWidget);
 
       await tester.scrollUntilVisible(
-        find.textContaining('MEXe'),
+        find.widgetWithText(FlowPayCurrencyDisplay, 'Mexican Peso'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.textContaining('MEXe'), findsWidgets);
-      expect(find.textContaining('CADC'), findsWidgets);
+      expect(find.widgetWithText(FlowPayCurrencyDisplay, 'Mexican Peso'),
+          findsOneWidget);
+      expect(find.widgetWithText(FlowPayCurrencyDisplay, 'Canadian Dollar'),
+          findsOneWidget);
 
       // 8. Recent Activity
       await tester.scrollUntilVisible(
-        find.text('Recent Activity'),
+        find.text('Emergency Fund Auto-Sweep'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
       expect(find.text('Recent Activity'), findsOneWidget);
-      expect(find.text('Emergency Fund Auto-Sweep'), findsWidgets);
+      expect(find.text('Emergency Fund Auto-Sweep'), findsOneWidget);
     });
 
     testWidgets(
@@ -177,10 +180,9 @@ void main() {
 
       // Verify AiFxConversionModal opened
       expect(find.byType(AiFxConversionModal), findsOneWidget);
-      expect(find.text('Instant Multi-Currency FX'), findsOneWidget);
-      expect(
-          find.text('Task Workflow: Zero-Spread BMONI Rail'), findsOneWidget);
-      expect(find.text('Sign & Convert'), findsOneWidget);
+      expect(find.text('Instant Currency Exchange'), findsOneWidget);
+      expect(find.text('Low-fee exchange rates'), findsOneWidget);
+      expect(find.text('Convert'), findsOneWidget);
     });
 
     testWidgets('Pending Approvals opens PIN signing dialog on Approve',
@@ -203,8 +205,8 @@ void main() {
 
       // Verify PIN authorization dialog
       expect(find.text('Authorize Action'), findsOneWidget);
-      expect(find.text('Enter 6-Digit B-Key Signing PIN'), findsOneWidget);
-      expect(find.text('Sign & Execute'), findsOneWidget);
+      expect(find.text('Confirm with your PIN'), findsOneWidget);
+      expect(find.text('Approve'), findsOneWidget);
     });
 
     testWidgets('Toggling privacy hides and reveals balance', (tester) async {

@@ -153,11 +153,17 @@ class BmoniSdkService {
 
   /// Verify user's security PIN without throwing.
   static Future<bool> matchPin(String pin) async {
-    if (kIsWeb) return true;
     if (_isTestEnv) {
       if (_inMemoryPinDigest == null) return true;
       final hashed = sha256.convert(utf8.encode('bmoni_salt_$pin')).toString();
       return hashed == _inMemoryPinDigest;
+    }
+
+    if (kIsWeb) {
+      final digest = _inMemoryPinDigest ??
+          sha256.convert(utf8.encode('bmoni_salt_123456')).toString();
+      final hashed = sha256.convert(utf8.encode('bmoni_salt_$pin')).toString();
+      return hashed == digest;
     }
 
     try {

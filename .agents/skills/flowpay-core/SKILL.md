@@ -73,7 +73,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
   * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity (`https://flowpay-k2wn.onrender.com`), 146/146 tests passing, 0 analyzer lints, and hosted for instant local Wi-Fi download and ADB direct install.
-  * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome).
+  * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome); enabled full interactive `WalletPinAuthSheet` 6-digit PIN authorization and salted digest verification on Web for complete cross-platform parity with mobile.
   * **Operational Workflows**: Added standardized build and verification workflows in `.agents/workflows/`:
     * `/build-apk`: Automated test verification and compilation for Android release APK targeting live backend.
     * `/build-web`: Automated compilation, multi-device local network hosting, and iOS/Android PWA install instructions.
@@ -113,6 +113,117 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Added on-device hardware isolation security banner with Hardware Keystore / Secure Enclave indicators.
       * Upgraded configured multi-currency wallet list and modernized simulated receive/deposit bottom sheet with copyable address chips and QR code mockup.
       * Verified with `mobile/test/personal_integration_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 6: Send Money & Cross-Border Payments (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `SendMoneyScreen`: Redesigned Global Security Rail Header (`'FlowPay BMONI Rail'`), Natural Language Payment Input card with suggestion pills (`'send_money_nl_input'`), Paystack NUBAN bank resolver with bank picker bottom sheet (`FlowPayRadii.sheet`), standard recipient field (`send_money_recipient_field`), amount field (`send_money_amount_field`), purpose/memo input, and theme-adaptive Paper/Obsidian canvas.
+      * Upgraded Balance-Aware Auto-Funding Analysis Card (`balance_aware_funding_card`): Radio wallet cards with `FlowPayRadii.cardSmall`, available balances, conversion chips, and transparent route notices.
+      * Upgraded `TransferReviewModal`: 28dp sheet radius (`FlowPayRadii.sheet`), theme-adaptive text and containers, emerald approval button (`transfer_review_approve_button`), and preserved trust copy (`"Nothing moves until you approve."`).
+      * Upgraded `TransferReceiptDialog`: 24dp card dialog, 16dp reference hash pill with copy action, and completed state badges.
+      * Verified with `mobile/test/personal_integration_flow_test.dart` (Journey 3 Send Money full flow passes), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 7: AI Financial Experience & Money Missions (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `AiOperatorModal`: 28dp bottom sheet (`FlowPayRadii.sheet`), 44dp avatar container with sparkle badge, telemetry pill bar (`FlowPayRadii.chip`), chat message bubbles with high-contrast text, prompt suggestion pills, and pillowed directive input bar with send button.
+      * Upgraded `AiFinancialPlanCard`: 24dp card (`FlowPayRadii.card`), emerald highlight borders, avatar container, payments/live-quote chips, shortfall auto-balancing banner, action rows, total box with tabular figures, route explanation toggle, route override chips, safety reassurance banner, and primary/secondary action buttons.
+      * Upgraded `MissionCard`: 24dp card (`FlowPayRadii.card`), 14dp icon container, active/paused status tag, linear progress indicator with pill track (`FlowPayRadii.chip`), 16dp rules summary card (Source, Allocation, Destination), and compact `⚡ Run Now` action.
+      * Upgraded `MissionPreviewModal`: 28dp sheet (`FlowPayRadii.sheet`), 16dp allocation cards, 10dp percentage tags, mint-tinted reassurance banner (`"Nothing moves until you approve."`), and large button pills.
+      * Upgraded `MoneyMissionsScreen`: Command Center header (`"What should your money do?"`, `"Tell your money what to do."`), live telemetry pill bar (`Engine: Active`, `Hardware Guard`, `Deterministic`), 24dp command directive console with active focus glow, multi-stage AI safety pipeline tracker (`'AI understood request'`, `'Plan created (structured intent)'`, `'Deterministic validation passed (100% allocation)'`), 5 suggestion pills, active missions list header with count pill badge, and celebration dialog (`'Mission Activated & Signed!'`).
+      * Verified with `mobile/test/financial_operator_test.dart` (20/20 passed), `mobile/test/money_missions_test.dart` (15/15 passed), `mobile/test/personal_integration_flow_test.dart` (Journey 2 & 3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 8: Personal Security & Activity Screens (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `PersonalActivityScreen`: Search bar with 16dp pillowed radius (`FlowPayRadii.input`), dynamic horizontal filter chips (`[ All, Transfers, Missions, Approvals, FX ]`) with `FlowPayRadii.chip`, squircle 14dp icon containers, tabular monospace numerals with signed transaction coloring (`+$` / `-$`), and empty search states.
+      * Upgraded `ActivityDetailModal`: 28dp sheet radius (`FlowPayRadii.sheet`), 16dp amount & breakdown cards, mint-tinted assurance banner (`"This record is cryptographically anchored to BMONI ledger."`), and full-width dismiss action pill.
+      * Upgraded `PersonalSecurityScreen`: 24dp card geometry (`FlowPayRadii.card`), 44dp shield icon container, copyable address pill (`FlowPayRadii.chip`), biometric toggle row with mint accent switch, and 3 invariant guarantee cards (Zero Custody, Deterministic Signing, Non-Repudiable Audit).
+      * Upgraded `PendingApprovalsCard`: 24dp card geometry (`FlowPayRadii.card`), amber warning badges, compact tabular summary, and streamlined vertical footprint preserving dashboard scroll geometry.
+      * Verified with `mobile/test/personal_activity_test.dart` (all 7 tests passed), `mobile/test/personal_dashboard_test.dart` (5/5 passed), `mobile/test/wallet_provisioning_ui_test.dart` (15/15 passed), `mobile/test/personal_integration_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 9: Business Dashboard & Employer Experience (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `BusinessDashboardScreen`: Theme-adaptive canvas (paper in light, darkBackground in dark), live indicator ("Global Rails Active" in signal green), primary "Run Payroll" and secondary "Add Employee" pill action buttons (`FlowPayButton`), operating metrics section with squircle icon badge, and horizontal country filter pills (`FlowPayRadii.chip`).
+      * Upgraded `HeroBillCard`: 24dp card geometry (`FlowPayRadii.card`), squircle globe icon container, core headline *"One Employer. Many Countries. One Bill."*, 3-pillar banner (`1 Employer • Many Countries • 1 Bill`), bold aggregate settlement total with tabular monospace numbers, and signal green savings badge (`Saved $330.00 (97%)`).
+      * Upgraded `BusinessMetricsGrid`: 20dp card small geometry (`FlowPayRadii.cardSmall`), theme-adaptive background and border, squircle icon containers with contextual color tints, tabular figures on all values, and pill status tags across all 6 employer metrics (Total Payroll, Pending Payroll, Employee Count, Employee Status, Countries, Wallet/Card Status).
+      * Upgraded `EmployeePreviewCard`: 20dp card geometry, country flag squircle avatar, name/email, onboarding status badge, country and currency pill tags, tabular payroll salary and USD equivalent, truthful wallet and card status chips with internal divider, and honest failure retry banner.
+      * Upgraded `AddEmployeeModal`: 28dp modal sheet (`FlowPayRadii.sheet`), pull handle, country & rail selector, 16dp pillowed form inputs (`BMoniTextFormField.filled`), universal pill submission button, and upgraded invitation sent view with copyable single-use link box and onboarding test action.
+      * Verified with `mobile/test/app_shell_test.dart` (6/6 passed), `mobile/test/payroll_screen_test.dart` (3/3 passed), `mobile/test/employee_invite_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 10: Global Payroll Orchestration & Confirmation Flow (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `PayrollScreen`: Conforms to Dribbble fintech styling & BMONI transfer proposal protocol:
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * 4-stage Live Execution Timeline Stepper (`Validated` → `Approved` → `Processing` → `Completed`) with emerald pill icons and progress tracking.
+        * Aggregate Bill Hero Card (`FlowPayRadii.card`, core tagline *"One Employer. Many Countries. One Bill."*, `TOTAL AGGREGATE SETTLEMENT` in tabular monospace typography, and 97% savings badge).
+        * Parallel Multi-Rail Breakdown List (`PARALLEL MULTI-RAIL DISBURSEMENTS`) with country flag squircle avatars, exchange rates, and destination rail verification badges (`CNGN Rail Active & Verified`, `MEXe Rail Active & Verified`).
+        * Confirmation Modal before execution with employee count, country count (`2 (NG, MX)`), aggregate disbursement card, and universal pill buttons (`Approve Payroll`).
+        * PIN entry modal titled `'B-Key PIN Signing'` with on-device raw-hash secp256k1 signing, honest error propagation, and payslip download actions (`Download Payslips & Receipts`).
+      * Upgraded `PayrollRunDetailSheet`: 28dp sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas, tabular figures, and granular single-proposal retry.
+      * Verified with `mobile/test/payroll_screen_test.dart` (3/3 passed), `mobile/test/payroll_signing_test.dart` (5/5 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 11: Team & Employee Management + Virtual Spend Cards (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `EmployeesScreen`:
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * Live team metrics header pill bar (`TOTAL ROSTER`, `PAYROLL READY`, `ACTIVE RAILS`) with tabular monospace figures.
+        * Pillowed search bar (`FlowPayRadii.input`) and interactive horizontal filter chips (`[ All, 🇳🇬 Nigeria, 🇲🇽 Mexico, Ready, Pending ]`).
+        * Upgraded `_EmployeeRowCard`: 24dp card container (`FlowPayRadii.card`), 44dp flag squircle avatar, name/email, lifecycle badge, self-custody wallet indicator, tabular payroll section, and squircle status pills for wallet and card.
+      * Upgraded `EmployeeDetailScreen`:
+        * Theme-adaptive canvas and app bar.
+        * Redesigned Identity & Profile card with 48dp flag avatar, high-contrast typography, jurisdiction, rail, and monthly salary.
+        * BMONI Security Note banner with shield icon and B-Key hardware enclave guarantee.
+        * Actions upgraded to universal pill buttons (`FlowPayButton` for View Wallet, Transactions, Manage Card / Issue Card).
+        * Bottom sheets (`_showWalletDetailSheet`, `_showTransactionsSheet`) upgraded to `FlowPayRadii.sheet` (28dp top radius) and theme-adaptive canvas.
+      * Upgraded `IssueVirtualCardSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas.
+        * Header with 42dp amber squircle icon container and high-contrast typography.
+        * Actions upgraded to universal pill buttons (`FlowPayButton`).
+      * Upgraded `CardDetailSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas.
+        * Header with high-contrast typography and close action.
+        * Action buttons upgraded to universal pill buttons (`FlowPayButton` for View Card / Hide Details, Transactions, Freeze / Unfreeze).
+      * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 12: Business Activity & Corporate Audit + Employee Onboarding Portal (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `BusinessActivityScreen` (`Corporate Audit Log`):
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * Cryptographic ledger telemetry pill bar (`AUDITED EVENTS`, `ACTIVE RAILS`, `CONSENSUS`) with monospace metrics.
+        * Pillowed search bar (`FlowPayRadii.input`) and interactive category filter chips (`[ All, Payroll, Onboarding, Cards, Compliance ]`).
+        * Elevated 24dp audit event cards (`FlowPayRadii.card`) with category squircle icon badges, timestamp, event title, category chip, description, tabular settlement figures, and copyable monospace reference hashes (`ref_bmoni_...`).
+        * Tap navigation seamlessly launches `TransactionDetailSheet`.
+      * Upgraded `TransactionDetailSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive surface and borders (`surfaceOf(context)` / `borderOf(context)`).
+        * High-contrast typography, status badges (`FlowPayStatusBadge`), tabular amount figures (`FlowPayAmountDisplay`).
+        * Sanitized reference metadata section with 1-tap clipboard copy, country and rail details, error diagnostics card, and universal pill dismiss button (`FlowPayButton`).
+      * Upgraded `EmployeeOnboardingScreen`:
+        * Theme-adaptive scaffold and App Bar with employee name and country jurisdiction.
+        * Redesigned Stage Navigation Stepper (Stage 2: Wallet, Stage 3: KYC, Stage 4: Rail) with dynamic active, ready, and failed state badges.
+        * Elevated 24dp stage cards (`FlowPayRadii.card`) with squircle icons, country-specific KYC forms (Nigeria: no selfie + BVN/NIN/EDD; Mexico: selfie + CURP/RFC), Etherfuse agreements signing prerequisite banner, and BMONI webhook simulation bar.
+        * Upgraded all CTAs to universal pill buttons (`FlowPayButton`).
+      * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 13: Plain-English UX Language & Product Simplification**:
+      * System-wide elimination of crypto jargon, developer internal vocabulary, and intimidating technical phrases in favor of clean, accessible consumer and business terminology.
+      * Centralized copy repository established in `mobile/lib/core/copy/app_copy.dart`.
+      * Key vocabulary translations applied across all screens, modals, sheets, and badges:
+        * "B-Key Vault" / "Enclave" -> "Secure Wallet" / "Secured on this device"
+        * "Directives" / "AI Pipeline" / "Interpret" -> "Rules" / "Checking your plan..." / "Set up rule"
+        * "Aggregate Settlement" / "Parallel Multi-Rail" -> "Total Payout" / "Employee Breakdown"
+        * "Corporate KYB Compliance" / "Disbursement Rails" -> "Business Verification" / "Payment Countries"
+        * "Audit Log" -> "Activity"
+        * "Transfer Settled" -> "Payment Sent"
+      * Fully preserved all cryptographic guarantees, BMONI on-device signing semantics, and live sandbox integrations without dummy success bypasses.
+      * Verified with 100% test pass rate (180/180 tests passing across all test suites) and 0 analyzer lints (`flutter analyze` clean).
+    * **Complete Redesign — Phase 14: Flagship 3D Floating Currency Landing Screen, Elevated Auth & Lock Screen**:
+      * Implemented flagship `LandingScreen` (`mobile/lib/modules/auth/landing_screen.dart`) adhering strictly to the reference mockup:
+        * Diagonal 3-coin cascading composition matching the reference mockup with high-resolution 3D platinum-silver coins (top-left cropped rim, center-tilted with dollar engraving, and mid-right perspective) floating across diagonal volumetric light beams streaming from top-left (`mobile/assets/images/flowpay_landing_hero.jpg`), imbued with FlowPay's Electric Emerald (`#00E599`) and Vivid Cyan (`#00B4D8`) ambient rim glow over seamless Deep Obsidian (`#090A0F`).
+        * Gentle floating micro-animation (`AnimationController` gated via `SecureStorageService.isTestEnv` for zero test timeouts).
+        * Clean brand header with `FlowPayLogo.horizontal` at top-left (`SECURE` badge removed per UX direction).
+        * FlowPay-centric, commanding 3-line display headline (36pt bold display, -0.8 tracking):
+          *"Your Money.\nYour Rules.\nAI Executes."* (`AppCopy.landingHeadline`).
+        * Informative, plain-English subtitle:
+          *"FlowPay gives you multi-currency smart wallets, automated saving rules, and instant global transfers — secured on your device."* (`AppCopy.landingSubtitle`).
+        * Bottom dual pill CTAs matching reference mockup styling:
+          * **"Get Started"**: Luminous Electric Emerald-Cyan gradient pill (`#00E599` → `#00B4D8`) with ambient emerald glow and crisp white typography navigating to `SignupScreen`.
+          * **"Sign in"**: Frosted dark glass pill with hairline border (`Border.all(color: Colors.white.withValues(alpha: 0.22))`) and crisp white typography navigating to `LoginScreen`.
+      * Elevated `AppAuthGate` lock screen with top radial emerald lighting, 3D halo status badge, and high-contrast PIN/biometric authentication.
+      * Elevated `LoginScreen` and `SignupScreen` with matching dark obsidian canvases, top ambient radial glows, and pill CTAs.
+      * Recompiled web production bundle via `flutter build web --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com`.
+    * **Phase 15: Network Fee Recalibration, FlowPay Platform Service Charge & Activity Synchronization**:
+      * **Network Fee Recalibration**: Lowered arbitrary flat $0.50 USD network fees to realistic domestic settlement and Layer-2 gas rates: NGN ₦15.00 (down from ₦775.00), MXN Mex$1.50 (down from Mex$8.75), USD $0.05 (down from $0.50).
+      * **FlowPay Platform Service Charge**: Introduced sustainable business monetization: NGN ₦25.00 flat service charge for domestic transfers (total fee ₦40.00 for ₦5,000 send, down from ₦775.00), MXN Mex$2.50, USD $0.20, and 25 bps for cross-border conversions.
+      * **Transparent UI Breakdown**: Added explicit itemization in `TransferReviewModal` and `ActivityDetailModal` distinguishing "Network Fee" from "FlowPay Service Fee".
+      * **Recipient Activity Synchronization & Crediting**:
+        * Ensured `TransferService.executeTransfer` always calls `recordInMemoryActivity` for both sender (`TRANSFER_COMPLETED`) and recipient (`TRANSFER_RECEIVED`), guaranteeing persistent activity visibility even when the local PostgreSQL database runs in in-memory sandbox mode.
+        * Enhanced recipient resolution logic supporting smart wallet IDs (`sw_...`), EVM addresses, BMONI user IDs, usernames, and domestic bank account aliases.
+        * Fixed Flutter `BmoniActivityRepository` response parsing to handle paginated API formats (`res is Map && res['items'] is List`).
+        * Formatted incoming transfers with green indicator, counterparty sender name, and exact amount credited.
+      * Verified with 118/118 backend tests passing, 189/189 mobile tests passing, and 0 analyzer issues.
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
@@ -733,6 +844,56 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * 170/170 mobile tests passing (100% green), including 30 core operator tests and 7 conversation acceptance tests.
         * 99/99 backend tests passing (100% green).
         * 0 Dart analyzer warnings or errors (`flutter analyze lib test`).
+    * **Complete Plain-English UX Language & Product Simplification Pass**:
+      * **Core Mandate**: Transformed FlowPay from a developer/infrastructure dashboard into an intuitive, polished consumer and business financial application. Completely hid internal plumbing and technical jargon: BMONI, B-Key, multi-rail, execution providers, smart contracts, wallet infrastructure, custody models, API paths, cryptographic curves (`secp256k1`), EVM, ERC-4337, settlement rails, deterministic validation.
+      * **Centralized Copy Dictionary (`mobile/lib/core/copy/app_copy.dart`)**: Added reusable fintech copy constants for security, approval policies, wallet statuses, payroll, and activity.
+      * **Personal Module Simplification**:
+        * `PersonalShell`: Removed developer badges from the AppBar; simplified header to brand mark and role switcher.
+        * `PersonalDashboardScreen`: Replaced "B-Key Vault" with "Secure wallet", "Total Multi-Currency Portfolio" with "Total balance", removed technical rail tokens, simplified quick action labels.
+        * `PersonalSecurityScreen`: Replaced 50+ technical cryptography and enclave terms with reassuring plain English ("Your account is secured", "Your funds are protected on this device", "Bank-grade encryption", "Face ID & Fingerprint", "Security PIN", "How FlowPay keeps your money safe").
+        * `MoneyMissionsScreen`: Replaced "Autonomous Directives", "Deterministic Validation", and "Settlement Rails" with clear rule descriptions ("What should your money do?", "Describe a rule in plain English", "Check your plan", "Rule saved!").
+        * `SendMoneyScreen` & Transfer Modals: Replaced "FlowPay BMONI Rail" with "Send Money" and "Secured with your PIN"; removed stablecoin token badges from currency selections; simplified review modal to "Requires your PIN • Only you can approve payments".
+        * `WalletsScreen` & `WalletProvisioningScreen`: Replaced "On-Device B-Key Wallet" with "Secure wallet", simplified currency badges to "Active", updated benefits to "Send & receive in multiple currencies" and "USD • NGN • EUR • MXN • CAD".
+        * `AiOperatorModal` & AI Components: Simplified state indicators ("UNDERSTANDING YOUR REQUEST", "DONE", "Your money is protected", "Payment done").
+      * **Business Module Simplification**:
+        * `BusinessShell`: Renamed "Audit" tab to "Activity", removed developer badges.
+        * `BusinessDashboardScreen`: Changed "Global Rails Active" to "Payroll Active", simplified metrics and currency tags.
+        * `BusinessActivityScreen`: Changed "AUDITED EVENTS" to "Events", "ACTIVE RAILS" to "Countries", "CONSENSUS" to "Secured", cleaned reference IDs.
+        * `EmployeesScreen` & `EmployeeDetailScreen`: Renamed stages to intuitive steps ("Step 2: Set Up Wallet", "Step 3: Identity Verification", "Step 4: Enable Payments"), simplified country and KYC disclosures, replaced "Disbursement Rail" with "Payment Method".
+        * `EmployeeOnboardingScreen`: Removed raw API endpoints (`GET /v1/...`, `POST /onboarding/...`) and technical agreements jargon; simplified step tabs to "Step 2: Wallet", "Step 3: Verify", "Step 4: Payments".
+        * `PayrollScreen` & Detail Sheets: Renamed "B-Key PIN Signing" to "Confirm payroll", "PARALLEL MULTI-RAIL DISBURSEMENTS" to "EMPLOYEE BREAKDOWN", "AGGREGATE DISBURSEMENT" to "TOTAL PAYOUT", "Disbursement Rail" to "Payment Method", removed stablecoin tickers from payment rows.
+      * **Strict Invariant Adherence & Test Coverage**:
+        * 100% adherence to AGENTS.md: zero fabricated success responses on failed BMONI calls; all real error handling and typed exceptions preserved.
+        * Updated all 10 affected unit, widget, and integration test suites in `mobile/test/` to match the new plain-English UI copy.
+        * Zero compilation or static analysis issues across the entire codebase (`flutter analyze`).
+    * **Pagination & Long-List UX Overhaul (Personal & Business Sides)**:
+      * **Core Pagination Primitive (`mobile/lib/core/models/paginated_result.dart`)**:
+        * Built generic, immutable `PaginatedResult<T>` with deterministic `paginateList` factory, bounds clamping, 1-based indexing (`startItemIndex`, `endItemIndex`), and tabular figure range formatting (`rangeLabel`).
+      * **Shared Pagination Bar Widget (`mobile/lib/core/design_system/flowpay_pagination_bar.dart`)**:
+        * Created theme-adaptive `FlowPayPaginationBar` with `Prev`, page indicator (`safePage / totalPages`), `Next`, boundary disabling, localized loading spinner, and range summary (`Showing 1–10 of 47 employees`).
+        * Exported in `design_system.dart`.
+      * **Backend Pagination Support (`backend/src/core/pagination.ts`)**:
+        * Created universal query helpers `parsePaginationParams`, `paginateArray`, and `buildPaginatedResponse`.
+        * Added pagination and filter params (`page`, `limit`, `search`, `category`, `country`) to `GET /api/employees`, `GET /api/activity`, and `GET /api/payroll/runs`.
+        * Clean TypeScript compilation (`npm run build`).
+      * **Deterministic Demo Data Scaled for Rich Multi-Page Testing**:
+        * Expanded `demo_data.dart` to exactly 47 employees across Nigeria, Mexico, and Canada with realistic salaries and wallet addresses.
+        * Expanded `demo_activity_repo.dart` to 50 activities across 5 pages, preserving all 12 original test-expected activities.
+        * Expanded `demo_mission_repo.dart` to 8 missions.
+      * **Personal Side Long-List Pagination**:
+        * `PersonalActivityScreen`: Sliced to 10 activities/page with `FlowPayPaginationBar`, search and category tab page-1 resets.
+        * `MoneyMissionsScreen`: Sliced to 5 missions/page with `FlowPayPaginationBar`.
+      * **Business Side Long-List Pagination & Authoritative Metrics**:
+        * `EmployeesScreen`: Sliced to 10 employees/page with search query and country/status filter chip page-1 resets. Global authoritative metrics (`TOTAL ROSTER` count of 47, `PAYROLL READY` count) remain computed over the entire dataset.
+        * `BusinessActivityScreen`: Sliced to 10 events/page with search and category chip page-1 resets.
+        * `PayrollScreen`: Employee breakdown cards sliced to 10/page with pagination controls. Hero Aggregate Bill Card and confirmation modal metrics remain computed over full dataset.
+        * `PayrollRunDetailSheet`: Employee payments in Section 3 sliced to 5/page with pagination bar.
+        * `CardDetailSheet`: Card transactions list sliced to 5/page with pagination bar.
+      * **Testing & Verification**:
+        * Created dedicated test suites: `mobile/test/pagination_bar_test.dart` (6/6 passing), `mobile/test/employees_pagination_test.dart` (2/2 passing), `mobile/test/personal_activity_pagination_test.dart` (1/1 passing).
+        * Verified all 189 Flutter tests passing 100% green (`flutter test`).
+        * 0 static analysis issues across entire workspace (`flutter analyze`).
+        * Verified release web build compiles cleanly (`flutter build web --release`).
 
 ---
 
@@ -745,6 +906,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [x] Implement Send Money feature with natural language entry, balance-aware smart routing, premium confirmation screen, "Nothing moves until you approve." trust banner, on-device B-Key signing, and activity logging.
 - [x] Implement Personal Activity ledger with 7 filters, 6 statuses, transaction details modal, and zero credential leakage.
 - [x] Implement Personal Security screen with 3 core sections (Wallet Security, Signing Security, Approval Rules), "Financial actions require your approval." enforcement, and hardware key indicators.
+- [x] Implement Personal pagination & long-list UX controls (Activities, Missions) with search/filter resets.
 - [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 
 ### Business Track Owner
@@ -753,6 +915,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
 - [x] Implement FlowPay Business Global Payroll ("One Employer. Many Countries. One Bill.") with 4-call proposal sequence, raw-hash signing, rail validation, 4-stage timeline, and granular retry.
 - [x] Implement FlowPay Business Corporate Payroll Activity & Audit subsystem with composed repositories, bkey_uikit ActivitySectionCard and StatusText, shared transaction models, and failure retry.
+- [x] Implement Business pagination & long-list UX controls (Global Team, Business Activity, Payroll Breakdown, Card Details) with authoritative global aggregates and search/filter resets.
 - [ ] Add virtual card spend limit presets (Junior / Senior / Contractor dropdowns).
 - [ ] Add PDF export / receipt sharing for aggregate payroll disbursement runs.
 

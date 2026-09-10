@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/design_system.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../../core/repositories/card_repository.dart';
 
 /// Interactive Card Management Bottom Sheet.
@@ -40,9 +41,9 @@ class CardDetailSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => CardDetailSheet(
         card: card,
@@ -73,6 +74,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
   bool _showingTransactions = false;
   bool _isLoadingTxs = false;
   List<CardTransactionModel> _transactions = [];
+  int _txPage = 1;
+  static const int _txPageSize = 5;
 
   @override
   void initState() {
@@ -155,8 +158,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
           context: context,
           title: targetFreeze ? 'Card Frozen' : 'Card Unfrozen',
           message: targetFreeze
-              ? 'Card status updated to BLOCKED on BMONI rails.'
-              : 'Card status updated to ACTIVE on BMONI rails.',
+              ? 'Your card has been frozen.'
+              : 'Your card is now active.',
         );
       } catch (_) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -192,6 +195,7 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
       setState(() {
         _transactions = txs;
         _isLoadingTxs = false;
+        _txPage = 1;
       });
     } catch (err) {
       if (!mounted) return;
@@ -201,6 +205,13 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+    final borderColor = FlowPayColors.borderOf(context);
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
@@ -216,7 +227,7 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: FlowPayColors.hairline,
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -232,19 +243,19 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   children: [
                     Text(
                       _card.cardName,
-                      style: FlowPayTypography.title(color: FlowPayColors.ink)
-                          .copyWith(fontSize: 18),
+                      style: FlowPayTypography.title(color: textPrimaryColor)
+                          .copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
                     Text(
                       'Virtual Mastercard • ${widget.cardHolderName}',
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.textSecondary),
+                          color: textSecondaryColor),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded,
-                      color: FlowPayColors.textSecondary),
+                  icon: Icon(Icons.close_rounded,
+                      color: textSecondaryColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -268,13 +279,13 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
             Row(
               children: [
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: _isRevealed ? 'Hide Details' : 'View Card',
                     icon: _isRevealed
                         ? Icons.visibility_off_rounded
                         : Icons.visibility_rounded,
-                    variant: BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     isLoading: _isLoadingSensitive,
                     onPressed:
                         _card.isReserved ? null : _toggleRevealCardDetails,
@@ -282,11 +293,11 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: 'Transactions',
                     icon: Icons.receipt_long_rounded,
-                    variant: BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     onPressed: _card.isReserved
                         ? null
                         : () {
@@ -300,15 +311,15 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: _card.isFrozen ? 'Unfreeze' : 'Freeze',
                     icon: _card.isFrozen
                         ? Icons.lock_open_rounded
                         : Icons.lock_outline_rounded,
                     variant: _card.isFrozen
-                        ? BMoniButtonVariant.primary
-                        : BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                        ? FlowPayButtonVariant.primary
+                        : FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     isLoading: _isTogglingFreeze,
                     onPressed: _card.isReserved ? null : _toggleFreezeCard,
                   ),
@@ -430,7 +441,30 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   ),
                 ),
               ] else ...[
-                ..._transactions.map((tx) => _TransactionItemRow(tx: tx)),
+                ...() {
+                  final paginated = PaginatedResult.paginateList(
+                    _transactions,
+                    page: _txPage,
+                    limit: _txPageSize,
+                  );
+                  return [
+                    ...paginated.items
+                        .map((tx) => _TransactionItemRow(tx: tx)),
+                    if (_transactions.length > _txPageSize) ...[
+                      const SizedBox(height: 8),
+                      FlowPayPaginationBar(
+                        currentPage: _txPage,
+                        totalPages: paginated.totalPages,
+                        totalItems: _transactions.length,
+                        pageSize: _txPageSize,
+                        itemLabel: 'transactions',
+                        onPageChanged: (newPage) {
+                          setState(() => _txPage = newPage);
+                        },
+                      ),
+                    ],
+                  ];
+                }(),
               ],
               const SizedBox(height: 20),
             ],

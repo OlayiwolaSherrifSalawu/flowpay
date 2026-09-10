@@ -81,8 +81,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           context: context,
           title: targetFreeze ? 'Card Frozen' : 'Card Activated',
           message: targetFreeze
-              ? 'Virtual Mastercard status updated to BLOCKED on BMONI rails.'
-              : 'Virtual Mastercard status updated to ACTIVE on BMONI rails.',
+              ? 'Virtual Mastercard has been frozen.'
+              : 'Virtual Mastercard is now active.',
         );
       }
     } catch (_) {
@@ -276,7 +276,7 @@ class _EmployeeDetailContentState
     return EmbeddedWallet(
       walletId:
           'sw_${widget.employee.targetCurrency.code.toLowerCase()}_${widget.employee.id}',
-      name: '${widget.employee.targetCurrency.code} Smart Wallet',
+      name: '${widget.employee.targetCurrency.code} Wallet',
       currency: widget.employee.targetCurrency.code,
       stablecoinToken: widget.employee.targetCurrency.stablecoinToken,
       balance:
@@ -319,34 +319,67 @@ class _EmployeeDetailContentState
         ? widget.employee.payrollAmount!.formatFormatted()
         : '${widget.employee.targetCurrency.symbol}2,000.00';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
           widget.employee.fullName,
-          style: FlowPayTypography.title(color: FlowPayColors.ink)
-              .copyWith(fontWeight: FontWeight.w700),
+          style: FlowPayTypography.title(color: textPrimaryColor).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
       ),
       body: ListView(
         padding: FlowPaySpacing.insetXl,
         children: [
           // 1. Identity & Profile Section Card
-          FlowPayCard(
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: FlowPayRadii.card,
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: FlowPayColors.surfaceAlt,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? FlowPayColors.darkSurfaceElevated
+                            : FlowPayColors.mintSurface.withValues(alpha: 0.5),
+                        borderRadius: FlowPayRadii.avatar,
+                        border: Border.all(color: borderColor),
+                      ),
+                      alignment: Alignment.center,
                       child: Text(
                         widget.employee.flagEmoji,
-                        style: const TextStyle(fontSize: 22),
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -357,14 +390,17 @@ class _EmployeeDetailContentState
                           Text(
                             widget.employee.fullName,
                             style: FlowPayTypography.title(
-                                    color: FlowPayColors.ink)
-                                .copyWith(fontSize: 17),
+                                    color: textPrimaryColor)
+                                .copyWith(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             widget.employee.email,
                             style: FlowPayTypography.captionStyle(
-                                color: FlowPayColors.textSecondary),
+                                color: textSecondaryColor),
                           ),
                           if (widget.employee.phoneNumber != null) ...[
                             const SizedBox(height: 2),
@@ -381,18 +417,21 @@ class _EmployeeDetailContentState
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Divider(color: FlowPayColors.hairline, height: 1),
+                Divider(color: borderColor, height: 1),
                 const SizedBox(height: 14),
                 _DetailRow(
-                  label: 'Jurisdiction',
+                  label: 'Country',
                   value:
                       '${widget.employee.flagEmoji} ${widget.employee.resolvedCountryName}',
                 ),
                 const SizedBox(height: 10),
                 _DetailRow(
-                  label: 'Disbursement Rail',
-                  value:
-                      '${widget.employee.targetCurrency.code} (${widget.employee.targetCurrency.stablecoinToken})',
+                  label: 'Payment Method',
+                  value: widget.employee.country == 'NG'
+                      ? 'Bank Transfer (NGN)'
+                      : (widget.employee.country == 'MX'
+                          ? 'SPEI Transfer (MXN)'
+                          : '${widget.employee.targetCurrency.code} Transfer'),
                 ),
                 const SizedBox(height: 10),
                 _DetailRow(
@@ -426,7 +465,7 @@ class _EmployeeDetailContentState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh,
-                        size: 16, color: FlowPayColors.brand),
+                        size: 16, color: FlowPayColors.primary),
                 onPressed: () => _refreshAll(activeWallet.walletId),
                 tooltip: 'Refresh Ledger',
                 constraints: const BoxConstraints(),
@@ -438,23 +477,23 @@ class _EmployeeDetailContentState
 
           // BMONI Security Note Banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: FlowPayColors.brand.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              color: FlowPayColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+              borderRadius: FlowPayRadii.input,
               border:
-                  Border.all(color: FlowPayColors.brand.withValues(alpha: 0.2)),
+                  Border.all(color: FlowPayColors.primary.withValues(alpha: 0.25)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.shield_outlined,
-                    size: 16, color: FlowPayColors.brand),
-                const SizedBox(width: 8),
+                    size: 18, color: FlowPayColors.primary),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'B-Key Hardware Enclave: Private key stored in on-device Keystore. Zero custodial key exposure.',
+                    'Employee payments are secured on their device.',
                     style: TextStyle(
-                      color: FlowPayColors.brand.withValues(alpha: 0.95),
+                      color: isDark ? FlowPayColors.accent : FlowPayColors.primary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -491,33 +530,33 @@ class _EmployeeDetailContentState
           Row(
             children: [
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'View Wallet',
                   icon: Icons.account_balance_wallet_outlined,
-                  variant: BMoniButtonVariant.outline,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.small,
                   onPressed: () =>
                       _showWalletDetailSheet(context, activeWallet),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'Transactions',
                   icon: Icons.receipt_long_outlined,
-                  variant: BMoniButtonVariant.outline,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.small,
                   onPressed: () => _showTransactionsSheet(
                       context, activeWallet, transactions),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: _activeCard != null ? 'Manage Card' : 'Issue Card',
                   icon: Icons.credit_card_rounded,
-                  variant: BMoniButtonVariant.primary,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.primary,
+                  size: FlowPayButtonSize.small,
                   onPressed: _activeCard != null
                       ? () => _showCardDetailModal(context, _activeCard!)
                       : () => _showIssueCardModal(context, activeWallet),
@@ -629,7 +668,7 @@ class _EmployeeDetailContentState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'BMONI Onboarding Lifecycle',
+                            'Onboarding Status',
                             style: FlowPayTypography.title(
                                     color: FlowPayColors.ink)
                                 .copyWith(fontSize: 15),
@@ -727,9 +766,9 @@ class _EmployeeDetailContentState
                 // Stage 2
                 _StageProgressRow(
                   stageNumber: 2,
-                  title: 'Stage 2: Smart Wallet Provisioning',
+                  title: 'Step 2: Set Up Wallet',
                   subtitle:
-                      'Owner key + challenge PIN signing (${widget.employee.targetCurrency.stablecoinToken} token)',
+                      'Wallet setup confirmed with PIN',
                   state: _getStageState(2),
                   error: widget.onboardingStatus?.failedStage == 2
                       ? widget.onboardingStatus?.failureReason
@@ -740,10 +779,10 @@ class _EmployeeDetailContentState
                 // Stage 3
                 _StageProgressRow(
                   stageNumber: 3,
-                  title: 'Stage 3: Country-Specific KYC',
+                  title: 'Step 3: Identity Verification',
                   subtitle: widget.employee.country == 'NG'
-                      ? 'BVN/NIN + EDD employment (no selfie)'
-                      : 'CURP/RFC + biometric selfie',
+                      ? 'BVN/NIN verification'
+                      : 'CURP/RFC and photo verification',
                   state: _getStageState(3),
                   error: widget.onboardingStatus?.failedStage == 3
                       ? widget.onboardingStatus?.failureReason
@@ -754,10 +793,10 @@ class _EmployeeDetailContentState
                 // Stage 4
                 _StageProgressRow(
                   stageNumber: 4,
-                  title: 'Stage 4: Disbursement Rail Activation',
+                  title: 'Step 4: Enable Payments',
                   subtitle: widget.employee.country == 'NG'
-                      ? 'Local NGN bank rails'
-                      : 'Etherfuse MX agreements + SPEI activation',
+                      ? 'Nigerian bank transfer'
+                      : 'Mexican bank transfer (SPEI)',
                   state: _getStageState(4),
                   error: widget.onboardingStatus?.failedStage == 4
                       ? widget.onboardingStatus?.failureReason
@@ -921,9 +960,9 @@ class _EmployeeDetailContentState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) {
         return Padding(
@@ -947,7 +986,7 @@ class _EmployeeDetailContentState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Smart Wallet Specification',
+                    'Wallet Details',
                     style: FlowPayTypography.title(color: FlowPayColors.ink)
                         .copyWith(fontSize: 17),
                   ),
@@ -971,7 +1010,7 @@ class _EmployeeDetailContentState
               ),
               const SizedBox(height: 6),
               Text(
-                'ERC-4337 Account Abstraction on Base Sepolia',
+                'Secure employee payment wallet',
                 style: FlowPayTypography.captionStyle(
                     color: FlowPayColors.textSecondary),
               ),
@@ -985,16 +1024,15 @@ class _EmployeeDetailContentState
                   isMonospace: true),
               const SizedBox(height: 10),
               _DetailRow(
-                  label: 'Settlement Rail',
-                  value:
-                      '${wallet.currency} (${wallet.stablecoinToken ?? "Native"})'),
+                  label: 'Payment Method',
+                  value: wallet.currency),
               const SizedBox(height: 10),
               const _DetailRow(
-                  label: 'Network & Chain', value: 'Base Sepolia (84532)'),
+                  label: 'Security', value: 'Bank-grade encryption'),
               const SizedBox(height: 10),
               const _DetailRow(
-                  label: 'Signing Standard',
-                  value: 'BmoniEmbeddedSdk (B-Key Signer)'),
+                  label: 'Authorization',
+                  value: 'Protected by employee PIN'),
               const SizedBox(height: 16),
 
               // Wallet Address (Secondary / Support debug detail per design.md copy rules)
@@ -1012,7 +1050,7 @@ class _EmployeeDetailContentState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'ON-CHAIN CONTRACT ADDRESS (SUPPORT / AUDIT)',
+                            'WALLET ADDRESS',
                             style: FlowPayTypography.captionStyle(
                                     color: FlowPayColors.textTertiary)
                                 .copyWith(
@@ -1043,10 +1081,10 @@ class _EmployeeDetailContentState
                           context: context,
                           title: 'Address Copied',
                           message:
-                              'On-chain smart wallet address copied to clipboard.',
+                              'Wallet address copied to clipboard.',
                         );
                       },
-                      tooltip: 'Copy EVM Address',
+                      tooltip: 'Copy Address',
                     ),
                   ],
                 ),
@@ -1077,9 +1115,9 @@ class _EmployeeDetailContentState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(
@@ -1304,36 +1342,36 @@ class _FailureStateBanner extends StatelessWidget {
       icon = Icons.wifi_off_rounded;
       title = 'Network Connection Offline';
       description =
-          'Unable to reach BMONI node. Please check your connection and retry.';
+          'Unable to connect. Please check your connection and try again.';
     } else if (failure is EmbeddedServerFailure) {
       icon = Icons.cloud_off_rounded;
-      title = 'BMONI Ledger Latency';
+      title = 'Service Temporarily Unavailable';
       description =
-          'The smart wallet RPC node is temporarily unavailable (Status: ${failure.statusCode ?? 500}).';
+          'Payment service is temporarily unavailable. Please try again shortly.';
     } else if (failure is EmbeddedRateLimitFailure) {
       final rf = failure as EmbeddedRateLimitFailure;
       icon = Icons.speed_rounded;
-      title = 'Rate Limit Reached';
+      title = 'Please Slow Down';
       description =
           'Too many requests. Please wait ${rf.retryAfterSeconds ?? 30} seconds before retrying.';
     } else if (failure is EmbeddedNotFoundFailure) {
       icon = Icons.search_off_rounded;
-      title = 'Smart Wallet Not Found';
+      title = 'Wallet Not Found';
       description =
-          'No on-chain smart wallet was found for this user ID on Base Sepolia.';
+          'No payment wallet was found for this employee.';
     } else if (failure is EmbeddedAuthenticationFailure) {
       icon = Icons.lock_outline_rounded;
-      title = 'Authentication Expired';
+      title = 'Session Expired';
       description =
-          'BMONI API session key expired. Re-authentication required.';
+          'Your session has expired. Please sign in again.';
     } else if (failure is EmbeddedAuthorizationFailure) {
       icon = Icons.gpp_bad_outlined;
-      title = 'Unauthorized Access';
+      title = 'Unauthorized';
       description =
-          'Your API key does not have permission to inspect this smart wallet.';
+          'You do not have permission to view this wallet.';
     } else {
       icon = Icons.error_outline_rounded;
-      title = 'Wallet Query Failed';
+      title = 'Unable to Load Wallet';
       description = failure.message;
     }
 

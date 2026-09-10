@@ -129,11 +129,16 @@ export class TransferValidator {
     // 1. Direct Option (if direct wallet exists)
     if (directWallet) {
       const directBalanceMoney = Money.fromMinor(directBalanceMinor, targetCurrency);
-      // Flat network fee: ~50 cents USD equivalent
-      const netFeeMinor = targetCurrency === 'NGN' ? 77500n : targetCurrency === 'MXN' ? 875n : 50n;
+      // Realistic network fee: ~₦15 for NGN, ~Mex$1.50 for MXN, ~$0.05 for USD/USDB (Layer-2 / domestic settlement)
+      const netFeeMinor = targetCurrency === 'NGN' ? 1500n : targetCurrency === 'MXN' ? 150n : 5n;
       const netFeeMoney = Money.fromMinor(netFeeMinor, targetCurrency);
+
+      // FlowPay Platform Service Fee: transparent platform earning (₦25 NGN, Mex$2.50 MXN, $0.20 USD)
+      const serviceFeeMinor = targetCurrency === 'NGN' ? 2500n : targetCurrency === 'MXN' ? 250n : 20n;
+      const serviceFeeMoney = Money.fromMinor(serviceFeeMinor, targetCurrency);
+
       const fxFeeMoney = Money.fromMinor(0n, targetCurrency);
-      const totalDebitMinor = targetAmountMinor + netFeeMinor;
+      const totalDebitMinor = targetAmountMinor + netFeeMinor + serviceFeeMinor;
       const totalDebitMoney = Money.fromMinor(totalDebitMinor, targetCurrency);
 
       const option: FundingSourceOption = {
@@ -149,6 +154,8 @@ export class TransferValidator {
         convertedDebitFormatted: targetMoney.toMajorString(),
         networkFeeMinor: netFeeMinor.toString(),
         networkFeeFormatted: netFeeMoney.toMajorString(),
+        serviceFeeMinor: serviceFeeMinor.toString(),
+        serviceFeeFormatted: serviceFeeMoney.toMajorString(),
         fxFeeMinor: '0',
         fxFeeFormatted: fxFeeMoney.toMajorString(),
         totalDebitMinor: totalDebitMinor.toString(),
@@ -180,16 +187,20 @@ export class TransferValidator {
       const convertedMinor = convertedMoney.amountMinor;
 
       // Fees in altCurrency:
-      // Network fee: 50 cents USD equiv in altCurrency
+      // Realistic Network fee: 5 cents USD equiv in altCurrency
       const usdRate = getExchangeRate('USD', altCurrency);
-      const networkFeeMajor = 0.50 * usdRate;
+      const networkFeeMajor = 0.05 * usdRate;
       const networkFeeMoney = Money.fromMajor(networkFeeMajor.toFixed(2), altCurrency);
+
+      // FlowPay Platform Service Fee (25 bps = 0.25%):
+      const serviceFeeMajor = Math.max(requiredAltMajor * 0.0025, 0.20 * usdRate);
+      const serviceFeeMoney = Money.fromMajor(serviceFeeMajor.toFixed(2), altCurrency);
 
       // FX Fee (15 bps = 0.15%):
       const fxFeeMajor = requiredAltMajor * 0.0015;
       const fxFeeMoney = Money.fromMajor(fxFeeMajor.toFixed(2), altCurrency);
 
-      const totalDebitMinor = convertedMinor + networkFeeMoney.amountMinor + fxFeeMoney.amountMinor;
+      const totalDebitMinor = convertedMinor + networkFeeMoney.amountMinor + serviceFeeMoney.amountMinor + fxFeeMoney.amountMinor;
       const totalDebitMoney = Money.fromMinor(totalDebitMinor, altCurrency);
 
       const altBalanceMinor = BigInt(altWallet.balanceMinor);
@@ -210,6 +221,8 @@ export class TransferValidator {
         convertedDebitFormatted: convertedMoney.toMajorString(),
         networkFeeMinor: networkFeeMoney.amountMinor.toString(),
         networkFeeFormatted: networkFeeMoney.toMajorString(),
+        serviceFeeMinor: serviceFeeMoney.amountMinor.toString(),
+        serviceFeeFormatted: serviceFeeMoney.toMajorString(),
         fxFeeMinor: fxFeeMoney.amountMinor.toString(),
         fxFeeFormatted: fxFeeMoney.toMajorString(),
         totalDebitMinor: totalDebitMinor.toString(),

@@ -340,7 +340,7 @@ class FinancialOperator extends ChangeNotifier {
         if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
           // Never execute directly on chat text. Require real PIN authentication.
           final promptMsg = OperatorMessage.operator(
-            'To execute this plan, please authenticate with your B-Key PIN using the Approve button.',
+            'To execute this plan, please confirm with your PIN using the Approve button.',
           );
           _session = _session.copyWith(
             messages: [..._session.messages, promptMsg],
@@ -1112,27 +1112,25 @@ class FinancialOperator extends ChangeNotifier {
 
     // Resolve signature: either provided directly from WalletPinAuthSheet or signed via PIN
     String? resolvedSignature = signature;
-    if (resolvedSignature == null && (pin != null || kIsWeb)) {
+    if (resolvedSignature == null && pin != null) {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
       try {
         resolvedSignature = await BmoniSdkService.signTransactionHash(
           hashToSign,
-          pin: pin ?? '123456',
+          pin: pin,
         );
       } catch (e) {
-        if (!kIsWeb) {
-          final errorMsg = OperatorMessage.operator(
-            'Authorization failed: $e',
-            isError: true,
-          );
-          _session = _session.copyWith(
-            status: OperatorSessionStatus.error,
-            messages: [..._session.messages, errorMsg],
-          );
-          notifyListeners();
-          return;
-        }
+        final errorMsg = OperatorMessage.operator(
+          'Authorization failed: $e',
+          isError: true,
+        );
+        _session = _session.copyWith(
+          status: OperatorSessionStatus.error,
+          messages: [..._session.messages, errorMsg],
+        );
+        notifyListeners();
+        return;
       }
     }
 

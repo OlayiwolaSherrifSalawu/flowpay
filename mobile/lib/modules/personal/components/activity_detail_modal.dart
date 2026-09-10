@@ -53,7 +53,7 @@ class ActivityDetailModal extends StatelessWidget {
       SnackBar(
         content: Text('$label copied to clipboard'),
         duration: const Duration(seconds: 2),
-        backgroundColor: FlowPayColors.accent,
+        backgroundColor: FlowPayColors.primary,
       ),
     );
   }
@@ -93,51 +93,59 @@ class ActivityDetailModal extends StatelessWidget {
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(
-            color:
-                isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
-          ),
+        color: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
+        borderRadius: FlowPayRadii.sheet,
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+          width: 1.2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(isDark ? 80 : 25),
+            blurRadius: 30,
+            offset: const Offset(0, -6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Drag Handle
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color:
-                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
-              borderRadius: BorderRadius.circular(2),
+          const SizedBox(height: 14),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                borderRadius: FlowPayRadii.chip,
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: FlowPaySpacing.xl),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? FlowPayColors.darkSurfaceElevated
-                        : FlowPayColors.lightSurfaceElevated,
-                    shape: BoxShape.circle,
+                    color: FlowPayColors.primary.withAlpha(25),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: FlowPayColors.primary.withAlpha(50),
+                    ),
                   ),
                   child: Icon(
                     activity.type.icon,
-                    color: FlowPayColors.primaryLight,
+                    color: FlowPayColors.primary,
                     size: 22,
                   ),
                 ),
-                const SizedBox(width: FlowPaySpacing.md),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,24 +153,32 @@ class ActivityDetailModal extends StatelessWidget {
                       Text(
                         '${activity.type.label} Details',
                         style: FlowPayTypography.headingSm.copyWith(
+                          fontWeight: FontWeight.bold,
                           color: isDark
                               ? FlowPayColors.darkTextPrimary
                               : FlowPayColors.lightTextPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        'FlowPay • Global Payment Rails',
+                      Text(
+                        'FlowPay',
                         style: TextStyle(
                           fontSize: 12,
-                          color: FlowPayColors.textSecondary,
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.lightTextSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(
+                    Icons.close,
+                    color: isDark
+                        ? FlowPayColors.darkTextSecondary
+                        : FlowPayColors.lightTextSecondary,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -174,20 +190,33 @@ class ActivityDetailModal extends StatelessWidget {
           // Scrollable Content
           Flexible(
             child: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: FlowPaySpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               shrinkWrap: true,
               children: [
                 // Hero Amount & Status Card
-                FlowPayCard(
-                  variant: FlowPayCardVariant.elevated,
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                    borderRadius: FlowPayRadii.cardSmall,
+                    border: Border.all(
+                      color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(isDark ? 16 : 6),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: Column(
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'TRANSACTION AMOUNT',
+                            'Amount',
                             style: FlowPayTypography.caption.copyWith(
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
@@ -202,7 +231,7 @@ class ActivityDetailModal extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: FlowPaySpacing.md),
+                      const SizedBox(height: 16),
                       FlowPayAmountDisplay(
                         amount: activity.amount != null
                             ? activity.amount!
@@ -215,11 +244,11 @@ class ActivityDetailModal extends StatelessWidget {
                       if (activity.exchangeRate != null &&
                           activity.exchangeRate != 'N/A' &&
                           activity.exchangeRate != 'N/A (Direct Currency)') ...[
-                        const SizedBox(height: FlowPaySpacing.xs),
+                        const SizedBox(height: 8),
                         Text(
                           'Exchange Rate: ${activity.exchangeRate}',
                           style: FlowPayTypography.caption.copyWith(
-                            color: FlowPayColors.accentLight,
+                            color: FlowPayColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -228,23 +257,30 @@ class ActivityDetailModal extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: FlowPaySpacing.lg),
+                const SizedBox(height: 16),
 
                 // Core Transaction Breakdown
-                FlowPayCard(
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                    borderRadius: FlowPayRadii.cardSmall,
+                    border: Border.all(
+                      color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                    ),
+                  ),
                   child: Column(
                     children: [
                       _buildDetailRow(
                         context,
                         label: 'Currency',
                         value: '${activity.currency.code} ($tokenBadge)',
-                        badge: tokenBadge,
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,
                         label: 'Source',
-                        value: activity.source ?? 'FlowPay Smart Wallet',
+                        value: activity.source ?? 'FlowPay Wallet',
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
@@ -256,12 +292,21 @@ class ActivityDetailModal extends StatelessWidget {
                       _buildDetailRow(
                         context,
                         label: 'Network Fee',
-                        value: activity.fee != null
-                            ? (activity.fee!.amountMinor == BigInt.zero
-                                ? 'Sponsored by B-Key (\$0.00)'
-                                : activity.fee!.formatFormatted())
-                            : 'Sponsored by B-Key (\$0.00)',
+                        value: activity.metadata?['networkFee']?.toString() ??
+                            (activity.fee != null
+                                ? (activity.fee!.amountMinor == BigInt.zero
+                                    ? 'No fee'
+                                    : activity.fee!.formatFormatted())
+                                : 'No fee'),
                       ),
+                      if (activity.metadata?['serviceFee'] != null) ...[
+                        const Divider(height: 20),
+                        _buildDetailRow(
+                          context,
+                          label: 'FlowPay Service Fee',
+                          value: activity.metadata!['serviceFee'].toString(),
+                        ),
+                      ],
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,
@@ -288,27 +333,32 @@ class ActivityDetailModal extends StatelessWidget {
                         const Divider(height: 20),
                         _buildDetailRow(
                           context,
-                          label: 'BMONI Reference',
+                          label: 'Payment reference',
                           value: activity.bmoniReference!,
                           isCopyable: true,
                           onCopy: () => _copyToClipboard(context,
-                              activity.bmoniReference!, 'BMONI Reference'),
+                              activity.bmoniReference!, 'Payment reference'),
                         ),
                       ],
                     ],
                   ),
                 ),
 
-                const SizedBox(height: FlowPaySpacing.lg),
+                const SizedBox(height: 16),
 
                 // Security & Non-Exposure Guarantee Banner
                 Container(
-                  padding: FlowPaySpacing.insetMd,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.primary.withAlpha(20),
-                    borderRadius: FlowPaySpacing.borderRadiusMd,
-                    border:
-                        Border.all(color: FlowPayColors.primary.withAlpha(60)),
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.mint100.withAlpha(60),
+                    borderRadius: FlowPayRadii.cardSmall,
+                    border: Border.all(
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.primary.withAlpha(40),
+                    ),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,23 +368,23 @@ class ActivityDetailModal extends StatelessWidget {
                         color: FlowPayColors.primary,
                         size: 20,
                       ),
-                      const SizedBox(width: FlowPaySpacing.sm),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Verified by On-Device B-Key Signer',
+                              'Secured on this device',
                               style: FlowPayTypography.caption.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isDark
                                     ? FlowPayColors.darkTextPrimary
-                                    : FlowPayColors.lightTextPrimary,
+                                    : FlowPayColors.ink,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Zero AI money movement • Private keys & API secrets sealed in hardware enclave • Never exposed.',
+                              'Only you can approve payments. Your security is managed on this device.',
                               style: FlowPayTypography.caption.copyWith(
                                 color: isDark
                                     ? FlowPayColors.darkTextSecondary
@@ -348,28 +398,29 @@ class ActivityDetailModal extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: FlowPaySpacing.xl),
+                const SizedBox(height: 20),
 
                 // Actions
                 if (isAwaiting) ...[
                   FlowPayButton(
-                    text: 'Approve & Sign with PIN',
+                    text: 'Approve',
                     icon: Icons.pin,
+                    size: FlowPayButtonSize.large,
                     isFullWidth: true,
                     onPressed: () {
                       WalletPinAuthSheet.show(
                         context: context,
                         title: 'Approve ${activity.type.label}',
                         subtitle:
-                            'Sign transfer proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
+                            'Confirm payment of ${activity.amount?.formatFormatted() ?? activity.reference}',
                         onAuthorize: (pin) async {
                           final updated = activity.copyWith(
                               status: FlowPayAppStatus.completed);
                           onApprove?.call(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                  'Action approved & signed: ${activity.reference}'),
+                                  'Payment approved'),
                               backgroundColor: FlowPayColors.primary,
                             ),
                           );
@@ -379,17 +430,18 @@ class ActivityDetailModal extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: FlowPaySpacing.md),
+                  const SizedBox(height: 12),
                 ],
 
                 FlowPayButton(
                   text: 'Close',
                   variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.large,
                   isFullWidth: true,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
 
-                const SizedBox(height: FlowPaySpacing.xl),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -444,7 +496,7 @@ class ActivityDetailModal extends StatelessWidget {
                 FlowPayBadge(
                   label: badge,
                   showDot: false,
-                  color: FlowPayColors.primaryLight,
+                  color: FlowPayColors.primary,
                 ),
               ],
               if (isCopyable && onCopy != null) ...[
