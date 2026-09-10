@@ -414,8 +414,8 @@ export class TransferService {
         if (isPostgresDb()) {
           try {
             const senderUser = await prisma.user.findUnique({ where: { id: userId } });
-            if (senderUser?.name) {
-              senderDisplayName = senderUser.name;
+            if (senderUser?.fullName) {
+              senderDisplayName = senderUser.fullName;
             } else if (senderUser?.email) {
               senderDisplayName = senderUser.email;
             }
