@@ -277,6 +277,13 @@ export class WalletService {
   }
 
   /**
+   * Find a wallet record by smart wallet ID across all registered accounts.
+   */
+  static findWalletById(walletId: string): SandboxWalletRecord | undefined {
+    return sandboxWallets.get(walletId);
+  }
+
+  /**
    * Register a user's on-device keypair address with their backend wallets.
    */
   static async registerUserWallet(userId: string, address: string): Promise<SandboxWalletRecord[]> {

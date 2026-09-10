@@ -327,6 +327,10 @@ class TransferReviewModal extends StatelessWidget {
                             'Network Fee',
                             fundingOption.networkFee.formatted,
                             isDark),
+                        _buildRow(
+                            'FlowPay Service Fee',
+                            fundingOption.serviceFee.formatted,
+                            isDark),
                         if (fundingOption.requiresConversion)
                           _buildRow(
                               'Exchange fee',

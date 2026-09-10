@@ -59,6 +59,7 @@ activityRouter.get('/', async (req, res, next) => {
   try {
     const category = req.query.category as string | undefined;
     const search = req.query.search as string | undefined;
+    const userId = (req.query.userId as string | undefined) || (req.headers['x-user-id'] as string | undefined);
 
     let rows: any[] = [];
     if (isPostgresDb()) {
@@ -79,6 +80,26 @@ activityRouter.get('/', async (req, res, next) => {
         list = list.filter((a) => a.category?.toUpperCase() === category.toUpperCase());
       }
       rows = list;
+    }
+
+    if (userId && userId !== 'usr_flowpay_sandbox_master') {
+      const userLower = userId.toLowerCase();
+      rows = rows.filter((a) => {
+        const actor = (a.actor || '').toLowerCase();
+        const details = a.detailsJson ?? {};
+        const recipient = (details.recipient || '').toLowerCase();
+        const sender = (details.sender || '').toLowerCase();
+        const counterparty = (details.counterparty || '').toLowerCase();
+        return (
+          actor === userLower ||
+          actor === 'bmoni_system' ||
+          recipient === userLower ||
+          sender === userLower ||
+          counterparty === userLower ||
+          recipient.includes(userLower) ||
+          sender.includes(userLower)
+        );
+      });
     }
 
     if (search) {

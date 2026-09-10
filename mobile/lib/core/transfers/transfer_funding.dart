@@ -12,11 +12,12 @@ class TransferFundingOption {
   final double? exchangeRate; // e.g. 1550.0
   final Money convertedDebit;
   final Money networkFee;
+  final Money serviceFee;
   final Money fxFee;
   final Money totalDebit;
   final Money targetPayment;
 
-  const TransferFundingOption({
+  TransferFundingOption({
     required this.fundingWalletId,
     required this.fundingCurrency,
     required this.fundingWalletName,
@@ -26,10 +27,11 @@ class TransferFundingOption {
     this.exchangeRate,
     required this.convertedDebit,
     required this.networkFee,
+    Money? serviceFee,
     required this.fxFee,
     required this.totalDebit,
     required this.targetPayment,
-  });
+  }) : serviceFee = serviceFee ?? Money.fromMinor(BigInt.zero, fundingCurrency);
 
   factory TransferFundingOption.fromJson(Map<String, dynamic> json) {
     final fundCur =
@@ -55,6 +57,10 @@ class TransferFundingOption {
       ),
       networkFee: Money.fromMinor(
         json['networkFeeMinor']?.toString() ?? '0',
+        fundCur,
+      ),
+      serviceFee: Money.fromMinor(
+        json['serviceFeeMinor']?.toString() ?? '0',
         fundCur,
       ),
       fxFee: Money.fromMinor(
@@ -85,6 +91,8 @@ class TransferFundingOption {
         'convertedDebitFormatted': convertedDebit.toMajorString(),
         'networkFeeMinor': networkFee.amountMinor.toString(),
         'networkFeeFormatted': networkFee.toMajorString(),
+        'serviceFeeMinor': serviceFee.amountMinor.toString(),
+        'serviceFeeFormatted': serviceFee.toMajorString(),
         'fxFeeMinor': fxFee.amountMinor.toString(),
         'fxFeeFormatted': fxFee.toMajorString(),
         'totalDebitMinor': totalDebit.amountMinor.toString(),

@@ -292,12 +292,21 @@ class ActivityDetailModal extends StatelessWidget {
                       _buildDetailRow(
                         context,
                         label: 'Network Fee',
-                        value: activity.fee != null
-                            ? (activity.fee!.amountMinor == BigInt.zero
-                                ? 'No fee'
-                                : activity.fee!.formatFormatted())
-                            : 'No fee',
+                        value: activity.metadata?['networkFee']?.toString() ??
+                            (activity.fee != null
+                                ? (activity.fee!.amountMinor == BigInt.zero
+                                    ? 'No fee'
+                                    : activity.fee!.formatFormatted())
+                                : 'No fee'),
                       ),
+                      if (activity.metadata?['serviceFee'] != null) ...[
+                        const Divider(height: 20),
+                        _buildDetailRow(
+                          context,
+                          label: 'FlowPay Service Fee',
+                          value: activity.metadata!['serviceFee'].toString(),
+                        ),
+                      ],
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,

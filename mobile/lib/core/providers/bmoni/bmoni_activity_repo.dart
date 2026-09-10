@@ -24,8 +24,14 @@ class BmoniActivityRepository implements ActivityRepository {
         if (type != null) 'type': type.name.toUpperCase(),
       });
 
-      if (res is List) {
-        remoteList = res.map((item) {
+      final list = (res is Map && res['items'] is List)
+          ? res['items'] as List
+          : (res is Map && res['data'] is List)
+              ? res['data'] as List
+              : (res is List ? res : []);
+
+      if (list.isNotEmpty) {
+        remoteList = list.map((item) {
           final catStr =
               (item['category'] as String? ?? 'SYSTEM').toLowerCase();
           ActivityCategory cat = ActivityCategory.system;
@@ -38,48 +44,70 @@ class BmoniActivityRepository implements ActivityRepository {
           final details = (item['details_json'] ?? item['detailsJson'])
               as Map<String, dynamic>?;
 
+          final isReceived = item['action'] == 'TRANSFER_RECEIVED';
+          final isCompleted = item['action'] == 'TRANSFER_COMPLETED';
+
           // Parse amount & currency safely
           Money? amount;
-          if (details != null && details['amount'] != null) {
-            final rawAmt = details['amount'].toString().replaceAll(',', '');
-            final currStr =
-                (details['currency'] ?? 'USD').toString().toUpperCase();
+          final rawAmt = details?['amountReceived'] ??
+              details?['amount'] ??
+              details?['amountSent'] ??
+              item['amount'];
+          if (rawAmt != null) {
+            final cleanAmt = rawAmt.toString().replaceAll(',', '');
+            final currStr = (details?['currencyReceived'] ??
+                    details?['currency'] ??
+                    details?['currencySent'] ??
+                    item['currency'] ??
+                    'USD')
+                .toString()
+                .toUpperCase();
             final cur = Currency.fromCode(currStr);
-            if (double.tryParse(rawAmt) != null) {
-              amount = Money.fromMajorString(rawAmt, cur);
-            } else if (int.tryParse(rawAmt) != null) {
-              amount = Money.fromMinor(int.parse(rawAmt), cur);
-            }
-          } else if (item['amount'] != null) {
-            final rawAmt = item['amount'].toString().replaceAll(',', '');
-            final currStr =
-                (item['currency'] ?? 'USD').toString().toUpperCase();
-            final cur = Currency.fromCode(currStr);
-            if (double.tryParse(rawAmt) != null) {
-              amount = Money.fromMajorString(rawAmt, cur);
+            if (double.tryParse(cleanAmt) != null) {
+              amount = Money.fromMajorString(cleanAmt, cur);
+            } else if (int.tryParse(cleanAmt) != null) {
+              amount = Money.fromMinor(int.parse(cleanAmt), cur);
             }
           }
 
+          final sender = details?['sender']?.toString();
           final recipient = details?['recipient']?.toString() ??
               details?['counterparty']?.toString();
-          final counterparty = recipient ??
-              (item['actor']?.toString() ?? 'FlowPay Rail');
+          final counterparty = isReceived
+              ? (sender ?? 'FlowPay Sender')
+              : (recipient ??
+                  (item['actor']?.toString() ?? 'FlowPay Rail'));
 
           ActivityType actType = ActivityType.wallet;
-          if (cat == ActivityCategory.transfer) actType = ActivityType.transfer;
+          if (cat == ActivityCategory.transfer || isReceived || isCompleted) {
+            actType = ActivityType.transfer;
+          }
           if (cat == ActivityCategory.mission) actType = ActivityType.mission;
           if (cat == ActivityCategory.card) actType = ActivityType.card;
           if (cat == ActivityCategory.fx) actType = ActivityType.conversion;
           if (cat == ActivityCategory.payroll) actType = ActivityType.transfer;
 
           String title = item['action']?.toString() ?? 'Account Activity';
-          if (recipient != null &&
+          if (isReceived) {
+            title = 'Received from $counterparty';
+          } else if (recipient != null &&
               recipient.isNotEmpty &&
               (title == 'TRANSFER_COMPLETED' || title.contains('TRANSFER'))) {
             title = 'Transfer to $recipient';
           } else if (title == 'MONEY_MISSION_EXECUTED' &&
               details?['rule'] != null) {
             title = '⚡ Mission: ${details!['rule']}';
+          }
+
+          String description = details?['description']?.toString() ?? '';
+          if (description.isEmpty) {
+            if (isReceived) {
+              description = 'Incoming transfer from $counterparty';
+            } else if (isCompleted && recipient != null) {
+              description = 'Transfer to $recipient';
+            } else {
+              description = item['actor']?.toString() ?? 'BMONI rail event recorded';
+            }
           }
 
           final statusStr = (details?['status'] ??
@@ -93,22 +121,28 @@ class BmoniActivityRepository implements ActivityRepository {
           if (statusStr.contains('PENDING')) status = FlowPayAppStatus.pending;
           if (statusStr.contains('CANCEL')) status = FlowPayAppStatus.cancelled;
 
+          final source = isReceived
+              ? counterparty
+              : (details?['fundingWallet']?.toString() ??
+                  details?['source']?.toString());
+          final destination = isReceived
+              ? 'My Wallet'
+              : (details?['destination']?.toString() ??
+                  (recipient != null ? "$recipient's Wallet" : null));
+
           return ActivityModel(
             id: item['id']?.toString() ??
                 'act_${DateTime.now().millisecondsSinceEpoch}',
             title: title,
-            description: details?['description']?.toString() ??
-                (item['actor']?.toString() ?? 'BMONI rail event recorded'),
+            description: description,
             category: cat,
             type: actType,
             status: status,
             amount: amount,
             currency: amount?.currency,
             counterparty: counterparty,
-            source: details?['fundingWallet']?.toString() ??
-                details?['source']?.toString(),
-            destination: details?['destination']?.toString() ??
-                (recipient != null ? "$recipient's Wallet" : null),
+            source: source,
+            destination: destination,
             timestamp: item['created_at'] != null
                 ? DateTime.tryParse(item['created_at'].toString()) ??
                     DateTime.now()

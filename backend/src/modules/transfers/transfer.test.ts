@@ -217,6 +217,8 @@ test('FlowPay Send Money Feature & Balance-Aware Routing Tests', async (t) => {
       convertedDebitFormatted: '775000.00',
       networkFeeMinor: '77500',
       networkFeeFormatted: '775.00',
+      serviceFeeMinor: '193750',
+      serviceFeeFormatted: '1937.50',
       fxFeeMinor: '116250',
       fxFeeFormatted: '1162.50',
       totalDebitMinor: '77693750',

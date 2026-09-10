@@ -12,6 +12,7 @@ import type {
 } from './types.js';
 import { EXCHANGE_RATES, TransferValidator } from './validator.js';
 import { WalletService } from '../wallets/service.js';
+import { recordInMemoryActivity } from '../../routes/activity.routes.js';
 
 export class TransferService {
   /**
@@ -226,6 +227,37 @@ export class TransferService {
     const recipient = proposalPayload?.intent.recipient ?? 'Beneficiary';
     const purpose = proposalPayload?.intent.purpose ?? 'Transfer';
 
+    const senderDetailsJson = {
+      transferId: proposalId,
+      recipient,
+      amount: targetAmount,
+      amountSent: targetAmount,
+      currency: targetCurrency,
+      fundingWallet,
+      fundingCurrency,
+      totalDebited,
+      conversion,
+      exchangeRate,
+      networkFee: proposalPayload?.fundingOption.networkFeeFormatted,
+      serviceFee: proposalPayload?.fundingOption.serviceFeeFormatted,
+      purpose,
+      transactionHash: txHash,
+      proposalId,
+      bmoniStatus: 'COMPLETED',
+      status: 'COMPLETED',
+      executedAt: new Date().toISOString(),
+    };
+
+    // Always record in in-memory activities store for immediate visibility across sessions
+    recordInMemoryActivity({
+      id: activityId,
+      category: 'PERSONAL',
+      action: 'TRANSFER_COMPLETED',
+      actor: userId,
+      detailsJson: senderDetailsJson,
+      createdAt: new Date().toISOString(),
+    });
+
     if (isPostgresDb()) {
       // Persist into PostgreSQL audit_activity table via Prisma
       try {
@@ -235,22 +267,7 @@ export class TransferService {
             category: 'PERSONAL',
             action: 'TRANSFER_COMPLETED',
             actor: userId,
-            detailsJson: {
-              transferId: proposalId,
-              recipient,
-              amount: targetAmount,
-              currency: targetCurrency,
-              fundingWallet,
-              fundingCurrency,
-              totalDebited,
-              conversion,
-              exchangeRate,
-              purpose,
-              transactionHash: txHash,
-              proposalId,
-              bmoniStatus: 'COMPLETED',
-              executedAt: new Date().toISOString(),
-            },
+            detailsJson: senderDetailsJson,
           },
         });
       } catch (dbErr: any) {
@@ -261,6 +278,10 @@ export class TransferService {
       try {
         const amountMinor = BigInt(Math.round((parseFloat(targetAmount) || 0) * 100));
         const totalDebitMinor = BigInt(proposalPayload?.fundingOption.totalDebitMinor || Number(amountMinor));
+        const combinedFeeMinor =
+          BigInt(proposalPayload?.fundingOption.networkFeeMinor || 0) +
+          BigInt(proposalPayload?.fundingOption.serviceFeeMinor || 0) +
+          BigInt(proposalPayload?.fundingOption.fxFeeMinor || 0);
         await prisma.transfer.create({
           data: {
             id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -274,7 +295,7 @@ export class TransferService {
             fundingCurrency,
             totalDebitMinor,
             exchangeRate: exchangeRate ? exchangeRate.toString() : null,
-            feeMinor: BigInt(proposalPayload?.fundingOption.networkFeeMinor || 0) + BigInt(proposalPayload?.fundingOption.fxFeeMinor || 0),
+            feeMinor: combinedFeeMinor,
             status: 'COMPLETED',
             transactionHash: txHash,
             purpose,
@@ -318,16 +339,36 @@ export class TransferService {
           WalletService.ensureUserWallets(adHocUserId, recipient);
           recipientUserId = adHocUserId;
         }
-      } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng')) {
+      } else if (recipient.startsWith('sw_')) {
+        const found = WalletService.findWalletById(recipient);
+        if (found) {
+          recipientUserId = found.userId;
+          if (found.currency === 'CNGN') recipientLocalCurrency = 'CNGN';
+          if (found.currency === 'MEXe') recipientLocalCurrency = 'MEXe';
+        }
+      } else if (recipient.startsWith('usr_')) {
+        recipientUserId = recipient;
+      } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng') || recLower.includes('ngn') || recLower.includes('nigeria')) {
         recipientUserId = 'usr_bmoni_dillon_ngn';
         recipientLocalCurrency = 'CNGN';
         fxRateToLocal = 1550.0; // 1 USD = 1,550 NGN
-      } else if (recLower.includes('samson') || recLower.includes('jabo') || recLower.includes('.mx')) {
+      } else if (recLower.includes('samson') || recLower.includes('jabo') || recLower.includes('.mx') || recLower.includes('mxn') || recLower.includes('mexico')) {
         recipientUserId = 'usr_bmoni_samson_mxn';
         recipientLocalCurrency = 'MEXe';
         fxRateToLocal = 17.5; // 1 USD = 17.5 MEXe
-      } else if (recipient.startsWith('usr_')) {
-        recipientUserId = recipient;
+      } else {
+        // Fallback matching: if targetCurrency is NGN/CNGN, assign to default NGN sandbox user
+        if (targetCurrency === 'NGN' || (targetCurrency as string) === 'CNGN') {
+          recipientUserId = 'usr_bmoni_dillon_ngn';
+          recipientLocalCurrency = 'CNGN';
+          fxRateToLocal = 1550.0;
+        } else if (targetCurrency === 'MXN' || (targetCurrency as string) === 'MEXe') {
+          recipientUserId = 'usr_bmoni_samson_mxn';
+          recipientLocalCurrency = 'MEXe';
+          fxRateToLocal = 17.5;
+        } else {
+          recipientUserId = 'usr_recipient_usd';
+        }
       }
 
       if (recipientUserId) {
@@ -351,28 +392,45 @@ export class TransferService {
 
         await WalletService.creditWallet(creditCurrency, creditAmt, recipientUserId);
 
+        const recvDetailsJson = {
+          sender: userId,
+          counterparty: userId,
+          amount: creditAmt.toFixed(2),
+          amountReceived: creditAmt.toFixed(2),
+          amountSent: targetAmount,
+          currency: creditCurrency,
+          currencyReceived: creditCurrency,
+          currencySent: targetCurrency,
+          fxRate: targetCurrency === 'USD' && recipientLocalCurrency ? fxRateToLocal : 1.0,
+          conversion: targetCurrency === 'USD' && recipientLocalCurrency ? `Cross-Border USD → ${creditCurrency}` : 'Direct',
+          transactionHash: txHash,
+          proposalId,
+          status: 'COMPLETED',
+          receivedAt: new Date().toISOString(),
+        };
+
+        const recvActivityId = `act_recv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+        // Always record into in-memory store for recipient visibility
+        recordInMemoryActivity({
+          id: recvActivityId,
+          category: 'PERSONAL',
+          action: 'TRANSFER_RECEIVED',
+          actor: recipientUserId,
+          detailsJson: recvDetailsJson,
+          createdAt: new Date().toISOString(),
+        });
+
         // Record incoming transaction for recipient in PostgreSQL audit_activity
         if (isPostgresDb()) {
           try {
             await prisma.auditActivity.create({
               data: {
-                id: `act_recv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                id: recvActivityId,
                 category: 'PERSONAL',
                 action: 'TRANSFER_RECEIVED',
                 actor: recipientUserId,
-                detailsJson: {
-                  sender: userId,
-                  amountSent: targetAmount,
-                  currencySent: targetCurrency,
-                  amountReceived: creditAmt.toFixed(2),
-                  currencyReceived: creditCurrency,
-                  fxRate: targetCurrency === 'USD' && recipientLocalCurrency ? fxRateToLocal : 1.0,
-                  conversion: targetCurrency === 'USD' && recipientLocalCurrency ? `Cross-Border USD → ${creditCurrency}` : 'Direct',
-                  transactionHash: txHash,
-                  proposalId,
-                  status: 'COMPLETED',
-                  receivedAt: new Date().toISOString(),
-                },
+                detailsJson: recvDetailsJson,
               },
             });
           } catch (_) {}
