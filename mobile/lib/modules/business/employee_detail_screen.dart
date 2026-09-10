@@ -319,34 +319,67 @@ class _EmployeeDetailContentState
         ? widget.employee.payrollAmount!.formatFormatted()
         : '${widget.employee.targetCurrency.symbol}2,000.00';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
           widget.employee.fullName,
-          style: FlowPayTypography.title(color: FlowPayColors.ink)
-              .copyWith(fontWeight: FontWeight.w700),
+          style: FlowPayTypography.title(color: textPrimaryColor).copyWith(
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
       ),
       body: ListView(
         padding: FlowPaySpacing.insetXl,
         children: [
           // 1. Identity & Profile Section Card
-          FlowPayCard(
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: FlowPayRadii.card,
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: FlowPayColors.surfaceAlt,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? FlowPayColors.darkSurfaceElevated
+                            : FlowPayColors.mintSurface.withValues(alpha: 0.5),
+                        borderRadius: FlowPayRadii.avatar,
+                        border: Border.all(color: borderColor),
+                      ),
+                      alignment: Alignment.center,
                       child: Text(
                         widget.employee.flagEmoji,
-                        style: const TextStyle(fontSize: 22),
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -357,14 +390,17 @@ class _EmployeeDetailContentState
                           Text(
                             widget.employee.fullName,
                             style: FlowPayTypography.title(
-                                    color: FlowPayColors.ink)
-                                .copyWith(fontSize: 17),
+                                    color: textPrimaryColor)
+                                .copyWith(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             widget.employee.email,
                             style: FlowPayTypography.captionStyle(
-                                color: FlowPayColors.textSecondary),
+                                color: textSecondaryColor),
                           ),
                           if (widget.employee.phoneNumber != null) ...[
                             const SizedBox(height: 2),
@@ -381,7 +417,7 @@ class _EmployeeDetailContentState
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Divider(color: FlowPayColors.hairline, height: 1),
+                Divider(color: borderColor, height: 1),
                 const SizedBox(height: 14),
                 _DetailRow(
                   label: 'Jurisdiction',
@@ -426,7 +462,7 @@ class _EmployeeDetailContentState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.refresh,
-                        size: 16, color: FlowPayColors.brand),
+                        size: 16, color: FlowPayColors.primary),
                 onPressed: () => _refreshAll(activeWallet.walletId),
                 tooltip: 'Refresh Ledger',
                 constraints: const BoxConstraints(),
@@ -438,23 +474,23 @@ class _EmployeeDetailContentState
 
           // BMONI Security Note Banner
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: FlowPayColors.brand.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
+              color: FlowPayColors.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+              borderRadius: FlowPayRadii.input,
               border:
-                  Border.all(color: FlowPayColors.brand.withValues(alpha: 0.2)),
+                  Border.all(color: FlowPayColors.primary.withValues(alpha: 0.25)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.shield_outlined,
-                    size: 16, color: FlowPayColors.brand),
-                const SizedBox(width: 8),
+                    size: 18, color: FlowPayColors.primary),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'B-Key Hardware Enclave: Private key stored in on-device Keystore. Zero custodial key exposure.',
                     style: TextStyle(
-                      color: FlowPayColors.brand.withValues(alpha: 0.95),
+                      color: isDark ? FlowPayColors.accent : FlowPayColors.primary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -491,33 +527,33 @@ class _EmployeeDetailContentState
           Row(
             children: [
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'View Wallet',
                   icon: Icons.account_balance_wallet_outlined,
-                  variant: BMoniButtonVariant.outline,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.small,
                   onPressed: () =>
                       _showWalletDetailSheet(context, activeWallet),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'Transactions',
                   icon: Icons.receipt_long_outlined,
-                  variant: BMoniButtonVariant.outline,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.small,
                   onPressed: () => _showTransactionsSheet(
                       context, activeWallet, transactions),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: _activeCard != null ? 'Manage Card' : 'Issue Card',
                   icon: Icons.credit_card_rounded,
-                  variant: BMoniButtonVariant.primary,
-                  size: BMoniButtonSize.small,
+                  variant: FlowPayButtonVariant.primary,
+                  size: FlowPayButtonSize.small,
                   onPressed: _activeCard != null
                       ? () => _showCardDetailModal(context, _activeCard!)
                       : () => _showIssueCardModal(context, activeWallet),
@@ -921,9 +957,9 @@ class _EmployeeDetailContentState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) {
         return Padding(
@@ -1077,9 +1113,9 @@ class _EmployeeDetailContentState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(

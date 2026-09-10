@@ -40,9 +40,9 @@ class CardDetailSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => CardDetailSheet(
         card: card,
@@ -201,6 +201,13 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+    final borderColor = FlowPayColors.borderOf(context);
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.88,
@@ -216,7 +223,7 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: FlowPayColors.hairline,
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -232,19 +239,19 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   children: [
                     Text(
                       _card.cardName,
-                      style: FlowPayTypography.title(color: FlowPayColors.ink)
-                          .copyWith(fontSize: 18),
+                      style: FlowPayTypography.title(color: textPrimaryColor)
+                          .copyWith(fontSize: 18, fontWeight: FontWeight.w700),
                     ),
                     Text(
                       'Virtual Mastercard • ${widget.cardHolderName}',
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.textSecondary),
+                          color: textSecondaryColor),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded,
-                      color: FlowPayColors.textSecondary),
+                  icon: Icon(Icons.close_rounded,
+                      color: textSecondaryColor),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -268,13 +275,13 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
             Row(
               children: [
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: _isRevealed ? 'Hide Details' : 'View Card',
                     icon: _isRevealed
                         ? Icons.visibility_off_rounded
                         : Icons.visibility_rounded,
-                    variant: BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     isLoading: _isLoadingSensitive,
                     onPressed:
                         _card.isReserved ? null : _toggleRevealCardDetails,
@@ -282,11 +289,11 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: 'Transactions',
                     icon: Icons.receipt_long_rounded,
-                    variant: BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                    variant: FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     onPressed: _card.isReserved
                         ? null
                         : () {
@@ -300,15 +307,15 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: BMoniButton(
+                  child: FlowPayButton(
                     text: _card.isFrozen ? 'Unfreeze' : 'Freeze',
                     icon: _card.isFrozen
                         ? Icons.lock_open_rounded
                         : Icons.lock_outline_rounded,
                     variant: _card.isFrozen
-                        ? BMoniButtonVariant.primary
-                        : BMoniButtonVariant.outline,
-                    size: BMoniButtonSize.small,
+                        ? FlowPayButtonVariant.primary
+                        : FlowPayButtonVariant.secondary,
+                    size: FlowPayButtonSize.small,
                     isLoading: _isTogglingFreeze,
                     onPressed: _card.isReserved ? null : _toggleFreezeCard,
                   ),

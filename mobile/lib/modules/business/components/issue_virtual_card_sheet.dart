@@ -39,9 +39,9 @@ class IssueVirtualCardSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: FlowPayColors.surfaceOf(context),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: FlowPayRadii.sheet,
       ),
       builder: (ctx) => IssueVirtualCardSheet(
         employee: employee,
@@ -211,6 +211,12 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     return SafeArea(
       child: Container(
         constraints: BoxConstraints(
@@ -233,7 +239,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: FlowPayColors.hairline,
+                color: FlowPayColors.borderOf(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -263,13 +269,13 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                   children: [
                     Text(
                       'Issue Virtual Spend Card',
-                      style: FlowPayTypography.title(color: FlowPayColors.ink)
-                          .copyWith(fontSize: 16),
+                      style: FlowPayTypography.title(color: textPrimaryColor)
+                          .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                     Text(
                       'Attached to ${widget.wallet.currency} Smart Wallet (${widget.employee.fullName})',
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.textSecondary),
+                          color: textSecondaryColor),
                     ),
                   ],
                 ),
@@ -484,19 +490,19 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
           Row(
             children: [
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'Cancel',
-                  variant: BMoniButtonVariant.outline,
-                  size: BMoniButtonSize.medium,
+                  variant: FlowPayButtonVariant.secondary,
+                  size: FlowPayButtonSize.medium,
                   onPressed: _isLoading ? null : () => Navigator.pop(context),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: BMoniButton(
+                child: FlowPayButton(
                   text: 'Issue & Sign',
-                  variant: BMoniButtonVariant.primary,
-                  size: BMoniButtonSize.medium,
+                  variant: FlowPayButtonVariant.primary,
+                  size: FlowPayButtonSize.medium,
                   isLoading: _isLoading,
                   onPressed: _isLoading ? null : _handleIssueCard,
                 ),

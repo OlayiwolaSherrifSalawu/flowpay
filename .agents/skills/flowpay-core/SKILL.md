@@ -149,6 +149,27 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * PIN entry modal titled `'B-Key PIN Signing'` with on-device raw-hash secp256k1 signing, honest error propagation, and payslip download actions (`Download Payslips & Receipts`).
       * Upgraded `PayrollRunDetailSheet`: 28dp sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas, tabular figures, and granular single-proposal retry.
       * Verified with `mobile/test/payroll_screen_test.dart` (3/3 passed), `mobile/test/payroll_signing_test.dart` (5/5 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 11: Team & Employee Management + Virtual Spend Cards (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `EmployeesScreen`:
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * Live team metrics header pill bar (`TOTAL ROSTER`, `PAYROLL READY`, `ACTIVE RAILS`) with tabular monospace figures.
+        * Pillowed search bar (`FlowPayRadii.input`) and interactive horizontal filter chips (`[ All, 🇳🇬 Nigeria, 🇲🇽 Mexico, Ready, Pending ]`).
+        * Upgraded `_EmployeeRowCard`: 24dp card container (`FlowPayRadii.card`), 44dp flag squircle avatar, name/email, lifecycle badge, self-custody wallet indicator, tabular payroll section, and squircle status pills for wallet and card.
+      * Upgraded `EmployeeDetailScreen`:
+        * Theme-adaptive canvas and app bar.
+        * Redesigned Identity & Profile card with 48dp flag avatar, high-contrast typography, jurisdiction, rail, and monthly salary.
+        * BMONI Security Note banner with shield icon and B-Key hardware enclave guarantee.
+        * Actions upgraded to universal pill buttons (`FlowPayButton` for View Wallet, Transactions, Manage Card / Issue Card).
+        * Bottom sheets (`_showWalletDetailSheet`, `_showTransactionsSheet`) upgraded to `FlowPayRadii.sheet` (28dp top radius) and theme-adaptive canvas.
+      * Upgraded `IssueVirtualCardSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas.
+        * Header with 42dp amber squircle icon container and high-contrast typography.
+        * Actions upgraded to universal pill buttons (`FlowPayButton`).
+      * Upgraded `CardDetailSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas.
+        * Header with high-contrast typography and close action.
+        * Action buttons upgraded to universal pill buttons (`FlowPayButton` for View Card / Hide Details, Transactions, Freeze / Unfreeze).
+      * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
