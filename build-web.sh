@@ -11,10 +11,12 @@ fi
 flutter --version
 
 echo "===> Installing Flutter dependencies..."
-cd mobile
+if [ -d "mobile" ]; then
+  cd mobile
+fi
 flutter pub get
 
 echo "===> Compiling FlowPay Web for production..."
-flutter build web --release --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com
+flutter build web --release --base-href "/" --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com
 
 echo "===> FlowPay Web build finished successfully! Output in mobile/build/web"
