@@ -121,7 +121,7 @@ class _WalletProvisioningScreenState
       backgroundColor: FlowPayColors.canvas,
       appBar: AppBar(
         backgroundColor: FlowPayColors.canvas,
-        title: const Text('On-Device B-Key Wallet'),
+        title: const Text('Secure Wallet'),
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: [
@@ -223,9 +223,9 @@ class _WalletProvisioningScreenState
 
         _buildBenefitCard(
           icon: Icons.currency_exchange,
-          title: 'Instant Multi-Currency Rails',
+          title: 'Multi-Currency Support',
           description:
-              'Seamlessly hold and send USD, NGN, EUR, MEX, and CAD pegged stablecoins.',
+              'Hold and send USD, Naira, Euros, Pesos, and Canadian dollars.',
         ),
         const SizedBox(height: 14),
 
@@ -469,13 +469,13 @@ class _WalletProvisioningScreenState
               const Row(
                 children: [
                   Text(
-                    'Supported Tokens:',
+                    'Supported Currencies:',
                     style: TextStyle(
                         fontSize: 11, color: FlowPayColors.textSecondary),
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'USDB • CNGN • MEXe • CADC',
+                    'USD • NGN • EUR • MXN • CAD',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -501,7 +501,7 @@ class _WalletProvisioningScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Hardware Security Specs',
+                'Security Specs',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -516,8 +516,8 @@ class _WalletProvisioningScreenState
               ),
               const Divider(height: 16),
               _buildSpecRow(
-                label: 'Cryptographic Curve',
-                value: 'secp256k1 (EIP-191 / EIP-712)',
+                label: 'Encryption Standard',
+                value: 'Bank-Grade Encryption',
                 statusColor: FlowPayColors.primary,
               ),
               const Divider(height: 16),
@@ -529,7 +529,7 @@ class _WalletProvisioningScreenState
               const Divider(height: 16),
               _buildSpecRow(
                 label: 'Cloud Server Access',
-                value: 'Zero Access (Self-Custody)',
+                value: 'Protected on Device',
                 statusColor: FlowPayColors.stateSuccess,
               ),
             ],

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
-import '../../core/money/currency_mapping.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
@@ -89,7 +88,6 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   }
 
   bool get _isNigeria => _emp.country.toUpperCase() == 'NG';
-  String get _stablecoin => CurrencyMapping.toStablecoin(_emp.country);
 
   Future<void> _fetchStatus() async {
     setState(() {
@@ -141,9 +139,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       final signature = await WalletPinAuthSheet.show(
         context: context,
-        title: 'Authorize Smart Wallet',
+        title: 'Authorize Payment Account',
         subtitle:
-            'Sign owner challenge for $_stablecoin smart wallet on-device.',
+            'Enter your PIN to set up payment account on this device.',
         onAuthorize: (pin) async {
           return await BmoniSdkService.signMessage(messageToSign, pin: pin);
         },
@@ -166,7 +164,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       BMoniToastOverlay.showSuccess(
         context: context,
         title: 'Stage 2 Complete',
-        message: 'Smart wallet provisioned with $_stablecoin settlement rail.',
+        message: 'Payment account set up successfully.',
       );
 
       await _fetchStatus();
@@ -350,9 +348,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '• Etherfuse Digital Asset Custody Agreement (MEXe)\n'
-                      '• Fintoc Banking Rail & SPEI Offramp Authorization\n'
-                      '• CNBV & SAT Regulatory Compliance Disclosures',
+                      '• Account & Custody Agreement (Mexico)\n'
+                      '• Banking & Bank Transfer Authorization\n'
+                      '• Regulatory Compliance Disclosures',
                       style: FlowPayTypography.body(
                           color: FlowPayColors.textSecondary),
                     ),
@@ -421,9 +419,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       BMoniToastOverlay.showSuccess(
         context: context,
-        title: 'Stage 4 Submitted',
+        title: 'Payments Setup Submitted',
         message:
-            'Rail activation started. Awaiting onboarding.completed webhook.',
+            'Payment setup started. We will notify you when ready.',
       );
 
       await _fetchStatus();
@@ -431,7 +429,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       BMoniToastOverlay.showError(
         context: context,
-        title: 'Stage 4 Error',
+        title: 'Setup Error',
         message: e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
@@ -482,27 +480,34 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final overall = _status?.overallState ?? OnboardingStageState.notStarted;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
 
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Employee Onboarding',
-                style: FlowPayTypography.title(color: FlowPayColors.ink)
-                    .copyWith(fontSize: 16)),
+                style: FlowPayTypography.title(color: textPrimaryColor)
+                    .copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
             Text('${_emp.fullName} • ${_emp.resolvedCountryName}',
                 style: FlowPayTypography.captionStyle(
-                    color: FlowPayColors.textSecondary)),
+                    color: textSecondaryColor)),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: FlowPayColors.ink),
+            icon: Icon(Icons.refresh_rounded, color: textPrimaryColor),
             tooltip: 'Refresh Status',
             onPressed: _fetchStatus,
           ),
@@ -511,34 +516,42 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: FlowPayColors.ink))
+              child: CircularProgressIndicator(color: FlowPayColors.primary))
           : ListView(
               padding: FlowPaySpacing.insetXl,
               children: [
                 // 1. Overall State & Stage Banner
-                _buildHeaderBanner(overall),
+                _buildHeaderBanner(context, overall),
                 const SizedBox(height: 16),
 
                 // 2. Stage Navigation Stepper (2 / 3 / 4)
-                _buildStageTabs(),
+                _buildStageTabs(context),
                 const SizedBox(height: 20),
 
                 // 3. Active Stage Content Card
-                if (_activeStage == 2) _buildStage2Card(),
-                if (_activeStage == 3) _buildStage3Card(),
-                if (_activeStage == 4) _buildStage4Card(),
+                if (_activeStage == 2) _buildStage2Card(context),
+                if (_activeStage == 3) _buildStage3Card(context),
+                if (_activeStage == 4) _buildStage4Card(context),
 
                 const SizedBox(height: 24),
 
                 // 4. Sandbox Webhook & Retry Helper Bar
-                _buildSandboxActionBar(overall),
+                _buildSandboxActionBar(context, overall),
                 const SizedBox(height: 32),
               ],
             ),
     );
   }
 
-  Widget _buildHeaderBanner(OnboardingStageState overall) {
+  Widget _buildHeaderBanner(BuildContext context, OnboardingStageState overall) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     Color badgeBg;
     Color badgeFg;
 
@@ -561,25 +574,50 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         break;
     }
 
-    return FlowPayCard(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: FlowPayRadii.card,
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(_emp.flagEmoji, style: const TextStyle(fontSize: 28)),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.darkSurfaceElevated
+                      : FlowPayColors.mintSurface.withValues(alpha: 0.5),
+                  borderRadius: FlowPayRadii.avatar,
+                  border: Border.all(color: borderColor),
+                ),
+                alignment: Alignment.center,
+                child: Text(_emp.flagEmoji, style: const TextStyle(fontSize: 24)),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(_emp.fullName,
-                        style: FlowPayTypography.title(color: FlowPayColors.ink)
-                            .copyWith(fontSize: 17)),
+                        style: FlowPayTypography.title(color: textPrimaryColor)
+                            .copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
                     Text(
-                        'Rail: ${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
+                        'Currency: ${_emp.targetCurrency.code}',
                         style: FlowPayTypography.captionStyle(
-                            color: FlowPayColors.textSecondary)),
+                            color: textSecondaryColor)),
                   ],
                 ),
               ),
@@ -587,7 +625,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                    color: badgeBg, borderRadius: BorderRadius.circular(6)),
+                    color: badgeBg, borderRadius: FlowPayRadii.chip),
                 child: Text(
                   overall.label.toUpperCase(),
                   style: TextStyle(
@@ -601,7 +639,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           const SizedBox(height: 12),
           Text(
             'Current Stage: Stage ${_status?.currentStage ?? 2} of 4',
-            style: FlowPayTypography.body(color: FlowPayColors.ink)
+            style: FlowPayTypography.body(color: textPrimaryColor)
                 .copyWith(fontWeight: FontWeight.w600),
           ),
           if (_status?.failedStage != null) ...[
@@ -616,41 +654,46 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     );
   }
 
-  Widget _buildStageTabs() {
+  Widget _buildStageTabs(BuildContext context) {
     return Row(
       children: [
         Expanded(
             child: _stageTabItem(
-                2, 'Stage 2\nWallet', _status?.stage2Wallet.state)),
+                context, 2, 'Step 2\nWallet', _status?.stage2Wallet.state)),
         const SizedBox(width: 8),
         Expanded(
-            child: _stageTabItem(3, 'Stage 3\nKYC', _status?.stage3Kyc.state)),
+            child: _stageTabItem(
+                context, 3, 'Step 3\nVerify', _status?.stage3Kyc.state)),
         const SizedBox(width: 8),
         Expanded(
             child:
-                _stageTabItem(4, 'Stage 4\nRail', _status?.stage4Rail.state)),
+                _stageTabItem(
+                context, 4, 'Step 4\nPayments', _status?.stage4Rail.state)),
       ],
     );
   }
 
-  Widget _stageTabItem(int stage, String label, OnboardingStageState? state) {
+  Widget _stageTabItem(BuildContext context, int stage, String label, OnboardingStageState? state) {
     final isSelected = _activeStage == stage;
     final isReady = state == OnboardingStageState.ready;
     final isFailed = state == OnboardingStageState.failed;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Color borderColor = FlowPayColors.hairline;
-    if (isSelected) borderColor = FlowPayColors.primary;
-    if (isReady) borderColor = FlowPayColors.signal;
-    if (isFailed) borderColor = FlowPayColors.error;
+    Color itemBorderColor = FlowPayColors.borderOf(context);
+    if (isSelected) itemBorderColor = FlowPayColors.primary;
+    if (isReady) itemBorderColor = FlowPayColors.signal;
+    if (isFailed) itemBorderColor = FlowPayColors.error;
 
     return GestureDetector(
       onTap: () => setState(() => _activeStage = stage),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: isSelected ? FlowPayColors.surface : FlowPayColors.canvas,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor, width: isSelected ? 2 : 1),
+          color: isSelected
+              ? (isDark ? FlowPayColors.primary.withValues(alpha: 0.2) : FlowPayColors.mint100)
+              : FlowPayColors.surfaceOf(context),
+          borderRadius: FlowPayRadii.input,
+          border: Border.all(color: itemBorderColor, width: isSelected ? 2 : 1),
         ),
         child: Column(
           children: [
@@ -658,14 +701,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: isSelected
-                    ? FlowPayColors.ink
-                    : FlowPayColors.textSecondary,
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected
+                    ? (isDark ? FlowPayColors.accent : FlowPayColors.primary)
+                    : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Icon(
               isReady
                   ? Icons.check_circle_rounded
@@ -677,7 +720,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   ? FlowPayColors.signal
                   : (isFailed
                       ? FlowPayColors.error
-                      : FlowPayColors.textTertiary),
+                      : (isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.textTertiary)),
             ),
           ],
         ),
@@ -688,41 +731,77 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // =========================================================================
   // STAGE 2 VIEW: SMART WALLET PROVISIONING
   // =========================================================================
-  Widget _buildStage2Card() {
+  Widget _buildStage2Card(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     final walletReady =
         _status?.stage2Wallet.state == OnboardingStageState.ready;
 
-    return FlowPayCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: FlowPayRadii.card,
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.account_balance_wallet_rounded,
-                  color: FlowPayColors.primary, size: 24),
-              const SizedBox(width: 10),
-              Text('Stage 2: Smart Wallet Provisioning',
-                  style: FlowPayTypography.title(color: FlowPayColors.ink)
-                      .copyWith(fontSize: 16)),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.primary.withValues(alpha: 0.2)
+                      : FlowPayColors.mint100,
+                  borderRadius: FlowPayRadii.chip,
+                ),
+                child: const Icon(Icons.account_balance_wallet_rounded,
+                    color: FlowPayColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Step 2: Set Up Wallet',
+                    style: FlowPayTypography.title(color: textPrimaryColor)
+                        .copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: FlowPayColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(8),
+              color: isDark
+                  ? FlowPayColors.darkSurfaceElevated
+                  : FlowPayColors.surfaceAlt,
+              borderRadius: FlowPayRadii.input,
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               children: [
                 const Icon(Icons.info_outline_rounded,
                     color: FlowPayColors.primary, size: 18),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Smart wallet calls use stablecoin token $_stablecoin (not ${_emp.targetCurrency.code}) per BMONI specifications.',
+                    'Your employee\'s payment account will be configured in ${_emp.targetCurrency.code}.',
                     style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.ink),
+                        color: textPrimaryColor),
                   ),
                 ),
               ],
@@ -730,46 +809,45 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '1. BmoniEmbeddedSdk.initWallet() generates key on-device\n'
-            '2. POST /owner-proof-challenges requests challenge\n'
-            '3. BmoniEmbeddedSdk.signMessage() signs challenge via 6-digit PIN\n'
-            '4. POST /create-managed registers managed smart wallet',
-            style: FlowPayTypography.body(color: FlowPayColors.textSecondary)
-                .copyWith(fontSize: 13),
+            '1. Create secure account on device\n'
+            '2. Request security challenge\n'
+            '3. Authorize setup with 6-digit PIN\n'
+            '4. Register account for payroll',
+            style: FlowPayTypography.body(color: textSecondaryColor)
+                .copyWith(fontSize: 13, height: 1.5),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           if (walletReady) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: FlowPayColors.signal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: FlowPayRadii.input,
                 border: Border.all(
                     color: FlowPayColors.signal.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.check_circle_rounded,
-                      color: FlowPayColors.signal),
+                      color: FlowPayColors.signal, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Smart wallet active: ${_status?.stage2Wallet.details['walletAddress'] ?? _emp.walletAddress ?? '0x...'}',
+                      'Wallet active: ${_status?.stage2Wallet.details['walletAddress'] ?? _emp.walletAddress ?? '0x...'}',
                       style: FlowPayTypography.captionStyle(
                               color: FlowPayColors.signal)
-                          .copyWith(fontFamily: 'monospace'),
+                          .copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
             ),
           ] else ...[
-            BMoniButton(
+            FlowPayButton(
               text: _isProcessingAction
-                  ? 'Provisioning Wallet...'
-                  : 'Provision Smart Wallet on BMONI',
-              variant: BMoniButtonVariant.primary,
-              size: BMoniButtonSize.medium,
+                  ? 'Setting Up Wallet...'
+                  : 'Set Up Wallet',
+              variant: FlowPayButtonVariant.primary,
               icon: Icons.key_rounded,
               onPressed: _handleProvisionWallet,
             ),
@@ -782,32 +860,65 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // =========================================================================
   // STAGE 3 VIEW: COUNTRY-SPECIFIC KYC
   // =========================================================================
-  Widget _buildStage3Card() {
+  Widget _buildStage3Card(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     final kycReady = _status?.stage3Kyc.state == OnboardingStageState.ready;
 
-    return FlowPayCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: FlowPayRadii.card,
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.verified_user_rounded,
-                  color: FlowPayColors.primary, size: 24),
-              const SizedBox(width: 10),
-              Text(
-                'Stage 3: ${_isNigeria ? 'Nigeria KYC (No Selfie)' : 'Mexico KYC (Selfie + CURP)'}',
-                style: FlowPayTypography.title(color: FlowPayColors.ink)
-                    .copyWith(fontSize: 16),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.primary.withValues(alpha: 0.2)
+                      : FlowPayColors.mint100,
+                  borderRadius: FlowPayRadii.chip,
+                ),
+                child: const Icon(Icons.verified_user_rounded,
+                    color: FlowPayColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Step 3: ${_isNigeria ? 'Identity Verification (Nigeria)' : 'Identity Verification (Mexico)'}',
+                  style: FlowPayTypography.title(color: textPrimaryColor)
+                      .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _isNigeria
-                ? 'Nigeria path strictly omits biometric selfie. Requires 11-digit BVN and Enhanced Due Diligence (EDD).'
-                : 'Mexico path requires CURP, RFC, maternal/paternal surnames, and biometric selfie scan.',
+                ? 'Verify with your 11-digit Bank Verification Number (BVN).'
+                : 'Verify with CURP, RFC, and a photo verification.',
             style: FlowPayTypography.captionStyle(
-                color: FlowPayColors.textSecondary),
+                color: textSecondaryColor),
           ),
           const SizedBox(height: 16),
 
@@ -855,10 +966,11 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             ),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: FlowPayRadii.input,
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -867,9 +979,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Biometric selfie step is omitted for Nigeria per official BMONI KYC guidelines.',
+                      'Biometric selfie is not required for Nigeria verification.',
                       style: FlowPayTypography.captionStyle(
-                          color: Colors.blue[900] ?? Colors.blue),
+                          color: isDark ? Colors.lightBlueAccent : (Colors.blue[900] ?? Colors.blue)),
                     ),
                   ),
                 ],
@@ -928,12 +1040,12 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 decoration: BoxDecoration(
                   color: _selfieCaptured
                       ? FlowPayColors.signal.withValues(alpha: 0.1)
-                      : FlowPayColors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(10),
+                      : (isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.surfaceAlt),
+                  borderRadius: FlowPayRadii.input,
                   border: Border.all(
                     color: _selfieCaptured
                         ? FlowPayColors.signal
-                        : FlowPayColors.hairline,
+                        : borderColor,
                   ),
                 ),
                 child: Row(
@@ -944,7 +1056,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                           : Icons.camera_front_rounded,
                       color: _selfieCaptured
                           ? FlowPayColors.signal
-                          : FlowPayColors.ink,
+                          : (isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink),
                       size: 28,
                     ),
                     const SizedBox(width: 12),
@@ -957,7 +1069,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                                 ? 'Biometric Selfie: Captured & Verified'
                                 : 'Capture Biometric Selfie (Required)',
                             style:
-                                FlowPayTypography.body(color: FlowPayColors.ink)
+                                FlowPayTypography.body(color: textPrimaryColor)
                                     .copyWith(fontWeight: FontWeight.w600),
                           ),
                           Text(
@@ -965,7 +1077,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                                 ? 'Liveness and anti-spoofing radar passed'
                                 : 'Tap to simulate camera scan',
                             style: FlowPayTypography.captionStyle(
-                                color: FlowPayColors.textSecondary),
+                                color: textSecondaryColor),
                           ),
                         ],
                       ),
@@ -976,7 +1088,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                           : Icons.arrow_forward_ios_rounded,
                       color: _selfieCaptured
                           ? FlowPayColors.signal
-                          : FlowPayColors.textTertiary,
+                          : (isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.textTertiary),
                       size: 18,
                     ),
                   ],
@@ -985,32 +1097,32 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             ),
           ],
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           if (kycReady) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: FlowPayColors.signal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: FlowPayRadii.input,
+                border: Border.all(color: FlowPayColors.signal.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.check_circle_rounded,
-                      color: FlowPayColors.signal),
-                  const SizedBox(width: 8),
+                      color: FlowPayColors.signal, size: 20),
+                  const SizedBox(width: 10),
                   Text('KYC Profile & Verification Passed',
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.signal)),
+                          color: FlowPayColors.signal).copyWith(fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
           ] else ...[
-            BMoniButton(
+            FlowPayButton(
               text: _isProcessingAction
                   ? 'Submitting KYC...'
                   : 'Submit & Activate KYC',
-              variant: BMoniButtonVariant.primary,
-              size: BMoniButtonSize.medium,
+              variant: FlowPayButtonVariant.primary,
               icon: Icons.send_rounded,
               onPressed: _handleSubmitKyc,
             ),
@@ -1023,49 +1135,82 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   // =========================================================================
   // STAGE 4 VIEW: RAIL ACTIVATION
   // =========================================================================
-  Widget _buildStage4Card() {
+  Widget _buildStage4Card(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     final railReady = _status?.stage4Rail.state == OnboardingStageState.ready;
     final railProcessing =
         _status?.stage4Rail.state == OnboardingStageState.inProgress;
 
-    return FlowPayCard(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: FlowPayRadii.card,
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.alt_route_rounded,
-                  color: FlowPayColors.primary, size: 24),
-              const SizedBox(width: 10),
-              Text(
-                'Stage 4: ${_isNigeria ? 'Activate Nigeria Rail' : 'Activate Mexico Rail'}',
-                style: FlowPayTypography.title(color: FlowPayColors.ink)
-                    .copyWith(fontSize: 16),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? FlowPayColors.primary.withValues(alpha: 0.2)
+                      : FlowPayColors.mint100,
+                  borderRadius: FlowPayRadii.chip,
+                ),
+                child: const Icon(Icons.alt_route_rounded,
+                    color: FlowPayColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Step 4: Enable Payments',
+                  style: FlowPayTypography.title(color: textPrimaryColor)
+                      .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _isNigeria
-                ? 'Issues NGN virtual account pointing at smart wallet address via POST /onboarding/start-nigeria.'
-                : 'Approval requires Etherfuse agreements signing first, then POST /latam/mx/kyc/activate.',
+                ? 'Enables local bank accounts for automated payroll.'
+                : 'Enables payment agreements and bank transfers for payroll.',
             style: FlowPayTypography.captionStyle(
-                color: FlowPayColors.textSecondary),
+                color: textSecondaryColor),
           ),
           const SizedBox(height: 16),
           if (!_isNigeria) ...[
             // Mexico Agreements Prerequisite Step
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: _agreementsSigned
                     ? FlowPayColors.signal.withValues(alpha: 0.1)
                     : Colors.amber.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: FlowPayRadii.input,
                 border: Border.all(
                     color: _agreementsSigned
                         ? FlowPayColors.signal
-                        : Colors.amber),
+                        : Colors.amber.withValues(alpha: 0.5)),
               ),
               child: Row(
                 children: [
@@ -1075,7 +1220,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                           : Icons.pending_actions_rounded,
                       color: _agreementsSigned
                           ? FlowPayColors.signal
-                          : Colors.amber),
+                          : Colors.amber[700]),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -1083,20 +1228,20 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       children: [
                         Text(
                           _agreementsSigned
-                              ? 'Etherfuse Agreements: Signed'
-                              : 'Prerequisite: Sign Etherfuse Agreements',
+                              ? 'Payment Agreements: Signed'
+                              : 'Prerequisite: Sign Payment Agreements',
                           style: TextStyle(
                             color: _agreementsSigned
                                 ? FlowPayColors.signal
-                                : Colors.amber[900],
+                                : (isDark ? Colors.amber[300] : Colors.amber[900]),
                             fontWeight: FontWeight.w700,
                             fontSize: 13,
                           ),
                         ),
                         Text(
-                          'GET /v1/users/{userId}/latam/mx/kyc/launch/agreements',
+                          'Required to enable Mexico bank transfers',
                           style: FlowPayTypography.captionStyle(
-                              color: FlowPayColors.textSecondary),
+                              color: textSecondaryColor),
                         ),
                       ],
                     ),
@@ -1104,7 +1249,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   if (!_agreementsSigned)
                     TextButton(
                       onPressed: _handleSignMexicoAgreements,
-                      child: const Text('Review & Sign'),
+                      child: const Text('Review & Sign', style: TextStyle(fontWeight: FontWeight.w700)),
                     ),
                 ],
               ),
@@ -1113,19 +1258,20 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           ],
           if (railReady) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: FlowPayColors.signal.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: FlowPayRadii.input,
+                border: Border.all(color: FlowPayColors.signal.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.check_circle_rounded,
-                      color: FlowPayColors.signal),
-                  const SizedBox(width: 8),
-                  Text('Disbursement Rail Active & Ready for Payroll',
+                      color: FlowPayColors.signal, size: 20),
+                  const SizedBox(width: 10),
+                  Text('Payments Active & Ready for Payroll',
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.signal)),
+                          color: FlowPayColors.signal).copyWith(fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -1133,8 +1279,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: FlowPayColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(8),
+                color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.surfaceAlt,
+                borderRadius: FlowPayRadii.input,
+                border: Border.all(color: borderColor),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1150,26 +1297,25 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       const SizedBox(width: 10),
                       Text('Onboarding Processing',
                           style:
-                              FlowPayTypography.title(color: FlowPayColors.ink)
-                                  .copyWith(fontSize: 14)),
+                              FlowPayTypography.title(color: textPrimaryColor)
+                                  .copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Subscribed to onboarding.completed webhook. Do not poll — waiting for provider settlement confirmation.',
+                    'Setup in progress. This may take a moment — we\'ll notify you when ready.',
                     style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.textSecondary),
+                        color: textSecondaryColor),
                   ),
                 ],
               ),
             ),
           ] else ...[
-            BMoniButton(
+            FlowPayButton(
               text: _isProcessingAction
-                  ? 'Activating Rail...'
-                  : 'Activate Rail on BMONI',
-              variant: BMoniButtonVariant.primary,
-              size: BMoniButtonSize.medium,
+                  ? 'Enabling Payments...'
+                  : 'Enable Payments',
+              variant: FlowPayButtonVariant.primary,
               icon: Icons.power_settings_new_rounded,
               onPressed: _handleActivateRail,
             ),
@@ -1179,25 +1325,23 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     );
   }
 
-  Widget _buildSandboxActionBar(OnboardingStageState overall) {
+  Widget _buildSandboxActionBar(BuildContext context, OnboardingStageState overall) {
     return Column(
       children: [
         if (overall == OnboardingStageState.inProgress ||
             overall == OnboardingStageState.notStarted) ...[
-          BMoniButton(
-            text: 'Simulate Webhook (onboarding.completed)',
-            variant: BMoniButtonVariant.outline,
-            size: BMoniButtonSize.medium,
+          FlowPayButton(
+            text: 'Simulate Completion (Test Mode)',
+            variant: FlowPayButtonVariant.secondary,
             icon: Icons.bolt_rounded,
             onPressed: _handleSimulateWebhook,
           ),
           const SizedBox(height: 10),
         ],
         if (overall == OnboardingStageState.failed) ...[
-          BMoniButton(
+          FlowPayButton(
             text: 'Retry Onboarding',
-            variant: BMoniButtonVariant.primary,
-            size: BMoniButtonSize.medium,
+            variant: FlowPayButtonVariant.primary,
             icon: Icons.refresh_rounded,
             onPressed: _handleRetry,
           ),

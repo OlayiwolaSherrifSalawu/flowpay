@@ -6,8 +6,8 @@ import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 /// Employee Preview Card
-/// Conforms to design.md §3.1, §3.2, §3.4 & §3.5:
-/// Displays all 7 employee preview attributes with 20dp card radius,
+/// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
+/// Displays all 7 employee preview attributes with 20dp card geometry,
 /// universal pill badges, and tabular figures for all salaries.
 class EmployeePreviewCard extends StatelessWidget {
   final EmployeeModel employee;
@@ -23,7 +23,7 @@ class EmployeePreviewCard extends StatelessWidget {
 
   bool get _isFailed => employee.status.toUpperCase() == 'FAILED';
 
-  /// Truthful wallet line — never invents a "0x...Ready" address.
+  /// Truthful wallet line — never invents a "0x...Ready" address (per AGENTS.md).
   String _walletDisplay(EmployeeModel e) {
     final addr = e.walletAddress;
     if (addr != null && addr.isNotEmpty) {
@@ -35,7 +35,7 @@ class EmployeePreviewCard extends StatelessWidget {
     return 'Not provisioned';
   }
 
-  /// Truthful card line — never invents a "•••• 4289".
+  /// Truthful card line — never invents a "•••• 4289" (per AGENTS.md).
   String _cardDisplay(EmployeeModel e) {
     final last4 = e.cardLast4;
     if (last4 != null && last4.isNotEmpty) {
@@ -44,34 +44,46 @@ class EmployeePreviewCard extends StatelessWidget {
     return 'Not issued';
   }
 
-  Color _getCurrencyBg(String code) {
+  Color _getCurrencyBg(String code, bool isDark) {
     switch (code.toUpperCase()) {
       case 'NGN':
-        return FlowPayColors.ngnBadge;
+        return isDark ? const Color(0xFF064E3B) : FlowPayColors.ngnBadge;
       case 'MXN':
-        return FlowPayColors.mxnBadge;
+        return isDark ? const Color(0xFF581C87) : FlowPayColors.mxnBadge;
       case 'CAD':
-        return FlowPayColors.cadBadge;
+        return isDark ? const Color(0xFF7F1D1D) : FlowPayColors.cadBadge;
       default:
-        return FlowPayColors.usdBadge;
+        return isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.usdBadge;
     }
   }
 
-  Color _getCurrencyFg(String code) {
+  Color _getCurrencyFg(String code, bool isDark) {
     switch (code.toUpperCase()) {
       case 'NGN':
-        return const Color(0xFF065F46);
+        return isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46);
       case 'MXN':
-        return const Color(0xFF86198F);
+        return isDark ? const Color(0xFFF0ABFC) : const Color(0xFF86198F);
       case 'CAD':
-        return const Color(0xFF991B1B);
+        return isDark ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B);
       default:
-        return FlowPayColors.textSecondary;
+        return isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary;
+    final textTertiaryColor =
+        isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary;
+    final surfaceAltColor =
+        isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurfaceElevated;
+    final borderColor =
+        isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder;
+
     final payrollFormatted = employee.payrollAmount != null
         ? employee.payrollAmount!.formatFormatted()
         : '${employee.targetCurrency.symbol}2,000.00';
@@ -91,12 +103,19 @@ class EmployeePreviewCard extends StatelessWidget {
             // Row 1: Avatar, Name, Email, and Onboarding Status
             Row(
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: FlowPayColors.surfaceAlt,
-                  child: Text(
-                    employee.flagEmoji,
-                    style: const TextStyle(fontSize: 18),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: surfaceAltColor,
+                    borderRadius: FlowPayRadii.avatar,
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Center(
+                    child: Text(
+                      employee.flagEmoji,
+                      style: const TextStyle(fontSize: 20),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -106,17 +125,18 @@ class EmployeePreviewCard extends StatelessWidget {
                     children: [
                       Text(
                         employee.fullName,
-                        style: FlowPayTypography.title(color: FlowPayColors.ink)
-                            .copyWith(
+                        style: FlowPayTypography.title(color: inkColor).copyWith(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         employee.email,
                         style: FlowPayTypography.captionStyle(
-                            color: FlowPayColors.textSecondary),
+                          color: textSecondaryColor,
+                        ).copyWith(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -125,7 +145,7 @@ class EmployeePreviewCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            const Divider(color: FlowPayColors.hairline, height: 1),
+            Divider(color: borderColor, height: 1),
             const SizedBox(height: 12),
 
             // Row 2: Country, Currency, and Payroll Amount
@@ -138,10 +158,10 @@ class EmployeePreviewCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'COUNTRY & RAIL',
+                        'COUNTRY',
                         style: FlowPayTypography.captionStyle(
-                                color: FlowPayColors.textTertiary)
-                            .copyWith(
+                          color: textTertiaryColor,
+                        ).copyWith(
                           fontSize: 10,
                           letterSpacing: 0.5,
                           fontWeight: FontWeight.w600,
@@ -152,10 +172,10 @@ class EmployeePreviewCard extends StatelessWidget {
                         children: [
                           Text(
                             '${employee.flagEmoji} ${employee.resolvedCountryName}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: FlowPayColors.ink,
+                              color: inkColor,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -163,8 +183,8 @@ class EmployeePreviewCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color:
-                                  _getCurrencyBg(employee.targetCurrency.code),
+                              color: _getCurrencyBg(
+                                  employee.targetCurrency.code, isDark),
                               borderRadius: FlowPayRadii.chip,
                             ),
                             child: Text(
@@ -173,7 +193,7 @@ class EmployeePreviewCard extends StatelessWidget {
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
                                 color: _getCurrencyFg(
-                                    employee.targetCurrency.code),
+                                    employee.targetCurrency.code, isDark),
                               ),
                             ),
                           ),
@@ -190,8 +210,8 @@ class EmployeePreviewCard extends StatelessWidget {
                     Text(
                       'PAYROLL AMOUNT',
                       style: FlowPayTypography.captionStyle(
-                              color: FlowPayColors.textTertiary)
-                          .copyWith(
+                        color: textTertiaryColor,
+                      ).copyWith(
                         fontSize: 10,
                         letterSpacing: 0.5,
                         fontWeight: FontWeight.w600,
@@ -200,16 +220,19 @@ class EmployeePreviewCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       payrollFormatted,
-                      style: FlowPayTypography.amount(color: FlowPayColors.ink)
-                          .copyWith(
+                      style: FlowPayTypography.amount(color: inkColor).copyWith(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     Text(
                       usdFormatted,
                       style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.textSecondary),
+                        color: textSecondaryColor,
+                      ).copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ],
                 ),
@@ -220,9 +243,10 @@ class EmployeePreviewCard extends StatelessWidget {
             // Row 3: Wallet Status & Card Status Chips
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: const BoxDecoration(
-                color: FlowPayColors.surfaceAlt,
+              decoration: BoxDecoration(
+                color: surfaceAltColor,
                 borderRadius: FlowPayRadii.input,
+                border: Border.all(color: borderColor),
               ),
               child: Row(
                 children: [
@@ -231,7 +255,7 @@ class EmployeePreviewCard extends StatelessWidget {
                     child: Row(
                       children: [
                         const Icon(Icons.account_balance_wallet_outlined,
-                            size: 14, color: FlowPayColors.ink),
+                            size: 14, color: FlowPayColors.primary),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Column(
@@ -240,15 +264,15 @@ class EmployeePreviewCard extends StatelessWidget {
                               Text(
                                 'WALLET STATUS',
                                 style: FlowPayTypography.captionStyle(
-                                        color: FlowPayColors.textTertiary)
-                                    .copyWith(fontSize: 9),
+                                  color: textTertiaryColor,
+                                ).copyWith(fontSize: 9),
                               ),
                               Text(
                                 _walletDisplay(employee),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: FlowPayColors.ink,
+                                  color: inkColor,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -261,7 +285,7 @@ class EmployeePreviewCard extends StatelessWidget {
                   Container(
                     width: 1,
                     height: 24,
-                    color: FlowPayColors.hairline,
+                    color: borderColor,
                     margin: const EdgeInsets.symmetric(horizontal: 10),
                   ),
 
@@ -279,15 +303,15 @@ class EmployeePreviewCard extends StatelessWidget {
                               Text(
                                 'CARD STATUS',
                                 style: FlowPayTypography.captionStyle(
-                                        color: FlowPayColors.textTertiary)
-                                    .copyWith(fontSize: 9),
+                                  color: textTertiaryColor,
+                                ).copyWith(fontSize: 9),
                               ),
                               Text(
                                 _cardDisplay(employee),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: FlowPayColors.ink,
+                                  color: inkColor,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -309,9 +333,9 @@ class EmployeePreviewCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.error.withAlpha(26),
+                  color: FlowPayColors.error.withValues(alpha: 0.1),
                   borderRadius: FlowPayRadii.input,
-                  border: Border.all(color: FlowPayColors.error.withAlpha(77)),
+                  border: Border.all(color: FlowPayColors.error.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,29 +350,30 @@ class EmployeePreviewCard extends StatelessWidget {
                           Text(
                             'Onboarding failed',
                             style: FlowPayTypography.captionStyle(
-                                    color: FlowPayColors.error)
-                                .copyWith(fontWeight: FontWeight.w700),
+                              color: FlowPayColors.error,
+                            ).copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             employee.failureReason ??
                                 (employee.failedStage == 'BMONI_USER_CREATION'
-                                    ? 'BMONI identity could not be created. Check the BMONI API key, then retry.'
+                                    ? 'Employee account could not be created. Please retry.'
                                     : 'This employee could not be onboarded. Tap retry to try again.'),
                             style: FlowPayTypography.captionStyle(
-                                color: FlowPayColors.textSecondary),
+                              color: textSecondaryColor,
+                            ),
                           ),
                           if (onRetry != null) ...[
                             const SizedBox(height: 8),
                             InkWell(
                               onTap: onRetry,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: FlowPayRadii.chip,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: FlowPayColors.error,
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: FlowPayRadii.chip,
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,

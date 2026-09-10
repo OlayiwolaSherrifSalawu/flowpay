@@ -13,11 +13,12 @@ import 'employees_screen.dart';
 import 'payroll_screen.dart';
 
 /// FlowPay Business — Employer Dashboard Screen
-/// Conforms to design.md §3.1, §3.4, §3.5, §4.4 & §6:
-/// - Light canvas background (#FAFAF7)
-/// - Universal pill buttons & chips (9999)
-/// - One primary CTA: "Run Payroll" (one verb per action)
+/// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
+/// - Theme-adaptive canvas (paper / darkBackground)
+/// - Universal pill buttons & chips (FlowPayRadii.chip / FlowPayRadii.button)
+/// - One primary CTA: "Run Payroll" with secondary "Add Employee"
 /// - 6 employer operating metrics and 7 employee preview attributes
+/// - Preserves all callbacks, routes, and test semantics
 class BusinessDashboardScreen extends StatefulWidget {
   static const String routeName = '/business-dashboard';
   final AppState appState;
@@ -56,6 +57,18 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canvasColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final surfaceColor =
+        isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface;
+    final inkColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary;
+    final textTertiaryColor =
+        isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary;
+
     return AnimatedBuilder(
       animation: widget.appState.businessProvider,
       builder: (context, _) {
@@ -70,9 +83,9 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                 .toList();
 
         return Scaffold(
-          backgroundColor: FlowPayColors.canvas,
+          backgroundColor: canvasColor,
           appBar: AppBar(
-            backgroundColor: FlowPayColors.canvas,
+            backgroundColor: canvasColor,
             elevation: 0,
             scrolledUnderElevation: 0,
             title: Column(
@@ -80,27 +93,26 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
               children: [
                 Text(
                   'Business Dashboard',
-                  style: FlowPayTypography.title(color: FlowPayColors.ink)
-                      .copyWith(
+                  style: FlowPayTypography.title(color: inkColor).copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Row(
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
+                      width: 7,
+                      height: 7,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: FlowPayColors.signal,
                       ),
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 6),
                     const Text(
-                      'Global Rails Active',
+                      'Payroll Active',
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.w600,
                         color: FlowPayColors.signal,
                       ),
                     ),
@@ -110,14 +122,12 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.person_add_rounded,
-                    color: FlowPayColors.ink),
+                icon: Icon(Icons.person_add_rounded, color: inkColor),
                 tooltip: 'Add Employee',
                 onPressed: _onAddEmployee,
               ),
               IconButton(
-                icon: const Icon(Icons.refresh_rounded,
-                    color: FlowPayColors.textSecondary),
+                icon: Icon(Icons.refresh_rounded, color: textSecondaryColor),
                 tooltip: 'Refresh',
                 onPressed: provider.refresh,
               ),
@@ -125,11 +135,11 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
           ),
           body: isLoading
               ? const Center(
-                  child: CircularProgressIndicator(color: FlowPayColors.ink))
+                  child: CircularProgressIndicator(color: FlowPayColors.primary))
               : RefreshIndicator(
                   onRefresh: provider.refresh,
-                  color: FlowPayColors.ink,
-                  backgroundColor: FlowPayColors.surface,
+                  color: FlowPayColors.primary,
+                  backgroundColor: surfaceColor,
                   child: ListView(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 16),
@@ -167,16 +177,27 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                       // 3. Core Employer Metrics Grid
                       Row(
                         children: [
-                          const Icon(Icons.analytics_outlined,
-                              size: 18, color: FlowPayColors.ink),
-                          const SizedBox(width: 8),
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: FlowPayColors.primary.withValues(alpha: 0.12),
+                              borderRadius: FlowPayRadii.avatar,
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.analytics_outlined,
+                                  size: 16, color: FlowPayColors.primary),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
                           Text(
                             'EMPLOYER OPERATING METRICS',
                             style: FlowPayTypography.captionStyle(
-                                    color: FlowPayColors.textTertiary)
+                                    color: textTertiaryColor)
                                 .copyWith(
                               letterSpacing: 0.8,
                               fontWeight: FontWeight.w700,
+                              fontSize: 11,
                             ),
                           ),
                         ],
@@ -194,27 +215,26 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                             children: [
                               Text(
                                 'EMPLOYEE PREVIEW',
-                                style: FlowPayTypography.title(
-                                        color: FlowPayColors.ink)
-                                    .copyWith(fontSize: 16),
+                                style: FlowPayTypography.title(color: inkColor)
+                                    .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${filteredEmployees.length} remote team members linked',
                                 style: FlowPayTypography.captionStyle(
-                                    color: FlowPayColors.textSecondary),
+                                    color: textSecondaryColor),
                               ),
                             ],
                           ),
                           TextButton.icon(
                             icon: const Icon(Icons.arrow_forward_rounded,
-                                size: 14, color: FlowPayColors.ink),
+                                size: 14, color: FlowPayColors.primary),
                             label: const Text(
                               'Full Roster',
                               style: TextStyle(
-                                  color: FlowPayColors.ink,
+                                  color: FlowPayColors.primary,
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w600),
+                                  fontWeight: FontWeight.w700),
                             ),
                             onPressed: () {
                               Navigator.push(
@@ -269,14 +289,13 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
 
                       // 5. Employee Preview List
                       if (filteredEmployees.isEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
                           child: Center(
                             child: Text(
                               'No Employees in Selected Filter\nAdd an employee to this jurisdiction or switch filter to All.',
                               textAlign: TextAlign.center,
-                              style:
-                                  TextStyle(color: FlowPayColors.textSecondary),
+                              style: TextStyle(color: textSecondaryColor),
                             ),
                           ),
                         ),
@@ -310,7 +329,9 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                                       );
                                     } catch (e) {
                                       messenger.showSnackBar(
-                                        SnackBar(content: Text('Retry failed: $e')),
+                                        SnackBar(
+                                            content:
+                                                Text('Retry failed: $e')),
                                       );
                                     }
                                   }
@@ -342,24 +363,33 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const activeBg = FlowPayColors.primary;
+    final inactiveBg =
+        isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface;
+    const activeFg = Colors.white;
+    final inactiveFg =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary;
+    final borderColor = isSelected
+        ? FlowPayColors.primary
+        : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder);
+
     return InkWell(
       onTap: onSelected,
       borderRadius: FlowPayRadii.chip,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? FlowPayColors.ink : FlowPayColors.surfaceAlt,
+          color: isSelected ? activeBg : inactiveBg,
           borderRadius: FlowPayRadii.chip,
-          border: Border.all(
-            color: isSelected ? FlowPayColors.ink : FlowPayColors.hairline,
-          ),
+          border: Border.all(color: borderColor),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            color: isSelected ? Colors.white : FlowPayColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? activeFg : inactiveFg,
           ),
         ),
       ),

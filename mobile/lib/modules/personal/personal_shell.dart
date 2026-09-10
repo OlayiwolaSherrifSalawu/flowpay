@@ -98,25 +98,18 @@ class _PersonalShellState extends ConsumerState<PersonalShell> {
         title: hasBothModes
             ? FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SegmentedRoleSwitch(
-                      isPersonal: true,
-                      onRoleChanged: (isPersonal) {
-                        ref.read(appLockStateProvider.notifier).setAccountMode(
-                              isPersonal
-                                  ? AccountMode.personal
-                                  : AccountMode.business,
-                            );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    const PoweredByBmoniBadge(),
-                  ],
+                child: SegmentedRoleSwitch(
+                  isPersonal: true,
+                  onRoleChanged: (isPersonal) {
+                    ref.read(appLockStateProvider.notifier).setAccountMode(
+                          isPersonal
+                              ? AccountMode.personal
+                              : AccountMode.business,
+                        );
+                  },
                 ),
               )
-            : const PoweredByBmoniBadge(),
+            : null,
         centerTitle: true,
         actions: [
           Padding(

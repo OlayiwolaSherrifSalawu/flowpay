@@ -290,8 +290,7 @@ void main() {
 
       // Verify header & telemetry bar
       expect(find.text('FlowPay Financial Operator'), findsOneWidget);
-      expect(find.text('B-Key Guard: Active  •  Deterministic Math'),
-          findsOneWidget);
+      expect(find.text('Your money is protected'), findsOneWidget);
 
       // Verify quick action pills
       expect(find.textContaining('Send 500 usd to mom'), findsOneWidget);
@@ -423,7 +422,7 @@ void main() {
       expect(op.activePlan?.executionState, equals('READY_FOR_REVIEW'));
       expect(
         op.messages.last.text,
-        contains('authenticate with your B-Key PIN using the Approve button'),
+        contains('confirm with your PIN using the Approve button'),
       );
     });
 

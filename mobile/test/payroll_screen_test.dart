@@ -32,12 +32,12 @@ void main() {
 
       // 2. Aggregate Bill Card
       expect(find.text('One Aggregate Bill'), findsOneWidget);
-      expect(find.text('TOTAL AGGREGATE SETTLEMENT'), findsOneWidget);
+      expect(find.text('TOTAL PAYOUT'), findsOneWidget);
       expect(find.textContaining('\$4,000.00'), findsOneWidget);
       expect(find.textContaining('Saved: \$330.00 (97%)'), findsOneWidget);
 
       // 3. Parallel Multi-Rail Breakdown
-      expect(find.text('PARALLEL MULTI-RAIL DISBURSEMENTS'), findsOneWidget);
+      expect(find.text('EMPLOYEE BREAKDOWN'), findsOneWidget);
       expect(find.text('Bunch Dillon'), findsOneWidget);
       expect(find.text('Samson Jabo'), findsOneWidget);
 
@@ -103,16 +103,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // PIN Dialog appears
-      expect(find.text('B-Key PIN Signing'), findsOneWidget);
-      expect(find.text('Authorize & Sign'), findsOneWidget);
+      expect(find.text('Confirm Payroll'), findsOneWidget);
+      expect(find.text('Authorize Payroll'), findsOneWidget);
 
-      // Tap Authorize & Sign
+      // Tap Authorize Payroll
       await tester.enterText(find.byType(TextField), '123456');
-      await tester.tap(find.text('Authorize & Sign'));
+      await tester.tap(find.text('Authorize Payroll'));
       await tester.pump();
 
-      // Execution Pipeline appears with all 4 timeline states
-      expect(find.text('Execution Pipeline'), findsOneWidget);
+      // Payment Progress appears with all 4 timeline states
+      expect(find.text('Payment Progress'), findsOneWidget);
       expect(find.text('Validated'), findsOneWidget);
       expect(find.text('Approved'), findsOneWidget);
       expect(find.text('Processing'), findsOneWidget);

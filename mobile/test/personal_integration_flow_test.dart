@@ -88,17 +88,17 @@ void main() {
       // 2. Personal Shell loaded, initial tab is Dashboard (Overview)
       expect(find.byType(PersonalShell), findsOneWidget);
       expect(find.text('Personal Account'), findsOneWidget);
-      expect(find.text('B-Key Vault'), findsOneWidget);
+      expect(find.text('Secure wallet'), findsOneWidget);
 
       // Verify wallet balances visible
-      expect(find.text('Total Multi-Currency Portfolio'), findsOneWidget);
+      expect(find.text('Total balance'), findsOneWidget);
       expect(find.textContaining('\$'), findsWidgets);
 
       // 3. Test Dashboard Quick Action -> "View Wallets" switches to Wallets tab
       await tester.tap(find.text('View Wallets'));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.wallets);
-      expect(find.text('Configured Multi-Currency Wallets'), findsOneWidget);
+      expect(find.text('Your wallets'), findsOneWidget);
 
       // 4. Test Bottom Navigation Bar switching to Missions tab
       final navBar = find.byType(NavigationBar);
@@ -121,7 +121,7 @@ void main() {
           .tap(find.descendant(of: navBar, matching: find.text('Security')));
       await tester.pumpAndSettle();
       expect(appState.personalTabIndex, PersonalTab.security);
-      expect(find.text('B-Key Hardware Enclave Active'), findsOneWidget);
+      expect(find.text('Your account is secured'), findsOneWidget);
 
       // 7. Switch back to Dashboard (Overview)
       await tester
@@ -159,8 +159,8 @@ void main() {
       expect(find.textContaining('Whenever I receive \$2,000, keep 30% in USD'),
           findsWidgets);
 
-      // 3. Tap "Interpret Directive"
-      await tester.tap(find.text('Interpret Directive'));
+      // 3. Tap "Set up rule"
+      await tester.tap(find.text('Set up rule'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump(const Duration(milliseconds: 400));
@@ -171,16 +171,15 @@ void main() {
       expect(find.text('\$2,000 incoming'), findsOneWidget);
       expect(find.text('100% Allocated'), findsOneWidget);
 
-      // 4. Tap "Approve Mission"
-      await tester.tap(find.text('Approve Mission'));
+      // 4. Tap "Approve Rule"
+      await tester.tap(find.text('Approve Rule'));
       await tester.pumpAndSettle();
 
-      // 5. Enter PIN for BMONI Enclave signing
+      // 5. Enter PIN for Enclave signing
       await _enterPin(tester);
 
       // 6. Celebration dialog appears
-      expect(find.text('Mission Activated & Signed!'), findsOneWidget);
-      expect(find.text('BMONI B-Key PIN Verified'), findsOneWidget);
+      expect(find.text('Rule saved!'), findsOneWidget);
       expect(find.text('View in Activity'), findsOneWidget);
 
       // 7. Tap "View in Activity" -> transitions to Activity tab
@@ -228,7 +227,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Verify SendMoneyScreen is displayed
-      expect(find.text('FlowPay BMONI Rail'), findsOneWidget);
+      expect(find.text('Secured with your PIN'), findsOneWidget);
 
       // 2. Select a pre-canned suggestion chip to set recipient & amount without typing
       final chipFinder = find.text('Send \$500 to my designer in Ghana');
@@ -265,8 +264,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 300));
 
-      // 7. Verify Transfer Settled celebration dialog appears
-      expect(find.text('Transfer Settled'), findsOneWidget);
+      // 7. Verify Payment Sent celebration dialog appears
+      expect(find.text('Payment Sent'), findsOneWidget);
       expect(find.text('Activity'), findsOneWidget);
 
       // 8. Tap "Activity" button on celebration dialog to view unified ledger

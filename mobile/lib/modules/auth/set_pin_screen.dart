@@ -7,10 +7,7 @@ import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/config/api_config.dart';
-import '../../core/theme/colors.dart';
-import '../../core/theme/components.dart';
-import '../../core/theme/radii.dart';
-import '../../core/theme/typography.dart';
+import '../../core/design_system/design_system.dart';
 
 /// Dedicated 6-Digit PIN Setup Screen.
 /// Step 3 of the Onboarding Flow: Signup -> KYC -> Set PIN.
@@ -198,15 +195,24 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   @override
   Widget build(BuildContext context) {
     final activePin = _isConfirming ? _confirmPin : _initialPin;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondary =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
 
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: bgColor,
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: FlowPayColors.ink),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () {
             if (_isConfirming) {
               setState(() {
@@ -218,7 +224,31 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
             }
           },
         ),
-        title: const PoweredByBmoniBadge(),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const FlowPayLogo.compact(),
+            const SizedBox(width: 10),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: FlowPayColors.primary.withValues(alpha: 0.1),
+                borderRadius: FlowPayRadii.chip,
+                border: Border.all(
+                    color: FlowPayColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: const Text(
+                'Step 3 of 3',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: FlowPayColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -237,39 +267,54 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                       children: [
                         const SizedBox(height: 16),
 
-                        // Hero Security Icon
+                        // ── Hero Shield Icon ──
                         Container(
-                          width: 64,
-                          height: 64,
+                          width: 72,
+                          height: 72,
                           decoration: BoxDecoration(
-                            color: FlowPayColors.surfaceAlt,
+                            color: isDark
+                                ? FlowPayColors.darkSurfaceElevated
+                                : FlowPayColors.mint100,
                             borderRadius: FlowPayRadii.card,
-                            border: Border.all(color: FlowPayColors.hairline),
+                            border: Border.all(
+                              color:
+                                  FlowPayColors.primary.withValues(alpha: 0.35),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: FlowPayColors.primary
+                                    .withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                spreadRadius: 1,
+                              ),
+                            ],
                           ),
                           child: const Icon(
                             Icons.shield_outlined,
-                            size: 32,
+                            size: 36,
                             color: FlowPayColors.primary,
                           ),
                         ),
                         const SizedBox(height: 20),
 
-                        // Title & Instructions
+                        // ── Title & Instructions ──
                         Text(
                           _isConfirming
                               ? 'Confirm Your 6-Digit PIN'
                               : 'Set Your 6-Digit PIN',
-                          style: FlowPayTypography.headline(),
+                          style: FlowPayTypography.headline()
+                              .copyWith(color: textPrimary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _isConfirming
-                              ? 'Re-enter your 6-digit PIN to verify and encrypt your B-Key signer.'
+                              ? 'Re-enter your 6-digit PIN to confirm.'
                               : 'This PIN authorizes transfers, payroll disbursements, and unlocks FlowPay.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: FlowPayColors.textSecondary,
+                            color: textSecondary,
                             height: 1.4,
                           ),
                           textAlign: TextAlign.center,
@@ -277,25 +322,26 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
 
                         const SizedBox(height: 32),
 
-                        // 6 PIN Dots
+                        // ── 6 PIN Dots ──
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: List.generate(6, (index) {
                             final isFilled = index < activePin.length;
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
-                              margin: const EdgeInsets.symmetric(horizontal: 10),
-                              width: 16,
-                              height: 16,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isFilled
-                                    ? FlowPayColors.primary
+                                    ? FlowPayColors.emerald600
                                     : Colors.transparent,
                                 border: Border.all(
                                   color: isFilled
-                                      ? FlowPayColors.primary
-                                      : FlowPayColors.hairline,
+                                      ? FlowPayColors.emerald600
+                                      : borderColor,
                                   width: 2,
                                 ),
                               ),
@@ -305,22 +351,24 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
 
                         const SizedBox(height: 16),
 
-                        // Error banner
+                        // ── Error banner ──
                         if (_errorMessage != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: FlowPayColors.stateError.withAlpha(30),
+                              color: FlowPayColors.error.withValues(alpha: 0.1),
                               borderRadius: FlowPayRadii.chip,
-                              border: Border.all(color: FlowPayColors.stateError),
+                              border: Border.all(
+                                  color: FlowPayColors.error
+                                      .withValues(alpha: 0.5)),
                             ),
                             child: Text(
                               _errorMessage!,
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: FlowPayColors.stateError,
+                                color: FlowPayColors.error,
                               ),
                             ),
                           ),
@@ -330,17 +378,53 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                           const CircularProgressIndicator(
                               color: FlowPayColors.primary),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Provisioning B-Key hardware keypair...',
+                          Text(
+                            'Setting up your secure wallet...',
                             style: TextStyle(
-                                fontSize: 13, color: FlowPayColors.textSecondary),
+                                fontSize: 13, color: textSecondary),
                           ),
                           const Spacer(),
                         ] else ...[
                           const Spacer(),
 
-                          // Custom Numeric Keypad
-                          _buildKeypad(),
+                          // ── Trust Banner ──
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? FlowPayColors.darkSurfaceElevated
+                                  : FlowPayColors.mint100.withValues(alpha: 0.5),
+                              borderRadius: FlowPayRadii.input,
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.key_outlined,
+                                    size: 13,
+                                    color: FlowPayColors.primary
+                                        .withValues(alpha: 0.7)),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Your 6-digit PIN confirms payments securely. It is never stored in plain text.',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textSecondary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // ── Custom Numeric Keypad ──
+                          _buildKeypad(isDark, surfaceColor, borderColor,
+                              textPrimary),
                           const SizedBox(height: 12),
                         ],
                       ],
@@ -355,7 +439,12 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
     );
   }
 
-  Widget _buildKeypad() {
+  Widget _buildKeypad(
+    bool isDark,
+    Color surfaceColor,
+    Color borderColor,
+    Color textPrimary,
+  ) {
     return Column(
       children: [
         for (var row in [
@@ -366,7 +455,11 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: row
-                .map((d) => _buildKey(d, onTap: () => _onDigitTapped(d)))
+                .map((d) => _buildKey(d,
+                    onTap: () => _onDigitTapped(d),
+                    surfaceColor: surfaceColor,
+                    borderColor: borderColor,
+                    textPrimary: textPrimary))
                 .toList(),
           ),
           const SizedBox(height: 14),
@@ -375,15 +468,28 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             const SizedBox(width: 72, height: 72),
-            _buildKey('0', onTap: () => _onDigitTapped('0')),
-            _buildBackspaceKey(),
+            _buildKey('0',
+                onTap: () => _onDigitTapped('0'),
+                surfaceColor: surfaceColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary),
+            _buildBackspaceKey(
+                surfaceColor: surfaceColor,
+                borderColor: borderColor,
+                textPrimary: textPrimary),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildKey(String label, {required VoidCallback onTap}) {
+  Widget _buildKey(
+    String label, {
+    required VoidCallback onTap,
+    required Color surfaceColor,
+    required Color borderColor,
+    required Color textPrimary,
+  }) {
     return Semantics(
       button: true,
       label: 'Digit $label',
@@ -394,17 +500,17 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: FlowPayColors.surfaceAlt,
+            color: surfaceColor,
             shape: BoxShape.circle,
-            border: Border.all(color: FlowPayColors.hairline),
+            border: Border.all(color: borderColor),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
-              color: FlowPayColors.ink,
+              color: textPrimary,
             ),
           ),
         ),
@@ -412,7 +518,11 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
     );
   }
 
-  Widget _buildBackspaceKey() {
+  Widget _buildBackspaceKey({
+    required Color surfaceColor,
+    required Color borderColor,
+    required Color textPrimary,
+  }) {
     return Semantics(
       button: true,
       label: 'Backspace',
@@ -423,14 +533,14 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: FlowPayColors.surfaceAlt,
+            color: surfaceColor,
             shape: BoxShape.circle,
-            border: Border.all(color: FlowPayColors.hairline),
+            border: Border.all(color: borderColor),
           ),
           alignment: Alignment.center,
-          child: const Icon(
+          child: Icon(
             Icons.backspace_outlined,
-            color: FlowPayColors.ink,
+            color: textPrimary,
             size: 22,
           ),
         ),
@@ -438,3 +548,4 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
     );
   }
 }
+

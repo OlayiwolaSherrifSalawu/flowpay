@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/buttons.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/spacing.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/transfers/transfer_funding.dart';
 import '../../../core/transfers/transfer_intent.dart';
@@ -50,9 +50,9 @@ class TransferReceiptDialog extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Dialog(
-      backgroundColor: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+      backgroundColor: isDark ? FlowPayColors.darkSurface : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: FlowPaySpacing.borderRadiusXl,
+        borderRadius: FlowPayRadii.card,
         side: BorderSide(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
@@ -84,7 +84,7 @@ class TransferReceiptDialog extends StatelessWidget {
             const SizedBox(height: 14),
 
             Text(
-              'Transfer Settled',
+              'Payment Sent',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.w800,
                 color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
@@ -92,7 +92,7 @@ class TransferReceiptDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Settled & recorded to activity timeline',
+              'Payment confirmed and recorded to activity',
               style: FlowPayTypography.captionStyle(
                 color: FlowPayColors.darkTextSecondary,
               ),
@@ -102,14 +102,16 @@ class TransferReceiptDialog extends StatelessWidget {
             // Amount summary card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: isDark
                     ? FlowPayColors.darkSurfaceElevated
-                    : FlowPayColors.lightSurfaceElevated,
-                borderRadius: FlowPaySpacing.borderRadiusLg,
+                    : FlowPayColors.mint100.withAlpha(50),
+                borderRadius: FlowPayRadii.cardMedium,
                 border: Border.all(
-                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                  color: isDark
+                      ? FlowPayColors.darkBorder
+                      : FlowPayColors.emerald600.withAlpha(40),
                 ),
               ),
               child: Column(
@@ -118,13 +120,13 @@ class TransferReceiptDialog extends StatelessWidget {
                     '${intent.amount} ${intent.currency.code}',
                     style: FlowPayTypography.amount(
                       color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
-                    ).copyWith(fontSize: 24, fontWeight: FontWeight.bold),
+                    ).copyWith(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'to ${intent.recipient}',
                     style: FlowPayTypography.captionStyle(
-                      color: FlowPayColors.darkTextSecondary,
+                      color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                     ),
                   ),
                 ],
@@ -133,14 +135,14 @@ class TransferReceiptDialog extends StatelessWidget {
             const SizedBox(height: 14),
 
             // Key details
-            _buildSummaryRow('Beneficiary', intent.recipient, isDark),
+            _buildSummaryRow('Recipient', intent.recipient, isDark),
             _buildSummaryRow(
-                'Funding Source', fundingOption.fundingWalletName, isDark),
+                'Paid from', fundingOption.fundingWalletName, isDark),
             if (fundingOption.requiresConversion)
               _buildSummaryRow(
-                  'Conversion', fundingOption.conversionLabel, isDark),
+                  'Exchange', fundingOption.conversionLabel, isDark),
             _buildSummaryRow(
-                'Total Debited',
+                'Total paid',
                 fundingOption.totalDebit.formattedWithSymbol,
                 isDark),
             _buildSummaryRow(
@@ -154,10 +156,10 @@ class TransferReceiptDialog extends StatelessWidget {
             if (result.transactionHash.isNotEmpty)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isDark ? FlowPayColors.darkSurfaceElevated : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  color: isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF3F4F6),
+                  borderRadius: FlowPayRadii.input,
                   border: Border.all(
                     color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                   ),

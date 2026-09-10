@@ -340,7 +340,7 @@ class FinancialOperator extends ChangeNotifier {
         if (lower == 'approve' || lower == 'confirm' || lower == 'proceed' || lower == 'yes') {
           // Never execute directly on chat text. Require real PIN authentication.
           final promptMsg = OperatorMessage.operator(
-            'To execute this plan, please authenticate with your B-Key PIN using the Approve button.',
+            'To execute this plan, please confirm with your PIN using the Approve button.',
           );
           _session = _session.copyWith(
             messages: [..._session.messages, promptMsg],

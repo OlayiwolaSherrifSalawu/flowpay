@@ -156,14 +156,14 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Instant Multi-Currency FX',
+                        'Instant Currency Exchange',
                         style: FlowPayTypography.titleMedium.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
                         ),
                       ),
                       const Text(
-                        'Task Workflow: Zero-Spread BMONI Rail',
+                        'Low-fee exchange rates',
                         style: TextStyle(
                           fontSize: 12,
                           color: FlowPayColors.darkTextSecondary,
@@ -175,7 +175,7 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Deterministic real-time rate lock with direct settlement.',
+                'Real-time exchange rate with instant conversion.',
                 style: FlowPayTypography.captionStyle(
                   color: FlowPayColors.darkTextSecondary,
                 ),
@@ -348,7 +348,7 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
               const SizedBox(height: 18),
 
               FlowPayButton(
-                text: 'Sign & Convert',
+                text: 'Convert',
                 icon: Icons.currency_exchange,
                 isFullWidth: true,
                 size: FlowPayButtonSize.large,

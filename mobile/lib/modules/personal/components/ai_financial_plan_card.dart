@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/design_system/buttons.dart';
 import '../../../core/financial_operator/models/financial_plan_models.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/spacing.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 /// FlowPay AI Financial Plan Card
@@ -44,17 +44,17 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.lightSurface,
-        borderRadius: FlowPaySpacing.borderRadiusXl,
+        color: isDark ? FlowPayColors.darkSurface : Colors.white,
+        borderRadius: FlowPayRadii.card,
         border: Border.all(
           color: isExpired
               ? FlowPayColors.error.withAlpha(120)
-              : FlowPayColors.primary.withAlpha(80),
+              : FlowPayColors.emerald600.withAlpha(isDark ? 80 : 50),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isExpired ? FlowPayColors.error : FlowPayColors.primary).withAlpha(16),
+            color: (isExpired ? FlowPayColors.error : FlowPayColors.emerald600).withAlpha(16),
             blurRadius: 18,
             offset: const Offset(0, 4),
           ),
@@ -68,26 +68,26 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: FlowPayColors.primary.withAlpha(35),
-                  borderRadius: BorderRadius.circular(8),
+                  color: FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25),
+                  borderRadius: FlowPayRadii.avatar,
                 ),
                 child: const Icon(
                   Icons.receipt_long_rounded,
-                  size: 16,
-                  color: FlowPayColors.primary,
+                  size: 18,
+                  color: FlowPayColors.emerald600,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   plan.title,
-                  style: FlowPayTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? FlowPayColors.darkTextPrimary
-                        : FlowPayColors.lightTextPrimary,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                    color: isDark ? Colors.white : FlowPayColors.ink,
                   ),
                 ),
               ),
@@ -100,29 +100,29 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
             children: [
               if (plan.actions.length > 1)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.primary.withAlpha(30),
-                    borderRadius: BorderRadius.circular(6),
+                    color: FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20),
+                    borderRadius: FlowPayRadii.chip,
                   ),
                   child: Text(
                     '${plan.actions.length} PAYMENTS',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: FlowPayColors.primary,
+                      color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                       letterSpacing: 0.5,
                     ),
                   ),
                 ),
               if (plan.quoteExpiresAt != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isExpired
-                        ? FlowPayColors.error.withAlpha(35)
-                        : FlowPayColors.accent.withAlpha(30),
-                    borderRadius: BorderRadius.circular(6),
+                        ? FlowPayColors.error.withAlpha(25)
+                        : FlowPayColors.emerald600.withAlpha(isDark ? 30 : 15),
+                    borderRadius: FlowPayRadii.chip,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -130,7 +130,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                       Icon(
                         Icons.timer_outlined,
                         size: 12,
-                        color: isExpired ? FlowPayColors.error : FlowPayColors.accent,
+                        color: isExpired ? FlowPayColors.error : FlowPayColors.emerald600,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -138,7 +138,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isExpired ? FlowPayColors.error : FlowPayColors.accent,
+                          color: isExpired ? FlowPayColors.error : (isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700),
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -146,12 +146,12 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   ),
                 ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: plan.isApproved
-                      ? FlowPayColors.primary.withAlpha(35)
-                      : FlowPayColors.accent.withAlpha(35),
-                  borderRadius: BorderRadius.circular(6),
+                      ? FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20)
+                      : (isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF3F4F6)),
+                  borderRadius: FlowPayRadii.chip,
                 ),
                 child: Text(
                   plan.isApproved ? 'APPROVED' : 'AWAITING APPROVAL',
@@ -159,8 +159,8 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: plan.isApproved
-                        ? FlowPayColors.primary
-                        : FlowPayColors.accent,
+                        ? (isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700)
+                        : (isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -175,13 +175,13 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: FlowPayColors.accent.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: FlowPayColors.accent.withAlpha(60)),
+                color: FlowPayColors.emerald600.withAlpha(isDark ? 25 : 15),
+                borderRadius: FlowPayRadii.cardSmall,
+                border: Border.all(color: FlowPayColors.emerald600.withAlpha(60)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.swap_horiz_rounded, size: 16, color: FlowPayColors.accent),
+                  const Icon(Icons.swap_horiz_rounded, size: 16, color: FlowPayColors.emerald600),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -202,7 +202,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
           Text(
             'ACTIONS TO EXECUTE (${plan.actions.length})',
             style: FlowPayTypography.captionStyle(
-              color: FlowPayColors.darkTextMuted,
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8),
           ),
           const SizedBox(height: 8),
@@ -214,8 +214,8 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? FlowPayColors.darkSurfaceSubtle : FlowPayColors.lightSurfaceElevated,
-              borderRadius: BorderRadius.circular(10),
+              color: isDark ? FlowPayColors.darkSurfaceElevated : const Color(0xFFF9FAFB),
+              borderRadius: FlowPayRadii.cardSmall,
               border: Border.all(
                 color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
               ),
@@ -227,17 +227,19 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   children: [
                     Text(
                       'Total Amount',
-                      style: FlowPayTypography.bodyMd.copyWith(
+                      style: TextStyle(
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
+                        color: isDark ? Colors.white : FlowPayColors.ink,
                       ),
                     ),
                     Text(
                       plan.totalRequested.toFormattedString(),
-                      style: FlowPayTypography.titleMedium.copyWith(
+                      style: const TextStyle(
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: FlowPayColors.primary,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                        color: FlowPayColors.emerald600,
                       ),
                     ),
                   ],
@@ -249,15 +251,18 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                     children: [
                       Text(
                         'Estimated Fees',
-                        style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.darkTextSecondary,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                         ),
                       ),
                       Text(
                         plan.totalFee.toFormattedString(),
-                        style: FlowPayTypography.captionStyle(
-                          color: FlowPayColors.darkTextSecondary,
-                        ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                        ),
                       ),
                     ],
                   ),
@@ -276,14 +281,14 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? FlowPayColors.darkSurfaceSubtle
-                      : FlowPayColors.lightSurfaceElevated,
-                  borderRadius: BorderRadius.circular(8),
+                      ? FlowPayColors.darkSurfaceElevated
+                      : const Color(0xFFF9FAFB),
+                  borderRadius: FlowPayRadii.cardSmall,
                   border: Border.all(
-                    color: FlowPayColors.primary.withAlpha(50),
+                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                   ),
                 ),
                 child: Column(
@@ -293,16 +298,18 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                       children: [
                         const Icon(
                           Icons.lightbulb_outline_rounded,
-                          size: 15,
-                          color: FlowPayColors.primary,
+                          size: 16,
+                          color: FlowPayColors.emerald600,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Why this funding route?',
-                            style: FlowPayTypography.captionStyle(
-                              color: FlowPayColors.primary,
-                            ).copyWith(fontWeight: FontWeight.w700),
+                            'Why this payment source?',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
+                            ),
                           ),
                         ),
                         Icon(
@@ -310,18 +317,20 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                               ? Icons.keyboard_arrow_up_rounded
                               : Icons.keyboard_arrow_down_rounded,
                           size: 18,
-                          color: FlowPayColors.primary,
+                          color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                         ),
                       ],
                     ),
                     if (_showExplanation) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         plan.routeExplanation!,
-                        style: FlowPayTypography.captionStyle(
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
                           color: isDark
                               ? FlowPayColors.darkTextSecondary
-                              : FlowPayColors.lightTextSecondary,
+                              : const Color(0xFF4B5563),
                         ),
                       ),
                     ],
@@ -341,10 +350,12 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
               child: Row(
                 children: [
                   Text(
-                    'Route override:',
-                    style: FlowPayTypography.captionStyle(
-                      color: FlowPayColors.darkTextMuted,
-                    ).copyWith(fontWeight: FontWeight.w600),
+                    'Pay using:',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ...plan.availableRouteOverrides.map((curr) {
@@ -356,23 +367,23 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                       padding: const EdgeInsets.only(right: 6),
                       child: InkWell(
                         onTap: () => widget.onOverrideRoute!(displayCode),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: FlowPayRadii.chip,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: FlowPayColors.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(6),
+                            color: FlowPayColors.emerald600.withAlpha(isDark ? 30 : 20),
+                            borderRadius: FlowPayRadii.chip,
                             border: Border.all(
-                              color: FlowPayColors.primary.withAlpha(60),
+                              color: FlowPayColors.emerald600.withAlpha(60),
                             ),
                           ),
                           child: Text(
                             'Fund via $displayCode',
-                            style: const TextStyle(
-                              fontSize: 10,
+                            style: TextStyle(
+                              fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: FlowPayColors.primary,
+                              color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
                             ),
                           ),
                         ),
@@ -385,14 +396,14 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
           ],
 
           const SizedBox(height: 12),
-          const Divider(height: 1, color: FlowPayColors.darkBorder),
+          Divider(height: 1, color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
           const SizedBox(height: 12),
 
           // Balance Impact Projections
           Text(
             'PROJECTED BALANCES AFTER EXECUTION',
             style: FlowPayTypography.captionStyle(
-              color: FlowPayColors.darkTextMuted,
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8),
           ),
           const SizedBox(height: 8),
@@ -406,22 +417,23 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: FlowPayColors.primary.withAlpha(20),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: FlowPayColors.primary.withAlpha(40)),
+              color: FlowPayColors.emerald600.withAlpha(isDark ? 25 : 15),
+              borderRadius: FlowPayRadii.cardSmall,
+              border: Border.all(color: FlowPayColors.emerald600.withAlpha(50)),
             ),
             child: Row(
               children: [
                 const Icon(Icons.shield_outlined,
-                    size: 14, color: FlowPayColors.primary),
+                    size: 15, color: FlowPayColors.emerald600),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Zero AI money movement • B-Key cryptographic authorization required',
-                    style: FlowPayTypography.captionStyle(
+                    'Only you can approve payments • Requires your PIN',
+                    style: TextStyle(
+                      fontSize: 11,
                       color: isDark
                           ? FlowPayColors.darkTextSecondary
-                          : FlowPayColors.lightTextSecondary,
+                          : const Color(0xFF4B5563),
                     ),
                   ),
                 ),
@@ -469,9 +481,9 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark
-            ? FlowPayColors.darkSurfaceSubtle
-            : FlowPayColors.lightSurfaceElevated,
-        borderRadius: BorderRadius.circular(10),
+            ? FlowPayColors.darkSurfaceElevated
+            : const Color(0xFFF9FAFB),
+        borderRadius: FlowPayRadii.cardSmall,
         border: Border.all(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
@@ -485,9 +497,9 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: act.type == PlannedActionType.send
-                      ? FlowPayColors.primary.withAlpha(30)
+                      ? FlowPayColors.emerald600.withAlpha(30)
                       : FlowPayColors.accent.withAlpha(30),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: FlowPayRadii.chip,
                 ),
                 child: Text(
                   act.type.displayName.toUpperCase(),
@@ -495,7 +507,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     color: act.type == PlannedActionType.send
-                        ? FlowPayColors.primary
+                        ? FlowPayColors.emerald600
                         : FlowPayColors.accent,
                   ),
                 ),
@@ -507,17 +519,17 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   children: [
                     Text(
                       act.destinationName,
-                      style: FlowPayTypography.bodyMd.copyWith(
+                      style: TextStyle(
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? FlowPayColors.darkTextPrimary
-                            : FlowPayColors.lightTextPrimary,
+                        color: isDark ? Colors.white : FlowPayColors.ink,
                       ),
                     ),
                     Text(
                       act.description,
-                      style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.darkTextSecondary,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                       ),
                     ),
                   ],
@@ -525,12 +537,11 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
               ),
               Text(
                 act.amount.toFormattedString(),
-                style: FlowPayTypography.bodyLg.copyWith(
+                style: TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()],
-                  color: isDark
-                      ? FlowPayColors.darkTextPrimary
-                      : FlowPayColors.lightTextPrimary,
+                  color: isDark ? Colors.white : FlowPayColors.ink,
                 ),
               ),
             ],
@@ -543,9 +554,12 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
                 color: isDark
-                    ? FlowPayColors.darkSurfaceElevated
-                    : FlowPayColors.lightSurface,
-                borderRadius: BorderRadius.circular(6),
+                    ? FlowPayColors.darkSurface
+                    : Colors.white,
+                borderRadius: FlowPayRadii.cardSmall,
+                border: Border.all(
+                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                ),
               ),
               child: Row(
                 children: [
@@ -555,17 +569,20 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   if (act.destinationAmount != null)
                     Expanded(
                       child: Text(
-                        'Delivers ${act.destinationAmount!.toFormattedString()}${act.destinationRail != null ? ' via ${act.destinationRail}' : ''}',
-                        style: FlowPayTypography.captionStyle(
+                        'Delivers ${act.destinationAmount!.toFormattedString()}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                           color: FlowPayColors.accent,
-                        ).copyWith(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   if (act.fxRate != null)
                     Text(
                       act.fxRate!,
-                      style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.darkTextMuted,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
                       ),
                     ),
                 ],
@@ -585,30 +602,31 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
         children: [
           Text(
             impact.walletName,
-            style: FlowPayTypography.captionStyle(
+            style: TextStyle(
+              fontSize: 12,
               color: isDark
                   ? FlowPayColors.darkTextSecondary
-                  : FlowPayColors.lightTextSecondary,
+                  : const Color(0xFF4B5563),
             ),
           ),
           const Spacer(),
           Text(
             '${impact.currentBalance.toFormattedString()}  →  ',
-            style: FlowPayTypography.captionStyle(
-              color: FlowPayColors.darkTextMuted,
-            ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+            style: TextStyle(
+              fontSize: 12,
+              fontFeatures: const [FontFeature.tabularFigures()],
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+            ),
           ),
           Text(
             impact.projectedBalance.toFormattedString(),
-            style: FlowPayTypography.captionStyle(
-              color: impact.isCredit
-                  ? FlowPayColors.primary
-                  : (isDark
-                      ? FlowPayColors.darkTextPrimary
-                      : FlowPayColors.lightTextPrimary),
-            ).copyWith(
+            style: TextStyle(
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               fontFeatures: const [FontFeature.tabularFigures()],
+              color: impact.isCredit
+                  ? FlowPayColors.emerald600
+                  : (isDark ? Colors.white : FlowPayColors.ink),
             ),
           ),
         ],

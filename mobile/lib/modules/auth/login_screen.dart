@@ -6,11 +6,9 @@ import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/config/api_config.dart';
-import '../../core/theme/colors.dart';
-import '../../core/theme/components.dart';
-import '../../core/theme/radii.dart';
-import '../../core/theme/typography.dart';
+import '../../core/design_system/design_system.dart';
 import 'signup_screen.dart';
+
 
 /// FlowPay Log In Screen.
 /// Used when authentication has expired or user wants to sign in to an existing account.
@@ -144,108 +142,174 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondary =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: bgColor,
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: FlowPayColors.ink),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const PoweredByBmoniBadge(),
-        centerTitle: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 12),
+      body: Stack(
+        children: [
+          if (isDark)
+            Positioned(
+              top: -60,
+              left: 0,
+              right: 0,
+              height: 340,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0, -0.6),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF0F3224),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
 
-                // Hero Icon
+                // ── Hero Section — FlowPay logo mark with glow ring ──
                 Center(
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: FlowPayColors.surfaceAlt,
-                      borderRadius: FlowPayRadii.card,
-                      border: Border.all(color: FlowPayColors.hairline),
-                    ),
-                    child: const Icon(
-                      Icons.login_rounded,
-                      color: FlowPayColors.primary,
-                      size: 28,
-                    ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? FlowPayColors.darkSurfaceElevated
+                              : FlowPayColors.mint100,
+                          borderRadius: FlowPayRadii.card,
+                          border: Border.all(
+                            color: FlowPayColors.primary.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  FlowPayColors.primary.withValues(alpha: 0.18),
+                              blurRadius: 24,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Center(
+                          child: FlowPayLogo(size: 48),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Welcome Back',
+                        style: FlowPayTypography.headline()
+                            .copyWith(color: textPrimary, fontSize: 26),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Your money. Your rules. AI executes.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textSecondary,
+                          height: 1.4,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
 
-                Text(
-                  'Log In to FlowPay',
-                  style: FlowPayTypography.headline(),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Enter your account email and 6-digit signing PIN.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: FlowPayColors.textSecondary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
+                const SizedBox(height: 32),
 
-                const SizedBox(height: 28),
-
+                // ── Error Banner ──
                 if (_errorMessage != null) ...[
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: FlowPayColors.stateError.withAlpha(25),
+                      color: FlowPayColors.error.withValues(alpha: 0.08),
                       borderRadius: FlowPayRadii.input,
-                      border: Border.all(color: FlowPayColors.stateError),
+                      border: Border.all(
+                          color: FlowPayColors.error.withValues(alpha: 0.4)),
                     ),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: FlowPayColors.stateError,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: FlowPayColors.error, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: FlowPayColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
                 ],
 
-                // Email
-                const Text(
+                // ── Account Email ──
+                Text(
                   'Account Email',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: FlowPayColors.ink),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 TextFormField(
+                  key: const Key('login_email_field'),
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style:
-                      const TextStyle(color: FlowPayColors.ink, fontSize: 14),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: textPrimary, fontSize: 14),
+                  decoration: InputDecoration(
                     hintText: 'name@company.com',
+                    hintStyle: TextStyle(color: textSecondary),
                     prefixIcon: Icon(Icons.email_outlined,
-                        color: FlowPayColors.textSecondary, size: 18),
+                        color: textSecondary, size: 18),
                     filled: true,
-                    fillColor: FlowPayColors.surfaceAlt,
+                    fillColor: surfaceColor,
                     border: OutlineInputBorder(
                       borderRadius: FlowPayRadii.input,
-                      borderSide: BorderSide(color: FlowPayColors.hairline),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: FlowPayRadii.input,
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: FlowPayRadii.input,
+                      borderSide: BorderSide(
+                          color: FlowPayColors.primary, width: 1.5),
                     ),
                   ),
                   validator: (v) => v == null || !v.contains('@')
@@ -255,51 +319,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 18),
 
-                // PIN
-                const Text(
+                // ── 6-Digit PIN ──
+                Text(
                   '6-Digit PIN',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: FlowPayColors.ink),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textPrimary,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 TextFormField(
+                  key: const Key('login_pin_field'),
                   controller: _pinController,
                   keyboardType: TextInputType.number,
                   obscureText: true,
                   maxLength: 6,
-                  style: const TextStyle(
-                      color: FlowPayColors.ink, fontSize: 18, letterSpacing: 4),
-                  decoration: const InputDecoration(
+                  style: TextStyle(
+                      color: textPrimary, fontSize: 20, letterSpacing: 6),
+                  decoration: InputDecoration(
                     counterText: '',
                     hintText: '••••••',
+                    hintStyle:
+                        TextStyle(color: textSecondary, letterSpacing: 4),
                     prefixIcon: Icon(Icons.lock_outline,
-                        color: FlowPayColors.textSecondary, size: 18),
+                        color: textSecondary, size: 18),
                     filled: true,
-                    fillColor: FlowPayColors.surfaceAlt,
+                    fillColor: surfaceColor,
                     border: OutlineInputBorder(
                       borderRadius: FlowPayRadii.input,
-                      borderSide: BorderSide(color: FlowPayColors.hairline),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: FlowPayRadii.input,
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: FlowPayRadii.input,
+                      borderSide: BorderSide(
+                          color: FlowPayColors.primary, width: 1.5),
                     ),
                   ),
-                  validator: (v) => v == null || v.length != 6
-                      ? 'PIN must be 6 digits'
-                      : null,
+                  validator: (v) =>
+                      v == null || v.length != 6 ? 'PIN must be 6 digits' : null,
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                // Submit Button
+                // ── Submit Button ──
                 FlowPayButton(
+                  key: const Key('login_submit_button'),
                   text: _isLoading ? 'Authenticating...' : 'Log In',
-                  icon: Icons.login,
+                  icon: Icons.login_rounded,
                   onPressed: _isLoading ? null : _login,
                 ),
 
                 const SizedBox(height: 16),
 
-                // Go to signup
+                // ── Go to Signup ──
                 Center(
                   child: TextButton(
                     onPressed: () {
@@ -317,10 +394,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // ── Trust Banner ──
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.mint100.withValues(alpha: 0.5),
+                    borderRadius: FlowPayRadii.input,
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.shield_outlined,
+                          size: 14,
+                          color: FlowPayColors.primary.withValues(alpha: 0.7)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Your account is secured on this device',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
+      ),
+        ],
       ),
     );
   }

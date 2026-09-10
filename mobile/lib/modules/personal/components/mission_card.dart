@@ -4,11 +4,11 @@ import '../../../core/missions/mission_intent.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/repositories/mission_repository.dart';
 import '../../../core/theme/colors.dart';
-import '../../../core/theme/spacing.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 /// FlowPay Money Mission Card
-/// Premium Money Mission card displaying status, progress bar, rule specifications,
+/// Premium Dribbble-inspired card displaying status, progress bar, rule specifications,
 /// and fast execution controls.
 class MissionCard extends StatelessWidget {
   final MoneyMissionModel mission;
@@ -94,19 +94,19 @@ class MissionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
-        borderRadius: FlowPaySpacing.borderRadiusXl,
+        color: isDark ? FlowPayColors.darkSurface : Colors.white,
+        borderRadius: FlowPayRadii.card,
         border: Border.all(
           color: mission.isActive
-              ? FlowPayColors.primary.withAlpha(90)
+              ? FlowPayColors.primary.withAlpha(80)
               : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
             color: mission.isActive
-                ? FlowPayColors.primary.withAlpha(15)
-                : const Color(0x06000000),
+                ? FlowPayColors.primary.withAlpha(16)
+                : (isDark ? Colors.black26 : const Color(0x06000000)),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -120,19 +120,29 @@ class MissionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: mission.isActive
-                      ? FlowPayColors.primary.withAlpha(35)
-                      : FlowPayColors.darkSurfaceElevated,
-                  borderRadius: BorderRadius.circular(10),
+                      ? FlowPayColors.primary.withAlpha(25)
+                      : (isDark
+                          ? FlowPayColors.darkSurfaceElevated
+                          : FlowPayColors.lightSurfaceElevated),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: mission.isActive
+                        ? FlowPayColors.primary.withAlpha(50)
+                        : (isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder),
+                  ),
                 ),
                 child: Icon(
                   Icons.bolt,
-                  size: 20,
+                  size: 22,
                   color: mission.isActive
                       ? FlowPayColors.primary
-                      : FlowPayColors.darkTextSecondary,
+                      : (isDark
+                          ? FlowPayColors.darkTextSecondary
+                          : FlowPayColors.lightTextSecondary),
                 ),
               ),
               const SizedBox(width: 12),
@@ -156,16 +166,20 @@ class MissionCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: mission.isActive
-                                ? FlowPayColors.primary.withAlpha(30)
-                                : FlowPayColors.darkSurfaceElevated,
-                            borderRadius: BorderRadius.circular(6),
+                                ? FlowPayColors.primary.withAlpha(24)
+                                : (isDark
+                                    ? FlowPayColors.darkSurfaceElevated
+                                    : FlowPayColors.lightSurfaceElevated),
+                            borderRadius: FlowPayRadii.chip,
                             border: Border.all(
                               color: mission.isActive
-                                  ? FlowPayColors.primary.withAlpha(70)
-                                  : FlowPayColors.darkBorder,
+                                  ? FlowPayColors.primary.withAlpha(60)
+                                  : (isDark
+                                      ? FlowPayColors.darkBorder
+                                      : FlowPayColors.lightBorder),
                             ),
                           ),
                           child: Text(
@@ -176,7 +190,9 @@ class MissionCard extends StatelessWidget {
                               letterSpacing: 0.6,
                               color: mission.isActive
                                   ? FlowPayColors.primary
-                                  : FlowPayColors.darkTextSecondary,
+                                  : (isDark
+                                      ? FlowPayColors.darkTextSecondary
+                                      : FlowPayColors.lightTextSecondary),
                             ),
                           ),
                         ),
@@ -186,7 +202,9 @@ class MissionCard extends StatelessWidget {
                     Text(
                       mission.tagline,
                       style: FlowPayTypography.captionStyle(
-                        color: FlowPayColors.darkTextSecondary,
+                        color: isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -229,40 +247,44 @@ class MissionCard extends StatelessWidget {
                         : '${(progressFraction * 100).toInt()}% complete',
                     style: FlowPayTypography.captionStyle(
                       color: mission.isActive
-                          ? FlowPayColors.primaryLight
-                          : FlowPayColors.darkTextSecondary,
+                          ? FlowPayColors.primary
+                          : (isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.lightTextSecondary),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: FlowPayRadii.chip,
                 child: LinearProgressIndicator(
                   value: progressFraction,
-                  minHeight: 6,
+                  minHeight: 7,
                   backgroundColor: isDark
                       ? FlowPayColors.darkSurfaceElevated
                       : FlowPayColors.lightSurfaceElevated,
                   valueColor: AlwaysStoppedAnimation<Color>(
                     mission.isActive
                         ? FlowPayColors.primary
-                        : FlowPayColors.darkTextSecondary,
+                        : (isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.lightTextSecondary),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
           // Rules Summary Card
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: isDark
                   ? FlowPayColors.darkSurfaceElevated
                   : FlowPayColors.lightSurfaceElevated,
-              borderRadius: FlowPaySpacing.borderRadiusMd,
+              borderRadius: FlowPayRadii.cardSmall,
               border: Border.all(
                 color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
               ),
@@ -271,16 +293,24 @@ class MissionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildRuleItem('Source', 'Incoming $sourceCur', isDark),
-                const Text('•', style: TextStyle(color: FlowPayColors.hairline)),
+                Text('•',
+                    style: TextStyle(
+                        color: isDark
+                            ? FlowPayColors.darkBorder
+                            : FlowPayColors.lightBorder)),
                 _buildRuleItem('Allocation', allocLabel, isDark),
-                const Text('•', style: TextStyle(color: FlowPayColors.hairline)),
+                Text('•',
+                    style: TextStyle(
+                        color: isDark
+                            ? FlowPayColors.darkBorder
+                            : FlowPayColors.lightBorder)),
                 _buildRuleItem('Destination', destTarget, isDark),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Actions Row: Edit, Pause, Run Now
+          // Actions Row: Edit, Activity, Delete, Run Now
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -300,7 +330,8 @@ class MissionCard extends StatelessWidget {
                     ),
                   if (onDelete != null)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: FlowPayColors.error),
+                      icon: const Icon(Icons.delete_outline,
+                          size: 18, color: FlowPayColors.error),
                       tooltip: 'Delete Mission',
                       visualDensity: VisualDensity.compact,
                       onPressed: onDelete,
@@ -325,10 +356,12 @@ class MissionCard extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w700,
-            color: FlowPayColors.darkTextSecondary,
+            color: isDark
+                ? FlowPayColors.darkTextSecondary
+                : FlowPayColors.lightTextSecondary,
             letterSpacing: 0.5,
           ),
         ),

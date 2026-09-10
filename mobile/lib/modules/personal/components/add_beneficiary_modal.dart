@@ -322,9 +322,9 @@ class _AddBeneficiaryModalState extends State<AddBeneficiaryModal> {
               ),
               const SizedBox(height: 14),
 
-              // Country & Rail Selector
+              // Country Selector
               Text(
-                'DESTINATION COUNTRY & RAIL',
+                'DESTINATION COUNTRY',
                 style: FlowPayTypography.captionStyle(
                   color: FlowPayColors.darkTextSecondary,
                 ).copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.8),

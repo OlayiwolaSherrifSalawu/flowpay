@@ -5,14 +5,10 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/config/api_config.dart';
-import '../../core/design_system/buttons.dart';
-import '../../core/design_system/input_fields.dart';
-import '../../core/theme/colors.dart';
-import '../../core/theme/radii.dart';
-import '../../core/theme/spacing.dart';
-import '../../core/theme/typography.dart';
+import '../../core/design_system/design_system.dart';
 import 'kyc_screen.dart';
 import 'login_screen.dart';
+
 
 /// Signup Screen: Allows selecting Personal vs Business account type,
 /// collecting identity details, setting up security PIN, and proceeding to KYC.
@@ -221,47 +217,62 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Top Brand Header
-                Center(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Stack(
+        children: [
+          if (isDark)
+            Positioned(
+              top: -60,
+              left: 0,
+              right: 0,
+              height: 340,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0, -0.6),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF0F3224),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                // ── Top Brand Header — FlowPay Horizontal Lockup ──
+                const Center(
                   child: Column(
                     children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: const BoxDecoration(
-                          color: FlowPayColors.ink,
-                          borderRadius: FlowPayRadii.card,
-                        ),
-                        child: const Icon(
-                          Icons.bolt,
-                          size: 32,
-                          color: FlowPayColors.amber,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'FLOWPAY',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 3,
-                          color: FlowPayColors.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
+                      FlowPayLogo.horizontal(size: 36),
+                      SizedBox(height: 8),
                       Text(
                         'Your money. Your rules. AI executes.',
-                        style: FlowPayTypography.caption.copyWith(
+                        style: TextStyle(
+                          fontSize: 12,
                           color: FlowPayColors.textSecondary,
                         ),
                       ),
@@ -387,7 +398,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Select your account type to configure your BMONI infrastructure.',
+                  'Choose the account type that best fits your needs.',
                   style: TextStyle(
                     fontSize: 14,
                     color: FlowPayColors.textSecondary,
@@ -424,14 +435,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Form Fields Section
+                // ── Form Fields Title ──
                 Text(
                   _accountType == AccountType.personal
                       ? 'Personal Information'
                       : 'Business Administrator Information',
                   style: FlowPayTypography.headingSm.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: FlowPayColors.textPrimary,
+                    color: textPrimary,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -631,6 +642,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           ),
         ),
       ),
+        ],
+      ),
     );
   }
 
@@ -649,10 +662,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected ? FlowPayColors.surfaceAlt : FlowPayColors.surface,
+          color: isSelected
+              ? FlowPayColors.primary.withValues(alpha: 0.07)
+              : FlowPayColors.surfaceAlt,
           borderRadius: FlowPayRadii.card,
           border: Border.all(
-            color: isSelected ? FlowPayColors.primary : FlowPayColors.hairline,
+            color: isSelected
+                ? FlowPayColors.primary
+                : FlowPayColors.hairline,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -667,15 +684,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   height: 36,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? FlowPayColors.primary
+                        ? FlowPayColors.emerald600
                         : FlowPayColors.surfaceSubtle,
                     borderRadius: FlowPayRadii.chip,
                   ),
                   child: Icon(
                     icon,
                     size: 20,
-                    color:
-                        isSelected ? Colors.white : FlowPayColors.textSecondary,
+                    color: isSelected
+                        ? Colors.white
+                        : FlowPayColors.textSecondary,
                   ),
                 ),
                 Icon(
@@ -703,7 +721,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: FlowPayColors.amber,
+                color: FlowPayColors.primary,
               ),
             ),
             const SizedBox(height: 4),
