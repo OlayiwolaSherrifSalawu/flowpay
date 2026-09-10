@@ -184,8 +184,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             Text(
                               'Personal Account',
                               style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
                                 color: isDark
                                     ? Colors.white
                                     : FlowPayColors.lightTextPrimary,
@@ -194,21 +195,29 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             // Clear Sandbox / Demo Indicator
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: FlowPayColors.primary.withAlpha(30),
-                                borderRadius: BorderRadius.circular(8),
+                                color: isDark
+                                    ? FlowPayColors.emerald600.withAlpha(40)
+                                    : FlowPayColors.mint100,
+                                borderRadius: FlowPayRadii.chip,
                                 border: Border.all(
-                                    color: FlowPayColors.primary.withAlpha(70)),
+                                  color: isDark
+                                      ? FlowPayColors.emerald400.withAlpha(80)
+                                      : FlowPayColors.emerald600.withAlpha(50),
+                                  width: 1,
+                                ),
                               ),
                               child: Text(
                                 widget.appState.isDemo
                                     ? 'Sandbox Demo'
                                     : 'Live Network',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: FlowPayColors.primaryLight,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? FlowPayColors.emerald400
+                                      : FlowPayColors.emerald700,
                                 ),
                               ),
                             ),
@@ -220,7 +229,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: FlowPayColors.primaryLight,
+                            color: FlowPayColors.emerald400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -237,28 +246,41 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             builder: (_) => const WalletProvisioningScreen()),
                       );
                     },
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: FlowPayRadii.chip,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: FlowPayColors.primary.withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
+                        color: isDark
+                            ? FlowPayColors.darkSurfaceElevated
+                            : FlowPayColors.mint100,
+                        borderRadius: FlowPayRadii.chip,
                         border: Border.all(
-                            color: FlowPayColors.primary.withAlpha(80)),
+                          color: isDark
+                              ? FlowPayColors.darkBorder
+                              : FlowPayColors.emerald400.withAlpha(60),
+                          width: 1,
+                        ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.lock_outline,
-                              size: 12, color: FlowPayColors.primaryLight),
-                          SizedBox(width: 4),
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 13,
+                            color: isDark
+                                ? FlowPayColors.emerald400
+                                : FlowPayColors.emerald700,
+                          ),
+                          const SizedBox(width: 4),
                           Text(
                             'B-Key Vault',
                             style: TextStyle(
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: FlowPayColors.primaryLight,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald700,
                             ),
                           ),
                         ],
@@ -269,22 +291,21 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Premium Portfolio Section (FlowPayHeroCard)
-              BMoniWalletCard(
-                height: 240,
-                background: const BMoniWalletCardBackground.gradient(
-                  LinearGradient(
-                    colors: [
-                      Color(0xFF181B26),
-                      Color(0xFF12141C),
-                      Color(0xFF090A0F),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                balanceChild: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              // 2. Premium Scalloped Card Hero (Dribbble Reference)
+              FlowPayScallopedCard(
+                title: 'Total Portfolio',
+                balance: totalFormatted,
+                holderName: 'Waffiyyi Fashola',
+                expiryDate: 'MULTI-RAIL',
+                actionLabel: 'Details',
+                onActionTap: () {
+                  _navigateToTab(
+                    PersonalTab.wallets,
+                    fallbackScreen: WalletsScreen(appState: widget.appState),
+                    routeName: AppRoutes.personalWallets,
+                  );
+                },
+                customContent: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -293,24 +314,29 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         const Text(
                           'Total Multi-Currency Portfolio',
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: FlowPayColors.darkTextSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFD8F0E4),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                              horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(20),
+                            color: Colors.white.withAlpha(25),
                             borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(30),
+                              width: 0.8,
+                            ),
                           ),
                           child: const Text(
                             'USD PRIMARY',
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: FlowPayColors.primaryLight,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFD8F0E4),
+                              letterSpacing: 0.4,
                             ),
                           ),
                         ),
@@ -323,9 +349,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       isHidden: _provider.isBalanceHidden,
                       onToggleHidden: _provider.toggleBalanceVisibility,
                       balanceColor: Colors.white,
-                      decimalColor: FlowPayColors.primaryLight,
+                      decimalColor: FlowPayColors.mint100,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -334,15 +360,15 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: FlowPayColors.primaryLight,
+                            color: Color(0xFFD8F0E4),
                           ),
                         ),
                         Text(
                           'Avail: ${_provider.availableBalanceUsd.formatFormatted(includeSymbol: true)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: FlowPayColors.darkTextSecondary,
+                            color: Colors.white.withAlpha(200),
                           ),
                         ),
                       ],
@@ -352,54 +378,49 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 3. Quick Actions Row
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.bolt,
-                      label: 'Create Mission',
-                      accentColor: FlowPayColors.primary,
-                      onPressed: () {
-                        _navigateToTab(
-                          PersonalTab.missions,
-                          fallbackScreen:
-                              MoneyMissionsScreen(appState: widget.appState),
-                          routeName: AppRoutes.personalMissions,
-                        );
-                      },
-                    ),
+              // 3. Dribbble-inspired Quick Actions Row
+              FlowPayQuickActionRow(
+                customItems: [
+                  QuickActionItem(
+                    label: 'Create Mission',
+                    icon: Icons.bolt_rounded,
+                    onTap: () {
+                      _navigateToTab(
+                        PersonalTab.missions,
+                        fallbackScreen:
+                            MoneyMissionsScreen(appState: widget.appState),
+                        routeName: AppRoutes.personalMissions,
+                      );
+                    },
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.arrow_outward,
-                      label: 'Send Money',
-                      accentColor: FlowPayColors.primaryLight,
-                      onPressed: () => _openSendMoneyScreen(),
-                    ),
+                  QuickActionItem(
+                    label: 'Send Money',
+                    icon: Icons.arrow_outward_rounded,
+                    onTap: () => _openSendMoneyScreen(),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.account_balance_wallet_outlined,
-                      label: 'View Wallets',
-                      accentColor: FlowPayColors.primary,
-                      onPressed: () {
-                        _navigateToTab(
-                          PersonalTab.wallets,
-                          fallbackScreen:
-                              WalletsScreen(appState: widget.appState),
-                          routeName: AppRoutes.personalWallets,
-                        );
-                      },
-                    ),
+                  QuickActionItem(
+                    label: 'View Wallets',
+                    icon: Icons.account_balance_wallet_outlined,
+                    onTap: () {
+                      _navigateToTab(
+                        PersonalTab.wallets,
+                        fallbackScreen:
+                            WalletsScreen(appState: widget.appState),
+                        routeName: AppRoutes.personalWallets,
+                      );
+                    },
+                  ),
+                  QuickActionItem(
+                    label: 'AI Operator',
+                    icon: Icons.auto_awesome_rounded,
+                    onTap: () =>
+                        _openAiOperatorModal("What should your money do?"),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
 
-              // 4. Money Missions Feature Card (Prominently displaying "Money Missions" & Tagline)
+              // 4. Money Missions Feature Card
               InkWell(
                 onTap: () {
                   _navigateToTab(
@@ -409,31 +430,53 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     routeName: AppRoutes.personalMissions,
                   );
                 },
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: FlowPayRadii.cardLarge,
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        FlowPayColors.darkSurfaceElevated,
-                        FlowPayColors.darkSurface,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.lightSurface,
+                    borderRadius: FlowPayRadii.cardLarge,
                     border: Border.all(
-                      color: FlowPayColors.primary.withAlpha(60),
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.lightBorder,
+                      width: 1,
                     ),
+                    boxShadow: isDark
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x0A0F1712),
+                              blurRadius: 12,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: FlowPayColors.primary.withAlpha(35),
-                          borderRadius: BorderRadius.circular(12),
+                          color: isDark
+                              ? FlowPayColors.emerald600.withAlpha(40)
+                              : FlowPayColors.mint100,
+                          borderRadius: FlowPayRadii.quickAction,
+                          border: Border.all(
+                            color: isDark
+                                ? FlowPayColors.emerald400.withAlpha(80)
+                                : FlowPayColors.emerald600.withAlpha(50),
+                          ),
                         ),
-                        child: const Icon(Icons.bolt,
-                            color: FlowPayColors.primaryLight, size: 24),
+                        child: Icon(
+                          Icons.bolt_rounded,
+                          color: isDark
+                              ? FlowPayColors.emerald400
+                              : FlowPayColors.emerald600,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       const Expanded(
@@ -443,27 +486,57 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             Text(
                               'Money Missions',
                               style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            SizedBox(height: 3),
                             Text(
                               '"Your money. Your rules. AI executes."',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: FlowPayColors.darkTextSecondary,
+                                fontWeight: FontWeight.w500,
+                                color: FlowPayColors.emerald400,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right,
-                          color: FlowPayColors.darkTextSecondary),
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: FlowPayColors.emerald400,
+                      ),
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 14),
+
+              // 5. Financial Pulse Metric Pills (Available vs Active Missions)
+              FlowPayIncomeExpenseRow(
+                incomeLabel: 'Available Balance',
+                incomeAmount: _provider.availableBalanceUsd
+                    .formatFormatted(includeSymbol: true),
+                expenseLabel: 'Active Missions',
+                expenseAmount:
+                    '${_provider.activeMissionCount} Active',
+                onIncomeTap: () {
+                  _navigateToTab(
+                    PersonalTab.wallets,
+                    fallbackScreen: WalletsScreen(appState: widget.appState),
+                    routeName: AppRoutes.personalWallets,
+                  );
+                },
+                onExpenseTap: () {
+                  _navigateToTab(
+                    PersonalTab.missions,
+                    fallbackScreen:
+                        MoneyMissionsScreen(appState: widget.appState),
+                    routeName: AppRoutes.personalMissions,
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
@@ -526,16 +599,30 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
 
               ..._provider.missions.map((m) {
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                   decoration: BoxDecoration(
                     color: isDark ? FlowPayColors.darkSurface : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: FlowPayRadii.cardSmall,
                     border: Border.all(
                       color: m.isActive
-                          ? FlowPayColors.primary.withAlpha(80)
-                          : FlowPayColors.darkBorder,
+                          ? (isDark
+                              ? FlowPayColors.emerald400.withAlpha(90)
+                              : FlowPayColors.emerald600.withAlpha(90))
+                          : (isDark
+                              ? FlowPayColors.darkBorder
+                              : FlowPayColors.lightBorder),
+                      width: m.isActive ? 1.5 : 1,
                     ),
+                    boxShadow: isDark
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x0A0F1712),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                   ),
                   child: Row(
                     children: [
@@ -543,16 +630,24 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: m.isActive
-                              ? FlowPayColors.primary.withAlpha(30)
-                              : FlowPayColors.darkSurfaceElevated,
+                              ? (isDark
+                                  ? FlowPayColors.emerald600.withAlpha(40)
+                                  : FlowPayColors.mint100)
+                              : (isDark
+                                  ? FlowPayColors.darkSurfaceElevated
+                                  : FlowPayColors.lightSurfaceElevated),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          Icons.bolt,
+                          Icons.bolt_rounded,
                           size: 18,
                           color: m.isActive
-                              ? FlowPayColors.primaryLight
-                              : FlowPayColors.darkTextSecondary,
+                              ? (isDark
+                                  ? FlowPayColors.emerald400
+                                  : FlowPayColors.emerald700)
+                              : (isDark
+                                  ? FlowPayColors.darkTextSecondary
+                                  : FlowPayColors.lightTextSecondary),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -695,8 +790,21 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     color: isDark ? FlowPayColors.darkSurface : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: FlowPayColors.darkBorder),
+                    borderRadius: FlowPayRadii.cardSmall,
+                    border: Border.all(
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.lightBorder,
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x0A0F1712),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                   ),
                   child: Row(
                     children: [
@@ -704,12 +812,17 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? FlowPayColors.darkSurfaceElevated
-                              : FlowPayColors.lightSurfaceElevated,
+                              ? FlowPayColors.emerald600.withAlpha(35)
+                              : FlowPayColors.mint100,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(catIcon,
-                            size: 16, color: FlowPayColors.primaryLight),
+                        child: Icon(
+                          catIcon,
+                          size: 16,
+                          color: isDark
+                              ? FlowPayColors.emerald400
+                              : FlowPayColors.emerald700,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -784,60 +897,6 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
   }
 }
 
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color accentColor;
-  final VoidCallback onPressed;
-
-  const _QuickActionButton({
-    required this.icon,
-    required this.label,
-    required this.accentColor,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isDark ? FlowPayColors.darkSurface : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: FlowPayColors.darkBorder),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: accentColor.withAlpha(25),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 18, color: accentColor),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _WalletSummaryCard extends StatelessWidget {
   final WalletAccount wallet;
   final bool isDark;
@@ -852,12 +911,23 @@ class _WalletSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? FlowPayColors.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: FlowPayColors.darkBorder),
+        borderRadius: FlowPayRadii.cardSmall,
+        border: Border.all(
+          color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+        ),
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x0A0F1712),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -877,24 +947,49 @@ class _WalletSummaryCard extends StatelessWidget {
                 amount: wallet.balance.formatFormatted(),
                 size: AmountDisplaySize.medium,
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 5),
               InkWell(
                 onTap: onCopyAddress,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${wallet.address.substring(0, 6)}...${wallet.address.substring(wallet.address.length - 4)}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontFamily: 'monospace',
-                        color: FlowPayColors.darkTextSecondary,
-                      ),
+                borderRadius: FlowPayRadii.chip,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.mint100.withAlpha(120),
+                    borderRadius: FlowPayRadii.chip,
+                    border: Border.all(
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.emerald400.withAlpha(40),
+                      width: 0.8,
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.copy,
-                        size: 10, color: FlowPayColors.darkTextSecondary),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '${wallet.address.substring(0, 6)}...${wallet.address.substring(wallet.address.length - 4)}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'monospace',
+                          color: isDark
+                              ? FlowPayColors.darkTextSecondary
+                              : FlowPayColors.emerald700,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.copy_rounded,
+                        size: 10,
+                        color: isDark
+                            ? FlowPayColors.darkTextSecondary
+                            : FlowPayColors.emerald700,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

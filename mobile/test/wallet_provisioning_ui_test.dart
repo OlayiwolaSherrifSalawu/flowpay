@@ -77,6 +77,8 @@ Future<void> scrollToVisible(WidgetTester tester, Finder finder) async {
   // one in the WalletProvisioningScreen's body at any time.
   final primaryScrollable = scrollables.first;
   await tester.scrollUntilVisible(finder, 200, scrollable: primaryScrollable);
+  await tester.drag(primaryScrollable, const Offset(0, -150));
+  await pumpSettled(tester);
 }
 
 void main() {

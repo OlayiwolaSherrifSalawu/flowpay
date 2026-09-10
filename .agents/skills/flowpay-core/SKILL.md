@@ -83,6 +83,36 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Deterministic `DemoProvider` implementations loaded with BMONI sandbox personas (Bunch Dillon BVN 99999999999, Samson Jabo BVN 22222222222).
   * Live `BMONIProvider` implementations communicating via backend proxy.
   * **13 FlowPay Design System Primitives (`lib/core/design_system/`)**:
+    * **Complete Redesign — Phase 1: Design System Foundation (Dribbble 'Smart Fintech' & FlowPay 'Current' Palette)**:
+      * Extracted and bundled official flowing 'F' mark in 4 resolutions (`assets/images/flowpay_logo_64.png`, `128.png`, `256.png`, `512.png`) and added `FlowPayLogo` component with horizontal brand lockup.
+      * Updated `FlowPayColors` to approved FlowPay "Current" palette: Emerald 700 (`#0B6E4F`), Emerald 600 primary (`#128A63`), Emerald 400 (`#3FAE85`), Mint 100 surface (`#D8F0E4`), Ink (`#0F1712`), Paper canvas (`#FAF9F6`), and transaction states (Success `#12A150`, Pending `#D8A400`, Error `#D14343`).
+      * Updated `FlowPayRadii` and `FlowPaySpacing` to Dribbble reference geometry (24dp standard card radius, 28dp large/hero card radius, 16dp pillowed input radius, 28dp sheet radius, 18dp squircle quick action radius).
+      * Updated `FlowPayTheme` with Paper canvas in Light Mode and Obsidian-Emerald in Dark Mode.
+      * Verified with dedicated test suite `mobile/test/design_system_foundation_test.dart` (175/175 tests passing, 0 analyzer lints).
+    * **Complete Redesign — Phase 2: Shared FlowPay Component Library**:
+      * Built `FlowPayScallopedCard` and `FlowPayCardDeck` with 24–28dp radii, gradient cards, masked account number, balance, and tactile action pills.
+      * Built `FlowPayQuickActionRow` with 4 squircle buttons (Deposit, Transfer, Withdraw, More) and tactile background.
+      * Built `FlowPayMetricPill` and `FlowPayIncomeExpenseRow` (Amber Income `↑` / Mint Expense `↓`) with tabular numerals.
+      * Built `FlowPayAnalyticsCard` with dark rounded container, vertical pill bars, peak highlight in emerald, and period dropdown pill selector.
+      * Upgraded `FlowPayButton` to universal 9999dp pill geometry and `FlowPayTextField` / `FlowPayAmountField` to 16dp pillowed inputs.
+      * Verified with dedicated test suite `mobile/test/phase2_components_test.dart`.
+    * **Complete Redesign — Phase 3: Global Application Shell & Navigation**:
+      * Redesigned `PersonalShell` & `BusinessShell`: Theme-adaptive AppBar with leading FlowPay logo mark, `SegmentedRoleSwitch` (`[ Personal | Business ]`), `FlowPayBrandBadge` (`FLOWPAY AI`), and tactile action buttons for Lock and Logout.
+      * Redesigned `NavigationBarTheme`: Custom pill indicator in emerald, theme-adaptive icons, and high-contrast typography.
+      * Verified with `mobile/test/app_shell_test.dart` (all 6 tests passing, 180 total tests passing, 0 analyzer lints).
+    * **Complete Redesign — Phase 4: Personal Dashboard Screen (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded hero card to `FlowPayScallopedCard` with Emerald gradient (`#0B6E4F` → `#128A63` → `#0F1712`), scalloped geometry, `BMoniWalletCardBalance` with tabular monospace numbers, `USD PRIMARY` badge, and secondary FX valuation (`₦56,506,500 NGN`).
+      * Integrated `FlowPayQuickActionRow` with 4 squircle actions (Create Mission, Send Money, View Wallets, AI Operator).
+      * Integrated `FlowPayIncomeExpenseRow` with customizable labels (Available Balance vs Active Missions).
+      * Redesigned Money Missions feature card with electric emerald bolt icon and tagline (`"Your money. Your rules. AI executes."`).
+      * Redesigned Active Strategy Rules, Multi-Currency Smart Wallets, and Recent Activity cards with `FlowPayRadii.cardSmall` (16dp), light/dark adaptive borders and subtle box shadows.
+      * Verified with `mobile/test/personal_dashboard_test.dart` (5/5 passed), `mobile/test/app_shell_test.dart` (6/6 passed), and full suite (180/180 passed, 0 lints).
+    * **Complete Redesign — Phase 5: Wallets Experience & Stacked Cards**:
+      * Implemented Multi-Currency Hero Card Carousel (`PageView.builder` with viewportFraction 0.92, currency-specific gradients for USD, NGN, MXN, CAD, and tactile dot indicators `[ • ○ ○ ○ ]`).
+      * Integrated Quick Actions Row for active wallet (Send, Receive, Convert, Security) and customizable `FlowPayIncomeExpenseRow` (Spendable vs Reserved breakdown).
+      * Added on-device hardware isolation security banner with Hardware Keystore / Secure Enclave indicators.
+      * Upgraded configured multi-currency wallet list and modernized simulated receive/deposit bottom sheet with copyable address chips and QR code mockup.
+      * Verified with `mobile/test/personal_integration_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
