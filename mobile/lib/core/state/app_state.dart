@@ -142,7 +142,14 @@ class AppState extends ChangeNotifier {
   FlowPayApiClient get apiClient => _apiClient;
 
   void setUserId(String? userId) {
-    _apiClient.setUserId(userId);
+    final target = userId ?? 'usr_flowpay_sandbox_master';
+    if (_apiClient.userId != target) {
+      _apiClient.setUserId(target);
+      _bmoniActivity.clearLocalActivities();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
+    }
   }
 
   // Active Repositories
