@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/auth/secure_storage_service.dart';
 import '../../core/copy/app_copy.dart';
 import '../../core/design_system/design_system.dart';
 import 'login_screen.dart';
@@ -7,44 +6,9 @@ import 'signup_screen.dart';
 
 /// Flagship FlowPay Landing Screen.
 /// Follows the 3D metallic currency hero visual design, adapted to
-/// FlowPay's Deep Obsidian, Electric Emerald, and Vivid Cyan palette.
-class LandingScreen extends StatefulWidget {
+/// FlowPay's Deep Obsidian and Emerald palette with static hero visual and solid buttons.
+class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
-
-  @override
-  State<LandingScreen> createState() => _LandingScreenState();
-}
-
-class _LandingScreenState extends State<LandingScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _animController;
-  late final Animation<double> _floatAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 4),
-    );
-
-    if (!SecureStorageService.isTestEnv) {
-      _animController.repeat(reverse: true);
-    }
-
-    _floatAnimation = Tween<double>(begin: -8.0, end: 8.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeInOutSine,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
 
   void _onGetStarted(BuildContext context) {
     Navigator.of(context).push(
@@ -67,39 +31,30 @@ class _LandingScreenState extends State<LandingScreen>
       backgroundColor: FlowPayColors.darkBackground,
       body: Stack(
         children: [
-          // ── Background 3D Floating Coins Image ──
+          // ── Background 3D Floating Coins Image (Static, No Pulsing) ──
           Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _floatAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, _floatAnimation.value),
-                  child: child,
+            child: Image.asset(
+              'assets/images/flowpay_landing_hero.jpg',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              errorBuilder: (context, error, stackTrace) {
+                // Resilient fallback if asset rendering in specific test environments
+                return Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0, -0.4),
+                      radius: 0.8,
+                      colors: [
+                        Color(0xFF0F2B20),
+                        FlowPayColors.darkBackground,
+                      ],
+                    ),
+                  ),
+                  child: const Center(
+                    child: FlowPayLogo(size: 96),
+                  ),
                 );
               },
-              child: Image.asset(
-                'assets/images/flowpay_landing_hero.jpg',
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                errorBuilder: (context, error, stackTrace) {
-                  // Resilient fallback if asset rendering in specific test environments
-                  return Container(
-                    decoration: const BoxDecoration(
-                      gradient: RadialGradient(
-                        center: Alignment(0, -0.4),
-                        radius: 0.8,
-                        colors: [
-                          Color(0xFF0F2B20),
-                          FlowPayColors.darkBackground,
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: FlowPayLogo(size: 96),
-                    ),
-                  );
-                },
-              ),
             ),
           ),
 
@@ -122,7 +77,7 @@ class _LandingScreenState extends State<LandingScreen>
             ),
           ),
 
-          // ── Top Bar Brand Indicator (Secure Badge Removed) ──
+          // ── Top Bar Brand Indicator ──
           Positioned(
             top: topPadding + 14,
             left: 28,
@@ -167,13 +122,13 @@ class _LandingScreenState extends State<LandingScreen>
                 // ── Action Buttons Row (Side-by-side Pill Buttons) ──
                 Row(
                   children: [
-                    // Primary: Get Started (Luminous Emerald-Cyan Pill)
+                    // Primary: Get Started (Solid FlowPay Emerald Pill)
                     Expanded(
                       child: _buildGetStartedButton(context),
                     ),
                     const SizedBox(width: 14),
 
-                    // Secondary: Sign In (Translucent Glass Pill)
+                    // Secondary: Sign In (Solid Dark Surface Pill)
                     Expanded(
                       child: _buildSignInButton(context),
                     ),
@@ -191,20 +146,13 @@ class _LandingScreenState extends State<LandingScreen>
     return Container(
       height: 54,
       decoration: BoxDecoration(
+        color: FlowPayColors.primary,
         borderRadius: BorderRadius.circular(999),
-        gradient: const LinearGradient(
-          colors: [
-            Color(0xFF00E599),
-            Color(0xFF00B4D8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E599).withValues(alpha: 0.40),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: FlowPayColors.primary.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -234,11 +182,11 @@ class _LandingScreenState extends State<LandingScreen>
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: FlowPayColors.darkSurfaceElevated,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.22),
-          width: 1.0,
+          color: FlowPayColors.darkBorderLight,
+          width: 1.2,
         ),
       ),
       child: Material(
