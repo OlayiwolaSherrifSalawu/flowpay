@@ -20,6 +20,7 @@ class BmoniActivityRepository implements ActivityRepository {
     try {
       final res = await apiClient.get('/api/activity', queryParams: {
         'limit': limit.toString(),
+        if (apiClient.userId.isNotEmpty) 'userId': apiClient.userId,
         if (category != null) 'category': category.name.toUpperCase(),
         if (type != null) 'type': type.name.toUpperCase(),
       });

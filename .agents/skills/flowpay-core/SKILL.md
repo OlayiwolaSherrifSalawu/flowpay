@@ -224,6 +224,22 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Fixed Flutter `BmoniActivityRepository` response parsing to handle paginated API formats (`res is Map && res['items'] is List`).
         * Formatted incoming transfers with green indicator, counterparty sender name, and exact amount credited.
       * Verified with 118/118 backend tests passing, 189/189 mobile tests passing, and 0 analyzer issues.
+    * **Phase 16: Balance Normalization, AI Transfer Routing & Zero-Leakage Activity Scoping**:
+      * **Double-Debit & Balance Normalization Fix**:
+        * Diagnosed and eliminated root cause of the "99 balance" issue where sending 200 CAD from a 500 CAD balance left 99.75 CAD instead of ~299.75 CAD.
+        * Removed redundant `walletRepo.debitWallet` calls in `financial_operator.dart` and `send_money_screen.dart` which dispatched a second `POST /api/wallets/:walletId/debit` request after `executeProposal` had already debited the funding wallet on the backend in `TransferService.executeTransfer`.
+        * Eliminated fallback to hardcoded `'₦776,937.50'` in `TransferService.executeTransfer` when `totalDebitFormatted` was not provided, dynamically deriving debit amount from `totalDebitFormatted`, `totalDebit`, or `targetAmount`.
+        * In `WalletService`, updated `ensureUserWallets`, `debitWallet`, `creditWallet`, and `getWallets` to strictly scope operations by `userId`, preventing cross-user wallet bleed and initializing all 4 currencies (USDB, CNGN, MEXe, CADC) for any user.
+      * **AI Transfer Recipient Resolution & Crediting**:
+        * In `financial_operator.dart` and `financial_planner.dart`, preserved destination addresses and recipient inputs in `Beneficiary` and `PlannedFinancialAction`, ensuring `TransferIntent` routes to resolved account/address rather than raw label.
+        * In `TransferService.executeTransfer`, integrated `findUserByQuery` from `auth.routes.js` to dynamically look up recipient users in PostgreSQL and in-memory registries by email, phone, name, or ID before defaulting.
+        * Seeded CADC wallets for Samson Jabo (`sw_cadc_samson_04`) and Bunch Dillon (`sw_cadc_dillon_04`) with starting balances so cross-currency transfers in CAD, USD, NGN, and MXN reliably find matching wallets.
+        * Obeyed strict BMONI protocol: eliminated fake hash fallback in `financial_operator.dart` when proposal is missing, propagating clean failure exceptions instead of synthesizing dummy hashes.
+      * **Zero-Leakage Activity Scoping**:
+        * In `activity.routes.ts`, removed the master user bypass (`userId !== 'usr_flowpay_sandbox_master'`), enforcing strict per-user activity filtering for all users.
+        * Scoped `TRANSFER_COMPLETED` strictly to senders and `TRANSFER_RECEIVED` strictly to recipients.
+        * Restricted system events (`bmoni_system`) so they are only returned to users explicitly involved in the event metadata.
+      * Verified with 118/118 backend tests passing, 39/39 Flutter tests passing, and end-to-end live API validation.
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

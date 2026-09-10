@@ -125,6 +125,36 @@ const sandboxWallets: Map<string, SandboxWalletRecord> = new Map([
       createdAt: new Date().toISOString(),
     },
   ],
+  [
+    'sw_mexe_dillon_03',
+    {
+      id: 'sw_mexe_dillon_03',
+      userId: 'usr_bmoni_dillon_ngn',
+      name: 'Bunch MEXe Smart Wallet',
+      address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      currency: 'MEXe',
+      balance: 5000.0,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  [
+    'sw_cadc_dillon_04',
+    {
+      id: 'sw_cadc_dillon_04',
+      userId: 'usr_bmoni_dillon_ngn',
+      name: 'Bunch CADC Smart Wallet',
+      address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      currency: 'CADC',
+      balance: 500.0,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      createdAt: new Date().toISOString(),
+    },
+  ],
 
   // --- Account C: Samson Jabo (usr_bmoni_samson_mxn / samson.jabo@example.mx) ---
   [
@@ -157,6 +187,36 @@ const sandboxWallets: Map<string, SandboxWalletRecord> = new Map([
       createdAt: new Date().toISOString(),
     },
   ],
+  [
+    'sw_cngn_samson_03',
+    {
+      id: 'sw_cngn_samson_03',
+      userId: 'usr_bmoni_samson_mxn',
+      name: 'Samson NGN Smart Wallet',
+      address: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      currency: 'CNGN',
+      balance: 100000.0,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  [
+    'sw_cadc_samson_04',
+    {
+      id: 'sw_cadc_samson_04',
+      userId: 'usr_bmoni_samson_mxn',
+      name: 'Samson CADC Smart Wallet',
+      address: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      currency: 'CADC',
+      balance: 500.0,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: '0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC',
+      createdAt: new Date().toISOString(),
+    },
+  ],
 ]);
 
 function matchesCurrency(walletCur: string, targetCur: string): boolean {
@@ -178,22 +238,6 @@ export class WalletService {
    */
   static ensureUserWallets(userId: string = 'usr_flowpay_sandbox_master', userOwnerAddress?: string): SandboxWalletRecord[] {
     const existing = Array.from(sandboxWallets.values()).filter((w) => w.userId === userId);
-    if (existing.length > 0) {
-      if (userOwnerAddress && userOwnerAddress.startsWith('0x')) {
-        for (const w of existing) {
-          w.userOwnerAddress = userOwnerAddress;
-          if (w.currency === 'USDB' || w.currency === 'CNGN') {
-            w.address = userOwnerAddress;
-          }
-        }
-      }
-      return existing;
-    }
-
-    // Default seeded master account
-    if (userId === 'usr_flowpay_sandbox_master') {
-      return Array.from(sandboxWallets.values()).filter((w) => w.userId === 'usr_flowpay_sandbox_master');
-    }
 
     // Deterministically derive unique smart wallet addresses per user from userId hash
     const hashUsd = crypto.createHash('sha256').update(`flowpay_user_wallet_${userId}`).digest('hex');
@@ -208,56 +252,69 @@ export class WalletService {
     const cadAddr = `0x${hashCad.substring(0, 40)}`;
 
     const now = new Date().toISOString();
-    const newWallets: SandboxWalletRecord[] = [
-      {
-        id: `sw_usdb_${userId}`,
-        userId,
-        name: 'USD Smart Wallet',
-        address: defaultAddr,
-        currency: 'USDB',
-        balance: 1000.0, // Sandbox starting credit
-        chain: 'base-sepolia',
-        status: 'active',
-        userOwnerAddress: defaultAddr,
-        createdAt: now,
-      },
-      {
-        id: `sw_cngn_${userId}`,
-        userId,
-        name: 'NGN Smart Wallet',
-        address: defaultAddr,
-        currency: 'CNGN',
-        balance: 500000.0, // Sandbox starting credit
-        chain: 'base-sepolia',
-        status: 'active',
-        userOwnerAddress: defaultAddr,
-        createdAt: now,
-      },
-      {
-        id: `sw_mexe_${userId}`,
-        userId,
-        name: 'MEXe Smart Wallet',
-        address: mxnAddr,
-        currency: 'MEXe',
-        balance: 15000.0, // Sandbox starting credit
-        chain: 'base-sepolia',
-        status: 'active',
-        userOwnerAddress: defaultAddr,
-        createdAt: now,
-      },
-      {
-        id: `sw_cadc_${userId}`,
-        userId,
-        name: 'CADC Smart Wallet',
-        address: cadAddr,
-        currency: 'CADC',
-        balance: 500.0, // Sandbox starting credit
-        chain: 'base-sepolia',
-        status: 'active',
-        userOwnerAddress: defaultAddr,
-        createdAt: now,
-      },
+
+    const supportedCurrencies: Array<{
+      currency: 'USDB' | 'CNGN' | 'MEXe' | 'CADC';
+      name: string;
+      idPrefix: string;
+      address: string;
+      defaultBalance: number;
+    }> = [
+      { currency: 'USDB', name: 'USD Smart Wallet', idPrefix: 'sw_usdb_', address: defaultAddr, defaultBalance: 1000.0 },
+      { currency: 'CNGN', name: 'NGN Smart Wallet', idPrefix: 'sw_cngn_', address: defaultAddr, defaultBalance: 500000.0 },
+      { currency: 'MEXe', name: 'MEXe Smart Wallet', idPrefix: 'sw_mexe_', address: mxnAddr, defaultBalance: 15000.0 },
+      { currency: 'CADC', name: 'CADC Smart Wallet', idPrefix: 'sw_cadc_', address: cadAddr, defaultBalance: 500.0 },
     ];
+
+    if (existing.length > 0) {
+      if (userOwnerAddress && userOwnerAddress.startsWith('0x')) {
+        for (const w of existing) {
+          w.userOwnerAddress = userOwnerAddress;
+          if (w.currency === 'USDB' || w.currency === 'CNGN') {
+            w.address = userOwnerAddress;
+          }
+        }
+      }
+      // Ensure user has all 4 supported currencies seeded
+      for (const sc of supportedCurrencies) {
+        const hasCur = existing.some((w) => matchesCurrency(w.currency, sc.currency));
+        if (!hasCur) {
+          const newWallet: SandboxWalletRecord = {
+            id: `${sc.idPrefix}${userId}`,
+            userId,
+            name: sc.name,
+            address: sc.address,
+            currency: sc.currency,
+            balance: sc.defaultBalance,
+            chain: 'base-sepolia',
+            status: 'active',
+            userOwnerAddress: defaultAddr,
+            createdAt: now,
+          };
+          sandboxWallets.set(newWallet.id, newWallet);
+          existing.push(newWallet);
+        }
+      }
+      return existing;
+    }
+
+    // Default seeded master account
+    if (userId === 'usr_flowpay_sandbox_master') {
+      return Array.from(sandboxWallets.values()).filter((w) => w.userId === 'usr_flowpay_sandbox_master');
+    }
+
+    const newWallets: SandboxWalletRecord[] = supportedCurrencies.map((sc) => ({
+      id: `${sc.idPrefix}${userId}`,
+      userId,
+      name: sc.name,
+      address: sc.address,
+      currency: sc.currency,
+      balance: sc.defaultBalance,
+      chain: 'base-sepolia',
+      status: 'active',
+      userOwnerAddress: defaultAddr,
+      createdAt: now,
+    }));
 
     for (const w of newWallets) {
       sandboxWallets.set(w.id, w);
@@ -301,16 +358,14 @@ export class WalletService {
           break;
         }
       }
-    }
-
-    if (!wallet) {
+    } else {
       wallet = sandboxWallets.get(walletIdOrCurrency);
-    }
-    if (!wallet) {
-      for (const w of sandboxWallets.values()) {
-        if (matchesCurrency(w.currency, walletIdOrCurrency)) {
-          wallet = w;
-          break;
+      if (!wallet) {
+        for (const w of sandboxWallets.values()) {
+          if (matchesCurrency(w.currency, walletIdOrCurrency)) {
+            wallet = w;
+            break;
+          }
         }
       }
     }
@@ -333,16 +388,14 @@ export class WalletService {
           break;
         }
       }
-    }
-
-    if (!wallet) {
+    } else {
       wallet = sandboxWallets.get(walletIdOrCurrency);
-    }
-    if (!wallet) {
-      for (const w of sandboxWallets.values()) {
-        if (matchesCurrency(w.currency, walletIdOrCurrency)) {
-          wallet = w;
-          break;
+      if (!wallet) {
+        for (const w of sandboxWallets.values()) {
+          if (matchesCurrency(w.currency, walletIdOrCurrency)) {
+            wallet = w;
+            break;
+          }
         }
       }
     }
@@ -388,7 +441,9 @@ export class WalletService {
         });
         if (dbWallets && dbWallets.length > 0) {
           return dbWallets.map((w) => {
-            const match = Array.from(sandboxWallets.values()).find((s) => s.currency === w.currency);
+            const match = Array.from(sandboxWallets.values()).find(
+              (s) => s.userId === userId && matchesCurrency(s.currency, w.currency)
+            );
             return {
               id: w.id,
               name: `${w.currency} Smart Wallet`,

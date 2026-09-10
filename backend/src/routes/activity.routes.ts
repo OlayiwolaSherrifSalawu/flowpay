@@ -82,23 +82,44 @@ activityRouter.get('/', async (req, res, next) => {
       rows = list;
     }
 
-    if (userId && userId !== 'usr_flowpay_sandbox_master') {
-      const userLower = userId.toLowerCase();
+    if (userId) {
+      const userLower = userId.toLowerCase().trim();
       rows = rows.filter((a) => {
-        const actor = (a.actor || '').toLowerCase();
+        const actor = (a.actor || '').toLowerCase().trim();
         const details = a.detailsJson ?? {};
-        const recipient = (details.recipient || '').toLowerCase();
-        const sender = (details.sender || '').toLowerCase();
-        const counterparty = (details.counterparty || '').toLowerCase();
-        return (
-          actor === userLower ||
-          actor === 'bmoni_system' ||
-          recipient === userLower ||
-          sender === userLower ||
-          counterparty === userLower ||
-          recipient.includes(userLower) ||
-          sender.includes(userLower)
-        );
+        const recipient = (details.recipient || '').toLowerCase().trim();
+        const recipientUserId = (details.recipientUserId || '').toLowerCase().trim();
+        const sender = (details.sender || '').toLowerCase().trim();
+        const counterparty = (details.counterparty || '').toLowerCase().trim();
+        const targetUserId = (details.userId || '').toLowerCase().trim();
+
+        const action = (a.action || '').toUpperCase();
+
+        if (action === 'TRANSFER_RECEIVED') {
+          return actor === userLower || recipient === userLower || recipientUserId === userLower;
+        }
+
+        if (action === 'TRANSFER_COMPLETED' || action === 'TRANSFER_SENT') {
+          return actor === userLower || sender === userLower;
+        }
+
+        // Direct ownership or participation
+        if (actor === userLower || targetUserId === userLower) {
+          return true;
+        }
+
+        // If actor is system, only include if user is explicitly involved
+        if (actor === 'bmoni_system' || actor === 'system') {
+          return (
+            recipient === userLower ||
+            recipientUserId === userLower ||
+            sender === userLower ||
+            counterparty === userLower ||
+            targetUserId === userLower
+          );
+        }
+
+        return false;
       });
     }
 

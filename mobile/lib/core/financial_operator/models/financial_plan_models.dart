@@ -83,6 +83,7 @@ class PlannedFinancialAction {
   final String sourceWalletName;
   final String destinationId;
   final String destinationName;
+  final String? destinationAddress;
   final String destinationType; // 'beneficiary', 'reserve', 'wallet'
   final String description;
   final String? fxRate;
@@ -106,6 +107,7 @@ class PlannedFinancialAction {
     required this.sourceWalletName,
     required this.destinationId,
     required this.destinationName,
+    this.destinationAddress,
     required this.destinationType,
     required this.description,
     this.fxRate,
@@ -130,6 +132,7 @@ class PlannedFinancialAction {
     String? sourceWalletName,
     String? destinationId,
     String? destinationName,
+    String? destinationAddress,
     String? destinationType,
     String? description,
     String? fxRate,
@@ -153,6 +156,7 @@ class PlannedFinancialAction {
       sourceWalletName: sourceWalletName ?? this.sourceWalletName,
       destinationId: destinationId ?? this.destinationId,
       destinationName: destinationName ?? this.destinationName,
+      destinationAddress: destinationAddress ?? this.destinationAddress,
       destinationType: destinationType ?? this.destinationType,
       description: description ?? this.description,
       fxRate: fxRate ?? this.fxRate,

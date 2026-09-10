@@ -73,7 +73,7 @@ transfersRouter.post('/propose', async (req, res, next) => {
     }
 
     const proposal = await TransferService.createProposal({
-      userId: userId || 'usr_flowpay_sandbox_master',
+      userId: userId || (req.headers['x-user-id'] as string) || 'usr_flowpay_sandbox_master',
       intent,
       fundingOption,
     });
@@ -92,7 +92,7 @@ transfersRouter.post('/propose', async (req, res, next) => {
 transfersRouter.post('/execute', async (req, res, next) => {
   try {
     const payloadWithUser = {
-      userId: req.body.userId || 'usr_flowpay_sandbox_master',
+      userId: req.body.userId || (req.headers['x-user-id'] as string) || 'usr_flowpay_sandbox_master',
       ...req.body,
     };
     const parseResult = TransferExecuteSchema.safeParse(payloadWithUser);
