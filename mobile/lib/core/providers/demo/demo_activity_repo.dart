@@ -1009,7 +1009,6 @@ class DemoActivityRepository implements ActivityRepository {
     return list.take(limit).toList();
   }
 
-  @override
   Future<PaginatedResult<ActivityModel>> getPaginatedActivities({
     int page = 1,
     int limit = 10,

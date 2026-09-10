@@ -73,7 +73,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
   * Configured native Android (`mobile/android/`) and iOS (`mobile/ios/`) platform project trees with Gradle wrapper and build configurations.
   * Central Money abstraction (`lib/core/money/money.dart`).
   * **Verified Physical Device Release Build**: Successfully built Android release APK (`mobile/build/app/outputs/flutter-apk/app-release.apk`) configured out-of-the-box with live backend connectivity (`https://flowpay-k2wn.onrender.com`), 146/146 tests passing, 0 analyzer lints, and hosted for instant local Wi-Fi download and ADB direct install.
-  * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome).
+  * **Web & PWA Platform Deployment**: Fixed web startup crash by adding `kIsWeb` protection around `Platform.environment` in `BmoniSdkService`; enabled standalone Progressive Web App (PWA) hosting on port 8080 for instant zero-Xcode testing on iPhone (Safari) and Android (Chrome); enabled full interactive `WalletPinAuthSheet` 6-digit PIN authorization and salted digest verification on Web for complete cross-platform parity with mobile.
   * **Operational Workflows**: Added standardized build and verification workflows in `.agents/workflows/`:
     * `/build-apk`: Automated test verification and compilation for Android release APK targeting live backend.
     * `/build-web`: Automated compilation, multi-device local network hosting, and iOS/Android PWA install instructions.
@@ -214,7 +214,16 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Elevated `AppAuthGate` lock screen with top radial emerald lighting, 3D halo status badge, and high-contrast PIN/biometric authentication.
       * Elevated `LoginScreen` and `SignupScreen` with matching dark obsidian canvases, top ambient radial glows, and pill CTAs.
       * Recompiled web production bundle via `flutter build web --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com`.
-      * Verified with 100% test pass rate (180/180 tests passing) and 0 analyzer lints.
+    * **Phase 15: Network Fee Recalibration, FlowPay Platform Service Charge & Activity Synchronization**:
+      * **Network Fee Recalibration**: Lowered arbitrary flat $0.50 USD network fees to realistic domestic settlement and Layer-2 gas rates: NGN ₦15.00 (down from ₦775.00), MXN Mex$1.50 (down from Mex$8.75), USD $0.05 (down from $0.50).
+      * **FlowPay Platform Service Charge**: Introduced sustainable business monetization: NGN ₦25.00 flat service charge for domestic transfers (total fee ₦40.00 for ₦5,000 send, down from ₦775.00), MXN Mex$2.50, USD $0.20, and 25 bps for cross-border conversions.
+      * **Transparent UI Breakdown**: Added explicit itemization in `TransferReviewModal` and `ActivityDetailModal` distinguishing "Network Fee" from "FlowPay Service Fee".
+      * **Recipient Activity Synchronization & Crediting**:
+        * Ensured `TransferService.executeTransfer` always calls `recordInMemoryActivity` for both sender (`TRANSFER_COMPLETED`) and recipient (`TRANSFER_RECEIVED`), guaranteeing persistent activity visibility even when the local PostgreSQL database runs in in-memory sandbox mode.
+        * Enhanced recipient resolution logic supporting smart wallet IDs (`sw_...`), EVM addresses, BMONI user IDs, usernames, and domestic bank account aliases.
+        * Fixed Flutter `BmoniActivityRepository` response parsing to handle paginated API formats (`res is Map && res['items'] is List`).
+        * Formatted incoming transfers with green indicator, counterparty sender name, and exact amount credited.
+      * Verified with 118/118 backend tests passing, 189/189 mobile tests passing, and 0 analyzer issues.
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

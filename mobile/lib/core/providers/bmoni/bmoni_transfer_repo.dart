@@ -146,11 +146,16 @@ class BmoniTransferRepository implements TransferRepository {
       final hasDirectFunds = directBalanceMinor >= targetAmountMinor;
 
       final netFeeMinor = targetCurrency == Currency.ngn
-          ? BigInt.from(77500)
+          ? BigInt.from(1500)
           : targetCurrency == Currency.mxn
-              ? BigInt.from(875)
-              : BigInt.from(50);
-      final totalDebitMinor = targetAmountMinor + netFeeMinor;
+              ? BigInt.from(150)
+              : BigInt.from(5);
+      final serviceFeeMinor = targetCurrency == Currency.ngn
+          ? BigInt.from(2500)
+          : targetCurrency == Currency.mxn
+              ? BigInt.from(250)
+              : BigInt.from(20);
+      final totalDebitMinor = targetAmountMinor + netFeeMinor + serviceFeeMinor;
 
       final directOption = TransferFundingOption(
         fundingWalletId: directWallet?.id ?? 'sw_direct',
@@ -162,6 +167,7 @@ class BmoniTransferRepository implements TransferRepository {
         exchangeRate: 1.0,
         convertedDebit: targetMoney,
         networkFee: Money.fromMinor(netFeeMinor, targetCurrency),
+        serviceFee: Money.fromMinor(serviceFeeMinor, targetCurrency),
         fxFee: Money.fromMinor(BigInt.zero, targetCurrency),
         totalDebit: Money.fromMinor(totalDebitMinor, targetCurrency),
         targetPayment: targetMoney,

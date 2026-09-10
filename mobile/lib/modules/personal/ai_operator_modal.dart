@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
@@ -181,17 +180,6 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     try {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
-
-      if (kIsWeb) {
-        // Skip PIN modal completely on web; generate signature and execute
-        final signature = await BmoniSdkService.signTransactionHash(
-          hashToSign,
-          pin: '123456',
-        );
-        await _operator.approveAndExecute(signature: signature);
-        await widget.appState.personalProvider.refresh();
-        return;
-      }
 
       final signature = await WalletPinAuthSheet.show(
         context: context,

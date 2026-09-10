@@ -36,6 +36,8 @@ export interface FundingSourceOption {
   convertedDebitFormatted: string;
   networkFeeMinor: string;
   networkFeeFormatted: string;
+  serviceFeeMinor: string;
+  serviceFeeFormatted: string;
   fxFeeMinor: string;
   fxFeeFormatted: string;
   totalDebitMinor: string; // Converted debit + fees in funding currency
