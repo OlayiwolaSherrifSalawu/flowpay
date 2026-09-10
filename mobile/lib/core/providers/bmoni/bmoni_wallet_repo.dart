@@ -441,6 +441,7 @@ class BmoniWalletRepository implements WalletRepository {
       await apiClient.post('/api/wallets/$walletId/debit', body: {
         'amount': amount.toMajorString(),
         'currency': amount.currency.code,
+        'userId': apiClient.userId,
       });
     } catch (_) {}
 
@@ -465,6 +466,7 @@ class BmoniWalletRepository implements WalletRepository {
       await apiClient.post('/api/wallets/$walletId/credit', body: {
         'amount': amount.toMajorString(),
         'currency': amount.currency.code,
+        'userId': apiClient.userId,
       });
     } catch (_) {}
 

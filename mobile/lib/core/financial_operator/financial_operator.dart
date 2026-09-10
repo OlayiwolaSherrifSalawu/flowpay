@@ -896,10 +896,14 @@ class FinancialOperator extends ChangeNotifier {
 
         for (final act in plan.actions) {
           if (act.type == PlannedActionType.send) {
+            final resolvedRecipient = (act.destinationAddress != null && act.destinationAddress!.isNotEmpty)
+                ? act.destinationAddress!
+                : (act.destinationName.isNotEmpty ? act.destinationName : act.destinationId);
+
             final transferIntent = TransferIntent(
               intentId: 'tx_intent_${act.id}_${DateTime.now().millisecondsSinceEpoch}',
               originalPrompt: intent.originalPrompt,
-              recipient: act.destinationName,
+              recipient: resolvedRecipient,
               amount: act.amount.toMajorString(),
               amountMinor: act.amount.amountMinor.toString(),
               currency: act.amount.currency,
@@ -1176,21 +1180,14 @@ class FinancialOperator extends ChangeNotifier {
               );
               txHash = exec.transactionHash;
             } else {
-              txHash = '0x${sha256.convert(utf8.encode("${act.id}_${DateTime.now().millisecondsSinceEpoch}")).toString()}';
+              throw Exception('Cannot execute send action ${act.id}: missing transfer proposal');
             }
 
             executionHashes.add(txHash);
 
-            // Debit funding wallet
-            final fundingId = matchingProposal != null
-                ? matchingProposal.fundingOption.fundingWalletId
-                : (act.sourceWalletId.isNotEmpty ? act.sourceWalletId : 'sw_usdb_live_01');
-            try {
-              await contextService.walletRepo.debitWallet(
-                walletId: fundingId,
-                amount: act.amount,
-              );
-            } catch (_) {}
+            // Note: _transferRepo.executeProposal already debits the sender's funding wallet
+            // (via backend TransferService.executeTransfer and DemoTransferRepository).
+            // Do NOT call contextService.walletRepo.debitWallet here as it causes double-debit.
 
             // Record activity for this transfer
             try {

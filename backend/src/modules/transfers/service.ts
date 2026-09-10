@@ -6,6 +6,7 @@ import { TransferInterpreter } from '../ai/transfer_interpreter.js';
 import type {
   BalanceInspectionResult,
   FundingSourceOption,
+  SupportedCurrency,
   TransferExecuteResult,
   TransferIntent,
   TransferProposalPayload,
@@ -13,6 +14,7 @@ import type {
 import { EXCHANGE_RATES, TransferValidator } from './validator.js';
 import { WalletService } from '../wallets/service.js';
 import { recordInMemoryActivity } from '../../routes/activity.routes.js';
+import { findUserByQuery } from '../../routes/auth.routes.js';
 
 export class TransferService {
   /**
@@ -217,15 +219,17 @@ export class TransferService {
     }
 
     const activityId = `act_tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const targetAmount = proposalPayload?.intent.amount ?? '500.00';
-    const targetCurrency = proposalPayload?.intent.currency ?? 'USD';
-    const fundingWallet = proposalPayload?.fundingOption.fundingWalletName ?? 'Smart Wallet';
-    const fundingCurrency = proposalPayload?.fundingOption.fundingCurrency ?? 'NGN';
-    const totalDebited = proposalPayload?.fundingOption.totalDebitFormatted ?? '₦776,937.50';
-    const conversion = proposalPayload?.fundingOption.conversionLabel ?? 'Direct Transfer';
-    const exchangeRate = proposalPayload?.fundingOption.exchangeRate;
-    const recipient = proposalPayload?.intent.recipient ?? 'Beneficiary';
-    const purpose = proposalPayload?.intent.purpose ?? 'Transfer';
+    const targetAmount = proposalPayload?.intent.amount ?? '0.00';
+    const targetCurrency: SupportedCurrency = (proposalPayload?.intent.currency as SupportedCurrency) ?? 'USD';
+    const fundingWallet = proposalPayload?.fundingOption?.fundingWalletName ?? `${targetCurrency} Smart Wallet`;
+    const fundingCurrency: SupportedCurrency = (proposalPayload?.fundingOption?.fundingCurrency as SupportedCurrency) ?? targetCurrency;
+    const totalDebited = (proposalPayload?.fundingOption?.totalDebitFormatted ??
+      (proposalPayload?.fundingOption?.totalDebit != null ? String(proposalPayload.fundingOption.totalDebit) : undefined) ??
+      targetAmount) as string;
+    const conversion = proposalPayload?.fundingOption?.conversionLabel ?? 'Direct Transfer';
+    const exchangeRate = proposalPayload?.fundingOption?.exchangeRate;
+    const recipient = proposalPayload?.intent?.recipient ?? 'Beneficiary';
+    const purpose = proposalPayload?.intent?.purpose ?? 'Transfer';
 
     const senderDetailsJson = {
       transferId: proposalId,
@@ -309,16 +313,19 @@ export class TransferService {
 
     // 1. Deduct balance from sender's funding wallet
     try {
-      const rawDebit = proposalPayload?.fundingOption?.totalDebitFormatted || totalDebited;
-      const cleanNum = rawDebit.replace(/[^0-9.]/g, '');
+      const rawDebit = proposalPayload?.fundingOption?.totalDebitFormatted ??
+        proposalPayload?.fundingOption?.totalDebit ??
+        totalDebited ??
+        targetAmount;
+      const cleanNum = typeof rawDebit === 'number' ? String(rawDebit) : String(rawDebit).replace(/[^0-9.]/g, '');
       const debitAmt = parseFloat(cleanNum) || parseFloat(targetAmount) || 0;
-      const fundingTarget = proposalPayload?.fundingOption?.fundingWalletId || fundingCurrency || 'USDB';
+      const fundingTarget = proposalPayload?.fundingOption?.fundingWalletId || fundingCurrency || targetCurrency;
       await WalletService.debitWallet(fundingTarget, debitAmt, userId);
     } catch (_) {}
 
     // 2. Automatically credit recipient wallet with cross-border FX conversion if applicable
     try {
-      const recLower = (recipient || '').toLowerCase();
+      const recLower = (recipient || '').toLowerCase().trim();
       let recipientUserId: string | null = null;
       let recipientLocalCurrency: 'CNGN' | 'MEXe' | null = null;
       let fxRateToLocal: number = 1.0;
@@ -348,30 +355,41 @@ export class TransferService {
         }
       } else if (recipient.startsWith('usr_')) {
         recipientUserId = recipient;
-      } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng') || recLower.includes('ngn') || recLower.includes('nigeria')) {
-        recipientUserId = 'usr_bmoni_dillon_ngn';
-        recipientLocalCurrency = 'CNGN';
-        fxRateToLocal = 1550.0; // 1 USD = 1,550 NGN
-      } else if (recLower.includes('samson') || recLower.includes('jabo') || recLower.includes('.mx') || recLower.includes('mxn') || recLower.includes('mexico')) {
-        recipientUserId = 'usr_bmoni_samson_mxn';
-        recipientLocalCurrency = 'MEXe';
-        fxRateToLocal = 17.5; // 1 USD = 17.5 MEXe
       } else {
-        // Fallback matching: if targetCurrency is NGN/CNGN, assign to default NGN sandbox user
-        if (targetCurrency === 'NGN' || (targetCurrency as string) === 'CNGN') {
+        // Look up registered user by email, name, phone, or id
+        const userMatch = await findUserByQuery(recipient);
+        if (userMatch) {
+          recipientUserId = userMatch.userId;
+        } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng') || recLower.includes('ngn') || recLower.includes('nigeria')) {
           recipientUserId = 'usr_bmoni_dillon_ngn';
           recipientLocalCurrency = 'CNGN';
-          fxRateToLocal = 1550.0;
-        } else if (targetCurrency === 'MXN' || (targetCurrency as string) === 'MEXe') {
+          fxRateToLocal = 1550.0; // 1 USD = 1,550 NGN
+        } else if (recLower.includes('samson') || recLower.includes('jabo') || recLower.includes('.mx') || recLower.includes('mxn') || recLower.includes('mexico')) {
           recipientUserId = 'usr_bmoni_samson_mxn';
           recipientLocalCurrency = 'MEXe';
-          fxRateToLocal = 17.5;
+          fxRateToLocal = 17.5; // 1 USD = 17.5 MEXe
+        } else if (recLower.includes('waffiyyi') || recLower.includes('fashola') || recLower.includes('master')) {
+          recipientUserId = 'usr_flowpay_sandbox_master';
         } else {
-          recipientUserId = 'usr_recipient_usd';
+          // If recipient is a named beneficiary or generic recipient, derive a deterministic user ID
+          const cleanIdentifier = recLower.replace(/[^a-z0-9]/g, '_').replace(/^_+|_+$/g, '');
+          if (cleanIdentifier && cleanIdentifier !== 'another_user') {
+            recipientUserId = `usr_${cleanIdentifier}`;
+          } else {
+            // If recipient is "another user" or generic, pick the alternate user who is NOT the sender
+            if (userId === 'usr_flowpay_sandbox_master') {
+              recipientUserId = (targetCurrency === 'CAD' || (targetCurrency as string) === 'CADC' || targetCurrency === 'MXN' || (targetCurrency as string) === 'MEXe')
+                ? 'usr_bmoni_samson_mxn'
+                : 'usr_bmoni_dillon_ngn';
+            } else {
+              recipientUserId = 'usr_flowpay_sandbox_master';
+            }
+          }
         }
       }
 
       if (recipientUserId) {
+        WalletService.ensureUserWallets(recipientUserId);
         let creditCurrency: string = targetCurrency;
         let creditAmt = parseFloat(targetAmount) || 0;
 

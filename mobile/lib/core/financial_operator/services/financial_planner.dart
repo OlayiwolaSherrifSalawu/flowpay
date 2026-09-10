@@ -63,22 +63,29 @@ class FinancialPlanner {
             act.amount.fixedAmount ??
             Money.zero(act.amount.currency);
 
+        final rawTarget = act.person?.rawInput.trim() ?? '';
         final recipient = act.person?.resolvedBeneficiary ??
             (act.person != null
                 ? Beneficiary(
-                    id: 'ben_${act.person!.rawInput.toLowerCase().replaceAll(' ', '_')}',
-                    nickname: act.person!.rawInput,
-                    legalName: act.person!.rawInput,
-                    aliases: [act.person!.rawInput],
+                    id: 'ben_${rawTarget.toLowerCase().replaceAll(' ', '_')}',
+                    nickname: rawTarget,
+                    legalName: rawTarget,
+                    aliases: [rawTarget],
                     relationship: 'Beneficiary',
-                    destinationCountry: 'Nigeria',
-                    countryFlag: '🇳🇬',
+                    destinationCountry: act.amount.currency == Currency.cad
+                        ? 'Canada'
+                        : act.amount.currency == Currency.mxn
+                            ? 'Mexico'
+                            : 'Nigeria',
+                    countryFlag: act.amount.currency == Currency.cad
+                        ? '🇨🇦'
+                        : act.amount.currency == Currency.mxn
+                            ? '🇲🇽'
+                            : '🇳🇬',
                     destinationType: 'bank_account',
-                    currency: act.amount.currency == Currency.usd
-                        ? Currency.ngn
-                        : act.amount.currency,
+                    currency: act.amount.currency,
                     preferredFundingCurrency: Currency.usd,
-                    accountOrAddress: 'Pending Account Details',
+                    accountOrAddress: rawTarget.isNotEmpty ? rawTarget : 'Pending Account Details',
                     isVerified: false,
                   )
                 : null);
@@ -109,6 +116,12 @@ class FinancialPlanner {
                 orElse: () => null,
               );
 
+          final actRawTarget = originalAct?.person?.rawInput.trim();
+          final resolvedAddr = item.recipient.accountOrAddress.isNotEmpty &&
+                  item.recipient.accountOrAddress != 'Pending Account Details'
+              ? item.recipient.accountOrAddress
+              : (actRawTarget != null && actRawTarget.isNotEmpty ? actRawTarget : null);
+
           plannedActions.add(
             PlannedFinancialAction(
               id: 'item_${planId}_${item.id}',
@@ -122,6 +135,7 @@ class FinancialPlanner {
                   : 'Primary Wallet',
               destinationId: item.recipient.id,
               destinationName: item.recipient.displayName,
+              destinationAddress: resolvedAddr,
               destinationType: item.destinationType,
               destinationRail: item.destinationRail,
               description: item.description,
