@@ -184,17 +184,17 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
         : RefreshIndicator(
             onRefresh: _loadActivities,
             child: ListView(
-              padding: FlowPaySpacing.insetXl,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               children: [
                 // Top Search & Filter Card
                 _buildSearchAndFilters(isDark),
 
-                const SizedBox(height: FlowPaySpacing.lg),
+                const SizedBox(height: 16),
 
                 // Metrics / Status Summary Bar
                 _buildSummaryBar(isDark),
 
-                const SizedBox(height: FlowPaySpacing.md),
+                const SizedBox(height: 12),
 
                 // Transaction Items List
                 if (filtered.isEmpty)
@@ -228,6 +228,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
 
     if (canPop) {
       return Scaffold(
+        backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
         appBar: AppBar(
           title: const Text('Personal Activity'),
           scrolledUnderElevation: 0,
@@ -236,7 +237,10 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
       );
     }
 
-    return body;
+    return Scaffold(
+      backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
+      body: body,
+    );
   }
 
   Widget _buildSearchAndFilters(bool isDark) {
@@ -249,12 +253,18 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
           decoration: BoxDecoration(
             color: isDark
                 ? FlowPayColors.darkSurfaceElevated
-                : FlowPayColors.lightSurfaceElevated,
-            borderRadius: FlowPaySpacing.borderRadiusMd,
+                : Colors.white,
+            borderRadius: FlowPayRadii.input,
             border: Border.all(
-              color:
-                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(isDark ? 16 : 4),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -265,7 +275,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                     ? FlowPayColors.darkTextTertiary
                     : FlowPayColors.lightTextTertiary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: TextField(
                   controller: _searchController,
@@ -299,7 +309,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
           ),
         ),
 
-        const SizedBox(height: FlowPaySpacing.md),
+        const SizedBox(height: 14),
 
         // Horizontal Filter Chips
         SingleChildScrollView(
@@ -314,8 +324,9 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
               }
 
               return Padding(
-                padding: const EdgeInsets.only(right: FlowPaySpacing.sm),
+                padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
+                  shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.chip),
                   label: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -335,9 +346,9 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: FlowPayColors.warning,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: FlowPayRadii.chip,
                           ),
                           child: Text(
                             '$count',
@@ -355,7 +366,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   selectedColor: FlowPayColors.primary,
                   backgroundColor: isDark
                       ? FlowPayColors.darkSurface
-                      : FlowPayColors.lightSurface,
+                      : Colors.white,
                   labelStyle: TextStyle(
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -404,12 +415,12 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
           InkWell(
             onTap: () => setState(
                 () => _selectedFilter = ActivityFilter.pendingApprovals),
-            borderRadius: FlowPaySpacing.borderRadiusSm,
+            borderRadius: FlowPayRadii.chip,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: FlowPayColors.warning.withAlpha(30),
-                borderRadius: FlowPaySpacing.borderRadiusSm,
+                color: FlowPayColors.warning.withAlpha(25),
+                borderRadius: FlowPayRadii.chip,
                 border: Border.all(color: FlowPayColors.warning.withAlpha(80)),
               ),
               child: Row(
@@ -438,7 +449,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
     final isAwaiting = a.status == FlowPayAppStatus.awaitingApproval;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: FlowPaySpacing.sm),
+      padding: const EdgeInsets.only(bottom: 10),
       child: FlowPayCard(
         onTap: () {
           ActivityDetailModal.show(
@@ -454,17 +465,23 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
               children: [
                 // Category / Type Icon
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: isDark
                         ? FlowPayColors.darkSurfaceElevated
-                        : FlowPayColors.lightSurfaceElevated,
-                    shape: BoxShape.circle,
+                        : FlowPayColors.mint100.withAlpha(60),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? FlowPayColors.darkBorder
+                          : FlowPayColors.primary.withAlpha(30),
+                    ),
                   ),
                   child: Icon(a.type.icon,
-                      color: FlowPayColors.primaryLight, size: 20),
+                      color: FlowPayColors.primary, size: 20),
                 ),
-                const SizedBox(width: FlowPaySpacing.md),
+                const SizedBox(width: 12),
 
                 // Title and Recipient/Merchant
                 Expanded(
@@ -489,7 +506,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                               : FlowPayColors.lightTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
                         'Ref: ${a.reference}',
                         style: TextStyle(
@@ -504,7 +521,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   ),
                 ),
 
-                const SizedBox(width: FlowPaySpacing.sm),
+                const SizedBox(width: 8),
 
                 // Amount & Status Badge
                 Column(
@@ -515,6 +532,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                         a.amount!.formatFormatted(),
                         style: FlowPayTypography.bodyMd.copyWith(
                           fontWeight: FontWeight.bold,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                           color: a.status == FlowPayAppStatus.failed
                               ? FlowPayColors.error
                               : (isDark
