@@ -410,9 +410,22 @@ export class TransferService {
 
         await WalletService.creditWallet(creditCurrency, creditAmt, recipientUserId);
 
+        let senderDisplayName = userId;
+        if (isPostgresDb()) {
+          try {
+            const senderUser = await prisma.user.findUnique({ where: { id: userId } });
+            if (senderUser?.name) {
+              senderDisplayName = senderUser.name;
+            } else if (senderUser?.email) {
+              senderDisplayName = senderUser.email;
+            }
+          } catch (_) {}
+        }
+
         const recvDetailsJson = {
           sender: userId,
-          counterparty: userId,
+          senderName: senderDisplayName !== userId ? senderDisplayName : undefined,
+          counterparty: senderDisplayName,
           amount: creditAmt.toFixed(2),
           amountReceived: creditAmt.toFixed(2),
           amountSent: targetAmount,
@@ -424,6 +437,7 @@ export class TransferService {
           transactionHash: txHash,
           proposalId,
           status: 'COMPLETED',
+          isIncoming: true,
           receivedAt: new Date().toISOString(),
         };
 
