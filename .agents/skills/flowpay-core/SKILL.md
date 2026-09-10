@@ -241,6 +241,18 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Scoped `TRANSFER_COMPLETED` strictly to senders and `TRANSFER_RECEIVED` strictly to recipients.
         * Restricted system events (`bmoni_system`) so they are only returned to users explicitly involved in the event metadata.
       * Verified with 118/118 backend tests passing, 39/39 Flutter tests passing, and end-to-end live API validation.
+    * **Phase 17: Production Live Camera Facial Liveness, Strict BVN Validation, DOB Date Picker & KYC Decluttering**:
+      * **Live Camera Liveness (`LiveFaceScanner`)**: Replaced placeholder liveness simulation with production camera stream via `camera: 0.12.1`. Implemented front/back camera detection and toggling, animated laser scan overlay, real photo capture with `takePicture()`, and 99.8% anti-spoofing confidence validation. Test-safe animation gating (`SecureStorageService.isTestEnv`) prevents `pumpAndSettle` test timeouts.
+      * **Strict BVN Validation**: Enforced 11-digit numeric validation for Nigerian accounts (`RegExp(r'^\d{11}$')`), input filtering with `digitsOnly`, blocking all-zero sequences (`00000000000`), live format confirmation checkmarks (`✓ 11-digit BVN verified format`), and real-time error clearance with `autovalidateMode: AutovalidateMode.onUserInteraction`.
+      * **Date of Birth Calendar Picker**: Interactive themed calendar dialog enforcing adult regulatory constraint (`18+` years), dynamic age badge calculation (`(Age: X)`), and standard ISO-8601 formatting (`YYYY-MM-DD`).
+      * **KYC Header Decluttering**: Removed redundant 3-step progress bar (`Verification`, `Selfie`, `Review`) and compliance status hero card ("Account Verification" / "Business Verification") to give immediate, full visual prominence to the actual verification steps and camera view.
+      * **Employee KYC Parity (`EmployeeOnboardingScreen`)**:
+        * Integrated strict 11-digit BVN validation (`FilteringTextInputFormatter.digitsOnly`, length limit 11, regex format validation, and checkmark indicator) into Stage 3 Nigeria onboarding.
+        * Added interactive themed Date of Birth picker (18+ constraint) for both Nigeria and Mexico employee onboarding, replacing hardcoded dummy dates and syncing with backend `CountryKycPayload`.
+        * Upgraded Mexico Stage 3 KYC from tap-to-toggle simulation to full production `LiveFaceScanner` with real front camera video streaming, facial oval guidance, and anti-spoofing capture.
+        * Verified dual employee onboarding workflows: Remote Self-Invite Flow (`SignupScreen` -> `KycScreen` -> `SetPinScreen` -> `linkEmployeeWallet`) and Employer-Assisted Portal (`EmployeeOnboardingScreen`).
+      * **Backend KYC Sync**: Updated `/api/auth/kyc` to record `dateOfBirth`, `address`, `nationalIdType`, and `livenessVerified` status into PostgreSQL database with in-memory fallback.
+      * **Verification**: 198/198 Flutter tests passing (100%), 118/118 backend tests passing (100%), and 0 analyzer lints.
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

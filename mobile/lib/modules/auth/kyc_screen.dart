@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
@@ -7,10 +8,10 @@ import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/config/api_config.dart';
 import '../../core/design_system/design_system.dart';
-
+import 'components/live_face_scanner.dart';
 import 'set_pin_screen.dart';
 
-/// KYC Screen: Handles Personal Tier 1 KYC (BVN/ID + Facial Scan)
+/// KYC Screen: Handles Personal Tier 1 KYC (BVN/ID + Real Camera Facial Liveness Scan)
 /// and Business KYB (Entity Docs + Signatory Verification + Payroll Rail Activation).
 class KycScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
@@ -41,18 +42,28 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   final TextEditingController _officeAddressController = TextEditingController();
   final TextEditingController _signatoryIdController = TextEditingController();
 
-  bool _isScanningFace = false;
   bool _faceScanCompleted = false;
+  String? _capturedFacePath;
   bool _isSubmitting = false;
+  DateTime? _selectedDob;
+  String? _ageLabel;
 
   @override
   void initState() {
     super.initState();
     _nationalIdController = TextEditingController();
+    _nationalIdController.addListener(_onFieldChanged);
+    _dobController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _nationalIdController.removeListener(_onFieldChanged);
+    _dobController.removeListener(_onFieldChanged);
     _nationalIdController.dispose();
     _dobController.dispose();
     _addressController.dispose();
@@ -62,8 +73,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     super.dispose();
   }
 
+  bool get _isNigeria => widget.userProfile.country.toUpperCase() == 'NG';
+
   String get _idLabel {
-    switch (widget.userProfile.country) {
+    switch (widget.userProfile.country.toUpperCase()) {
       case 'NG':
         return 'Bank Verification Number (BVN) / NIN';
       case 'MX':
@@ -79,15 +92,106 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     }
   }
 
-  Future<void> _simulateFaceScan() async {
-    setState(() => _isScanningFace = true);
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (mounted) {
+  String? _validateId(String? v) {
+    if (v == null || v.trim().isEmpty) {
+      return '$_idLabel is required';
+    }
+    final clean = v.trim();
+    if (_isNigeria) {
+      if (!RegExp(r'^\d+$').hasMatch(clean)) {
+        return 'BVN must contain only numbers';
+      }
+      if (clean.length != 11) {
+        return 'BVN must be exactly 11 digits (entered ${clean.length}/11)';
+      }
+      if (clean == '00000000000') {
+        return 'Please enter a valid 11-digit BVN';
+      }
+    } else if (widget.userProfile.country.toUpperCase() == 'MX') {
+      if (clean.length < 10) {
+        return 'Please enter a valid CURP or RFC identity';
+      }
+    } else if (widget.userProfile.country.toUpperCase() == 'US' ||
+        widget.userProfile.country.toUpperCase() == 'CA') {
+      final digits = clean.replaceAll(RegExp(r'[^0-9]'), '');
+      if (digits.length != 9) {
+        return 'Must be 9 digits';
+      }
+    }
+    return null;
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 18, now.month, now.day);
+    final minDate = DateTime(1920, 1, 1);
+    final initialDate =
+        _selectedDob ?? DateTime(now.year - 25, now.month, now.day);
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isAfter(maxDate) ? maxDate : initialDate,
+      firstDate: minDate,
+      lastDate: maxDate,
+      helpText: 'SELECT DATE OF BIRTH (18+ REQUIRED)',
+      builder: (context, child) {
+        return Theme(
+          data: (isDark ? ThemeData.dark() : ThemeData.light()).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: FlowPayColors.primary,
+              primary: FlowPayColors.primary,
+              surface: isDark ? FlowPayColors.darkSurface : Colors.white,
+              brightness: isDark ? Brightness.dark : Brightness.light,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
       setState(() {
-        _isScanningFace = false;
-        _faceScanCompleted = true;
+        _selectedDob = picked;
+        final formatted =
+            '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+        _dobController.text = formatted;
+
+        int age = now.year - picked.year;
+        if (now.month < picked.month ||
+            (now.month == picked.month && now.day < picked.day)) {
+          age--;
+        }
+        _ageLabel = '$age years old';
       });
     }
+  }
+
+  String? _validateDob(String? v) {
+    if (v == null || v.trim().isEmpty) {
+      return 'Date of birth is required';
+    }
+    final clean = v.trim();
+    final parts = clean.split('-');
+    if (parts.length != 3) {
+      return 'Format must be YYYY-MM-DD';
+    }
+    final y = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    final d = int.tryParse(parts[2]);
+    if (y == null || m == null || d == null) {
+      return 'Invalid date format';
+    }
+    final now = DateTime.now();
+    int age = now.year - y;
+    if (now.month < m || (now.month == m && now.day < d)) {
+      age--;
+    }
+    if (age < 18) {
+      return 'You must be at least 18 years of age (entered $age)';
+    }
+    return null;
   }
 
   Future<void> _completeKyc() async {
@@ -113,7 +217,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         nationalIdType: _idLabel,
       );
 
-      // 1. Notify FlowPay backend of KYC completion (with safe fallback)
+      // 1. Notify FlowPay backend of KYC completion with resilient timeout
       if (!SecureStorageService.isTestEnv) {
         try {
           final uri = Uri.parse('${ApiConfig.baseUrl}/api/auth/kyc');
@@ -125,13 +229,19 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   'userId': updatedProfile.userId,
                   'accountType': updatedProfile.accountType.name,
                   'nationalId': updatedProfile.nationalId,
+                  'nationalIdType': _idLabel,
                   'country': updatedProfile.country,
+                  'dateOfBirth': _dobController.text.trim(),
+                  'address': _addressController.text.trim(),
+                  'livenessVerified': _faceScanCompleted,
+                  if (_capturedFacePath != null)
+                    'faceProofPath': _capturedFacePath,
                   'status': 'VERIFIED',
                 }),
               )
-              .timeout(const Duration(seconds: 3));
-        } catch (_) {
-          // Safe backend fallback
+              .timeout(const Duration(seconds: 10));
+        } catch (e) {
+          debugPrint('[KycScreen] Non-blocking backend KYC sync notice: $e');
         }
       }
 
@@ -189,8 +299,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
         isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
     final textPrimary =
         isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
-    final surfaceColor = FlowPayColors.surfaceOf(context);
     final borderColor = FlowPayColors.borderOf(context);
+
+    // BVN Validation feedback
+    final cleanId = _nationalIdController.text.trim();
+    final isBvnValid = _isNigeria &&
+        cleanId.length == 11 &&
+        RegExp(r'^\d{11}$').hasMatch(cleanId);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -220,82 +335,6 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── 3-Step Progress Indicator ──
-                _buildStepProgress(isPersonal ? 0 : 0),
-                const SizedBox(height: 20),
-
-                // ── Compliance Status Hero Card ──
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: FlowPayRadii.card,
-                    border: Border.all(
-                        color: FlowPayColors.primary.withValues(alpha: 0.3),
-                        width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: FlowPayColors.primary.withValues(alpha: 0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: FlowPayColors.emerald600.withValues(alpha: 0.12),
-                          borderRadius: FlowPayRadii.avatar,
-                          border: Border.all(
-                              color:
-                                  FlowPayColors.emerald600.withValues(alpha: 0.3)),
-                        ),
-                        child: Icon(
-                          isPersonal
-                              ? Icons.verified_user_outlined
-                              : Icons.shield_outlined,
-                          color: FlowPayColors.emerald600,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isPersonal
-                                  ? 'Account Verification'
-                                  : 'Business Verification',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isPersonal
-                                  ? 'Unlocks your secure wallet and instant virtual spend cards.'
-                                  : 'Enables international payroll and company cards.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? FlowPayColors.darkTextSecondary
-                                    : FlowPayColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
                 if (isPersonal) ...[
                   // Personal KYC Section
                   Text(
@@ -309,15 +348,34 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
                   FlowPayTextField(
                     label: _idLabel,
-                    hintText: 'Enter ID number',
+                    hintText: _isNigeria
+                        ? 'Enter 11-digit BVN / NIN'
+                        : 'Enter ID number',
                     controller: _nationalIdController,
+                    keyboardType: _isNigeria
+                        ? TextInputType.number
+                        : TextInputType.text,
+                    inputFormatters: _isNigeria
+                        ? [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ]
+                        : [LengthLimitingTextInputFormatter(24)],
                     prefix: const Icon(Icons.badge_outlined,
                         size: 18, color: FlowPayColors.textSecondary),
-                    helperText:
-                        'Verified securely and instantly.',
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'ID is required'
+                    suffix: isBvnValid
+                        ? const Icon(Icons.check_circle_rounded,
+                            color: FlowPayColors.stateSuccess, size: 20)
                         : null,
+                    helperText: isBvnValid
+                        ? '✓ 11-digit BVN verified format'
+                        : (_isNigeria && cleanId.isNotEmpty
+                            ? 'Entered ${cleanId.length}/11 digits'
+                            : (_isNigeria
+                                ? '11-digit Central Bank of Nigeria identifier (e.g. 22222222222)'
+                                : 'Verified securely and instantly.')),
+                    onChanged: (v) => setState(() {}),
+                    validator: _validateId,
                   ),
                   const SizedBox(height: 14),
 
@@ -325,11 +383,20 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     label: 'Date of Birth (YYYY-MM-DD)',
                     hintText: 'YYYY-MM-DD',
                     controller: _dobController,
+                    keyboardType: TextInputType.datetime,
                     prefix: const Icon(Icons.calendar_today_outlined,
                         size: 18, color: FlowPayColors.textSecondary),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Date of birth is required'
-                        : null,
+                    suffix: IconButton(
+                      icon: const Icon(Icons.calendar_month_outlined,
+                          color: FlowPayColors.primary, size: 20),
+                      onPressed: _pickDateOfBirth,
+                      tooltip: 'Select date from calendar',
+                    ),
+                    onTap: _pickDateOfBirth,
+                    helperText: _ageLabel != null
+                        ? 'Age: $_ageLabel • Eligible (18+ verified)'
+                        : 'Tap calendar or field to select date of birth (18+ required)',
+                    validator: _validateDob,
                   ),
                   const SizedBox(height: 14),
 
@@ -355,7 +422,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Face verification helps protect your account from unauthorized access.',
+                    'Real front-camera verification protects your self-custody wallet from unauthorized access.',
                     style: TextStyle(
                       fontSize: 12,
                       color: FlowPayColors.textSecondary,
@@ -363,7 +430,18 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  _buildFacialScannerWidget(),
+                  // Live Face Scanner Component
+                  LiveFaceScanner(
+                    initialCompleted: _faceScanCompleted,
+                    onLivenessChanged: (verified) {
+                      setState(() {
+                        _faceScanCompleted = verified;
+                      });
+                    },
+                    onPhotoCaptured: (path) {
+                      _capturedFacePath = path;
+                    },
+                  ),
                   const SizedBox(height: 28),
                 ] else ...[
                   // Business KYB Section
@@ -552,141 +630,6 @@ class _KycScreenState extends ConsumerState<KycScreen> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepProgress(int activeStep) {
-    final steps = ['Verification', 'Selfie', 'Review'];
-    return Row(
-      children: List.generate(steps.length, (i) {
-        final isActive = i <= activeStep;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: i < steps.length - 1 ? 6 : 0),
-            child: Column(
-              children: [
-                Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? FlowPayColors.primary
-                        : FlowPayColors.hairline,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  steps[i],
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: isActive
-                        ? FlowPayColors.primary
-                        : FlowPayColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildFacialScannerWidget() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: FlowPayColors.surfaceAlt,
-        borderRadius: FlowPayRadii.card,
-        border: Border.all(
-          color: _faceScanCompleted
-              ? FlowPayColors.stateSuccess
-              : FlowPayColors.hairline,
-          width: _faceScanCompleted ? 1.5 : 1.0,
-        ),
-      ),
-      child: Column(
-        children: [
-          // Camera Simulation Viewport
-          Container(
-            width: 140,
-            height: 180,
-            decoration: BoxDecoration(
-              color: FlowPayColors.surface,
-              borderRadius: BorderRadius.circular(70),
-              border: Border.all(
-                color: _faceScanCompleted
-                    ? FlowPayColors.stateSuccess
-                    : (_isScanningFace
-                        ? FlowPayColors.primary
-                        : FlowPayColors.hairline),
-                width: 2.5,
-              ),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Icon(
-                  _faceScanCompleted ? Icons.check_circle : Icons.face,
-                  size: 64,
-                  color: _faceScanCompleted
-                      ? FlowPayColors.stateSuccess
-                      : (_isScanningFace
-                          ? FlowPayColors.primaryLight
-                          : FlowPayColors.textTertiary),
-                ),
-                if (_isScanningFace)
-                  const SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: FlowPayColors.primaryLight,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          Text(
-            _faceScanCompleted
-                ? 'Facial Biometrics Verified ✅'
-                : (_isScanningFace
-                    ? 'Aligning face with frame...'
-                    : 'Position face inside the frame'),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: _faceScanCompleted
-                  ? FlowPayColors.stateSuccess
-                  : FlowPayColors.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _faceScanCompleted
-                ? 'Liveness passed (Anti-spoofing score: 99.8%)'
-                : 'Zero-knowledge biometric verification without storing raw video.',
-            style: const TextStyle(
-              fontSize: 11,
-              color: FlowPayColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 14),
-
-          if (!_faceScanCompleted)
-            FlowPayButton(
-              text: _isScanningFace ? 'Scanning...' : 'Start Liveness Scan',
-              variant: FlowPayButtonVariant.secondary,
-              icon: Icons.camera_alt_outlined,
-              isLoading: _isScanningFace,
-              onPressed: _isScanningFace ? null : _simulateFaceScan,
-            ),
         ],
       ),
     );
