@@ -133,15 +133,23 @@ class ActivityDetailModal extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: FlowPayColors.primary.withAlpha(25),
+                    color: (activity.isIncoming
+                            ? FlowPayColors.success
+                            : FlowPayColors.primary)
+                        .withAlpha(25),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: FlowPayColors.primary.withAlpha(50),
+                      color: (activity.isIncoming
+                              ? FlowPayColors.success
+                              : FlowPayColors.primary)
+                          .withAlpha(50),
                     ),
                   ),
                   child: Icon(
-                    activity.type.icon,
-                    color: FlowPayColors.primary,
+                    activity.displayIcon,
+                    color: activity.isIncoming
+                        ? FlowPayColors.success
+                        : FlowPayColors.primary,
                     size: 22,
                   ),
                 ),
@@ -151,7 +159,9 @@ class ActivityDetailModal extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${activity.type.label} Details',
+                        activity.isIncoming
+                            ? 'Received Transfer Details'
+                            : '${activity.type.label} Details',
                         style: FlowPayTypography.headingSm.copyWith(
                           fontWeight: FontWeight.bold,
                           color: isDark
@@ -234,8 +244,7 @@ class ActivityDetailModal extends StatelessWidget {
                       const SizedBox(height: 16),
                       FlowPayAmountDisplay(
                         amount: activity.amount != null
-                            ? activity.amount!
-                                .formatFormatted(includeSymbol: false)
+                            ? '${activity.isIncoming ? '+' : ''}${activity.amount!.formatFormatted(includeSymbol: false)}'
                             : '0.00',
                         currencySymbol: activity.currency.symbol,
                         currencyCode: activity.currency.code,
@@ -279,14 +288,18 @@ class ActivityDetailModal extends StatelessWidget {
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,
-                        label: 'Source',
-                        value: activity.source ?? 'FlowPay Wallet',
+                        label: activity.isIncoming ? 'Sender' : 'Source',
+                        value: activity.isIncoming
+                            ? activity.counterparty
+                            : (activity.source ?? 'FlowPay Wallet'),
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,
-                        label: 'Destination',
-                        value: activity.destination ?? activity.counterparty,
+                        label: activity.isIncoming ? 'Recipient' : 'Destination',
+                        value: activity.isIncoming
+                            ? 'My Wallet'
+                            : (activity.destination ?? activity.counterparty),
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
