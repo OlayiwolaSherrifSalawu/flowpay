@@ -293,8 +293,8 @@ authRouter.post('/login', async (req, res) => {
  * Synchronizes with BMONI POST /v1/users when available and persists in Supabase public.users.
  */
 authRouter.post('/signup', async (req, res) => {
-  const { fullName, email, accountType, country, phone, companyName, companyRole } = req.body;
-  let bmoniUserId = `usr_${accountType === 'business' ? 'business' : 'personal'}_${Date.now()}`;
+  const { fullName, email, accountType, country, phone, companyName, companyRole, userId } = req.body;
+  let bmoniUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${Date.now()}`;
 
   // Attempt upstream BMONI User creation
   try {
@@ -322,6 +322,9 @@ authRouter.post('/signup', async (req, res) => {
   };
 
   registeredUsers.set(bmoniUserId, user);
+  if (userId && userId !== bmoniUserId) {
+    registeredUsers.set(userId, user);
+  }
 
   // Persist into Supabase public.users and public.businesses
   if (isPostgresDb()) {
@@ -391,9 +394,45 @@ authRouter.post('/signup', async (req, res) => {
  * and updates public.users.
  */
 authRouter.post('/kyc', async (req, res) => {
-  const { userId, nationalId, country } = req.body;
-  const existing = registeredUsers.get(userId);
-  if (existing) {
+  const { userId, nationalId, country, accountType, dateOfBirth, address } = req.body;
+  let existing = registeredUsers.get(userId);
+
+  if (!existing && isPostgresDb() && userId) {
+    try {
+      const dbUser = await prisma.user.findFirst({
+        where: { OR: [{ id: userId }, { bmoniUserId: userId }] },
+      });
+      if (dbUser) {
+        existing = {
+          userId: dbUser.id,
+          fullName: dbUser.fullName,
+          email: dbUser.email,
+          accountType: dbUser.accountType as any,
+          country: dbUser.country,
+          phone: dbUser.phoneNumber || '',
+          companyName: dbUser.companyName || undefined,
+          companyRole: dbUser.companyRole || undefined,
+          kycStatus: dbUser.kycStatus as any,
+          nationalId: dbUser.nationalId || undefined,
+        };
+        registeredUsers.set(userId, existing);
+      }
+    } catch (_) {}
+  }
+
+  if (!existing && userId) {
+    existing = {
+      userId,
+      fullName: 'FlowPay User',
+      email: `user_${userId}@flowpay.finance`,
+      accountType: (accountType as any) || 'personal',
+      country: country || 'NG',
+      phone: '',
+      kycStatus: 'verified',
+      nationalId: nationalId || undefined,
+    };
+    registeredUsers.set(userId, existing);
+  } else if (existing) {
     existing.kycStatus = 'verified';
     if (nationalId) existing.nationalId = nationalId;
   }
@@ -433,10 +472,10 @@ authRouter.post('/kyc', async (req, res) => {
         personalInfo: {
           firstName: names[0] || 'FlowPay',
           lastName: names.slice(1).join(' ') || 'User',
-          dateOfBirth: '1992-04-18',
+          dateOfBirth: dateOfBirth || '1992-04-18',
         },
         addressDetails: {
-          street: '14 Admiralty Way',
+          street: address || '14 Admiralty Way',
           city: 'Lagos',
           state: 'Lagos',
           countryCode: country || 'NGA',
@@ -456,8 +495,8 @@ authRouter.post('/kyc', async (req, res) => {
   res.json({
     success: true,
     status: 'VERIFIED',
-    tier: existing?.accountType === 'business' ? 'CORPORATE_GLOBAL_PAYROLL' : 'TIER_1_SMART_WALLET',
-    monthlyLimitUsd: existing?.accountType === 'business' ? 1000000 : 10000,
+    tier: (existing?.accountType || accountType) === 'business' ? 'CORPORATE_GLOBAL_PAYROLL' : 'TIER_1_SMART_WALLET',
+    monthlyLimitUsd: (existing?.accountType || accountType) === 'business' ? 1000000 : 10000,
     railsActivated: ['NGN_NUBAN', 'MXN_SPEI', 'USD_TREASURY'],
     verifiedAt: new Date().toISOString(),
   });

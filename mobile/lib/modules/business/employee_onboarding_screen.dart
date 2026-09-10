@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
+import '../auth/components/live_face_scanner.dart';
 
 /// Employee Onboarding Screen (FlowPay Business Model B)
 /// Adheres strictly to the 4 stages and country-specific BMONI specifications:
@@ -54,6 +56,11 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   final _mxStateCtrl = TextEditingController(text: 'CDMX');
   final _mxPostalCtrl = TextEditingController(text: '03100');
 
+  // Shared DOB Controller
+  final _dobCtrl = TextEditingController(text: '1995-05-15');
+  String? _ageLabel = '31';
+  String? _capturedFacePath;
+
   // Interactive step states
   bool _isProcessingAction = false;
   bool _selfieCaptured = false;
@@ -84,7 +91,67 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     _mxCityCtrl.dispose();
     _mxStateCtrl.dispose();
     _mxPostalCtrl.dispose();
+    _dobCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final maxDate = DateTime(now.year - 18, now.month, now.day);
+    DateTime initialDate = DateTime(now.year - 25, 1, 1);
+    try {
+      if (_dobCtrl.text.isNotEmpty) {
+        final parsed = DateTime.parse(_dobCtrl.text.trim());
+        if (parsed.isBefore(maxDate)) {
+          initialDate = parsed;
+        }
+      }
+    } catch (_) {}
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1920),
+      lastDate: maxDate,
+      helpText: 'SELECT EMPLOYEE DATE OF BIRTH (18+)',
+      confirmText: 'SELECT',
+      cancelText: 'CANCEL',
+      builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: FlowPayColors.primary,
+                    onPrimary: FlowPayColors.ink,
+                    surface: FlowPayColors.darkSurfaceElevated,
+                    onSurface: FlowPayColors.darkTextPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: FlowPayColors.primary,
+                    onPrimary: FlowPayColors.paper,
+                    surface: FlowPayColors.surface,
+                    onSurface: FlowPayColors.ink,
+                  ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      final formatted =
+          "${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      int age = now.year - picked.year;
+      if (now.month < picked.month ||
+          (now.month == picked.month && now.day < picked.day)) {
+        age--;
+      }
+      setState(() {
+        _dobCtrl.text = formatted;
+        _ageLabel = age.toString();
+      });
+    }
   }
 
   bool get _isNigeria => _emp.country.toUpperCase() == 'NG';
@@ -191,12 +258,32 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
 
     try {
       if (_isNigeria) {
+        final bvn = _bvnCtrl.text.trim();
+        if (bvn.length != 11 || !RegExp(r'^\d{11}$').hasMatch(bvn)) {
+          BMoniToastOverlay.showError(
+            context: context,
+            title: 'Invalid BVN',
+            message: 'BVN must be exactly 11 digits (entered ${bvn.length}/11).',
+          );
+          return;
+        }
+        if (bvn == '00000000000') {
+          BMoniToastOverlay.showError(
+            context: context,
+            title: 'Invalid BVN',
+            message: 'Please enter a valid 11-digit BVN.',
+          );
+          return;
+        }
+
         // Nigeria KYC payload (NO biometric selfie per BMONI high-risk spec)
         final payload = {
           'personalInfo': {
             'firstName': _emp.firstName,
             'lastName': _emp.lastName,
-            'dateOfBirth': '1990-01-15',
+            'dateOfBirth': _dobCtrl.text.trim().isNotEmpty
+                ? _dobCtrl.text.trim()
+                : '1990-01-15',
             'phoneNumber': _emp.phoneNumber ?? '+2348000000000',
           },
           'addressDetails': {
@@ -207,7 +294,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             'countryCode': 'NGA',
           },
           'identification': {
-            'bvn': _bvnCtrl.text.trim(),
+            'bvn': bvn,
             'nin': _ninCtrl.text.trim(),
           },
           'employment': {
@@ -227,7 +314,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         // Mexico KYC payload (Requires biometric selfie + CURP + RFC + maternal/paternal surnames)
         if (!_selfieCaptured) {
           throw Exception(
-              'Mexico KYC requires biometric selfie verification. Please capture selfie first.');
+              'Mexico KYC requires biometric selfie verification. Please complete facial scan first.');
         }
 
         final payload = {
@@ -236,7 +323,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             'lastName': _emp.lastName,
             'paternalLastName': _paternalCtrl.text.trim(),
             'maternalLastName': _maternalCtrl.text.trim(),
-            'dateOfBirth': '1990-01-15',
+            'dateOfBirth': _dobCtrl.text.trim().isNotEmpty
+                ? _dobCtrl.text.trim()
+                : '1990-01-15',
             'nationality': 'MX',
           },
           'addressDetails': {
@@ -261,6 +350,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
             'hasIdDocument': true,
             'hasProofOfAddress': true,
             'hasBiometricSelfie': true,
+            if (_capturedFacePath != null) 'faceProofPath': _capturedFacePath,
           },
         };
 
@@ -924,69 +1014,119 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
 
           // Country Specific Forms
           if (_isNigeria) ...[
-            BMoniTextFormField.filled(
-              controller: _bvnCtrl,
-              label: 'Bank Verification Number (BVN)',
-              hintText: '11 digits (e.g. 95888168924)',
-              prefixIcon: const Icon(Icons.numbers_rounded),
-            ),
-            const SizedBox(height: 10),
-            BMoniTextFormField.filled(
-              controller: _ninCtrl,
-              label: 'National Identification Number (NIN)',
-              hintText: '11 digits',
-              prefixIcon: const Icon(Icons.badge_rounded),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: BMoniTextFormField.filled(
-                    controller: _ngCityCtrl,
-                    label: 'City',
-                    hintText: 'Lagos',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: BMoniTextFormField.filled(
-                    controller: _ngStateCtrl,
-                    label: 'State',
-                    hintText: 'Lagos',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            BMoniTextFormField.filled(
-              controller: _ngOccupationCtrl,
-              label: 'Occupation Code (EDD)',
-              hintText: 'OCC_FIN_001',
-              prefixIcon: const Icon(Icons.work_outline_rounded),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                borderRadius: FlowPayRadii.input,
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-              ),
-              child: Row(
+            Builder(builder: (context) {
+              final cleanBvn = _bvnCtrl.text.trim();
+              final isBvnValid = cleanBvn.length == 11 &&
+                  RegExp(r'^\d{11}$').hasMatch(cleanBvn);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.verified_outlined,
-                      color: Colors.blue, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Biometric selfie is not required for Nigeria verification.',
-                      style: FlowPayTypography.captionStyle(
-                          color: isDark ? Colors.lightBlueAccent : (Colors.blue[900] ?? Colors.blue)),
+                  BMoniTextFormField.filled(
+                    controller: _bvnCtrl,
+                    label: 'Bank Verification Number (BVN)',
+                    hintText: '11 digits (e.g. 95888168924)',
+                    prefixIcon: const Icon(Icons.numbers_rounded),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
+                    suffixIcon: isBvnValid
+                        ? const Icon(Icons.check_circle_rounded,
+                            color: FlowPayColors.signal, size: 20)
+                        : null,
+                    helperText: isBvnValid
+                        ? '✓ 11-digit BVN verified format'
+                        : '11-digit Central Bank of Nigeria identifier',
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 10),
+                  BMoniTextFormField.filled(
+                    controller: _ninCtrl,
+                    label: 'National Identification Number (NIN)',
+                    hintText: '11 digits',
+                    prefixIcon: const Icon(Icons.badge_rounded),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(11),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  BMoniTextFormField.filled(
+                    controller: _dobCtrl,
+                    label: 'Date of Birth (YYYY-MM-DD)',
+                    hintText: 'YYYY-MM-DD',
+                    prefixIcon: const Icon(Icons.calendar_today_outlined),
+                    readOnly: true,
+                    onTap: _pickDateOfBirth,
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_month_outlined,
+                          color: FlowPayColors.primary, size: 20),
+                      onPressed: _pickDateOfBirth,
+                      tooltip: 'Select date from calendar',
+                    ),
+                    helperText: _ageLabel != null
+                        ? 'Age: $_ageLabel • Eligible (18+ verified)'
+                        : 'Tap to select employee date of birth (18+ required)',
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: BMoniTextFormField.filled(
+                          controller: _ngCityCtrl,
+                          label: 'City',
+                          hintText: 'Lagos',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: BMoniTextFormField.filled(
+                          controller: _ngStateCtrl,
+                          label: 'State',
+                          hintText: 'Lagos',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  BMoniTextFormField.filled(
+                    controller: _ngOccupationCtrl,
+                    label: 'Occupation Code (EDD)',
+                    hintText: 'OCC_FIN_001',
+                    prefixIcon: const Icon(Icons.work_outline_rounded),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: FlowPayRadii.input,
+                      border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_outlined,
+                            color: Colors.blue, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Biometric selfie is not required for Nigeria verification per BMONI specifications.',
+                            style: FlowPayTypography.captionStyle(
+                                color: isDark
+                                    ? Colors.lightBlueAccent
+                                    : (Colors.blue[900] ?? Colors.blue)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            }),
           ] else ...[
             // Mexico KYC Form
             BMoniTextFormField.filled(
@@ -1001,6 +1141,24 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               label: 'RFC (12-13 characters)',
               hintText: 'OKAC900115XYZ',
               prefixIcon: const Icon(Icons.numbers_rounded),
+            ),
+            const SizedBox(height: 10),
+            BMoniTextFormField.filled(
+              controller: _dobCtrl,
+              label: 'Date of Birth (YYYY-MM-DD)',
+              hintText: 'YYYY-MM-DD',
+              prefixIcon: const Icon(Icons.calendar_today_outlined),
+              readOnly: true,
+              onTap: _pickDateOfBirth,
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.calendar_month_outlined,
+                    color: FlowPayColors.primary, size: 20),
+                onPressed: _pickDateOfBirth,
+                tooltip: 'Select date from calendar',
+              ),
+              helperText: _ageLabel != null
+                  ? 'Age: $_ageLabel • Eligible (18+ verified)'
+                  : 'Tap to select employee date of birth (18+ required)',
             ),
             const SizedBox(height: 10),
             Row(
@@ -1023,77 +1181,27 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            // Biometric Selfie Simulator
-            GestureDetector(
-              onTap: () {
-                setState(() => _selfieCaptured = !_selfieCaptured);
-                BMoniToastOverlay.showInfo(
-                  context: context,
-                  title: _selfieCaptured ? 'Selfie Captured' : 'Selfie Cleared',
-                  message: _selfieCaptured
-                      ? 'Facial liveness scan verified.'
-                      : 'Please take selfie.',
-                );
+            Text(
+              'Biometric Selfie Verification',
+              style: FlowPayTypography.title(color: textPrimaryColor)
+                  .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Real front-camera verification satisfies Mexican regulatory anti-fraud requirements.',
+              style: FlowPayTypography.captionStyle(color: textSecondaryColor),
+            ),
+            const SizedBox(height: 10),
+            LiveFaceScanner(
+              initialCompleted: _selfieCaptured,
+              onLivenessChanged: (verified) {
+                setState(() {
+                  _selfieCaptured = verified;
+                });
               },
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: _selfieCaptured
-                      ? FlowPayColors.signal.withValues(alpha: 0.1)
-                      : (isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.surfaceAlt),
-                  borderRadius: FlowPayRadii.input,
-                  border: Border.all(
-                    color: _selfieCaptured
-                        ? FlowPayColors.signal
-                        : borderColor,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _selfieCaptured
-                          ? Icons.face_retouching_natural_rounded
-                          : Icons.camera_front_rounded,
-                      color: _selfieCaptured
-                          ? FlowPayColors.signal
-                          : (isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink),
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _selfieCaptured
-                                ? 'Biometric Selfie: Captured & Verified'
-                                : 'Capture Biometric Selfie (Required)',
-                            style:
-                                FlowPayTypography.body(color: textPrimaryColor)
-                                    .copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            _selfieCaptured
-                                ? 'Liveness and anti-spoofing radar passed'
-                                : 'Tap to simulate camera scan',
-                            style: FlowPayTypography.captionStyle(
-                                color: textSecondaryColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      _selfieCaptured
-                          ? Icons.check_circle_rounded
-                          : Icons.arrow_forward_ios_rounded,
-                      color: _selfieCaptured
-                          ? FlowPayColors.signal
-                          : (isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.textTertiary),
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ),
+              onPhotoCaptured: (path) {
+                _capturedFacePath = path;
+              },
             ),
           ],
 

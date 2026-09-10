@@ -160,10 +160,44 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final userId =
+    final localUserId =
         'usr_${_accountType.name}_${DateTime.now().millisecondsSinceEpoch}';
+    var effectiveUserId = localUserId;
+
+    if (!SecureStorageService.isTestEnv) {
+      try {
+        final res = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/api/auth/signup'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'userId': localUserId,
+            'fullName': _fullNameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'accountType': _accountType.name,
+            'country': _selectedCountry,
+            'phone': _phoneController.text.trim(),
+            'companyName': _accountType == AccountType.business
+                ? _companyNameController.text.trim()
+                : null,
+            'companyRole': _accountType == AccountType.business
+                ? _companyRoleController.text.trim()
+                : null,
+            if (widget.employeeInviteToken != null)
+              'inviteToken': widget.employeeInviteToken,
+          }),
+        ).timeout(const Duration(seconds: 10));
+
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          final data = jsonDecode(res.body);
+          if (data['user'] != null && data['user']['userId'] != null) {
+            effectiveUserId = data['user']['userId'];
+          }
+        }
+      } catch (_) {}
+    }
+
     final profile = UserProfile(
-      userId: userId,
+      userId: effectiveUserId,
       fullName: _fullNameController.text.trim(),
       email: _emailController.text.trim(),
       accountType: _accountType,
@@ -180,26 +214,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           : null,
       createdAt: DateTime.now(),
     );
-
-    if (!SecureStorageService.isTestEnv) {
-      try {
-        await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/api/auth/signup'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'fullName': profile.fullName,
-            'email': profile.email,
-            'accountType': profile.accountType.name,
-            'country': profile.country,
-            'phone': profile.phone,
-            'companyName': profile.companyName,
-            'companyRole': profile.companyRole,
-            if (widget.employeeInviteToken != null)
-              'inviteToken': widget.employeeInviteToken,
-          }),
-        ).timeout(const Duration(seconds: 3));
-      } catch (_) {}
-    }
 
     if (!mounted) return;
     Navigator.push(

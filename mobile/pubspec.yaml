@@ -37,6 +37,7 @@ dependencies:
   # BMONI On-Device B-Key Signer SDK (Keystore / Secure Enclave)
   bmoni_embedded_sdk:
     path: packages/bmoni_embedded_sdk
+  camera: ^0.12.1
 
 dev_dependencies:
   flutter_test:
