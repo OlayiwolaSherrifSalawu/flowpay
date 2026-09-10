@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
-import '../../core/design_system/design_system.dart';
+import '../../core/design_system/buttons.dart';
+import '../../core/design_system/states.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
 import '../../core/money/money.dart';
+import '../../core/navigation/personal_tab_provider.dart';
 import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/mission_repository.dart';
-import '../../core/navigation/personal_tab_provider.dart';
 import '../../core/state/app_state.dart';
+import '../../core/theme/colors.dart';
+import '../../core/theme/radii.dart';
+import '../../core/theme/typography.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import 'components/mission_card.dart';
 import 'components/mission_preview_modal.dart';
@@ -331,18 +335,22 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor:
             isDark ? FlowPayColors.darkSurface : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.card),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: FlowPayColors.primary.withAlpha(30),
+                color: FlowPayColors.primary.withAlpha(25),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: FlowPayColors.primary.withAlpha(60),
+                ),
               ),
               child: const Icon(Icons.check,
-                  color: FlowPayColors.primaryLight, size: 36),
+                  color: FlowPayColors.primary, size: 30),
             ),
             const SizedBox(height: 18),
             Text(
@@ -366,14 +374,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: isDark
                     ? FlowPayColors.darkSurfaceElevated
                     : FlowPayColors.lightSurfaceElevated,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: FlowPayRadii.cardSmall,
                 border: Border.all(
                   color: isDark
                       ? FlowPayColors.darkBorder
@@ -385,10 +393,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Signing Enclave',
+                      Text('Signing Enclave',
                           style: TextStyle(
                               fontSize: 11,
-                              color: FlowPayColors.darkTextSecondary)),
+                              color: isDark
+                                  ? FlowPayColors.darkTextSecondary
+                                  : FlowPayColors.lightTextSecondary)),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -404,14 +414,16 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Execution Ref',
+                      Text('Execution Ref',
                           style: TextStyle(
                               fontSize: 11,
-                              color: FlowPayColors.darkTextSecondary)),
+                              color: isDark
+                                  ? FlowPayColors.darkTextSecondary
+                                  : FlowPayColors.lightTextSecondary)),
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
@@ -421,29 +433,31 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontFamily: 'monospace',
-                            color: FlowPayColors.primaryLight,
+                            color: FlowPayColors.primary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
-                  const Row(
+                  const SizedBox(height: 8),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Status',
                           style: TextStyle(
                               fontSize: 11,
-                              color: FlowPayColors.darkTextSecondary)),
-                      SizedBox(width: 8),
-                      Flexible(
+                              color: isDark
+                                  ? FlowPayColors.darkTextSecondary
+                                  : FlowPayColors.lightTextSecondary)),
+                      const SizedBox(width: 8),
+                      const Flexible(
                         child: Text(
                           'ACTIVE • Monitored',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: FlowPayColors.primaryLight),
+                              color: FlowPayColors.primary),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -452,7 +466,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             Column(
               children: [
                 SizedBox(
@@ -506,8 +520,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: isDark
             ? FlowPayColors.darkSurfaceElevated
-            : FlowPayColors.lightSurfaceElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            : Colors.white,
+        shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.cardSmall),
         title: Text(
           'Delete Mission?',
           style: FlowPayTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
@@ -615,57 +629,57 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               children: [
                 // 1. Financial Command Center Header & Telemetry
-                Row(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'What should your money do?',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Tell your money what to do.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: FlowPayColors.primaryLight,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Set autonomous directives in plain English. FlowPay structures the rules; execution is strictly gated behind your on-device PIN.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      'What should your money do?',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                        color: isDark ? Colors.white : FlowPayColors.lightTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Tell your money what to do.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: FlowPayColors.primary,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Set autonomous directives in plain English. FlowPay structures the rules; execution is strictly gated behind your on-device PIN.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
+                        height: 1.4,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
                 // Command Center Live Telemetry Bar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurfaceElevated,
-                    borderRadius: BorderRadius.circular(12),
+                    color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                    borderRadius: FlowPayRadii.chip,
                     border: Border.all(
                       color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(isDark ? 16 : 4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
@@ -675,14 +689,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         Row(
                           children: [
                             Container(
-                              width: 7,
-                              height: 7,
+                              width: 8,
+                              height: 8,
                               decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: FlowPayColors.primary,
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Text(
                               'Engine: Active',
                               style: TextStyle(
@@ -693,12 +707,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 20),
                         Row(
                           children: [
                             const Icon(Icons.shield_outlined,
-                                size: 13, color: FlowPayColors.primaryLight),
-                            const SizedBox(width: 4),
+                                size: 14, color: FlowPayColors.primary),
+                            const SizedBox(width: 6),
                             Text(
                               'Hardware Guard',
                               style: TextStyle(
@@ -709,12 +723,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 20),
                         Row(
                           children: [
                             const Icon(Icons.bolt,
-                                size: 13, color: FlowPayColors.primaryLight),
-                            const SizedBox(width: 4),
+                                size: 14, color: FlowPayColors.primary),
+                            const SizedBox(width: 6),
                             Text(
                               'Deterministic',
                               style: TextStyle(
@@ -729,14 +743,14 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
                 // 2. Financial Command Center Console (Command Directive Input)
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: isDark ? FlowPayColors.darkSurface : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: FlowPayRadii.card,
                     border: Border.all(
                       color: isInterpreting
                           ? FlowPayColors.primary
@@ -749,7 +763,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       BoxShadow(
                         color: isInterpreting
                             ? FlowPayColors.primary.withAlpha(25)
-                            : Colors.black.withAlpha(8),
+                            : Colors.black.withAlpha(isDark ? 24 : 6),
                         blurRadius: 18,
                         offset: const Offset(0, 4),
                       ),
@@ -763,24 +777,27 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: FlowPayColors.primary.withAlpha(30),
-                              borderRadius: BorderRadius.circular(6),
+                              color: FlowPayColors.primary.withAlpha(24),
+                              borderRadius: FlowPayRadii.chip,
+                              border: Border.all(
+                                color: FlowPayColors.primary.withAlpha(50),
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.terminal_rounded,
-                                    size: 12, color: FlowPayColors.primaryLight),
-                                SizedBox(width: 4),
+                                    size: 13, color: FlowPayColors.primary),
+                                SizedBox(width: 5),
                                 Text(
                                   'COMMAND DIRECTIVE',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.8,
-                                    color: FlowPayColors.primaryLight,
+                                    color: FlowPayColors.primary,
                                   ),
                                 ),
                               ],
@@ -804,7 +821,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       TextField(
                         controller: _inputController,
                         maxLines: 3,
@@ -830,7 +847,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
                       // Submit Directive Button
                       Row(
@@ -868,10 +885,10 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                        horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
-                      color: FlowPayColors.error.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12),
+                      color: FlowPayColors.error.withAlpha(16),
+                      borderRadius: FlowPayRadii.cardSmall,
                       border:
                           Border.all(color: FlowPayColors.error.withAlpha(80)),
                     ),
@@ -896,12 +913,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                 if (isInterpreting || processingStage > 0) ...[
                   const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark
                           ? FlowPayColors.darkSurfaceElevated
                           : FlowPayColors.lightSurfaceElevated,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: FlowPayRadii.cardSmall,
                       border:
                           Border.all(color: FlowPayColors.primary.withAlpha(70)),
                     ),
@@ -911,7 +928,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         const Row(
                           children: [
                             Icon(Icons.psychology,
-                                size: 16, color: FlowPayColors.primaryLight),
+                                size: 16, color: FlowPayColors.primary),
                             SizedBox(width: 6),
                             Text(
                               'Financial Safety AI Pipeline',
@@ -919,18 +936,18 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.6,
-                                color: FlowPayColors.primaryLight,
+                                color: FlowPayColors.primary,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         _buildStageRow(
                             'AI understood request', processingStage >= 1),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         _buildStageRow('Plan created (structured intent)',
                             processingStage >= 2),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         _buildStageRow(
                             'Deterministic validation passed (100% allocation)',
                             processingStage >= 3),
@@ -939,7 +956,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   ),
                 ],
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
 
                 // 4. Suggested Actions Row (5 Suggestion Chips)
                 Text(
@@ -960,7 +977,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.pie_chart_outline,
                         label: 'Split incoming payment',
-                        color: FlowPayColors.primaryLight,
+                        color: FlowPayColors.primary,
                         prompt:
                             'Whenever I receive \$2,000, keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
                       ),
@@ -968,7 +985,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.savings_outlined,
                         label: 'Save for a goal',
-                        color: FlowPayColors.primary,
+                        color: FlowPayColors.primaryDark,
                         prompt:
                             'Whenever I receive \$1,500, save 25% into high-yield USD emergency vault.',
                       ),
@@ -976,7 +993,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       _buildSuggestionChip(
                         icon: Icons.currency_exchange,
                         label: 'Convert currency',
-                        color: FlowPayColors.primaryLight,
+                        color: FlowPayColors.primary,
                         prompt:
                             'Convert \$1,000 to Naira whenever received for monthly payroll expenses.',
                       ),
@@ -1019,8 +1036,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: FlowPayColors.primary.withAlpha(25),
-                        borderRadius: BorderRadius.circular(12),
+                        color: FlowPayColors.primary.withAlpha(20),
+                        borderRadius: FlowPayRadii.chip,
                         border: Border.all(
                             color: FlowPayColors.primary.withAlpha(60)),
                       ),
@@ -1029,45 +1046,72 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: FlowPayColors.primaryLight,
+                          color: FlowPayColors.primary,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
                 // Active Mission Cards List
                 if (missions.isEmpty)
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(28),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isDark ? FlowPayColors.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: FlowPayRadii.card,
                       border: Border.all(
                         color: isDark
                             ? FlowPayColors.darkBorder
                             : FlowPayColors.lightBorder,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(isDark ? 16 : 4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
-                        Icon(Icons.bolt, size: 36, color: FlowPayColors.darkTextSecondary),
-                        SizedBox(height: 8),
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? FlowPayColors.darkSurfaceElevated
+                                : FlowPayColors.lightSurfaceElevated,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.bolt,
+                            size: 28,
+                            color: isDark
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
                           'No Active Missions Yet',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white70,
+                            color: isDark ? Colors.white70 : FlowPayColors.lightTextPrimary,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           'Type a directive above to set your first autonomous financial plan.',
                           style: TextStyle(
-                              fontSize: 12, color: FlowPayColors.darkTextSecondary),
+                            fontSize: 12,
+                            color: isDark
+                                ? FlowPayColors.darkTextSecondary
+                                : FlowPayColors.lightTextSecondary,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -1088,6 +1132,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
     if (canPop) {
       return Scaffold(
+        backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
         appBar: AppBar(
           title: const Text('Money Missions'),
         ),
@@ -1099,12 +1144,13 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
   }
 
   Widget _buildStageRow(String label, bool isCompleted) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
         Icon(
           isCompleted ? Icons.check_circle : Icons.circle_outlined,
           size: 15,
-          color: isCompleted ? FlowPayColors.primary : FlowPayColors.darkTextSecondary,
+          color: isCompleted ? FlowPayColors.primary : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -1113,7 +1159,9 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isCompleted ? FontWeight.w600 : FontWeight.normal,
-              color: isCompleted ? Colors.white : FlowPayColors.darkTextSecondary,
+              color: isCompleted
+                  ? (isDark ? Colors.white : FlowPayColors.lightTextPrimary)
+                  : (isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary),
             ),
           ),
         ),
@@ -1131,13 +1179,13 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
     return InkWell(
       onTap: () => _prefillPrompt(prompt),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: FlowPayRadii.chip,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withAlpha(20),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withAlpha(70), width: 0.9),
+          color: color.withAlpha(isDark ? 22 : 18),
+          borderRadius: FlowPayRadii.chip,
+          border: Border.all(color: color.withAlpha(isDark ? 70 : 60), width: 1.0),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1158,4 +1206,3 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     );
   }
 }
-

@@ -238,9 +238,9 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       padding: EdgeInsets.only(bottom: bottomInset),
       decoration: BoxDecoration(
         color: isDark
-            ? FlowPayColors.darkSurfaceElevated
-            : FlowPayColors.lightSurface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ? FlowPayColors.darkBackground
+            : FlowPayColors.paper,
+        borderRadius: FlowPayRadii.sheet,
       ),
       child: SafeArea(
         top: false,
@@ -289,11 +289,11 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: FlowPayColors.primary.withAlpha(30),
-              borderRadius: BorderRadius.circular(10),
+              color: FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25),
+              borderRadius: FlowPayRadii.avatar,
             ),
             child: const Icon(Icons.psychology,
-                color: FlowPayColors.primaryLight, size: 22),
+                color: FlowPayColors.emerald600, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -302,24 +302,25 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
               children: [
                 Text(
                   'FlowPay Financial Operator',
-                  style: FlowPayTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: isDark
-                        ? FlowPayColors.darkTextPrimary
-                        : FlowPayColors.lightTextPrimary,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.2,
+                    color: isDark ? Colors.white : FlowPayColors.ink,
                   ),
                 ),
                 Text(
                   'Understands intent • Validates policy • Never moves money without PIN',
-                  style: FlowPayTypography.captionStyle(
-                    color: FlowPayColors.darkTextSecondary,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close, size: 20),
+            icon: Icon(Icons.close, size: 20, color: isDark ? Colors.white : FlowPayColors.ink),
             onPressed: () => Navigator.pop(context),
           ),
         ],
@@ -329,7 +330,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
 
   Widget _buildTelemetryBar(bool isDark) {
     String statusLabel = 'READY';
-    Color statusColor = FlowPayColors.primary;
+    Color statusColor = FlowPayColors.emerald600;
 
     switch (_operator.status) {
       case OperatorSessionStatus.interpreting:
@@ -342,15 +343,15 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         break;
       case OperatorSessionStatus.readyForReview:
         statusLabel = 'PLAN READY FOR REVIEW';
-        statusColor = FlowPayColors.primaryLight;
+        statusColor = FlowPayColors.emerald600;
         break;
       case OperatorSessionStatus.executing:
         statusLabel = 'AUTHORIZING ON-DEVICE';
-        statusColor = FlowPayColors.primary;
+        statusColor = FlowPayColors.emerald600;
         break;
       case OperatorSessionStatus.completed:
         statusLabel = 'PLAN EXECUTED';
-        statusColor = FlowPayColors.primary;
+        statusColor = FlowPayColors.emerald600;
         break;
       case OperatorSessionStatus.error:
         if (_operator.activePlan != null && !_operator.activePlan!.isApproved) {
@@ -368,17 +369,17 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       case OperatorSessionStatus.idle:
       default:
         statusLabel = 'READY';
-        statusColor = FlowPayColors.primary;
+        statusColor = FlowPayColors.emerald600;
     }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: isDark
-            ? FlowPayColors.darkSurfaceSubtle
-            : FlowPayColors.lightSurfaceElevated,
-        borderRadius: BorderRadius.circular(8),
+            ? FlowPayColors.darkSurface
+            : Colors.white,
+        borderRadius: FlowPayRadii.chip,
         border: Border.all(
           color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
         ),
@@ -386,8 +387,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       child: Row(
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 7,
+            height: 7,
             decoration: BoxDecoration(
               color: statusColor,
               shape: BoxShape.circle,
@@ -404,11 +405,11 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
             ),
           ),
           const Spacer(),
-          const Text(
+          Text(
             'B-Key Guard: Active  •  Deterministic Math',
             style: TextStyle(
               fontSize: 10,
-              color: FlowPayColors.darkTextMuted,
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
             ),
           ),
         ],
@@ -424,30 +425,31 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: FlowPayColors.primary.withAlpha(20),
+                color: FlowPayColors.emerald600.withAlpha(isDark ? 40 : 25),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.auto_awesome,
-                  size: 36, color: FlowPayColors.primary),
+                  size: 36, color: FlowPayColors.emerald600),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Text(
               'What would you like to achieve?',
-              style: FlowPayTypography.titleMedium.copyWith(
-                fontWeight: FontWeight.w700,
-                color: isDark
-                    ? FlowPayColors.darkTextPrimary
-                    : FlowPayColors.lightTextPrimary,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : FlowPayColors.ink,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Ask FlowPay in natural language to send money, reserve taxes, allocate incoming payments, or manage your multi-currency smart wallets.',
               textAlign: TextAlign.center,
-              style: FlowPayTypography.bodyMd.copyWith(
-                color: FlowPayColors.darkTextSecondary,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
               ),
             ),
           ],
@@ -465,21 +467,19 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           margin: const EdgeInsets.only(bottom: 12, left: 40),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: FlowPayColors.primary.withAlpha(40),
+            color: FlowPayColors.emerald600.withAlpha(isDark ? 35 : 20),
             borderRadius: BorderRadius.circular(16).copyWith(
-              bottomRight: const Radius.circular(2),
+              bottomRight: const Radius.circular(3),
             ),
             border: Border.all(
-              color: FlowPayColors.primary.withAlpha(90),
+              color: FlowPayColors.emerald600.withAlpha(70),
             ),
           ),
           child: Text(
             msg.text,
             style: FlowPayTypography.bodyMd.copyWith(
               fontWeight: FontWeight.w600,
-              color: isDark
-                  ? FlowPayColors.darkTextPrimary
-                  : FlowPayColors.lightTextPrimary,
+              color: isDark ? Colors.white : FlowPayColors.ink,
             ),
           ),
         ),
@@ -501,10 +501,10 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? FlowPayColors.darkSurfaceSubtle
-                      : FlowPayColors.lightSurfaceElevated,
+                      ? FlowPayColors.darkSurface
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(16).copyWith(
-                    bottomLeft: const Radius.circular(2),
+                    bottomLeft: const Radius.circular(3),
                   ),
                   border: Border.all(
                     color: msg.isError
@@ -519,9 +519,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                   style: FlowPayTypography.bodyMd.copyWith(
                     color: msg.isError
                         ? FlowPayColors.error
-                        : (isDark
-                            ? FlowPayColors.darkTextPrimary
-                            : FlowPayColors.lightTextPrimary),
+                        : (isDark ? Colors.white : FlowPayColors.ink),
                   ),
                 ),
               ),
@@ -585,9 +583,9 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FlowPayColors.primary.withAlpha(25),
-        borderRadius: FlowPaySpacing.borderRadiusLg,
-        border: Border.all(color: FlowPayColors.primary.withAlpha(80)),
+        color: FlowPayColors.emerald600.withAlpha(isDark ? 25 : 15),
+        borderRadius: FlowPayRadii.cardMedium,
+        border: Border.all(color: FlowPayColors.emerald600.withAlpha(60)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,15 +593,13 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           Row(
             children: [
               const Icon(Icons.check_circle,
-                  color: FlowPayColors.primary, size: 20),
+                  color: FlowPayColors.emerald600, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Financial Execution Settled',
                 style: FlowPayTypography.bodyLg.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: isDark
-                      ? FlowPayColors.darkTextPrimary
-                      : FlowPayColors.lightTextPrimary,
+                  color: isDark ? Colors.white : FlowPayColors.ink,
                 ),
               ),
             ],
@@ -612,14 +608,14 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           Text(
             'Transaction Hash: ${receipt['txHash']}',
             style: FlowPayTypography.captionStyle(
-              color: FlowPayColors.darkTextSecondary,
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
           ),
           const SizedBox(height: 4),
           Text(
             'Settled Actions: ${receipt['settledActions']} item(s)',
             style: FlowPayTypography.captionStyle(
-              color: FlowPayColors.darkTextSecondary,
+              color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ),
           ),
           const SizedBox(height: 12),
@@ -674,25 +670,25 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         _inputController.text = text;
         _handleSubmit();
       },
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: FlowPayRadii.chip,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: isDark
-              ? FlowPayColors.darkSurfaceSubtle
-              : FlowPayColors.lightSurfaceElevated,
-          borderRadius: BorderRadius.circular(10),
+              ? FlowPayColors.darkSurface
+              : Colors.white,
+          borderRadius: FlowPayRadii.chip,
           border: Border.all(
-            color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+            color: FlowPayColors.emerald600.withAlpha(isDark ? 50 : 30),
           ),
         ),
         child: Text(
           text.length > 38 ? '${text.substring(0, 38)}...' : text,
-          style: FlowPayTypography.captionStyle(
-            color: isDark
-                ? FlowPayColors.darkTextPrimary
-                : FlowPayColors.lightTextPrimary,
-          ).copyWith(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isDark ? FlowPayColors.emerald400 : FlowPayColors.emerald700,
+          ),
         ),
       ),
     );
@@ -700,11 +696,11 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
 
   Widget _buildInputBar(bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: BoxDecoration(
         color: isDark
-            ? FlowPayColors.darkSurfaceElevated
-            : FlowPayColors.lightSurface,
+            ? FlowPayColors.darkBackground
+            : FlowPayColors.paper,
         border: Border(
           top: BorderSide(
             color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
@@ -714,23 +710,36 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       child: Row(
         children: [
           Expanded(
-            child: TextField(
-              controller: _inputController,
-              decoration: const InputDecoration(
-                hintText: 'Type instructions or respond naturally...',
-                hintStyle: TextStyle(
-                  color: FlowPayColors.darkTextMuted,
-                  fontSize: 14,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? FlowPayColors.darkSurface : Colors.white,
+                borderRadius: FlowPayRadii.input,
+                border: Border.all(
+                  color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
                 ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              onSubmitted: (_) => _handleSubmit(),
+              child: TextField(
+                controller: _inputController,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white : FlowPayColors.ink,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Type instructions or respond naturally...',
+                  hintStyle: TextStyle(
+                    color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
+                    fontSize: 13,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+                onSubmitted: (_) => _handleSubmit(),
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           FlowPayIconButton(
             icon: Icons.arrow_upward_rounded,
             tooltip: 'Send directive',
