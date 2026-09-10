@@ -37,6 +37,9 @@ const envSchema = z.object({
   MAIL_FROM_NAME: z.string().default('FlowPay'),
   MAIL_FROM_ADDRESS: z.string().default('onboarding@resend.dev'),
   RESEND_API_KEY: z.string().default(''),
+  MAILGUN_API_KEY: z.string().optional(),
+  MAILGUN_DOMAIN: z.string().optional(),
+  MAILGUN_BASE_URL: z.string().default('https://api.mailgun.net/v3'),
   // Paystack Configuration
   PAYSTACK_SECRET_KEY: z.string().optional(),
   PAYSTACK_BASE_URL: z.string().default('https://api.paystack.co').transform((url) => {

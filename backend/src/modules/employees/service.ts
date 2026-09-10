@@ -297,8 +297,8 @@ export class EmployeeService {
             console.warn(`[EmployeeService] ⚠️ Invite email delivery notification for ${employeeData.email}:`, res.error);
           }
         })
-        .catch((err) => {
-          console.warn('[EmployeeService] Failed to dispatch employee invite email:', err.message || err);
+        .catch((err: any) => {
+          console.warn('[EmployeeService] Failed to dispatch employee invite email:', err?.message || err);
         });
     }
 
@@ -445,8 +445,8 @@ export class EmployeeService {
           console.warn(`[EmployeeService] ⚠️ Retry invite email delivery notification for ${finalEmployee.email}:`, res.error);
         }
       })
-      .catch((err) => {
-        console.warn('[EmployeeService] Failed to dispatch retry invite email:', err.message || err);
+      .catch((err: any) => {
+        console.warn('[EmployeeService] Failed to dispatch retry invite email:', err?.message || err);
       });
 
     return finalEmployee;

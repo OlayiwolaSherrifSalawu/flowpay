@@ -136,8 +136,8 @@ if (process.env.NODE_ENV !== 'test') {
     console.log(`=============================================`);
 
     // Verify SMTP connection in background
-    mailService.verifyConnection().catch((err) => {
-      console.warn('[Server] Initial SMTP connection verification warning:', err.message || err);
+    mailService.verifyConnection().catch((err: any) => {
+      console.warn('[Server] Initial SMTP connection verification warning:', err?.message || err);
     });
 
     // Verify BMONI API key at startup so a misconfigured key is loud and
