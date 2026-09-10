@@ -162,15 +162,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          if (isDark)
+            Positioned(
+              top: -60,
+              left: 0,
+              right: 0,
+              height: 340,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0, -0.6),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF0F3224),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
 
                 // ── Hero Section — FlowPay logo mark with glow ring ──
                 Center(
@@ -411,6 +432,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
+        ],
       ),
     );
   }

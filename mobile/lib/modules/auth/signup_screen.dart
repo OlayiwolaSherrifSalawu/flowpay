@@ -225,14 +225,44 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        scrolledUnderElevation: 0,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Stack(
+        children: [
+          if (isDark)
+            Positioned(
+              top: -60,
+              left: 0,
+              right: 0,
+              height: 340,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0, -0.6),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF0F3224),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                 // ── Top Brand Header — FlowPay Horizontal Lockup ──
                 const Center(
                   child: Column(
@@ -611,6 +641,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
             ),
           ),
         ),
+      ),
+        ],
       ),
     );
   }

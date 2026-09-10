@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/app.dart';
 import 'package:flowpay_mobile/core/auth/secure_storage_service.dart';
+import 'package:flowpay_mobile/core/copy/app_copy.dart';
 import 'package:flowpay_mobile/core/design_system/input_fields.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
+import 'package:flowpay_mobile/modules/auth/landing_screen.dart';
 import 'package:flowpay_mobile/modules/auth/signup_screen.dart';
 import 'package:flowpay_mobile/modules/auth/kyc_screen.dart';
 import 'package:flowpay_mobile/modules/auth/set_pin_screen.dart';
@@ -23,7 +25,7 @@ void main() {
   });
 
   group('Signup, KYC and Account Separation Tests', () {
-    testWidgets('Opens SignupScreen from LoginScreen and renders form controls',
+    testWidgets('Opens SignupScreen from LandingScreen and renders form controls',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
@@ -34,12 +36,12 @@ void main() {
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
 
-      // App starts unauthenticated on LoginScreen
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text("Don't have an account? Sign Up"), findsOneWidget);
+      // App starts unauthenticated on LandingScreen
+      expect(find.byType(LandingScreen), findsOneWidget);
+      expect(find.text(AppCopy.getStarted), findsOneWidget);
 
-      // Tap Create New Account
-      await tester.tap(find.text("Don't have an account? Sign Up"));
+      // Tap Get Started
+      await tester.tap(find.text(AppCopy.getStarted));
       await tester.pumpAndSettle();
 
       // Verify on SignupScreen
@@ -61,7 +63,7 @@ void main() {
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text("Don't have an account? Sign Up"));
+      await tester.tap(find.text(AppCopy.getStarted));
       await tester.pumpAndSettle();
 
       // Fill personal form fields
@@ -94,7 +96,7 @@ void main() {
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text("Don't have an account? Sign Up"));
+      await tester.tap(find.text(AppCopy.getStarted));
       await tester.pumpAndSettle();
 
       // Fill personal form fields
@@ -167,7 +169,7 @@ void main() {
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text("Don't have an account? Sign Up"));
+      await tester.tap(find.text(AppCopy.getStarted));
       await tester.pumpAndSettle();
 
       // Select Business
@@ -242,7 +244,12 @@ void main() {
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
 
-      // Starts on LoginScreen
+      // Starts on LandingScreen
+      expect(find.byType(LandingScreen), findsOneWidget);
+      await tester.tap(find.text(AppCopy.signIn));
+      await tester.pumpAndSettle();
+
+      // Enters LoginScreen
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text('Welcome Back'), findsOneWidget);
 

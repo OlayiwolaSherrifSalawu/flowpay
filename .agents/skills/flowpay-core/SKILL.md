@@ -199,6 +199,22 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * "Transfer Settled" -> "Payment Sent"
       * Fully preserved all cryptographic guarantees, BMONI on-device signing semantics, and live sandbox integrations without dummy success bypasses.
       * Verified with 100% test pass rate (180/180 tests passing across all test suites) and 0 analyzer lints (`flutter analyze` clean).
+    * **Complete Redesign — Phase 14: Flagship 3D Floating Currency Landing Screen, Elevated Auth & Lock Screen**:
+      * Implemented flagship `LandingScreen` (`mobile/lib/modules/auth/landing_screen.dart`) adhering strictly to the reference mockup:
+        * Diagonal 3-coin cascading composition matching the reference mockup with high-resolution 3D platinum-silver coins (top-left cropped rim, center-tilted with dollar engraving, and mid-right perspective) floating across diagonal volumetric light beams streaming from top-left (`mobile/assets/images/flowpay_landing_hero.jpg`), imbued with FlowPay's Electric Emerald (`#00E599`) and Vivid Cyan (`#00B4D8`) ambient rim glow over seamless Deep Obsidian (`#090A0F`).
+        * Gentle floating micro-animation (`AnimationController` gated via `SecureStorageService.isTestEnv` for zero test timeouts).
+        * Clean brand header with `FlowPayLogo.horizontal` at top-left (`SECURE` badge removed per UX direction).
+        * FlowPay-centric, commanding 3-line display headline (36pt bold display, -0.8 tracking):
+          *"Your Money.\nYour Rules.\nAI Executes."* (`AppCopy.landingHeadline`).
+        * Informative, plain-English subtitle:
+          *"FlowPay gives you multi-currency smart wallets, automated saving rules, and instant global transfers — secured on your device."* (`AppCopy.landingSubtitle`).
+        * Bottom dual pill CTAs matching reference mockup styling:
+          * **"Get Started"**: Luminous Electric Emerald-Cyan gradient pill (`#00E599` → `#00B4D8`) with ambient emerald glow and crisp white typography navigating to `SignupScreen`.
+          * **"Sign in"**: Frosted dark glass pill with hairline border (`Border.all(color: Colors.white.withValues(alpha: 0.22))`) and crisp white typography navigating to `LoginScreen`.
+      * Elevated `AppAuthGate` lock screen with top radial emerald lighting, 3D halo status badge, and high-contrast PIN/biometric authentication.
+      * Elevated `LoginScreen` and `SignupScreen` with matching dark obsidian canvases, top ambient radial glows, and pill CTAs.
+      * Recompiled web production bundle via `flutter build web --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com`.
+      * Verified with 100% test pass rate (180/180 tests passing) and 0 analyzer lints.
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.

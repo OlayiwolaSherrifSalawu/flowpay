@@ -5,6 +5,7 @@ import '../state/app_state.dart';
 import 'account_capabilities.dart';
 import 'account_mode_picker_modal.dart';
 import 'auth_providers.dart';
+import '../../modules/auth/landing_screen.dart';
 import '../../modules/auth/signup_screen.dart';
 import '../../modules/auth/login_screen.dart';
 
@@ -15,12 +16,14 @@ class AppAuthGate extends ConsumerStatefulWidget {
   final Widget personalShell;
   final Widget businessShell;
   final AppState? appState;
+  final Widget? unauthenticatedChild;
 
   const AppAuthGate({
     super.key,
     required this.personalShell,
     required this.businessShell,
     this.appState,
+    this.unauthenticatedChild,
   });
 
   @override
@@ -90,9 +93,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockStateProvider);
 
-    // 1. User has no active authenticated session -> Absolutely no app entry. Show Login.
+    // 1. User has no active authenticated session -> Show Landing Screen
     if (!lockState.hasSession) {
-      return const LoginScreen();
+      return widget.unauthenticatedChild ?? const LandingScreen();
     }
 
     // 2. App is Locked -> Show Unlock Screen
@@ -152,58 +155,81 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-
-              // ── Brand Mark ──
-              const FlowPayLogo.horizontal(size: 28),
-              const SizedBox(height: 24),
-
-              // ── Status Icon Container ──
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: isExpired
-                      ? FlowPayColors.amber.withValues(alpha: 0.12)
-                      : isDark
-                          ? FlowPayColors.darkSurfaceElevated
-                          : FlowPayColors.mint100,
-                  borderRadius: FlowPayRadii.card,
-                  border: Border.all(
-                    color: isExpired
-                        ? FlowPayColors.amber.withValues(alpha: 0.4)
-                        : FlowPayColors.primary.withValues(alpha: 0.3),
-                    width: 1.5,
+      body: Stack(
+        children: [
+          if (isDark)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 380,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0, -0.6),
+                    radius: 0.95,
+                    colors: [
+                      Color(0xFF0F3224),
+                      Colors.transparent,
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isExpired ? FlowPayColors.amber : FlowPayColors.primary)
-                          .withValues(alpha: 0.12),
-                      blurRadius: 20,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  isExpired
-                      ? Icons.timer_outlined
-                      : (lockState.hasFaceId
-                          ? Icons.face_unlock_outlined
-                          : (lockState.hasFingerprint
-                              ? Icons.fingerprint
-                              : Icons.shield_outlined)),
-                  size: 36,
-                  color: isExpired
-                      ? FlowPayColors.amber
-                      : FlowPayColors.primary,
                 ),
               ),
-              const SizedBox(height: 18),
+            ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+
+                  // ── Brand Mark ──
+                  const FlowPayLogo.horizontal(size: 28),
+                  const SizedBox(height: 28),
+
+                  // ── Status Icon Container (3D Halo Badge) ──
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: isExpired
+                          ? FlowPayColors.amber.withValues(alpha: 0.12)
+                          : isDark
+                              ? FlowPayColors.darkSurfaceElevated
+                              : FlowPayColors.mint100,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isExpired
+                            ? FlowPayColors.amber.withValues(alpha: 0.45)
+                            : FlowPayColors.primary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isExpired
+                                  ? FlowPayColors.amber
+                                  : FlowPayColors.primary)
+                              .withValues(alpha: 0.22),
+                          blurRadius: 28,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isExpired
+                          ? Icons.timer_outlined
+                          : (lockState.hasFaceId
+                              ? Icons.face_unlock_outlined
+                              : (lockState.hasFingerprint
+                                  ? Icons.fingerprint
+                                  : Icons.shield_outlined)),
+                      size: 40,
+                      color: isExpired
+                          ? FlowPayColors.amber
+                          : FlowPayColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
               // ── Title & Subtitle ──
               Text(
@@ -387,6 +413,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }

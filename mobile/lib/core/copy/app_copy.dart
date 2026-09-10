@@ -13,6 +13,16 @@ abstract class AppCopy {
   static const String appName = 'FlowPay';
   static const String lockedMessage = 'FlowPay is locked';
 
+  // ── Landing & Onboarding ───────────────────────────────────────────────────
+
+  static const String landingHeadline = 'Your Money.\nYour Rules.\nAI Executes.';
+  static const String landingSubtitle =
+      'FlowPay gives you multi-currency smart wallets, automated saving rules, and instant global transfers — secured on your device.';
+  static const String getStarted = 'Get Started';
+  static const String signIn = 'Sign in';
+  static const String logIn = 'Log In';
+  static const String signUp = 'Sign Up';
+
   // ── Security / PIN ────────────────────────────────────────────────────────
 
   static const String requiresPin = 'Requires your PIN';
