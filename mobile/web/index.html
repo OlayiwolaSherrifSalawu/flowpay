@@ -4,20 +4,12 @@
   <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="FlowPay — Borderless Payroll & Financial Engine powered by BMONI">
 
   <!-- iOS meta tags & icons -->
@@ -31,16 +23,81 @@
 
   <title>FlowPay — Borderless Payroll & Financial Engine</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      background-color: #0A0D0C;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #FFFFFF;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    .loading-container {
+      text-align: center;
+      padding: 24px;
+      max-width: 320px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(0, 208, 156, 0.15);
+      border-top-color: #00D09C;
+      border-radius: 50%;
+      animation: spin 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      margin: 0 auto 20px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      color: #FFFFFF;
+    }
+    .brand-sub {
+      font-size: 13px;
+      color: #88908D;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+    #error-display {
+      display: none;
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(255, 75, 75, 0.12);
+      border: 1px solid rgba(255, 75, 75, 0.3);
+      border-radius: 8px;
+      font-size: 12px;
+      color: #FF7B7B;
+      text-align: left;
+      word-break: break-all;
+    }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <div class="loading-container" id="loading-container">
+    <div class="spinner"></div>
+    <div class="brand-title">FlowPay</div>
+    <div class="brand-sub">Connecting financial engine...</div>
+    <div id="error-display"></div>
+  </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <script>
+    window.addEventListener('error', function(e) {
+      var errDiv = document.getElementById('error-display');
+      if (errDiv) {
+        errDiv.style.display = 'block';
+        errDiv.textContent = 'Startup error: ' + (e.message || e.filename || 'Failed to load module');
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
