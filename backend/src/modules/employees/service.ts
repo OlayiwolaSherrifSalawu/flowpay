@@ -88,7 +88,28 @@ export class EmployeeService {
     if (c === 'MX') return `+5255${Math.floor(10000000 + Math.random() * 90000000)}`;
     return `+1415555${Math.floor(1000 + Math.random() * 9000)}`;
   }
-
+  // Shared 409-conflict recovery: looks up an existing BMONI user by email
+  // when POST /v1/users reports "already exists." Used by both createEmployee
+  // (first-time create) and retryBmoniUserCreation, so both self-heal instead
+  // of only the retry path.
+  static async recoverBmoniUserIdOnConflict(email: string): Promise<string | undefined> {
+    try {
+      const listRes = await (bmoniClient as any).request('/v1/users') as {
+        users?: Array<{ id: string; bmoniUserId?: string; email: string; phoneNumber?: string }>;
+      };
+      const matched = listRes?.users?.find(
+        (u) => u.email?.toLowerCase() === email.trim().toLowerCase()
+      );
+      if (matched) {
+        const recoveredId = matched.bmoniUserId || matched.id;
+        console.log(`[EmployeeService] Recovered existing BMONI user ${recoveredId} on 409 conflict for ${email}`);
+        return recoveredId;
+      }
+    } catch (recoverErr) {
+      console.warn('[EmployeeService] Failed to recover existing BMONI user on 409:', recoverErr);
+    }
+    return undefined;
+  }
   static async listEmployees(statusFilter?: string): Promise<EmployeeRecord[]> {
     let dbRows: EmployeeRecord[] = [];
     if (isPostgresDb()) {
@@ -187,12 +208,20 @@ export class EmployeeService {
       // is "success from a previous attempt" — recover rather than duplicating.
       if (status === 409) {
         console.warn(
-          `[EmployeeService] BMONI reported 409 (user already exists) for ${data.email}. Treating as recovered.`
+          `[EmployeeService] BMONI reported 409 (user already exists) for ${data.email}. Attempting recovery.`
         );
         console.log('[DEBUG] Full 409 error details:', JSON.stringify(err?.details ?? err));
-        failureReason =
-          'A BMONI user already exists with this email or phone number. Use a different email/phone, or recover the existing user.';
-        createError = err;
+        const recoveredId = await this.recoverBmoniUserIdOnConflict(data.email);
+        if (recoveredId) {
+          bmoniUserId = recoveredId;
+          // Recovery succeeded — leave createError unset so the rest of
+          // createEmployee proceeds down the normal success path (status
+          // INVITED, invite email dispatched, etc.)
+        } else {
+          failureReason =
+            'A BMONI user already exists with this email or phone number, but the existing user could not be located to recover automatically. Use a different email/phone, or recover manually.';
+          createError = err;
+        }
       } else {
         const msg = err?.message || 'BMONI user creation failed';
         failureReason =
@@ -355,22 +384,7 @@ export class EmployeeService {
       // 409 = a user already exists with this email/phone. Per BMONI docs,
       // recover the existing user identity rather than failing the retry.
       if (status === 409) {
-        try {
-          const listRes = await (bmoniClient as any).request('/v1/users') as {
-            users?: Array<{ id: string; bmoniUserId?: string; email: string; phoneNumber?: string }>;
-          };
-          const matched = listRes?.users?.find(
-            (u) => u.email?.toLowerCase() === employee.email.trim().toLowerCase()
-          );
-          if (matched) {
-            bmoniUserId = matched.bmoniUserId || matched.id;
-            console.log(
-              `[EmployeeService] Recovered existing BMONI user ${bmoniUserId} on 409 conflict for ${employee.email}`
-            );
-          }
-        } catch (recoverErr) {
-          console.warn('[EmployeeService] Failed to recover existing BMONI user on 409:', recoverErr);
-        }
+        bmoniUserId = await this.recoverBmoniUserIdOnConflict(employee.email);
       }
 
       if (!bmoniUserId) {
