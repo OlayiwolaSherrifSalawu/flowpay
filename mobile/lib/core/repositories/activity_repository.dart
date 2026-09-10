@@ -70,6 +70,8 @@ class ActivityModel {
   final String? exchangeRate;
   final String? bmoniReference;
   final Map<String, dynamic>? metadata;
+  final bool isIncoming;
+  final String? userId;
 
   ActivityModel({
     required this.id,
@@ -89,11 +91,39 @@ class ActivityModel {
     this.exchangeRate,
     this.bmoniReference,
     this.metadata,
+    bool? isIncoming,
+    this.userId,
   })  : type = type ?? _inferType(category, title),
         category = category ?? _inferCategory(type),
         currency = currency ?? amount?.currency ?? Currency.usd,
         reference = reference ?? id,
-        counterparty = counterparty ?? _inferCounterparty(metadata, title);
+        counterparty = counterparty ?? _inferCounterparty(metadata, title),
+        isIncoming = isIncoming ?? _inferIsIncoming(title, metadata);
+
+  IconData get displayIcon {
+    if (isIncoming) {
+      return Icons.south_west;
+    }
+    return type.icon;
+  }
+
+  static bool _inferIsIncoming(String title, Map<String, dynamic>? meta) {
+    if (meta != null) {
+      if (meta['isIncoming'] == true) return true;
+      if (meta['amountReceived'] != null && meta['amountSent'] == null) return true;
+      final action = (meta['action'] ?? '').toString().toUpperCase();
+      if (action == 'TRANSFER_RECEIVED') return true;
+    }
+    final lower = title.toLowerCase();
+    if (lower.startsWith('received') ||
+        lower.contains('incoming') ||
+        lower.contains('deposit') ||
+        lower.contains('credited') ||
+        lower.contains('disbursement')) {
+      return true;
+    }
+    return false;
+  }
 
   static ActivityType _inferType(ActivityCategory? cat, String title) {
     if (cat == ActivityCategory.transfer) return ActivityType.transfer;
@@ -168,6 +198,8 @@ class ActivityModel {
     String? exchangeRate,
     String? bmoniReference,
     Map<String, dynamic>? metadata,
+    bool? isIncoming,
+    String? userId,
   }) {
     return ActivityModel(
       id: id ?? this.id,
@@ -187,6 +219,8 @@ class ActivityModel {
       exchangeRate: exchangeRate ?? this.exchangeRate,
       bmoniReference: bmoniReference ?? this.bmoniReference,
       metadata: metadata ?? this.metadata,
+      isIncoming: isIncoming ?? this.isIncoming,
+      userId: userId ?? this.userId,
     );
   }
 
@@ -215,4 +249,6 @@ abstract class ActivityRepository {
   });
 
   Future<ActivityModel> recordActivity(ActivityModel activity);
+
+  void clearLocalActivities([String? userId]);
 }

@@ -506,17 +506,30 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   height: 42,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? FlowPayColors.darkSurfaceElevated
-                        : FlowPayColors.mint100.withAlpha(60),
+                        ? (a.isIncoming
+                            ? FlowPayColors.success.withAlpha(25)
+                            : FlowPayColors.darkSurfaceElevated)
+                        : (a.isIncoming
+                            ? FlowPayColors.mint100.withAlpha(90)
+                            : FlowPayColors.mint100.withAlpha(60)),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: isDark
-                          ? FlowPayColors.darkBorder
-                          : FlowPayColors.primary.withAlpha(30),
+                          ? (a.isIncoming
+                              ? FlowPayColors.success.withAlpha(70)
+                              : FlowPayColors.darkBorder)
+                          : (a.isIncoming
+                              ? FlowPayColors.success.withAlpha(70)
+                              : FlowPayColors.primary.withAlpha(30)),
                     ),
                   ),
-                  child: Icon(a.type.icon,
-                      color: FlowPayColors.primary, size: 20),
+                  child: Icon(
+                    a.displayIcon,
+                    color: a.isIncoming
+                        ? FlowPayColors.success
+                        : FlowPayColors.primary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
 
@@ -566,15 +579,17 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   children: [
                     if (a.amount != null)
                       Text(
-                        a.amount!.formatFormatted(),
+                        '${a.isIncoming ? '+' : ''}${a.amount!.formatFormatted()}',
                         style: FlowPayTypography.bodyMd.copyWith(
                           fontWeight: FontWeight.bold,
                           fontFeatures: const [FontFeature.tabularFigures()],
                           color: a.status == FlowPayAppStatus.failed
                               ? FlowPayColors.error
-                              : (isDark
-                                  ? FlowPayColors.darkTextPrimary
-                                  : FlowPayColors.lightTextPrimary),
+                              : (a.isIncoming
+                                  ? FlowPayColors.success
+                                  : (isDark
+                                      ? FlowPayColors.darkTextPrimary
+                                      : FlowPayColors.lightTextPrimary)),
                         ),
                       )
                     else

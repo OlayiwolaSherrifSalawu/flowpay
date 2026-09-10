@@ -6,9 +6,18 @@ import '../../repositories/activity_repository.dart';
 
 class BmoniActivityRepository implements ActivityRepository {
   final FlowPayApiClient apiClient;
-  final List<ActivityModel> _localActivities = [];
+  final Map<String, List<ActivityModel>> _localActivitiesByUser = {};
 
   BmoniActivityRepository({required this.apiClient});
+
+  @override
+  void clearLocalActivities([String? userId]) {
+    if (userId != null && userId.isNotEmpty) {
+      _localActivitiesByUser.remove(userId);
+    } else {
+      _localActivitiesByUser.clear();
+    }
+  }
 
   @override
   Future<List<ActivityModel>> getRecentActivities({
@@ -16,11 +25,13 @@ class BmoniActivityRepository implements ActivityRepository {
     ActivityCategory? category,
     ActivityType? type,
   }) async {
+    final currentUserId =
+        apiClient.userId.isNotEmpty ? apiClient.userId : 'usr_flowpay_sandbox_master';
     List<ActivityModel> remoteList = [];
     try {
       final res = await apiClient.get('/api/activity', queryParams: {
         'limit': limit.toString(),
-        if (apiClient.userId.isNotEmpty) 'userId': apiClient.userId,
+        if (currentUserId.isNotEmpty) 'userId': currentUserId,
         if (category != null) 'category': category.name.toUpperCase(),
         if (type != null) 'type': type.name.toUpperCase(),
       });
@@ -74,10 +85,29 @@ class BmoniActivityRepository implements ActivityRepository {
           final sender = details?['sender']?.toString();
           final recipient = details?['recipient']?.toString() ??
               details?['counterparty']?.toString();
-          final counterparty = isReceived
+          String rawCounterparty = isReceived
               ? (sender ?? 'FlowPay Sender')
               : (recipient ??
                   (item['actor']?.toString() ?? 'FlowPay Rail'));
+
+          // Format counterparty display name cleanly
+          String cleanCounterparty = rawCounterparty;
+          final senderName = details?['senderName']?.toString();
+          if (isReceived && senderName != null && senderName.isNotEmpty) {
+            cleanCounterparty = senderName;
+          } else if (cleanCounterparty.startsWith('usr_personal_') ||
+              cleanCounterparty.startsWith('usr_bmoni_') ||
+              cleanCounterparty.startsWith('usr_flowpay_')) {
+            if (cleanCounterparty == 'usr_flowpay_sandbox_master') {
+              cleanCounterparty = 'FlowPay Master Account';
+            } else {
+              final suffix = cleanCounterparty.length > 4
+                  ? cleanCounterparty.substring(cleanCounterparty.length - 4)
+                  : cleanCounterparty;
+              cleanCounterparty =
+                  isReceived ? 'FlowPay Member (..$suffix)' : 'FlowPay Member';
+            }
+          }
 
           ActivityType actType = ActivityType.wallet;
           if (cat == ActivityCategory.transfer || isReceived || isCompleted) {
@@ -90,11 +120,11 @@ class BmoniActivityRepository implements ActivityRepository {
 
           String title = item['action']?.toString() ?? 'Account Activity';
           if (isReceived) {
-            title = 'Received from $counterparty';
+            title = 'Received from $cleanCounterparty';
           } else if (recipient != null &&
               recipient.isNotEmpty &&
               (title == 'TRANSFER_COMPLETED' || title.contains('TRANSFER'))) {
-            title = 'Transfer to $recipient';
+            title = 'Transfer to $cleanCounterparty';
           } else if (title == 'MONEY_MISSION_EXECUTED' &&
               details?['rule'] != null) {
             title = '⚡ Mission: ${details!['rule']}';
@@ -103,9 +133,9 @@ class BmoniActivityRepository implements ActivityRepository {
           String description = details?['description']?.toString() ?? '';
           if (description.isEmpty) {
             if (isReceived) {
-              description = 'Incoming transfer from $counterparty';
+              description = 'Incoming transfer from $cleanCounterparty';
             } else if (isCompleted && recipient != null) {
-              description = 'Transfer to $recipient';
+              description = 'Transfer to $cleanCounterparty';
             } else {
               description = item['actor']?.toString() ?? 'BMONI rail event recorded';
             }
@@ -123,13 +153,13 @@ class BmoniActivityRepository implements ActivityRepository {
           if (statusStr.contains('CANCEL')) status = FlowPayAppStatus.cancelled;
 
           final source = isReceived
-              ? counterparty
+              ? cleanCounterparty
               : (details?['fundingWallet']?.toString() ??
                   details?['source']?.toString());
           final destination = isReceived
               ? 'My Wallet'
               : (details?['destination']?.toString() ??
-                  (recipient != null ? "$recipient's Wallet" : null));
+                  (recipient != null ? "$cleanCounterparty's Wallet" : null));
 
           return ActivityModel(
             id: item['id']?.toString() ??
@@ -141,9 +171,11 @@ class BmoniActivityRepository implements ActivityRepository {
             status: status,
             amount: amount,
             currency: amount?.currency,
-            counterparty: counterparty,
+            counterparty: cleanCounterparty,
             source: source,
             destination: destination,
+            isIncoming: isReceived,
+            userId: currentUserId,
             timestamp: item['created_at'] != null
                 ? DateTime.tryParse(item['created_at'].toString()) ??
                     DateTime.now()
@@ -153,6 +185,7 @@ class BmoniActivityRepository implements ActivityRepository {
                     : DateTime.now()),
             reference: details?['transferId']?.toString() ??
                 details?['reference']?.toString() ??
+                details?['transactionHash']?.toString() ??
                 item['id']?.toString() ??
                 '',
             metadata: details,
@@ -161,11 +194,32 @@ class BmoniActivityRepository implements ActivityRepository {
       }
     } catch (_) {}
 
-    // Merge local activities with remote, preserving local updates and ordering by timestamp desc
-    final combined = <ActivityModel>[..._localActivities];
+    // Only merge local activities belonging to the active current user
+    final userLocalActivities = _localActivitiesByUser[currentUserId] ?? [];
+    final combined = <ActivityModel>[...userLocalActivities];
+
     for (final rem in remoteList) {
-      if (!combined
-          .any((loc) => loc.id == rem.id || loc.reference == rem.reference)) {
+      final remTxHash = rem.metadata?['transactionHash']?.toString();
+      final remTransferId = rem.metadata?['transferId']?.toString() ??
+          rem.metadata?['proposalId']?.toString();
+
+      final isDuplicate = combined.any((loc) {
+        if (loc.id == rem.id) return true;
+        if (loc.reference.isNotEmpty) {
+          if (loc.reference == rem.reference) return true;
+          if (remTxHash != null && loc.reference == remTxHash) return true;
+          if (remTransferId != null && loc.reference == remTransferId) {
+            return true;
+          }
+        }
+        final locTxHash = loc.metadata?['transactionHash']?.toString();
+        if (locTxHash != null && remTxHash != null && locTxHash == remTxHash) {
+          return true;
+        }
+        return false;
+      });
+
+      if (!isDuplicate) {
         combined.add(rem);
       }
     }
@@ -183,15 +237,24 @@ class BmoniActivityRepository implements ActivityRepository {
 
   @override
   Future<ActivityModel> recordActivity(ActivityModel activity) async {
-    final idx = _localActivities.indexWhere(
+    final uid = activity.userId ??
+        (apiClient.userId.isNotEmpty
+            ? apiClient.userId
+            : 'usr_flowpay_sandbox_master');
+    final userList = _localActivitiesByUser.putIfAbsent(uid, () => []);
+
+    final idx = userList.indexWhere(
       (a) =>
           a.id == activity.id ||
-          (a.reference.isNotEmpty && a.reference == activity.reference),
+          (a.reference.isNotEmpty && a.reference == activity.reference) ||
+          (activity.metadata?['transactionHash'] != null &&
+              activity.metadata!['transactionHash'] ==
+                  a.metadata?['transactionHash']),
     );
     if (idx != -1) {
-      _localActivities[idx] = activity;
+      userList[idx] = activity;
     } else {
-      _localActivities.insert(0, activity);
+      userList.insert(0, activity);
     }
     return activity;
   }

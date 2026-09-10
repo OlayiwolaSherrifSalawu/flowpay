@@ -1050,4 +1050,7 @@ class DemoActivityRepository implements ActivityRepository {
     }
     return activity;
   }
+
+  @override
+  void clearLocalActivities([String? userId]) {}
 }
