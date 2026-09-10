@@ -133,7 +133,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   icon: Icons.groups_outlined,
                   title: 'No employees yet',
                   description:
-                      'Add remote team members across Nigeria and Mexico to automate multi-rail payroll and virtual cards.',
+                      'Add remote team members across Nigeria and Mexico to run payroll and issue virtual cards.',
                   actionText: 'Add Employee',
                   onAction: _showAddEmployeeDialog,
                 )
@@ -189,8 +189,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                               margin: const EdgeInsets.symmetric(horizontal: 8),
                             ),
                             _HeaderStatPill(
-                              label: 'ACTIVE RAILS',
-                              value: '2 (NGN, MEXe)',
+                              label: 'COUNTRIES',
+                              value: '2 (Nigeria, Mexico)',
                               icon: Icons.public_rounded,
                               iconColor: FlowPayColors.info,
                               isDark: isDark,

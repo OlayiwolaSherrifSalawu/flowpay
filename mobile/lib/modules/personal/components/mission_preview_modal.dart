@@ -97,7 +97,7 @@ class MissionPreviewModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'AI structured • Deterministically validated',
+                        'Reviewed by FlowPay AI',
                         style: FlowPayTypography.captionStyle(
                           color: isDark
                               ? FlowPayColors.darkTextSecondary
@@ -153,7 +153,7 @@ class MissionPreviewModal extends StatelessWidget {
                         Text(
                           intent.triggerCondition.type.toUpperCase() ==
                                   'BALANCE_THRESHOLD'
-                              ? 'BALANCE THRESHOLD TRIGGER'
+                              ? 'WHEN BALANCE REACHES TARGET'
                               : 'WHEN PAYMENT ARRIVES',
                           style: TextStyle(
                             fontSize: 10,
@@ -189,7 +189,7 @@ class MissionPreviewModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Trigger: ${intent.triggerCondition.type.toUpperCase()}',
+                          'Automatic rule',
                           style: FlowPayTypography.captionStyle(
                             color: FlowPayColors.primary,
                           ),
@@ -387,7 +387,7 @@ class MissionPreviewModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Requires explicit authorization with your on-device B-Key PIN.',
+                          'Requires authorization with your 6-digit PIN.',
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark
@@ -419,7 +419,7 @@ class MissionPreviewModal extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: FlowPayButton(
-                    text: 'Approve Mission',
+                    text: 'Approve Rule',
                     variant: FlowPayButtonVariant.primary,
                     size: FlowPayButtonSize.large,
                     onPressed: onApprove,

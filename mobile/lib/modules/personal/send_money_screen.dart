@@ -398,7 +398,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
 
     setState(() {
       _isAnalyzing = true;
-      _analysisStep = 'Interpreting financial intent...';
+      _analysisStep = 'Understanding your request...';
       _errorMessage = null;
     });
 
@@ -434,7 +434,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
         _amountController.text = intent.amount;
         _selectedCurrency = intent.currency;
         _purposeController.text = intent.purpose ?? '';
-        _analysisStep = 'Inspecting wallet balances & routing...';
+        _analysisStep = 'Checking your balance...';
       });
 
       await _runBalanceInspection(intentOverride: intent);
@@ -622,11 +622,11 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       _analysisStep = null;
     });
 
-    // Step 5: On-device B-Key PIN Entry & Hardware Enclave Signing via WalletPinAuthSheet
+    // Step 5: On-device PIN confirmation
     final signature = await WalletPinAuthSheet.show(
       context: context,
-      title: 'Authorize Transfer',
-      subtitle: 'Sign on-device with your 6-digit B-Key PIN',
+      title: 'Confirm payment',
+      subtitle: 'Enter your 6-digit PIN to confirm',
       amountDisplay: '${intent.amount} ${intent.currency.code}',
       recipient: intent.recipient,
       onAuthorize: (pin) async {
@@ -646,13 +646,14 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       return;
     }
 
-    // Step 6: Submit Signature to FlowPay Backend -> Execution
+    // Step 6: Submit and complete
     setState(() {
       _isAnalyzing = true;
-      _analysisStep = 'Submitting signature to network rails...';
+      _analysisStep = 'Sending your payment...';
     });
 
     try {
+
       final execution = await widget.appState.transferRepo.executeProposal(
         proposalId: proposal.proposalId,
         signature: signature,
@@ -790,7 +791,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'FlowPay Global Execution Rail',
+                            'Send Money',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -798,7 +799,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             ),
                           ),
                           Text(
-                            'Balance-Aware • AI Extracts • Hardware PIN Signed',
+                            'Secured with your PIN',
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
@@ -807,28 +808,10 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: FlowPayColors.emerald600.withAlpha(isDark ? 30 : 20),
-                        borderRadius: FlowPayRadii.chip,
-                        border: Border.all(
-                          color: FlowPayColors.emerald600.withAlpha(isDark ? 70 : 50),
-                        ),
-                      ),
-                      child: const Text(
-                        'FlowPay BMONI Rail',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: FlowPayColors.emerald600,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 14),
 
               // 1. Natural Language Entry Box
@@ -1103,7 +1086,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Recipient / Beneficiary',
+                            'Recipient',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -1146,7 +1129,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  _isBankMode ? 'NGN Bank Rail' : 'Switch to NGN Bank',
+                                  _isBankMode ? 'Nigeria Bank Transfer' : 'Switch to NGN Bank',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: _isBankMode ? FontWeight.bold : FontWeight.w500,
@@ -1237,7 +1220,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                           counterText: '',
                           prefixIcon: const Icon(Icons.pin_outlined,
                               color: FlowPayColors.emerald600, size: 20),
-                          hintText: 'Enter 10-digit NUBAN account number',
+                          hintText: 'Enter 10-digit bank account number',
                           hintStyle: TextStyle(
                             color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
                             fontSize: 13,
@@ -1489,7 +1472,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                       ),
                                     ),
                                     subtitle: Text(
-                                      '${c.stablecoinToken} Rail',
+                                      c.code,
                                       style: TextStyle(
                                         color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
                                         fontSize: 12,
@@ -1601,7 +1584,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    'Funding Source & Routing',
+                                    "How you'll pay",
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 14,
@@ -1658,7 +1641,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'Balance-Aware Auto-Funding: Insufficient ${_selectedCurrency.code}. FlowPay routes settlement via ${_selectedFundingOption!.fundingWalletName} (${_selectedFundingOption!.availableBalance.formatFormatted()} available).',
+                                  'Not enough ${_selectedCurrency.code}. We\'ll use your ${_selectedFundingOption!.fundingWalletName} balance (${_selectedFundingOption!.availableBalance.formatFormatted()} available) to cover this payment.',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark ? Colors.white70 : const Color(0xFF374151),
@@ -1675,7 +1658,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                       // Funding source selector / row
                       if (_inspectionResult!.allFundingOptions.length > 1) ...[
                         Text(
-                          'Choose Funding Wallet:',
+                          'Choose payment source:',
                           style: TextStyle(
                               fontSize: 12,
                               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280)),

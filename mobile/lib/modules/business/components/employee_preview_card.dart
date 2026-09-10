@@ -158,7 +158,7 @@ class EmployeePreviewCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'COUNTRY & RAIL',
+                        'COUNTRY',
                         style: FlowPayTypography.captionStyle(
                           color: textTertiaryColor,
                         ).copyWith(
@@ -357,7 +357,7 @@ class EmployeePreviewCard extends StatelessWidget {
                           Text(
                             employee.failureReason ??
                                 (employee.failedStage == 'BMONI_USER_CREATION'
-                                    ? 'BMONI identity could not be created. Check the BMONI API key, then retry.'
+                                    ? 'Employee account could not be created. Please retry.'
                                     : 'This employee could not be onboarded. Tap retry to try again.'),
                             style: FlowPayTypography.captionStyle(
                               color: textSecondaryColor,

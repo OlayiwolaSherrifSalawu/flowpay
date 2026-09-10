@@ -395,7 +395,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           color: FlowPayColors.primary.withValues(alpha: 0.7)),
                       const SizedBox(width: 6),
                       Text(
-                        'Protected by B-Key hardware enclave · BMONI',
+                        'Your account is secured on this device',
                         style: TextStyle(
                           fontSize: 11,
                           color: textSecondary,

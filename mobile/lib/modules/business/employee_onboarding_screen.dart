@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/design_system.dart';
-import '../../core/money/currency_mapping.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
@@ -89,7 +88,6 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
   }
 
   bool get _isNigeria => _emp.country.toUpperCase() == 'NG';
-  String get _stablecoin => CurrencyMapping.toStablecoin(_emp.country);
 
   Future<void> _fetchStatus() async {
     setState(() {
@@ -141,9 +139,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       final signature = await WalletPinAuthSheet.show(
         context: context,
-        title: 'Authorize Smart Wallet',
+        title: 'Authorize Payment Account',
         subtitle:
-            'Sign owner challenge for $_stablecoin smart wallet on-device.',
+            'Enter your PIN to set up payment account on this device.',
         onAuthorize: (pin) async {
           return await BmoniSdkService.signMessage(messageToSign, pin: pin);
         },
@@ -166,7 +164,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       BMoniToastOverlay.showSuccess(
         context: context,
         title: 'Stage 2 Complete',
-        message: 'Smart wallet provisioned with $_stablecoin settlement rail.',
+        message: 'Payment account set up successfully.',
       );
 
       await _fetchStatus();
@@ -350,9 +348,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '• Etherfuse Digital Asset Custody Agreement (MEXe)\n'
-                      '• Fintoc Banking Rail & SPEI Offramp Authorization\n'
-                      '• CNBV & SAT Regulatory Compliance Disclosures',
+                      '• Account & Custody Agreement (Mexico)\n'
+                      '• Banking & Bank Transfer Authorization\n'
+                      '• Regulatory Compliance Disclosures',
                       style: FlowPayTypography.body(
                           color: FlowPayColors.textSecondary),
                     ),
@@ -421,9 +419,9 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       BMoniToastOverlay.showSuccess(
         context: context,
-        title: 'Stage 4 Submitted',
+        title: 'Payments Setup Submitted',
         message:
-            'Rail activation started. Awaiting onboarding.completed webhook.',
+            'Payment setup started. We will notify you when ready.',
       );
 
       await _fetchStatus();
@@ -431,7 +429,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       if (!mounted) return;
       BMoniToastOverlay.showError(
         context: context,
-        title: 'Stage 4 Error',
+        title: 'Setup Error',
         message: e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
@@ -617,7 +615,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                         style: FlowPayTypography.title(color: textPrimaryColor)
                             .copyWith(fontSize: 17, fontWeight: FontWeight.w700)),
                     Text(
-                        'Rail: ${_emp.targetCurrency.code} (${_emp.targetCurrency.stablecoinToken})',
+                        'Currency: ${_emp.targetCurrency.code}',
                         style: FlowPayTypography.captionStyle(
                             color: textSecondaryColor)),
                   ],
@@ -661,16 +659,16 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
       children: [
         Expanded(
             child: _stageTabItem(
-                context, 2, 'Stage 2\nWallet', _status?.stage2Wallet.state)),
+                context, 2, 'Step 2\nWallet', _status?.stage2Wallet.state)),
         const SizedBox(width: 8),
         Expanded(
             child: _stageTabItem(
-                context, 3, 'Stage 3\nKYC', _status?.stage3Kyc.state)),
+                context, 3, 'Step 3\nVerify', _status?.stage3Kyc.state)),
         const SizedBox(width: 8),
         Expanded(
             child:
                 _stageTabItem(
-                context, 4, 'Stage 4\nRail', _status?.stage4Rail.state)),
+                context, 4, 'Step 4\nPayments', _status?.stage4Rail.state)),
       ],
     );
   }
@@ -778,7 +776,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Stage 2: Smart Wallet Provisioning',
+                child: Text('Step 2: Set Up Wallet',
                     style: FlowPayTypography.title(color: textPrimaryColor)
                         .copyWith(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
@@ -801,7 +799,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Smart wallet calls use stablecoin token $_stablecoin (not ${_emp.targetCurrency.code}) per BMONI specifications.',
+                    'Your employee\'s payment account will be configured in ${_emp.targetCurrency.code}.',
                     style: FlowPayTypography.captionStyle(
                         color: textPrimaryColor),
                   ),
@@ -811,10 +809,10 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            '1. BmoniEmbeddedSdk.initWallet() generates key on-device\n'
-            '2. POST /owner-proof-challenges requests challenge\n'
-            '3. BmoniEmbeddedSdk.signMessage() signs challenge via 6-digit PIN\n'
-            '4. POST /create-managed registers managed smart wallet',
+            '1. Create secure account on device\n'
+            '2. Request security challenge\n'
+            '3. Authorize setup with 6-digit PIN\n'
+            '4. Register account for payroll',
             style: FlowPayTypography.body(color: textSecondaryColor)
                 .copyWith(fontSize: 13, height: 1.5),
           ),
@@ -835,7 +833,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Smart wallet active: ${_status?.stage2Wallet.details['walletAddress'] ?? _emp.walletAddress ?? '0x...'}',
+                      'Wallet active: ${_status?.stage2Wallet.details['walletAddress'] ?? _emp.walletAddress ?? '0x...'}',
                       style: FlowPayTypography.captionStyle(
                               color: FlowPayColors.signal)
                           .copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w600),
@@ -847,8 +845,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           ] else ...[
             FlowPayButton(
               text: _isProcessingAction
-                  ? 'Provisioning Wallet...'
-                  : 'Provision Smart Wallet on BMONI',
+                  ? 'Setting Up Wallet...'
+                  : 'Set Up Wallet',
               variant: FlowPayButtonVariant.primary,
               icon: Icons.key_rounded,
               onPressed: _handleProvisionWallet,
@@ -907,7 +905,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Stage 3: ${_isNigeria ? 'Nigeria KYC (No Selfie)' : 'Mexico KYC (Selfie + CURP)'}',
+                  'Step 3: ${_isNigeria ? 'Identity Verification (Nigeria)' : 'Identity Verification (Mexico)'}',
                   style: FlowPayTypography.title(color: textPrimaryColor)
                       .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
@@ -917,8 +915,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           const SizedBox(height: 8),
           Text(
             _isNigeria
-                ? 'Nigeria path strictly omits biometric selfie. Requires 11-digit BVN and Enhanced Due Diligence (EDD).'
-                : 'Mexico path requires CURP, RFC, maternal/paternal surnames, and biometric selfie scan.',
+                ? 'Verify with your 11-digit Bank Verification Number (BVN).'
+                : 'Verify with CURP, RFC, and a photo verification.',
             style: FlowPayTypography.captionStyle(
                 color: textSecondaryColor),
           ),
@@ -981,7 +979,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Biometric selfie step is omitted for Nigeria per official BMONI KYC guidelines.',
+                      'Biometric selfie is not required for Nigeria verification.',
                       style: FlowPayTypography.captionStyle(
                           color: isDark ? Colors.lightBlueAccent : (Colors.blue[900] ?? Colors.blue)),
                     ),
@@ -1184,7 +1182,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Stage 4: ${_isNigeria ? 'Activate Nigeria Rail' : 'Activate Mexico Rail'}',
+                  'Step 4: Enable Payments',
                   style: FlowPayTypography.title(color: textPrimaryColor)
                       .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
@@ -1194,8 +1192,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           const SizedBox(height: 8),
           Text(
             _isNigeria
-                ? 'Issues NGN virtual account pointing at smart wallet address via POST /onboarding/start-nigeria.'
-                : 'Approval requires Etherfuse agreements signing first, then POST /latam/mx/kyc/activate.',
+                ? 'Enables local bank accounts for automated payroll.'
+                : 'Enables payment agreements and bank transfers for payroll.',
             style: FlowPayTypography.captionStyle(
                 color: textSecondaryColor),
           ),
@@ -1230,8 +1228,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                       children: [
                         Text(
                           _agreementsSigned
-                              ? 'Etherfuse Agreements: Signed'
-                              : 'Prerequisite: Sign Etherfuse Agreements',
+                              ? 'Payment Agreements: Signed'
+                              : 'Prerequisite: Sign Payment Agreements',
                           style: TextStyle(
                             color: _agreementsSigned
                                 ? FlowPayColors.signal
@@ -1241,7 +1239,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                           ),
                         ),
                         Text(
-                          'GET /v1/users/{userId}/latam/mx/kyc/launch/agreements',
+                          'Required to enable Mexico bank transfers',
                           style: FlowPayTypography.captionStyle(
                               color: textSecondaryColor),
                         ),
@@ -1271,7 +1269,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   const Icon(Icons.check_circle_rounded,
                       color: FlowPayColors.signal, size: 20),
                   const SizedBox(width: 10),
-                  Text('Disbursement Rail Active & Ready for Payroll',
+                  Text('Payments Active & Ready for Payroll',
                       style: FlowPayTypography.captionStyle(
                           color: FlowPayColors.signal).copyWith(fontWeight: FontWeight.w600)),
                 ],
@@ -1305,7 +1303,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Subscribed to onboarding.completed webhook. Do not poll — waiting for provider settlement confirmation.',
+                    'Setup in progress. This may take a moment — we\'ll notify you when ready.',
                     style: FlowPayTypography.captionStyle(
                         color: textSecondaryColor),
                   ),
@@ -1315,8 +1313,8 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
           ] else ...[
             FlowPayButton(
               text: _isProcessingAction
-                  ? 'Activating Rail...'
-                  : 'Activate Rail on BMONI',
+                  ? 'Enabling Payments...'
+                  : 'Enable Payments',
               variant: FlowPayButtonVariant.primary,
               icon: Icons.power_settings_new_rounded,
               onPressed: _handleActivateRail,
@@ -1333,7 +1331,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         if (overall == OnboardingStageState.inProgress ||
             overall == OnboardingStageState.notStarted) ...[
           FlowPayButton(
-            text: 'Simulate Webhook (onboarding.completed)',
+            text: 'Simulate Completion (Test Mode)',
             variant: FlowPayButtonVariant.secondary,
             icon: Icons.bolt_rounded,
             onPressed: _handleSimulateWebhook,

@@ -155,8 +155,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
           context: context,
           title: targetFreeze ? 'Card Frozen' : 'Card Unfrozen',
           message: targetFreeze
-              ? 'Card status updated to BLOCKED on BMONI rails.'
-              : 'Card status updated to ACTIVE on BMONI rails.',
+              ? 'Your card has been frozen.'
+              : 'Your card is now active.',
         );
       } catch (_) {
         ScaffoldMessenger.of(context).showSnackBar(

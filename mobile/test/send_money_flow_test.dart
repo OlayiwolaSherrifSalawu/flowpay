@@ -213,8 +213,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pumpAndSettle();
 
-      // Top Security Rail Header
-      expect(find.text('FlowPay BMONI Rail'), findsOneWidget);
+      // Top Security Header
+      expect(find.text('Secured with your PIN'), findsOneWidget);
       expect(find.text('Natural Language Entry'), findsOneWidget);
 
       // Natural language text input
@@ -310,7 +310,7 @@ void main() {
       // Premium Confirmation Screen (TransferReviewModal)
       expect(find.byType(TransferReviewModal), findsOneWidget);
       expect(find.text('Nothing moves until you approve.'), findsOneWidget);
-      expect(find.text('Recipient'), findsOneWidget);
+      expect(find.descendant(of: find.byType(TransferReviewModal), matching: find.text('Recipient')), findsOneWidget);
       expect(find.text('Funding Source'), findsOneWidget);
       expect(find.text('Conversion'), findsOneWidget);
 

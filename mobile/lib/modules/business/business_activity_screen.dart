@@ -30,29 +30,29 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
   final List<Map<String, dynamic>> _businessActivities = [
     {
       'id': 'aud_001',
-      'title': 'Global Payroll Fan-Out',
+      'title': 'Payroll Sent',
       'desc': 'Disbursed \$4,000 USD to 2 employees in Nigeria & Mexico',
       'time': 'Today, 10:45 AM',
       'category': 'Payroll',
       'status': FlowPayAppStatus.completed,
       'amount': Money.fromMajorString('4000.00', Currency.usd),
       'country': 'NG',
-      'ref': 'ref_bmoni_payroll_0x8fa1c2',
-      'rail': 'CNGN / MEXe Multi-Rail',
+      'ref': 'REF-2024-001',
+      'rail': 'International',
       'icon': Icons.payments_rounded,
       'iconColor': FlowPayColors.primary,
     },
     {
       'id': 'aud_002',
       'title': 'Employee Onboarding Verified',
-      'desc': 'Samson Jabo completed KYC via Mexico SPEI rail',
+      'desc': 'Samson Jabo was verified for Mexico payments',
       'time': 'Yesterday',
       'category': 'Onboarding',
       'status': FlowPayAppStatus.success,
       'amount': Money.fromMajorString('0.00', Currency.mxn),
       'country': 'MX',
-      'ref': 'ref_bmoni_kyc_0x4b7e91',
-      'rail': 'MEXe Rail',
+      'ref': 'REF-2024-002',
+      'rail': 'Mexico',
       'icon': Icons.how_to_reg_rounded,
       'iconColor': FlowPayColors.accent,
     },
@@ -65,7 +65,7 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
       'status': FlowPayAppStatus.completed,
       'amount': Money.fromMajorString('0.00', Currency.ngn),
       'country': 'NG',
-      'ref': 'ref_bmoni_card_0x91d3f0',
+      'ref': 'REF-2024-003',
       'rail': 'Virtual Mastercard',
       'icon': Icons.credit_card_rounded,
       'iconColor': FlowPayColors.amber,
@@ -73,14 +73,14 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
     {
       'id': 'aud_004',
       'title': 'Compliance Tax Filing',
-      'desc': 'Submitted aggregate FX compliance ledger',
+      'desc': 'Submitted tax compliance report',
       'time': '1 week ago',
       'category': 'Compliance',
       'status': FlowPayAppStatus.pending,
       'amount': Money.fromMajorString('0.00', Currency.usd),
       'country': 'US',
-      'ref': 'ref_bmoni_tax_0x33e8b2',
-      'rail': 'ERC-4337 Consensus',
+      'ref': 'REF-2024-004',
+      'rail': 'Completed',
       'icon': Icons.verified_user_rounded,
       'iconColor': FlowPayColors.info,
     },
@@ -171,8 +171,8 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
           child: Row(
             children: [
               _AuditHeaderStatPill(
-                label: 'AUDITED EVENTS',
-                value: '${_businessActivities.length} Events',
+                label: 'EVENTS',
+                value: '${_businessActivities.length} items',
                 icon: Icons.history_edu_rounded,
                 iconColor: FlowPayColors.primary,
                 isDark: isDark,
@@ -184,8 +184,8 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               _AuditHeaderStatPill(
-                label: 'ACTIVE RAILS',
-                value: '2 (NGN, MEXe)',
+                label: 'COUNTRIES',
+                value: '2 (Nigeria, Mexico)',
                 icon: Icons.public_rounded,
                 iconColor: FlowPayColors.accent,
                 isDark: isDark,
@@ -197,8 +197,8 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               _AuditHeaderStatPill(
-                label: 'CONSENSUS',
-                value: 'Immutable',
+                label: 'SECURITY',
+                value: 'Secured',
                 icon: Icons.lock_outline_rounded,
                 iconColor: FlowPayColors.info,
                 isDark: isDark,
@@ -220,7 +220,7 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
             onChanged: (val) => setState(() => _searchQuery = val.trim()),
             style: FlowPayTypography.body(color: textPrimaryColor),
             decoration: InputDecoration(
-              hintText: 'Search audit records, references...',
+              hintText: 'Search activity...',
               hintStyle: FlowPayTypography.body(
                   color: textSecondaryColor.withValues(alpha: 0.6)),
               prefixIcon: Icon(
@@ -302,7 +302,7 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
                     color: textSecondaryColor.withValues(alpha: 0.5)),
                 const SizedBox(height: 12),
                 Text(
-                  'No matching audit records found',
+                  'No matching activity found',
                   style: FlowPayTypography.body(color: textSecondaryColor),
                 ),
               ],
@@ -475,7 +475,7 @@ class _BusinessActivityScreenState extends State<BusinessActivityScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           title: Text(
-            'Corporate Audit Log',
+            'Business Activity',
             style: FlowPayTypography.title(color: textPrimaryColor).copyWith(
               fontWeight: FontWeight.w700,
               fontSize: 20,

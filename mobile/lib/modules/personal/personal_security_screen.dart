@@ -71,9 +71,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
   void _showTestSigningSheet() {
     WalletPinAuthSheet.show(
       context: context,
-      title: 'Test Device Signer',
+      title: 'Test your PIN',
       subtitle:
-          'Authorizes secure cryptographic verification using your on-device PIN',
+          'Confirm it\'s you with your PIN',
       onAuthorize: (pin) async {
         try {
           final sig = await BmoniSdkService.signMessage('FlowPay Security Test',
@@ -110,7 +110,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
     Widget content = _isLoading
         ? const FlowPayLoadingState(
-            message: 'Verifying Secure Enclave status...')
+            message: 'Loading security settings...')
         : RefreshIndicator(
             onRefresh: _checkSecurityState,
             child: ListView(
@@ -202,7 +202,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'B-Key Hardware Enclave Active',
+                      'Your account is secured',
                       style: FlowPayTypography.headingSm.copyWith(
                         fontWeight: FontWeight.bold,
                         color: isDark
@@ -212,7 +212,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     ),
                     const SizedBox(height: 3),
                     const Text(
-                      'On-Device Self-Custody • Zero Remote Private Keys',
+                      'Your funds are protected on this device',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -226,7 +226,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'Your private key is generated and protected inside the phone hardware secure enclave. It never touches FlowPay servers, remote cloud storage, or AI models.',
+            'Your security is generated and protected inside your phone. It never touches FlowPay servers, cloud storage, or AI.',
             style: TextStyle(
               fontSize: 13,
               height: 1.4,
@@ -245,12 +245,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 showDot: true,
               ),
               FlowPayBadge(
-                label: 'SECP256K1 HARDWARE',
-                color: FlowPayColors.primary,
-                showDot: false,
-              ),
-              FlowPayBadge(
-                label: 'ZERO AI CUSTODY',
+                label: 'Bank-grade encryption',
                 color: FlowPayColors.primary,
                 showDot: false,
               ),
@@ -270,7 +265,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '1. Wallet Security',
+              'Secure wallet',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isDark
@@ -279,7 +274,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               ),
             ),
             FlowPayBadge(
-              label: _hasWallet ? 'INITIALIZED' : 'NOT INITIALIZED',
+              label: _hasWallet ? 'READY' : 'NOT SET UP',
               color: _hasWallet ? FlowPayColors.primary : FlowPayColors.warning,
               showDot: true,
             ),
@@ -287,7 +282,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'On-device hardware keypair isolation and public address mapping.',
+          'Your wallet is stored safely on this device.',
           style: FlowPayTypography.caption.copyWith(
             color: isDark
                 ? FlowPayColors.darkTextTertiary
@@ -319,9 +314,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 isDark,
                 title: 'Wallet Status',
                 subtitle: _hasWallet
-                    ? 'Initialized & Registered on BMONI Testnet'
-                    : 'Not initialized on this device',
-                statusText: _hasWallet ? 'INITIALIZED' : 'UNINITIALIZED',
+                    ? 'Set up and ready'
+                    : 'Not set up yet',
+                statusText: _hasWallet ? 'READY' : 'NOT SET UP',
                 isSuccess: _hasWallet,
                 icon: Icons.account_balance_wallet_outlined,
               ),
@@ -330,7 +325,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
               // Public Address
               Text(
-                'On-Device EVM Public Address',
+                'Account address',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -371,11 +366,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.copy, size: 16),
-                      tooltip: 'Copy Public Address',
+                      tooltip: 'Copy address',
                       onPressed: () => _copyToClipboard(
                         _walletAddress ??
                             '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
-                        'Public Address',
+                        'Address',
                       ),
                     ),
                   ],
@@ -393,7 +388,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Enclave Key Isolation: Hardware Keystore / Apple Secure Enclave. Private keys never leave the hardware sandbox.',
+                      'Your account is protected by your device\'s built-in security.',
                       style: FlowPayTypography.caption.copyWith(
                         color: isDark
                             ? FlowPayColors.darkTextSecondary
@@ -407,7 +402,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               const SizedBox(height: 18),
 
               FlowPayButton(
-                text: 'Manage On-Device B-Key Wallet',
+                text: 'Manage your secure wallet',
                 icon: Icons.phonelink_lock,
                 isFullWidth: true,
                 size: FlowPayButtonSize.large,
@@ -437,7 +432,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '2. Signing Security',
+              'PIN & biometrics',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isDark
@@ -456,7 +451,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Cryptographic signature standards and hardware PIN authorization.',
+          'How your payments are confirmed',
           style: FlowPayTypography.caption.copyWith(
             color: isDark
                 ? FlowPayColors.darkTextTertiary
@@ -486,11 +481,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               // Device Signing Availability
               _buildSecurityStatusRow(
                 isDark,
-                title: 'Device Hardware Signer',
+                title: 'Payment confirmation',
                 subtitle: _isSigningAvailable
-                    ? 'Available • Secure Hardware Enclave Signing Engine Ready'
-                    : 'Device signing unavailable',
-                statusText: _isSigningAvailable ? 'ACTIVE' : 'INACTIVE',
+                    ? 'Ready'
+                    : 'Not available on this device',
+                statusText: _isSigningAvailable ? 'READY' : 'UNAVAILABLE',
                 isSuccess: _isSigningAvailable,
                 icon: Icons.fingerprint,
               ),
@@ -500,11 +495,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               // PIN Protection
               _buildSecurityStatusRow(
                 isDark,
-                title: '6-Digit Security PIN Protection',
+                title: 'Security PIN',
                 subtitle: _hasPin
-                    ? 'Enabled • Hardware-backed key derivation & PIN protection active'
-                    : 'Not configured • Set PIN to protect operations',
-                statusText: _hasPin ? 'CONFIGURED' : 'NOT SET',
+                    ? 'Enabled — your PIN protects all payments'
+                    : 'Not set up — add a PIN to protect your payments',
+                statusText: _hasPin ? 'ENABLED' : 'NOT SET UP',
                 isSuccess: _hasPin,
                 icon: Icons.pin,
               ),
@@ -514,9 +509,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               // Biometric App-Lock
               _buildSecurityStatusRow(
                 isDark,
-                title: 'Biometric App Gate',
+                title: 'Face ID & Fingerprint',
                 subtitle:
-                    'Local Authentication (Face ID / Fingerprint) enabled for app session lock',
+                    'Locks your app when you close it',
                 statusText: 'ENABLED',
                 isSuccess: true,
                 icon: Icons.lock_outline,
@@ -528,7 +523,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 children: [
                   Expanded(
                     child: FlowPayButton(
-                      text: 'Test Signer',
+                      text: 'Test PIN',
                       icon: Icons.verified_outlined,
                       size: FlowPayButtonSize.large,
                       variant: FlowPayButtonVariant.secondary,
@@ -571,7 +566,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '3. Approval Rules',
+              'Approval settings',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isDark
@@ -579,16 +574,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     : FlowPayColors.lightTextPrimary,
               ),
             ),
-            const FlowPayBadge(
-              label: 'ZERO AI EXECUTION',
-              color: FlowPayColors.primary,
-              showDot: true,
-            ),
           ],
         ),
         const SizedBox(height: 4),
         Text(
-          'Financial safety invariant pipeline and human authorization policy.',
+          'How your money is protected',
           style: FlowPayTypography.caption.copyWith(
             color: isDark
                 ? FlowPayColors.darkTextTertiary
@@ -647,7 +637,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'AI models in FlowPay are strictly advisory. AI can interpret natural language and suggest structured financial intents, but has ZERO custody and ZERO execution authority. Nothing moves until you explicitly approve and sign with your B-Key PIN.',
+                            'FlowPay AI only makes suggestions. Only you can approve payments — nothing moves until you confirm with your PIN.',
                             style: TextStyle(
                               fontSize: 12,
                               height: 1.4,
@@ -666,7 +656,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               const SizedBox(height: 18),
 
               Text(
-                'The 4 Invariants of FlowPay Financial Safety',
+                'How FlowPay keeps your money safe',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -679,30 +669,30 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
               _buildInvariantStep(
                 number: '1',
-                title: 'Structured Intent Interpretation',
+                title: 'Understanding your request',
                 description:
-                    'AI converts user directives into structured, inspectable parameters.',
+                    'FlowPay turns your words into a clear payment plan.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '2',
-                title: 'Deterministic Rule Validation',
+                title: 'Checking your plan',
                 description:
-                    'Percentages strictly sum to 100%, amounts must be positive integers, and currencies must exist in allowlist.',
+                    'FlowPay checks that your plan makes sense before anything moves.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '3',
-                title: 'Mandatory Human Preview',
+                title: 'You review everything',
                 description:
-                    'Review modal displays exact recipient, debit amounts, exchange rates, and network fees.',
+                    'You see exactly where your money goes before you approve.',
                 isDark: isDark,
               ),
               _buildInvariantStep(
                 number: '4',
-                title: 'On-Device B-Key Hardware Signature',
+                title: 'You confirm with your PIN',
                 description:
-                    '6-digit PIN authorizes local secp256k1 cryptographic signature inside hardware enclave.',
+                    'Your 6-digit PIN confirms every payment on this device.',
                 isDark: isDark,
               ),
 
@@ -710,7 +700,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
               // Active Policy Matrix
               Text(
-                'Approval Policy Thresholds',
+                'When your PIN is required',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -720,14 +710,14 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              _buildPolicyRow('Outbound Multi-Currency Transfers',
-                  'Mandatory 6-Digit PIN', isDark),
+              _buildPolicyRow('Sending money',
+                  'Requires your PIN', isDark),
               _buildPolicyRow(
-                  'Instant FX Conversions', 'Mandatory 6-Digit PIN', isDark),
+                  'Currency exchanges', 'Requires your PIN', isDark),
               _buildPolicyRow(
-                  'Money Mission Allocations', 'Mandatory 6-Digit PIN', isDark),
-              _buildPolicyRow('Card Limit & Freeze Actions',
-                  'Mandatory 6-Digit PIN', isDark),
+                  'Automatic rules', 'Requires your PIN', isDark),
+              _buildPolicyRow('Card actions',
+                  'Requires your PIN', isDark),
 
               const SizedBox(height: 14),
 
@@ -750,7 +740,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Genuine Security Standard: FlowPay does not claim unsupported cloud MPC or autonomous AI spending. All security is backed by on-device hardware cryptography and BMONI embedded rails.',
+                        'FlowPay keeps your money secure on your device. Only you can approve transactions.',
                         style: TextStyle(
                           fontSize: 11,
                           height: 1.4,

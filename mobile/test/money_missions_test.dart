@@ -30,13 +30,13 @@ void main() {
       // 1. Primary Heading & Tagline
       expect(find.text('Tell your money what to do.'), findsOneWidget);
       expect(
-        find.textContaining('Set autonomous directives in plain English'),
+        find.textContaining('Describe a rule in plain English'),
         findsOneWidget,
       );
 
       // 2. Large Natural Language Input & Button
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Interpret Directive'), findsOneWidget);
+      expect(find.text('Set up rule'), findsOneWidget);
 
       // 3. 5 Suggested Action Chips
       expect(find.text('Split incoming payment'), findsOneWidget);
@@ -113,21 +113,21 @@ void main() {
       await tester.tap(find.text('Split incoming payment'));
       await tester.pumpAndSettle();
 
-      // 1. Tap "Interpret Directive"
-      await tester.tap(find.text('Interpret Directive'));
+      // 1. Tap "Set up rule"
+      await tester.tap(find.text('Set up rule'));
       await tester.pump();
 
       // Verify AI pipeline stages appear
-      expect(find.text('Financial Safety AI Pipeline'), findsOneWidget);
-      expect(find.text('AI understood request'), findsOneWidget);
+      expect(find.text('Checking your plan...'), findsOneWidget);
+      expect(find.text('Got it'), findsOneWidget);
 
       // Pump elapsed timers for AI stages & validation
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Plan created (structured intent)'), findsOneWidget);
+      expect(find.text('Plan created'), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 400));
       expect(
-        find.text('Deterministic validation passed (100% allocation)'),
+        find.text('Everything checks out'),
         findsOneWidget,
       );
 
@@ -161,20 +161,20 @@ void main() {
       expect(find.text('Nothing moves until you approve.'), findsOneWidget);
       expect(
         find.text(
-            'Requires explicit authorization with your on-device B-Key PIN.'),
+            'Requires authorization with your 6-digit PIN.'),
         findsOneWidget,
       );
 
       // Verify Edit and Approve buttons
       expect(find.text('Edit'), findsOneWidget);
-      expect(find.text('Approve Mission'), findsOneWidget);
+      expect(find.text('Approve Rule'), findsOneWidget);
 
-      // 3. Tap "Approve Mission"
-      await tester.tap(find.text('Approve Mission'));
+      // 3. Tap "Approve Rule"
+      await tester.tap(find.text('Approve Rule'));
       await tester.pumpAndSettle();
 
-      // 4. Verify B-Key PIN Signing Sheet appears
-      expect(find.text('Sign Money Mission'), findsOneWidget);
+      // 4. Verify PIN Signing Sheet appears
+      expect(find.text('Approve this rule'), findsOneWidget);
       expect(
           find.textContaining('Your FlowPay wallet is secured on this device'),
           findsOneWidget);
@@ -194,9 +194,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // 5. Verify Execution Celebration Dialog
-      expect(find.text('Mission Activated & Signed!'), findsOneWidget);
-      expect(find.text('BMONI B-Key PIN Verified'), findsOneWidget);
-      expect(find.text('ACTIVE • Monitored'), findsOneWidget);
+      expect(find.text('Rule saved!'), findsOneWidget);
+      expect(find.text('Active'), findsWidgets);
 
       // Dismiss celebration dialog
       await tester.tap(find.text('View Active Missions'));
@@ -232,7 +231,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify PIN entry sheet opens for test execution
-      expect(find.text('Manual Test Execution'), findsOneWidget);
+      expect(find.text('Test this rule'), findsOneWidget);
 
       // Enter PIN: 123456
       await tester.tap(find.byKey(const Key('pin_key_1')));
@@ -251,7 +250,7 @@ void main() {
       // Verify success snackbar
       expect(
         find.textContaining(
-            '⚡ Mission triggered & executed successfully via BMONI rails!'),
+            '✓ Rule triggered successfully!'),
         findsOneWidget,
       );
     });
@@ -290,8 +289,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap "Interpret Directive"
-      final interpretBtn = find.text('Interpret Directive');
+      // Tap "Set up rule"
+      final interpretBtn = find.text('Set up rule');
       await tester.tap(interpretBtn);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
@@ -300,7 +299,7 @@ void main() {
 
       // 2. Verify Preview Modal renders
       expect(find.text('Mission Plan Preview'), findsOneWidget);
-      expect(find.text('BALANCE THRESHOLD TRIGGER'), findsOneWidget);
+      expect(find.text('WHEN BALANCE REACHES TARGET'), findsOneWidget);
       expect(find.textContaining('When USD wallet balance > \$2,000'),
           findsOneWidget);
 
@@ -309,13 +308,13 @@ void main() {
       expect(find.text('\$300.00'), findsOneWidget);
 
       // Verify Approve Mission button
-      final approveBtn = find.text('Approve Mission');
+      final approveBtn = find.text('Approve Rule');
       expect(approveBtn, findsOneWidget);
       await tester.tap(approveBtn);
       await tester.pumpAndSettle();
 
       // 3. Enter PIN: 123456
-      expect(find.text('Sign Money Mission'), findsOneWidget);
+      expect(find.text('Approve this rule'), findsOneWidget);
       await tester.tap(find.byKey(const Key('pin_key_1')));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.tap(find.byKey(const Key('pin_key_2')));
@@ -330,7 +329,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // 4. Celebration modal
-      expect(find.text('Mission Activated & Signed!'), findsOneWidget);
+      expect(find.text('Rule saved!'), findsOneWidget);
       await tester.tap(find.text('View Active Missions'));
       await tester.pumpAndSettle();
 

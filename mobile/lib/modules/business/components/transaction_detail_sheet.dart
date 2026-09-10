@@ -161,7 +161,7 @@ class TransactionDetailSheet extends StatelessWidget {
                 if (transaction.flowpayReference != null)
                   _buildRowWithCopy(context, 'FlowPay Reference', transaction.flowpayReference!),
                 if (transaction.bmoniReference != null)
-                  _buildRowWithCopy(context, 'BMONI Rail Reference', transaction.bmoniReference!),
+                  _buildRowWithCopy(context, 'Payment Reference', transaction.bmoniReference!),
                 if (transaction.description.isNotEmpty)
                   _buildRow(context, 'Description', transaction.description),
               ],

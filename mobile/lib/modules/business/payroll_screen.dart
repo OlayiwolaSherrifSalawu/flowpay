@@ -73,7 +73,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Cannot run payroll: one or more employees have inactive destination rails.'),
+              "Cannot run payroll: some employees aren't set up for payment yet."),
           backgroundColor: FlowPayColors.signalCaution,
         ),
       );
@@ -253,7 +253,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Approving will create transfer proposals on your BMONI employer wallet and fan out local stablecoins to all employee smart wallets in parallel.',
+                  'Once approved, payroll will be sent to all employees simultaneously.',
                   style: FlowPayTypography.captionStyle(
                       color: textSecondaryColor).copyWith(height: 1.4),
                 ),
@@ -360,7 +360,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
     setState(() {
       _isExecuting = true;
       _currentStep = PayrollExecutionStep.validated;
-      _executingMessage = 'Validating multi-rail recipient smart wallets...';
+      _executingMessage = 'Verifying employee accounts...';
     });
 
     try {
@@ -369,7 +369,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
 
       setState(() {
         _currentStep = PayrollExecutionStep.approved;
-        _executingMessage = 'Signing B-Key batch transfer proposals...';
+        _executingMessage = 'Authorizing payments...';
       });
 
       await Future.delayed(const Duration(milliseconds: 400));
@@ -378,7 +378,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
       setState(() {
         _currentStep = PayrollExecutionStep.processing;
         _executingMessage =
-            'Parallel fan-out: executing transfers to Nigeria (CNGN) & Mexico (MEXe)...';
+            'Sending payments to Nigeria and Mexico...';
       });
 
       // Step 3: Processing (On-device secp256k1 raw-hash signing + submission)
@@ -399,18 +399,18 @@ class _PayrollScreenState extends State<PayrollScreen> {
         _currentStep = PayrollExecutionStep.completed;
         _executingMessage = completedRun.status == 'PARTIALLY_COMPLETED'
             ? 'Completed with partial failures. Review items below.'
-            : 'All employee disbursements settled successfully!';
+            : 'All employee payments sent successfully!';
         _isExecuting = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _isExecuting = false;
-        _executingMessage = 'Execution encountered an error: $e';
+        _executingMessage = 'Something went wrong: $e';
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payroll execution failed: $e'),
+          content: Text('Payroll failed: $e'),
           backgroundColor: FlowPayColors.stateError,
         ),
       );
@@ -451,7 +451,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Text('B-Key PIN Signing',
+            Text('Confirm Payroll',
                 style: FlowPayTypography.title(color: inkColor)
                     .copyWith(fontWeight: FontWeight.w700, fontSize: 17)),
           ],
@@ -461,7 +461,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter your 6-digit B-Key PIN to cryptographically sign and execute the payroll batch on-device.',
+              'Enter your 6-digit PIN to confirm and send payroll.',
               style: FlowPayTypography.body(color: textSecondaryColor)
                   .copyWith(fontSize: 13),
             ),
@@ -504,7 +504,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 style: TextStyle(color: textSecondaryColor, fontWeight: FontWeight.w600)),
           ),
           FlowPayButton(
-            text: 'Authorize & Sign',
+            text: 'Authorize Payroll',
             onPressed: () => Navigator.pop(ctx, pinCtrl.text),
           ),
         ],
@@ -629,7 +629,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'All employee payslips and cryptographic BMONI receipts generated.'),
+                              'All employee payslips and payment receipts generated.'),
                         ),
                       );
                     },
@@ -655,7 +655,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'PARALLEL MULTI-RAIL DISBURSEMENTS',
+                      'EMPLOYEE BREAKDOWN',
                       style: FlowPayTypography.captionStyle(
                               color: textTertiaryColor)
                           .copyWith(
@@ -727,7 +727,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Execution Pipeline',
+                'Payment Progress',
                 style: FlowPayTypography.body(color: inkColor)
                     .copyWith(fontWeight: FontWeight.w700),
               ),
@@ -891,15 +891,15 @@ class _PayrollScreenState extends State<PayrollScreen> {
           const SizedBox(height: 6),
           Text(
             isPartial
-                ? '${_executionRun!.completedCount} of ${_executionRun!.employeeCount} disbursements settled. One or more proposals require attention below.'
-                : 'One single aggregate payment of ${_executionRun!.totalUsd.formatFormatted()} settled across ${_executionRun!.countries.length} countries for ${_executionRun!.employeeCount} employees.',
+                ? '${_executionRun!.completedCount} of ${_executionRun!.employeeCount} payments sent. Some payments require attention below.'
+                : 'Total payment of ${_executionRun!.totalUsd.formatFormatted()} sent across ${_executionRun!.countries.length} countries for ${_executionRun!.employeeCount} employees.',
             style: FlowPayTypography.captionStyle(
                 color: textSecondaryColor),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'Cryptographically authorized & executed on BMONI rails',
+            'Protected and secured with your PIN',
             style: FlowPayTypography.captionStyle(
                 color: textTertiaryColor),
           ),
@@ -1001,7 +1001,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
             child: Column(
               children: [
                 Text(
-                  'TOTAL AGGREGATE SETTLEMENT',
+                  'TOTAL PAYOUT',
                   style: FlowPayTypography.captionStyle(
                           color: textTertiaryColor)
                       .copyWith(
@@ -1038,7 +1038,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                       color: FlowPayColors.signal, size: 16),
                   const SizedBox(width: 4),
                   Text(
-                    'BMONI Fee: $feeFormatted',
+                    'Fee: $feeFormatted',
                     style: FlowPayTypography.captionStyle(
                         color: textSecondaryColor),
                   ),
@@ -1158,8 +1158,8 @@ class _PayrollScreenState extends State<PayrollScreen> {
                     child: Text(
                       item.railValidationMessage ??
                           (item.isRailActive
-                              ? '${item.destinationStablecoin} Rail Active & Verified'
-                              : 'Rail Inactive: Needs Onboarding'),
+                              ? '$countryName — Account Verified'
+                              : 'Account Not Set Up Yet'),
                       style: FlowPayTypography.captionStyle(
                         color: item.isRailActive
                             ? FlowPayColors.signal
@@ -1180,14 +1180,14 @@ class _PayrollScreenState extends State<PayrollScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'DISBURSEMENT',
+                      'AMOUNT',
                       style: FlowPayTypography.captionStyle(
                         color: textTertiaryColor,
                       ).copyWith(fontSize: 10, letterSpacing: 0.5),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${item.targetAmount.formatted} ${item.destinationStablecoin}',
+                      item.targetAmount.formatted,
                       style: FlowPayTypography.body(color: inkColor).copyWith(
                         fontWeight: FontWeight.w700,
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -1259,7 +1259,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Failure: ${item.errorReason ?? "Proposal execution rejected by BMONI network."}',
+                      'Failure: ${item.errorReason ?? "Payment could not be processed."}',
                       style: const TextStyle(
                           color: FlowPayColors.stateError, fontSize: 12),
                     ),
@@ -1267,7 +1267,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                     FlowPayButton(
                       text: isRetrying
                           ? 'Retrying...'
-                          : 'Retry Single Proposal via Approve',
+                          : 'Retry Payment',
                       variant: FlowPayButtonVariant.primary,
                       icon: Icons.refresh_rounded,
                       isLoading: isRetrying,

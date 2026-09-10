@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/repositories/activity_repository.dart';
+import '../../core/repositories/approval_repository.dart';
+import '../../core/repositories/wallet_repository.dart';
+import 'components/pending_approvals_card.dart';
+import 'personal_activity_screen.dart';
+
 import '../../core/design_system/design_system.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../core/navigation/app_routes.dart';
-import '../../core/repositories/activity_repository.dart';
-import '../../core/repositories/approval_repository.dart';
-import '../../core/repositories/wallet_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/state/personal_provider.dart';
 import 'ai_operator_modal.dart';
 import 'components/ai_allocation_modal.dart';
 import 'components/ai_command_bar.dart';
 import 'components/ai_fx_conversion_modal.dart';
-import 'components/pending_approvals_card.dart';
 import 'money_missions_screen.dart';
-import 'personal_activity_screen.dart';
 import 'personal_shell.dart';
 import 'send_money_screen.dart';
 import 'wallet_provisioning_screen.dart';
@@ -274,7 +275,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'B-Key Vault',
+                            'Secure wallet',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -291,12 +292,12 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. Premium Scalloped Card Hero (Dribbble Reference)
+              // 2. Premium Scalloped Card Hero
               FlowPayScallopedCard(
-                title: 'Total Portfolio',
+                title: 'Total balance',
                 balance: totalFormatted,
                 holderName: 'Waffiyyi Fashola',
-                expiryDate: 'MULTI-RAIL',
+                expiryDate: '',
                 actionLabel: 'Details',
                 onActionTap: () {
                   _navigateToTab(
@@ -308,39 +309,13 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 customContent: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Multi-Currency Portfolio',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFFD8F0E4),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(25),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.white.withAlpha(30),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: const Text(
-                            'USD PRIMARY',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFFD8F0E4),
-                              letterSpacing: 0.4,
-                            ),
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'Total balance',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFD8F0E4),
+                      ),
                     ),
                     const SizedBox(height: 6),
                     BMoniWalletCardBalance(
@@ -364,7 +339,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           ),
                         ),
                         Text(
-                          'Avail: ${_provider.availableBalanceUsd.formatFormatted(includeSymbol: true)}',
+                          '${_provider.availableBalanceUsd.formatFormatted(includeSymbol: true)} available',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
@@ -376,6 +351,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                   ],
                 ),
               ),
+
               const SizedBox(height: 16),
 
               // 3. Dribbble-inspired Quick Actions Row
@@ -410,8 +386,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       );
                     },
                   ),
-                  QuickActionItem(
-                    label: 'AI Operator',
+                   QuickActionItem(
+                    label: 'Ask AI',
                     icon: Icons.auto_awesome_rounded,
                     onTap: () =>
                         _openAiOperatorModal("What should your money do?"),
@@ -554,8 +530,6 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                   amount: Money.fromMajorString('1000.00', Currency.usd),
                 ),
               ),
-              const SizedBox(height: 16),
-
               // 6. Pending Approvals Queue (Highlighted when actions need explicit signature)
               if (_provider.pendingApprovals.isNotEmpty)
                 PendingApprovalsCard(
@@ -936,7 +910,7 @@ class _WalletSummaryCard extends StatelessWidget {
               code: wallet.currency.code,
               symbol: wallet.currency.symbol,
               name: wallet.currency.name,
-              tokenName: '${wallet.stablecoinToken} Rail',
+              tokenName: 'Active',
             ),
           ),
           const SizedBox(width: 8),

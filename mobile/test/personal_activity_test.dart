@@ -39,7 +39,7 @@ void main() {
       expect(find.text('Transfers'), findsOneWidget);
       expect(find.text('Conversions'), findsOneWidget);
       expect(find.text('Missions'), findsOneWidget);
-      expect(find.text('Wallet Ops'), findsOneWidget);
+      expect(find.text('Wallet activity'), findsOneWidget);
       expect(find.text('Cards'), findsOneWidget);
       expect(find.text('Pending Approvals'), findsOneWidget);
       expect(find.text('Failures'), findsOneWidget);
@@ -183,7 +183,7 @@ void main() {
 
       // Check required DETAIL fields:
       // amount, currency, source, destination, fee, exchange rate, timestamp, FlowPay reference, BMONI reference
-      expect(find.text('TRANSACTION AMOUNT'), findsOneWidget);
+      expect(find.text('Amount'), findsOneWidget);
       expect(find.text('150'), findsWidgets);
       expect(find.text('Currency'), findsOneWidget);
       expect(find.textContaining('USDB'), findsWidgets);
@@ -197,12 +197,12 @@ void main() {
       expect(find.text('Timestamp'), findsOneWidget);
       expect(find.text('FlowPay Reference'), findsOneWidget);
       expect(find.text('FP-TXN-0428'), findsWidgets);
-      expect(find.text('BMONI Reference'), findsOneWidget);
+      expect(find.text('Payment reference'), findsOneWidget);
       expect(find.text('0x3a92b77...deterministic'), findsOneWidget);
 
       // Verify privacy & non-exposure reassurance:
-      expect(find.text('Verified by On-Device B-Key Signer'), findsOneWidget);
-      expect(find.textContaining('Zero AI money movement'), findsOneWidget);
+      expect(find.text('Secured on this device'), findsOneWidget);
+      expect(find.textContaining('Only you can approve payments'), findsOneWidget);
 
       // Verify private keys and API credentials are NEVER exposed
       expect(find.textContaining('privateKey'), findsNothing);
@@ -234,8 +234,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap on the first "Approve (PIN)" button on an item awaiting approval
-      final approveBtn = find.text('Approve (PIN)').first;
+      // Tap on the first "Approve" button on an item awaiting approval
+      final approveBtn = find.text('Approve').first;
       expect(approveBtn, findsOneWidget);
       await tester.tap(approveBtn);
       await tester.pumpAndSettle();
@@ -253,7 +253,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify success snackbar / completion
-      expect(find.textContaining('Action approved and signed via B-Key'),
+      expect(find.textContaining('Payment approved'),
           findsOneWidget);
     });
   });

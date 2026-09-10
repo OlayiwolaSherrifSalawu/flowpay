@@ -368,7 +368,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Select your account type to configure your BMONI infrastructure.',
+                  'Choose the account type that best fits your needs.',
                   style: TextStyle(
                     fontSize: 14,
                     color: FlowPayColors.textSecondary,

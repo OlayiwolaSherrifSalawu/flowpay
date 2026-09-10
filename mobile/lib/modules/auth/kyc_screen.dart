@@ -268,8 +268,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           children: [
                             Text(
                               isPersonal
-                                  ? 'Tier 1 BMONI Smart Wallet'
-                                  : 'Global Payroll Rail Verification',
+                                  ? 'Account Verification'
+                                  : 'Business Verification',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -279,8 +279,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                             const SizedBox(height: 2),
                             Text(
                               isPersonal
-                                  ? 'Unlocks self-custody wallets and instant virtual spend cards.'
-                                  : 'Authorizes aggregate multi-country payroll fan-out & corporate cards.',
+                                  ? 'Unlocks your secure wallet and instant virtual spend cards.'
+                                  : 'Enables international payroll and company cards.',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -314,7 +314,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     prefix: const Icon(Icons.badge_outlined,
                         size: 18, color: FlowPayColors.textSecondary),
                     helperText:
-                        'Verified automatically via BMONI Sandbox Trust Rail.',
+                        'Verified securely and instantly.',
                     validator: (v) => (v == null || v.trim().isEmpty)
                         ? 'ID is required'
                         : null,
@@ -355,7 +355,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'BMONI embedded wallets require on-device face scan matching to establish hardware key recovery.',
+                    'Face verification helps protect your account from unauthorized access.',
                     style: TextStyle(
                       fontSize: 12,
                       color: FlowPayColors.textSecondary,
@@ -447,7 +447,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                                 size: 18, color: FlowPayColors.amber),
                             SizedBox(width: 8),
                             Text(
-                              'Disbursement Rails Activated',
+                              'Payment Countries Activated',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -457,12 +457,12 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildRailItem('Nigeria Rail 🇳🇬 (NGN)',
-                            'Direct NUBAN bank transfers & B-Cards'),
-                        _buildRailItem('Mexico Rail 🇲🇽 (MXN)',
-                            'SPEI rails & instant virtual cards'),
-                        _buildRailItem('Global USD Treasury 🇺🇸',
-                            'Aggregate one-bill settlement'),
+                        _buildRailItem('Nigeria 🇳🇬 (NGN)',
+                            'Direct bank transfers & cards'),
+                        _buildRailItem('Mexico 🇲🇽 (MXN)',
+                            'Direct bank transfers & cards'),
+                        _buildRailItem('Global USD Account 🇺🇸',
+                            'One-bill payment source'),
                       ],
                     ),
                   ),
@@ -472,10 +472,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 // ── Submit Verification Button ──
                 FlowPayButton(
                   text: _isSubmitting
-                      ? 'Verifying with BMONI...'
+                      ? 'Verifying...'
                       : (isPersonal
-                          ? 'Complete KYC & Set PIN'
-                          : 'Activate Rails & Set PIN'),
+                          ? 'Verify & Set PIN'
+                          : 'Verify Business & Set PIN'),
                   icon: Icons.arrow_forward,
                   isLoading: _isSubmitting,
                   onPressed: _isSubmitting ? null : _completeKyc,
@@ -656,7 +656,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             _faceScanCompleted
                 ? 'Facial Biometrics Verified ✅'
                 : (_isScanningFace
-                    ? 'Aligning face with BMONI liveness grid...'
+                    ? 'Aligning face with frame...'
                     : 'Position face inside the frame'),
             style: TextStyle(
               fontSize: 13,

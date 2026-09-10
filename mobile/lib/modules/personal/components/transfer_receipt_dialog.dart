@@ -84,7 +84,7 @@ class TransferReceiptDialog extends StatelessWidget {
             const SizedBox(height: 14),
 
             Text(
-              'Transfer Settled',
+              'Payment Sent',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.w800,
                 color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
@@ -92,7 +92,7 @@ class TransferReceiptDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Settled & recorded to activity timeline',
+              'Payment confirmed and recorded to activity',
               style: FlowPayTypography.captionStyle(
                 color: FlowPayColors.darkTextSecondary,
               ),
@@ -135,14 +135,14 @@ class TransferReceiptDialog extends StatelessWidget {
             const SizedBox(height: 14),
 
             // Key details
-            _buildSummaryRow('Beneficiary', intent.recipient, isDark),
+            _buildSummaryRow('Recipient', intent.recipient, isDark),
             _buildSummaryRow(
-                'Funding Source', fundingOption.fundingWalletName, isDark),
+                'Paid from', fundingOption.fundingWalletName, isDark),
             if (fundingOption.requiresConversion)
               _buildSummaryRow(
-                  'Conversion', fundingOption.conversionLabel, isDark),
+                  'Exchange', fundingOption.conversionLabel, isDark),
             _buildSummaryRow(
-                'Total Debited',
+                'Total paid',
                 fundingOption.totalDebit.formattedWithSymbol,
                 isDark),
             _buildSummaryRow(

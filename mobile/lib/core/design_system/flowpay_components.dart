@@ -1209,7 +1209,7 @@ class FlowPayWalletCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '${currency.stablecoinToken} Rail',
+                                'Active',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,

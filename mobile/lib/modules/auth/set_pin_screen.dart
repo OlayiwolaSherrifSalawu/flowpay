@@ -310,7 +310,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                         const SizedBox(height: 8),
                         Text(
                           _isConfirming
-                              ? 'Re-enter your 6-digit PIN to verify and encrypt your B-Key signer.'
+                              ? 'Re-enter your 6-digit PIN to confirm.'
                               : 'This PIN authorizes transfers, payroll disbursements, and unlocks FlowPay.',
                           style: TextStyle(
                             fontSize: 13,
@@ -379,7 +379,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                               color: FlowPayColors.primary),
                           const SizedBox(height: 12),
                           Text(
-                            'Provisioning B-Key hardware keypair...',
+                            'Setting up your secure wallet...',
                             style: TextStyle(
                                 fontSize: 13, color: textSecondary),
                           ),
@@ -409,7 +409,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
-                                    '6-Digit PIN signs transactions via B-Key. Never stored in plain text.',
+                                    'Your 6-digit PIN confirms payments securely. It is never stored in plain text.',
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: textSecondary,

@@ -304,7 +304,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Why this funding route?',
+                            'Why this payment source?',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -350,7 +350,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
               child: Row(
                 children: [
                   Text(
-                    'Route override:',
+                    'Pay using:',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -428,7 +428,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Zero AI money movement • B-Key cryptographic authorization required',
+                    'Only you can approve payments • Requires your PIN',
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark
@@ -569,7 +569,7 @@ class _AiFinancialPlanCardState extends State<AiFinancialPlanCard> {
                   if (act.destinationAmount != null)
                     Expanded(
                       child: Text(
-                        'Delivers ${act.destinationAmount!.toFormattedString()}${act.destinationRail != null ? ' via ${act.destinationRail}' : ''}',
+                        'Delivers ${act.destinationAmount!.toFormattedString()}',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

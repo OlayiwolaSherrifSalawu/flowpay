@@ -109,7 +109,7 @@ class _BusinessDashboardScreenState extends State<BusinessDashboardScreen> {
                     ),
                     const SizedBox(width: 6),
                     const Text(
-                      'Global Rails Active',
+                      'Payroll Active',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

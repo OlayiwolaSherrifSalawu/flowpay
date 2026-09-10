@@ -99,7 +99,7 @@ class HeroBillCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Disburse international payroll to Nigeria (CNGN) & Mexico (MEXe) in parallel with instant virtual cards — settled in one single aggregate USD bill.',
+                      'Send international payroll to Nigeria & Mexico with instant virtual cards — paid in one simple USD bill.',
                       style: FlowPayTypography.captionStyle(
                         color: textSecondaryColor,
                       ).copyWith(
@@ -244,7 +244,7 @@ class HeroBillCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'BMONI Rail Fee: ${pending?.totalFeeUsd.formatFormatted() ?? "\$10.00"}',
+                'Transfer Fee: ${pending?.totalFeeUsd.formatFormatted() ?? "\$10.00"}',
                 style: FlowPayTypography.captionStyle(
                   color: textSecondaryColor,
                 ).copyWith(fontSize: 12),

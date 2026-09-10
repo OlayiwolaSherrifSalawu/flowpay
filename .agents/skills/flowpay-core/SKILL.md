@@ -187,6 +187,18 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Elevated 24dp stage cards (`FlowPayRadii.card`) with squircle icons, country-specific KYC forms (Nigeria: no selfie + BVN/NIN/EDD; Mexico: selfie + CURP/RFC), Etherfuse agreements signing prerequisite banner, and BMONI webhook simulation bar.
         * Upgraded all CTAs to universal pill buttons (`FlowPayButton`).
       * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 13: Plain-English UX Language & Product Simplification**:
+      * System-wide elimination of crypto jargon, developer internal vocabulary, and intimidating technical phrases in favor of clean, accessible consumer and business terminology.
+      * Centralized copy repository established in `mobile/lib/core/copy/app_copy.dart`.
+      * Key vocabulary translations applied across all screens, modals, sheets, and badges:
+        * "B-Key Vault" / "Enclave" -> "Secure Wallet" / "Secured on this device"
+        * "Directives" / "AI Pipeline" / "Interpret" -> "Rules" / "Checking your plan..." / "Set up rule"
+        * "Aggregate Settlement" / "Parallel Multi-Rail" -> "Total Payout" / "Employee Breakdown"
+        * "Corporate KYB Compliance" / "Disbursement Rails" -> "Business Verification" / "Payment Countries"
+        * "Audit Log" -> "Activity"
+        * "Transfer Settled" -> "Payment Sent"
+      * Fully preserved all cryptographic guarantees, BMONI on-device signing semantics, and live sandbox integrations without dummy success bypasses.
+      * Verified with 100% test pass rate (180/180 tests passing across all test suites) and 0 analyzer lints (`flutter analyze` clean).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
@@ -807,6 +819,28 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * 170/170 mobile tests passing (100% green), including 30 core operator tests and 7 conversation acceptance tests.
         * 99/99 backend tests passing (100% green).
         * 0 Dart analyzer warnings or errors (`flutter analyze lib test`).
+    * **Complete Plain-English UX Language & Product Simplification Pass**:
+      * **Core Mandate**: Transformed FlowPay from a developer/infrastructure dashboard into an intuitive, polished consumer and business financial application. Completely hid internal plumbing and technical jargon: BMONI, B-Key, multi-rail, execution providers, smart contracts, wallet infrastructure, custody models, API paths, cryptographic curves (`secp256k1`), EVM, ERC-4337, settlement rails, deterministic validation.
+      * **Centralized Copy Dictionary (`mobile/lib/core/copy/app_copy.dart`)**: Added reusable fintech copy constants for security, approval policies, wallet statuses, payroll, and activity.
+      * **Personal Module Simplification**:
+        * `PersonalShell`: Removed developer badges from the AppBar; simplified header to brand mark and role switcher.
+        * `PersonalDashboardScreen`: Replaced "B-Key Vault" with "Secure wallet", "Total Multi-Currency Portfolio" with "Total balance", removed technical rail tokens, simplified quick action labels.
+        * `PersonalSecurityScreen`: Replaced 50+ technical cryptography and enclave terms with reassuring plain English ("Your account is secured", "Your funds are protected on this device", "Bank-grade encryption", "Face ID & Fingerprint", "Security PIN", "How FlowPay keeps your money safe").
+        * `MoneyMissionsScreen`: Replaced "Autonomous Directives", "Deterministic Validation", and "Settlement Rails" with clear rule descriptions ("What should your money do?", "Describe a rule in plain English", "Check your plan", "Rule saved!").
+        * `SendMoneyScreen` & Transfer Modals: Replaced "FlowPay BMONI Rail" with "Send Money" and "Secured with your PIN"; removed stablecoin token badges from currency selections; simplified review modal to "Requires your PIN • Only you can approve payments".
+        * `WalletsScreen` & `WalletProvisioningScreen`: Replaced "On-Device B-Key Wallet" with "Secure wallet", simplified currency badges to "Active", updated benefits to "Send & receive in multiple currencies" and "USD • NGN • EUR • MXN • CAD".
+        * `AiOperatorModal` & AI Components: Simplified state indicators ("UNDERSTANDING YOUR REQUEST", "DONE", "Your money is protected", "Payment done").
+      * **Business Module Simplification**:
+        * `BusinessShell`: Renamed "Audit" tab to "Activity", removed developer badges.
+        * `BusinessDashboardScreen`: Changed "Global Rails Active" to "Payroll Active", simplified metrics and currency tags.
+        * `BusinessActivityScreen`: Changed "AUDITED EVENTS" to "Events", "ACTIVE RAILS" to "Countries", "CONSENSUS" to "Secured", cleaned reference IDs.
+        * `EmployeesScreen` & `EmployeeDetailScreen`: Renamed stages to intuitive steps ("Step 2: Set Up Wallet", "Step 3: Identity Verification", "Step 4: Enable Payments"), simplified country and KYC disclosures, replaced "Disbursement Rail" with "Payment Method".
+        * `EmployeeOnboardingScreen`: Removed raw API endpoints (`GET /v1/...`, `POST /onboarding/...`) and technical agreements jargon; simplified step tabs to "Step 2: Wallet", "Step 3: Verify", "Step 4: Payments".
+        * `PayrollScreen` & Detail Sheets: Renamed "B-Key PIN Signing" to "Confirm payroll", "PARALLEL MULTI-RAIL DISBURSEMENTS" to "EMPLOYEE BREAKDOWN", "AGGREGATE DISBURSEMENT" to "TOTAL PAYOUT", "Disbursement Rail" to "Payment Method", removed stablecoin tickers from payment rows.
+      * **Strict Invariant Adherence & Test Coverage**:
+        * 100% adherence to AGENTS.md: zero fabricated success responses on failed BMONI calls; all real error handling and typed exceptions preserved.
+        * Updated all 10 affected unit, widget, and integration test suites in `mobile/test/` to match the new plain-English UI copy.
+        * Zero compilation or static analysis issues across the entire codebase (`flutter analyze`).
 
 ---
 

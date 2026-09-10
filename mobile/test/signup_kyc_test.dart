@@ -122,7 +122,7 @@ void main() {
       expect(find.text('Facial Biometrics Verified ✅'), findsOneWidget);
 
       // Complete Verification & Proceed to Set PIN
-      await tester.tap(find.text('Complete KYC & Set PIN'));
+      await tester.tap(find.text('Verify & Set PIN'));
       await tester.pumpAndSettle();
 
       // Verify on SetPinScreen
@@ -194,7 +194,7 @@ void main() {
       expect(find.text('Step 1: Corporate Legal Entity'), findsOneWidget);
       expect(find.text('Step 2: Authorized Signatory Verification'),
           findsOneWidget);
-      expect(find.text('Disbursement Rails Activated'), findsOneWidget);
+      expect(find.text('Payment Countries Activated'), findsOneWidget);
 
       // Fill KYB fields
       await enterField(
@@ -206,7 +206,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Submit Corporate Verification & proceed to Set PIN
-      await tester.tap(find.text('Activate Rails & Set PIN'));
+      await tester.tap(find.text('Verify Business & Set PIN'));
       await tester.pumpAndSettle();
 
       // Verify on SetPinScreen
@@ -228,7 +228,7 @@ void main() {
       expect(find.text('Dashboard'), findsOneWidget);
       expect(find.text('Team'), findsOneWidget);
       expect(find.text('Payroll'), findsOneWidget);
-      expect(find.text('Audit'), findsOneWidget);
+      expect(find.text('Activity'), findsOneWidget);
     });
 
     testWidgets('Logs in via email and PIN from LoginScreen',

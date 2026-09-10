@@ -163,7 +163,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                           ),
                         ),
                         child: Text(
-                          '${wallet.stablecoinToken} Rail',
+                          wallet.currency.code,
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -177,7 +177,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Share your address or simulate an instant incoming deposit below.',
+                    'Share your address or add test funds below.',
                     style: FlowPayTypography.captionStyle(
                       color: isDark
                           ? FlowPayColors.darkTextSecondary
@@ -188,7 +188,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
                   // Wallet address box
                   Text(
-                    'FLOWPAY ACCOUNT ADDRESS',
+                    'YOUR ACCOUNT ADDRESS',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -281,7 +281,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'SIMULATE INCOMING DEPOSIT',
+                              'ADD TEST FUNDS',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
@@ -584,7 +584,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                       title: '${w.currency.name} Portfolio',
                       balance: w.balance.formatFormatted(includeSymbol: true),
                       holderName: 'Waffiyyi Fashola',
-                      expiryDate: '${w.stablecoinToken} Rail',
+                      expiryDate: w.currency.code,
                       gradient: gradient,
                       actionLabel: 'Receive',
                       onActionTap: () => _handleReceive(w),
@@ -730,7 +730,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Secure Hardware Isolation',
+                          'Secured on this device',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -741,7 +741,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Keys sealed on this device. Tap to inspect security enclave.',
+                          'Protected with device security. Tap to learn more.',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark
@@ -765,7 +765,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
           // 5. Configured Multi-Currency Wallets List Section
           Text(
-            'Configured Multi-Currency Wallets',
+            'Your wallets',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -819,7 +819,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
     if (canPop) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Smart Wallets'),
+          title: const Text('Wallets'),
         ),
         body: content,
       );

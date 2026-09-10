@@ -195,8 +195,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
 
       final signature = await WalletPinAuthSheet.show(
         context: context,
-        title: 'Authorize Financial Plan',
-        subtitle: 'Sign on-device with your 6-digit B-Key PIN',
+        title: 'Confirm payment',
+        subtitle: 'Enter your 6-digit PIN to confirm',
         amountDisplay: plan.totalDebit.toFormattedString(),
         recipient: plan.summary,
         onAuthorize: (pin) async {
@@ -310,7 +310,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                   ),
                 ),
                 Text(
-                  'Understands intent • Validates policy • Never moves money without PIN',
+                  'Understands your request • Never moves money without your PIN',
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
@@ -334,7 +334,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
 
     switch (_operator.status) {
       case OperatorSessionStatus.interpreting:
-        statusLabel = 'INTERPRETING INTENT';
+        statusLabel = 'UNDERSTANDING YOUR REQUEST';
         statusColor = FlowPayColors.accent;
         break;
       case OperatorSessionStatus.waitingForClarification:
@@ -350,7 +350,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         statusColor = FlowPayColors.emerald600;
         break;
       case OperatorSessionStatus.completed:
-        statusLabel = 'PLAN EXECUTED';
+        statusLabel = 'DONE';
         statusColor = FlowPayColors.emerald600;
         break;
       case OperatorSessionStatus.error:
@@ -406,7 +406,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           ),
           const Spacer(),
           Text(
-            'B-Key Guard: Active  •  Deterministic Math',
+            'Your money is protected',
             style: TextStyle(
               fontSize: 10,
               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF9CA3AF),
@@ -444,7 +444,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ask FlowPay in natural language to send money, reserve taxes, allocate incoming payments, or manage your multi-currency smart wallets.',
+              'Ask FlowPay in plain English to send money, set aside taxes, manage payments, or check your wallets.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
@@ -596,7 +596,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
                   color: FlowPayColors.emerald600, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Financial Execution Settled',
+                'Payment done',
                 style: FlowPayTypography.bodyLg.copyWith(
                   fontWeight: FontWeight.w700,
                   color: isDark ? Colors.white : FlowPayColors.ink,
@@ -606,14 +606,14 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Transaction Hash: ${receipt['txHash']}',
+            'Reference: ${receipt['txHash']}',
             style: FlowPayTypography.captionStyle(
               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
           ),
           const SizedBox(height: 4),
           Text(
-            'Settled Actions: ${receipt['settledActions']} item(s)',
+            '${receipt['settledActions']} payment(s) completed',
             style: FlowPayTypography.captionStyle(
               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),
             ),
@@ -742,7 +742,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
           const SizedBox(width: 10),
           FlowPayIconButton(
             icon: Icons.arrow_upward_rounded,
-            tooltip: 'Send directive',
+            tooltip: 'Send',
             onPressed: _handleSubmit,
           ),
         ],

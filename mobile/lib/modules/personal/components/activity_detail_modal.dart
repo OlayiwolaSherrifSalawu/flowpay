@@ -161,7 +161,7 @@ class ActivityDetailModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'FlowPay • Global Payment Rails',
+                        'FlowPay',
                         style: TextStyle(
                           fontSize: 12,
                           color: isDark
@@ -216,7 +216,7 @@ class ActivityDetailModal extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'TRANSACTION AMOUNT',
+                            'Amount',
                             style: FlowPayTypography.caption.copyWith(
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
@@ -275,13 +275,12 @@ class ActivityDetailModal extends StatelessWidget {
                         context,
                         label: 'Currency',
                         value: '${activity.currency.code} ($tokenBadge)',
-                        badge: tokenBadge,
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
                         context,
                         label: 'Source',
-                        value: activity.source ?? 'FlowPay Smart Wallet',
+                        value: activity.source ?? 'FlowPay Wallet',
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
@@ -295,9 +294,9 @@ class ActivityDetailModal extends StatelessWidget {
                         label: 'Network Fee',
                         value: activity.fee != null
                             ? (activity.fee!.amountMinor == BigInt.zero
-                                ? 'Sponsored by B-Key (\$0.00)'
+                                ? 'No fee'
                                 : activity.fee!.formatFormatted())
-                            : 'Sponsored by B-Key (\$0.00)',
+                            : 'No fee',
                       ),
                       const Divider(height: 20),
                       _buildDetailRow(
@@ -325,11 +324,11 @@ class ActivityDetailModal extends StatelessWidget {
                         const Divider(height: 20),
                         _buildDetailRow(
                           context,
-                          label: 'BMONI Reference',
+                          label: 'Payment reference',
                           value: activity.bmoniReference!,
                           isCopyable: true,
                           onCopy: () => _copyToClipboard(context,
-                              activity.bmoniReference!, 'BMONI Reference'),
+                              activity.bmoniReference!, 'Payment reference'),
                         ),
                       ],
                     ],
@@ -366,7 +365,7 @@ class ActivityDetailModal extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Verified by On-Device B-Key Signer',
+                              'Secured on this device',
                               style: FlowPayTypography.caption.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: isDark
@@ -376,7 +375,7 @@ class ActivityDetailModal extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Zero AI money movement • Private keys & API secrets sealed in hardware enclave • Never exposed.',
+                              'Only you can approve payments. Your security is managed on this device.',
                               style: FlowPayTypography.caption.copyWith(
                                 color: isDark
                                     ? FlowPayColors.darkTextSecondary
@@ -395,7 +394,7 @@ class ActivityDetailModal extends StatelessWidget {
                 // Actions
                 if (isAwaiting) ...[
                   FlowPayButton(
-                    text: 'Approve & Sign with PIN',
+                    text: 'Approve',
                     icon: Icons.pin,
                     size: FlowPayButtonSize.large,
                     isFullWidth: true,
@@ -404,15 +403,15 @@ class ActivityDetailModal extends StatelessWidget {
                         context: context,
                         title: 'Approve ${activity.type.label}',
                         subtitle:
-                            'Sign transfer proposal for ${activity.amount?.formatFormatted() ?? activity.reference}',
+                            'Confirm payment of ${activity.amount?.formatFormatted() ?? activity.reference}',
                         onAuthorize: (pin) async {
                           final updated = activity.copyWith(
                               status: FlowPayAppStatus.completed);
                           onApprove?.call(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
+                            const SnackBar(
                               content: Text(
-                                  'Action approved & signed: ${activity.reference}'),
+                                  'Payment approved'),
                               backgroundColor: FlowPayColors.primary,
                             ),
                           );

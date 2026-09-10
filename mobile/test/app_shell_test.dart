@@ -107,7 +107,7 @@ void main() {
           findsOneWidget);
       expect(find.descendant(of: navBar, matching: find.text('Payroll')),
           findsOneWidget);
-      expect(find.descendant(of: navBar, matching: find.text('Audit')),
+      expect(find.descendant(of: navBar, matching: find.text('Activity')),
           findsOneWidget);
 
       // Business Dashboard content
@@ -141,11 +141,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('One Aggregate Bill'), findsOneWidget);
 
-      // Tap Audit tab in nav bar
+      // Tap Activity tab in nav bar
       await tester
-          .tap(find.descendant(of: navBar, matching: find.text('Audit')));
+          .tap(find.descendant(of: navBar, matching: find.text('Activity')));
       await tester.pumpAndSettle();
-      expect(find.text('Global Payroll Fan-Out'), findsOneWidget);
+      expect(find.text('Payroll Sent'), findsOneWidget);
     });
 
     testWidgets('Switches tabs cleanly in Personal mode', (tester) async {
@@ -163,7 +163,7 @@ void main() {
       await tester
           .tap(find.descendant(of: navBar, matching: find.text('Wallets')));
       await tester.pumpAndSettle();
-      expect(find.text('Secure Hardware Isolation'), findsOneWidget);
+      expect(find.text('Secured on this device'), findsOneWidget);
 
       // Tap Missions tab in nav bar
       await tester
@@ -175,7 +175,7 @@ void main() {
       await tester
           .tap(find.descendant(of: navBar, matching: find.text('Security')));
       await tester.pumpAndSettle();
-      expect(find.text('B-Key Hardware Enclave Active'), findsOneWidget);
+      expect(find.text('Your account is secured'), findsOneWidget);
     });
 
     testWidgets('Lock button locks app back to AppAuthGate', (tester) async {

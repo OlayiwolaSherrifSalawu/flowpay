@@ -65,7 +65,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
       context: context,
       title: 'Authorize Payout Retry',
       subtitle:
-          'Enter your 6-digit B-Key PIN to retry disbursement for ${item.employeeName}',
+          'Enter your 6-digit PIN to retry payment to ${item.employeeName}',
       onAuthorize: (pin) => BmoniSdkService.signMessage(
         'Retry payroll proposal ${item.proposalId ?? item.employeeId}',
         pin: pin,
@@ -105,7 +105,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
           SnackBar(
             backgroundColor: FlowPayColors.stateSuccess,
             content: Text(
-              'Successfully retried payment for ${item.employeeName}. Settled on ${item.destinationStablecoin} rail.',
+              'Payment resent successfully to ${item.employeeName}.',
               style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w600),
             ),
@@ -263,7 +263,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'BMONI FEES',
+                                    'FEES',
                                     style: FlowPayTypography.captionStyle(
                                       color: textTertiaryColor,
                                     ).copyWith(
@@ -335,7 +335,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                             children: [
                               _buildMetaItem('FlowPay Reference', flowpayRef, isDark),
                               _buildMetaItem(
-                                'BMONI Batch Ref',
+                                'Batch Reference',
                                 _currentRun.items.isNotEmpty &&
                                         _currentRun.items.first.proposalId !=
                                             null
@@ -344,7 +344,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                             16
                                         ? '${_currentRun.items.first.proposalId!.substring(0, 16)}...'
                                         : _currentRun.items.first.proposalId!)
-                                    : 'BMONI-BATCH-${_currentRun.runId.hashCode.abs().toString().substring(0, 6)}',
+                                    : 'BATCH-${_currentRun.runId.hashCode.abs().toString().substring(0, 6)}',
                                 isDark,
                               ),
                             ],
@@ -365,27 +365,27 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                         children: [
                           _buildTimelineStep(
                             index: 1,
-                            title: 'Rail Validation',
+                            title: 'Account Verification',
                             subtitle:
-                                'Pre-validated employee smart-wallet addresses & active rails (CNGN, MEXe)',
+                                'Verified employee accounts in Nigeria & Mexico',
                             status: StepStatus.completed,
                             time: '0.2s',
                             isDark: isDark,
                           ),
                           _buildTimelineStep(
                             index: 2,
-                            title: 'B-Key On-Device PIN Approval',
+                            title: 'PIN Approval',
                             subtitle:
-                                'Employer approved proposal batch via hardware Secure Enclave',
+                                'Approved with your 6-digit PIN on this device',
                             status: StepStatus.completed,
                             time: '1.1s',
                             isDark: isDark,
                           ),
                           _buildTimelineStep(
                             index: 3,
-                            title: 'Multi-Country Fan-Out',
+                            title: 'Multi-Country Delivery',
                             subtitle:
-                                'Orchestrated parallel disbursements via BMONI transfer primitives',
+                                'Sent simultaneous payments to all employees',
                             status: _currentRun.status == 'PROCESSING'
                                 ? StepStatus.inProgress
                                 : StepStatus.completed,
@@ -619,7 +619,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${item.destinationStablecoin} (${item.country} Rail) · 1 USD = ${item.exchangeRate.toStringAsFixed(1)} ${item.targetCurrency.code}',
+                    '${item.country == 'NG' ? 'Nigeria' : (item.country == 'MX' ? 'Mexico' : item.country)} · 1 USD = ${item.exchangeRate.toStringAsFixed(1)} ${item.targetCurrency.code}',
                     style: FlowPayTypography.captionStyle(
                       color: textSecondaryColor,
                     ),
@@ -631,7 +631,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${item.targetAmount.formatted} ${item.destinationStablecoin}',
+                  item.targetAmount.formatted,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: inkColor,

@@ -28,7 +28,7 @@ extension ActivityFilterX on ActivityFilter {
       case ActivityFilter.missions:
         return 'Missions';
       case ActivityFilter.walletOps:
-        return 'Wallet Ops';
+        return 'Wallet activity';
       case ActivityFilter.cards:
         return 'Cards';
       case ActivityFilter.pendingApprovals:
@@ -180,7 +180,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
     final filtered = _filteredActivities;
 
     Widget body = _isLoading
-        ? const FlowPayLoadingState(message: 'Loading financial audit trail...')
+        ? const FlowPayLoadingState(message: 'Loading your activity...')
         : RefreshIndicator(
             onRefresh: _loadActivities,
             child: ListView(
@@ -230,7 +230,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
       return Scaffold(
         backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
         appBar: AppBar(
-          title: const Text('Personal Activity'),
+          title: const Text('Activity'),
           scrolledUnderElevation: 0,
         ),
         body: body,
@@ -576,7 +576,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Requires 6-Digit B-Key PIN',
+                    'Requires your PIN',
                     style: FlowPayTypography.caption.copyWith(
                       color: FlowPayColors.warning,
                       fontWeight: FontWeight.w500,
@@ -584,23 +584,22 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   ),
                   const Spacer(),
                   FlowPayButton(
-                    text: 'Approve (PIN)',
+                    text: 'Approve',
                     icon: Icons.pin,
                     size: FlowPayButtonSize.small,
                     onPressed: () {
                       WalletPinAuthSheet.show(
                         context: context,
                         title: 'Approve ${a.type.label}',
-                        subtitle:
-                            'Sign canonical BMONI proposal for ${a.amount?.formatFormatted() ?? a.reference}',
+                            subtitle:
+                            'Confirm payment of ${a.amount?.formatFormatted() ?? a.reference}',
                         onAuthorize: (pin) async {
                           final updated =
                               a.copyWith(status: FlowPayAppStatus.completed);
                           _onActivityApproved(updated);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  'Action approved and signed via B-Key: ${a.reference}'),
+                            const SnackBar(
+                              content: Text('Payment approved'),
                               backgroundColor: FlowPayColors.accent,
                             ),
                           );

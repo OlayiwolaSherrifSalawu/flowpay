@@ -163,10 +163,10 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       // 2. Open B-Key PIN Signing Sheet
       final signature = await WalletPinAuthSheet.show(
         context: context,
-        title: 'Sign Money Mission',
-        subtitle: 'Authorize autonomous execution of "${intent.ruleTitle}"',
+        title: 'Approve this rule',
+        subtitle: 'You\'re setting up: "${intent.ruleTitle}"',
         amountDisplay: '\$${intent.triggerCondition.sourceAmount}',
-        recipient: 'Settlement Rails',
+        recipient: '',
         onAuthorize: (pin) async {
           // Hardware enclave signing via BMONI Embedded SDK
           return await BmoniSdkService.signTransactionHash(hashToSign,
@@ -208,7 +208,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
           isActive: true,
           status: MissionStatus.active,
           stats: intent.allocations.length > 1
-              ? '${amt.toFormattedString()} scheduled • ${intent.allocations.length} rails settled'
+              ? '${amt.toFormattedString()} scheduled • ${intent.allocations.length} active'
               : '${amt.toFormattedString()} scheduled',
           conditionSummary: intent.triggerCondition.description,
           actionSummary: intent.explanation,
@@ -286,7 +286,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
               timestamp: DateTime.now(),
               reference:
                   'FP-MSN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-              source: 'Personal Smart Wallet (${amt.currency.code})',
+              source: 'FlowPay Wallet (${amt.currency.code})',
               destination: "$recipient's Wallet",
               fee: Money.zero(amt.currency),
               exchangeRate: '1 USD = 1.00 USD',
@@ -354,7 +354,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             ),
             const SizedBox(height: 18),
             Text(
-              'Mission Activated & Signed!',
+              'Rule saved!',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -364,7 +364,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'FlowPay will autonomously monitor incoming funds and execute deterministic operations according to your plan.',
+              'FlowPay will automatically run this rule whenever the conditions are met.',
               style: TextStyle(
                 fontSize: 13,
                 color: isDark
@@ -393,32 +393,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Signing Enclave',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: isDark
-                                  ? FlowPayColors.darkTextSecondary
-                                  : FlowPayColors.lightTextSecondary)),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'BMONI B-Key PIN Verified',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : FlowPayColors.lightTextPrimary),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Execution Ref',
+                      Text('Reference',
                           style: TextStyle(
                               fontSize: 11,
                               color: isDark
@@ -453,7 +428,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       const SizedBox(width: 8),
                       const Flexible(
                         child: Text(
-                          'ACTIVE • Monitored',
+                          'Active',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -523,11 +498,11 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             : Colors.white,
         shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.cardSmall),
         title: Text(
-          'Delete Mission?',
+          'Delete Rule?',
           style: FlowPayTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Are you sure you want to delete "${mission.title}"? This autonomous rule will be permanently removed.',
+          'Are you sure you want to delete "${mission.title}"? This rule will be deleted.',
           style: FlowPayTypography.bodySmall.copyWith(
             color: isDark
                 ? FlowPayColors.darkTextSecondary
@@ -558,7 +533,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Mission "${mission.title}" deleted.'),
+            content: Text('Rule "${mission.title}" deleted.'),
             backgroundColor: FlowPayColors.darkSurfaceElevated,
           ),
         );
@@ -574,10 +549,10 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     // Show PIN signing sheet for test execution
     final signature = await WalletPinAuthSheet.show(
       context: context,
-      title: 'Manual Test Execution',
-      subtitle: 'Simulate incoming payment trigger for "${mission.title}"',
+      title: 'Test this rule',
+      subtitle: 'Test run for "${mission.title}"',
       amountDisplay: mission.thresholdAmount?.formatFormatted() ?? '\$2,000.00',
-      recipient: 'Settlement Rails',
+      recipient: '',
       onAuthorize: (pin) async {
         return await BmoniSdkService.signTransactionHash(
           '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
@@ -598,8 +573,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-              '⚡ Mission triggered & executed successfully via BMONI rails!'),
+          content: const Text('✓ Rule triggered successfully!'),
           backgroundColor: FlowPayColors.primary,
           action: SnackBarAction(
             label: 'View Activity',
@@ -653,7 +627,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Set autonomous directives in plain English. FlowPay structures the rules; execution is strictly gated behind your on-device PIN.',
+                      'Describe a rule in plain English. FlowPay will run it automatically — always with your PIN approval.',
                       style: TextStyle(
                         fontSize: 13,
                         color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
@@ -698,7 +672,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Engine: Active',
+                              'Active',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -714,7 +688,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 size: 14, color: FlowPayColors.primary),
                             const SizedBox(width: 6),
                             Text(
-                              'Hardware Guard',
+                              'Secured',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -730,7 +704,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 size: 14, color: FlowPayColors.primary),
                             const SizedBox(width: 6),
                             Text(
-                              'Deterministic',
+                              'Verified',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -792,7 +766,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                     size: 13, color: FlowPayColors.primary),
                                 SizedBox(width: 5),
                                 Text(
-                                  'COMMAND DIRECTIVE',
+                                  'YOUR RULE',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
@@ -855,7 +829,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Strictly PIN-authorized on-device',
+                              'Requires your PIN to activate',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary,
@@ -867,8 +841,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           const SizedBox(width: 8),
                           FlowPayButton(
                             text: isInterpreting
-                                ? 'Structuring Plan...'
-                                : 'Interpret Directive',
+                                ? 'Setting up...'
+                                : 'Set up rule',
                             icon: Icons.auto_awesome,
                             size: FlowPayButtonSize.medium,
                             isLoading: isInterpreting,
@@ -931,7 +905,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                                 size: 16, color: FlowPayColors.primary),
                             SizedBox(width: 6),
                             Text(
-                              'Financial Safety AI Pipeline',
+                              'Checking your plan...',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -942,15 +916,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        _buildStageRow(
-                            'AI understood request', processingStage >= 1),
+                        _buildStageRow('Got it', processingStage >= 1),
                         const SizedBox(height: 8),
-                        _buildStageRow('Plan created (structured intent)',
-                            processingStage >= 2),
+                        _buildStageRow('Plan created', processingStage >= 2),
                         const SizedBox(height: 8),
                         _buildStageRow(
-                            'Deterministic validation passed (100% allocation)',
-                            processingStage >= 3),
+                            'Everything checks out', processingStage >= 3),
                       ],
                     ),
                   ),
@@ -960,7 +931,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
                 // 4. Suggested Actions Row (5 Suggestion Chips)
                 Text(
-                  'SUGGESTED DIRECTIVES',
+                  'SUGGESTED RULES',
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 0.8,
@@ -1096,7 +1067,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No Active Missions Yet',
+                          'No Active Rules Yet',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -1105,7 +1076,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Type a directive above to set your first autonomous financial plan.',
+                          'Describe a rule above to get started.',
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark

@@ -81,27 +81,17 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
         ),
         leadingWidth: 54,
         title: hasBothModes
-            ? FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SegmentedRoleSwitch(
-                      isPersonal: false,
-                      onRoleChanged: (isPersonal) {
-                        ref.read(appLockStateProvider.notifier).setAccountMode(
-                              isPersonal
-                                  ? AccountMode.personal
-                                  : AccountMode.business,
-                            );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    const PoweredByBmoniBadge(),
-                  ],
-                ),
+            ? SegmentedRoleSwitch(
+                isPersonal: false,
+                onRoleChanged: (isPersonal) {
+                  ref.read(appLockStateProvider.notifier).setAccountMode(
+                        isPersonal
+                            ? AccountMode.personal
+                            : AccountMode.business,
+                      );
+                },
               )
-            : const PoweredByBmoniBadge(),
+            : null,
         centerTitle: true,
         actions: [
           Padding(
@@ -224,7 +214,7 @@ class _BusinessShellState extends ConsumerState<BusinessShell> {
               NavigationDestination(
                 icon: Icon(Icons.receipt_long_outlined),
                 selectedIcon: Icon(Icons.receipt_long_rounded),
-                label: 'Audit',
+                label: 'Activity',
               ),
             ],
           ),

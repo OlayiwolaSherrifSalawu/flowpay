@@ -90,7 +90,7 @@ void main() {
       await tester.pumpWidget(_buildTestApp());
       await pumpSettled(tester);
 
-      expect(find.text('On-Device B-Key Wallet'), findsOneWidget);
+      expect(find.text('Secure Wallet'), findsOneWidget);
       expect(find.text('Set Up Your Secure FlowPay Wallet'), findsOneWidget);
       expect(
         find.text('Your FlowPay wallet is secured on this device.'),
@@ -103,7 +103,7 @@ void main() {
       await pumpSettled(tester);
 
       expect(find.text('Protected by Device Hardware'), findsOneWidget);
-      expect(find.text('Instant Multi-Currency Rails'), findsOneWidget);
+      expect(find.text('Multi-Currency Support'), findsOneWidget);
       expect(find.text('6-Digit Transaction PIN'), findsOneWidget);
     });
 
@@ -169,10 +169,10 @@ void main() {
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
 
-      await scrollToVisible(tester, find.text('Hardware Security Specs'));
-      expect(find.text('Hardware Security Specs'), findsOneWidget);
-      expect(find.text('secp256k1 (EIP-191 / EIP-712)'), findsOneWidget);
-      expect(find.text('Zero Access (Self-Custody)'), findsOneWidget);
+      await scrollToVisible(tester, find.text('Security Specs'));
+      expect(find.text('Security Specs'), findsOneWidget);
+      expect(find.text('Bank-Grade Encryption'), findsOneWidget);
+      expect(find.text('Protected on Device'), findsOneWidget);
     });
 
     testWidgets('Displays supported tokens', (tester) async {
@@ -182,7 +182,7 @@ void main() {
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
 
-      expect(find.text('USDB • CNGN • MEXe • CADC'), findsOneWidget);
+      expect(find.text('USD • NGN • EUR • MXN • CAD'), findsOneWidget);
     });
 
     testWidgets('Copy address button shows snackbar', (tester) async {

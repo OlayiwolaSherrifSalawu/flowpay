@@ -98,7 +98,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         child: SelectorBottomSheet<CountryOption>(
           items: _countries,
           selected: _selectedCountry,
-          title: 'Select Destination Country & Rail',
+          title: 'Select Country',
           label: (c) => '${c.flag} ${c.name}',
           value: (c) => c.code,
           showIcon: false,
@@ -130,7 +130,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Select Destination Rail',
+                'Select Country',
                 style: FlowPayTypography.title(
                   color: isDark
                       ? FlowPayColors.darkTextPrimary
@@ -557,7 +557,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
 
                       // Country & Currency Selector using SelectorBottomSheet
                       Text(
-                        'DESTINATION COUNTRY & SETTLEMENT RAIL',
+                        'DESTINATION COUNTRY',
                         style: FlowPayTypography.captionStyle(
                           color: textTertiaryColor,
                         ).copyWith(

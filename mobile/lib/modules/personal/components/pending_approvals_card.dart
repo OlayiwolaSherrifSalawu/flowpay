@@ -66,7 +66,7 @@ class PendingApprovalsCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Enter 6-Digit B-Key Signing PIN',
+                'Confirm with your PIN',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -116,7 +116,7 @@ class PendingApprovalsCard extends StatelessWidget {
                   style: TextStyle(color: FlowPayColors.darkTextSecondary)),
             ),
             FlowPayButton(
-              text: 'Sign & Execute',
+              text: 'Approve',
               icon: Icons.check,
               isLoading: isSubmitting,
               size: FlowPayButtonSize.small,
@@ -188,7 +188,7 @@ class PendingApprovalsCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 1),
                       const Text(
-                        'Explicit authorization required prior to BMONI execution',
+                        'Review and approve before anything moves',
                         style: TextStyle(
                           fontSize: 11,
                           color: FlowPayColors.amber,

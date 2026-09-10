@@ -329,7 +329,7 @@ class TransferReviewModal extends StatelessWidget {
                             isDark),
                         if (fundingOption.requiresConversion)
                           _buildRow(
-                              'FX Conversion Fee',
+                              'Exchange fee',
                               fundingOption.fxFee.formatted,
                               isDark),
                         const Divider(color: FlowPayColors.hairline, height: 18),
@@ -337,7 +337,7 @@ class TransferReviewModal extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Total Debit',
+                              'Total to pay',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 14,
@@ -444,7 +444,7 @@ class TransferReviewModal extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Requires on-device PIN signature • Zero unauthorized movement',
+                                'Requires your PIN • Only you can approve payments',
                                 style: FlowPayTypography.captionStyle(
                                   color: FlowPayColors.darkTextSecondary,
                                 ),

@@ -144,7 +144,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
       final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Authorize Card Issuance',
-        subtitle: 'Signing proposal digest with on-device B-Key Secure Enclave',
+        subtitle: 'Enter your 6-digit PIN to confirm card setup',
         amountDisplay: '0.00 ${_selectedCurrency.code}',
         recipient: cardName,
         onAuthorize: (pin) async {
@@ -273,7 +273,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                           .copyWith(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                     Text(
-                      'Attached to ${widget.wallet.currency} Smart Wallet (${widget.employee.fullName})',
+                      'Attached to ${widget.wallet.currency} Wallet (${widget.employee.fullName})',
                       style: FlowPayTypography.captionStyle(
                           color: textSecondaryColor),
                     ),
@@ -422,7 +422,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Required by BMONI only on first card enrollment for this cardholder.',
+            'Required only once for your first card.',
             style: FlowPayTypography.captionStyle(
                 color: FlowPayColors.textTertiary),
           ),
@@ -449,7 +449,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
-                    'Color: #F4B740 (FlowPay Amber) • Auto-approved proposal via B-Key Proxy',
+                    'FlowPay Amber • Ready for instant spending',
                     style: TextStyle(
                       color: FlowPayColors.textSecondary,
                       fontSize: 11,
