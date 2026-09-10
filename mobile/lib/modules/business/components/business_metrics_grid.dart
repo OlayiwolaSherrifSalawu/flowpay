@@ -5,9 +5,9 @@ import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 /// Business Metrics Grid
-/// Conforms to design.md §3.1, §3.2, §3.4 & §3.5:
+/// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
 /// Displays all 6 employer metrics in 20dp cards with hairline borders,
-/// pill badges, and tabular figures for numbers.
+/// squircle icon containers, pill badges, and tabular figures for all numbers.
 class BusinessMetricsGrid extends StatelessWidget {
   final BusinessProvider businessProvider;
 
@@ -30,13 +30,13 @@ class BusinessMetricsGrid extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 icon: Icons.payments_outlined,
-                iconColor: FlowPayColors.ink,
+                iconColor: FlowPayColors.primary,
                 label: 'TOTAL PAYROLL',
                 value: totalUsd.formatFormatted(),
                 subtitle: 'Monthly aggregate run',
                 badgeText: 'USD BASE',
-                badgeBg: FlowPayColors.surfaceAlt,
-                badgeFg: FlowPayColors.textSecondary,
+                badgeBg: FlowPayColors.primary.withValues(alpha: 0.12),
+                badgeFg: FlowPayColors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -62,13 +62,13 @@ class BusinessMetricsGrid extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 icon: Icons.people_outline_rounded,
-                iconColor: FlowPayColors.ink,
+                iconColor: FlowPayColors.primary,
                 label: 'EMPLOYEE COUNT',
                 value: '$employeeCount Members',
                 subtitle: 'Global remote team',
                 badgeText: 'TEAM',
-                badgeBg: FlowPayColors.surfaceAlt,
-                badgeFg: FlowPayColors.textSecondary,
+                badgeBg: FlowPayColors.primary.withValues(alpha: 0.12),
+                badgeFg: FlowPayColors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -94,13 +94,13 @@ class BusinessMetricsGrid extends StatelessWidget {
             const Expanded(
               child: _MetricCard(
                 icon: Icons.public_rounded,
-                iconColor: FlowPayColors.ink,
+                iconColor: FlowPayColors.accent,
                 label: 'COUNTRIES',
                 value: '3 Rails',
                 subtitle: '🇳🇬 NG • 🇲🇽 MX • 🇨🇦 CA',
                 badgeText: 'MULTI-RAIL',
-                badgeBg: FlowPayColors.surfaceAlt,
-                badgeFg: FlowPayColors.textSecondary,
+                badgeBg: Color(0x1F6366F1),
+                badgeFg: Color(0xFF4F46E5),
               ),
             ),
             const SizedBox(width: 12),
@@ -146,12 +146,31 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inkColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.lightTextSecondary;
+    final textTertiaryColor =
+        isDark ? FlowPayColors.darkTextTertiary : FlowPayColors.lightTextTertiary;
+    final borderColor =
+        isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: FlowPayColors.surface,
-        borderRadius: FlowPayRadii.card,
-        border: Border.all(color: FlowPayColors.hairline),
+        color: isDark ? FlowPayColors.darkSurface : FlowPayColors.lightSurface,
+        borderRadius: FlowPayRadii.cardSmall,
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,9 +178,19 @@ class _MetricCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: iconColor, size: 20),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Icon(icon, color: iconColor, size: 18),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                 decoration: BoxDecoration(
                   color: badgeBg,
                   borderRadius: FlowPayRadii.chip,
@@ -182,8 +211,8 @@ class _MetricCard extends StatelessWidget {
           Text(
             label,
             style: FlowPayTypography.captionStyle(
-                    color: FlowPayColors.textTertiary)
-                .copyWith(
+              color: textTertiaryColor,
+            ).copyWith(
               fontSize: 11,
               letterSpacing: 0.5,
               fontWeight: FontWeight.w600,
@@ -195,7 +224,7 @@ class _MetricCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Text(
               value,
-              style: FlowPayTypography.amount(color: FlowPayColors.ink).copyWith(
+              style: FlowPayTypography.amount(color: inkColor).copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -207,8 +236,8 @@ class _MetricCard extends StatelessWidget {
           Text(
             subtitle,
             style: FlowPayTypography.captionStyle(
-                    color: FlowPayColors.textSecondary)
-                .copyWith(
+              color: textSecondaryColor,
+            ).copyWith(
               fontSize: 11,
             ),
             maxLines: 1,
