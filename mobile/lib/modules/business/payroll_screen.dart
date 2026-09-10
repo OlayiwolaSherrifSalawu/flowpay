@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import 'package:flowpay_mobile/core/design_system/design_system.dart';
+import '../../core/models/paginated_result.dart';
 import '../../core/repositories/payroll_repository.dart';
 import '../../core/state/app_state.dart';
 
@@ -38,6 +39,8 @@ class _PayrollScreenState extends State<PayrollScreen> {
   PayrollExecutionStep? _currentStep;
   String? _executingMessage;
   final Set<String> _retryingEmployeeIds = {};
+  int _breakdownPage = 1;
+  static const int _breakdownPageSize = 10;
 
   @override
   void initState() {
@@ -677,9 +680,31 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                ...(_executionRun ?? _preview)!
-                    .items
-                    .map((item) => _buildEmployeePayrollCard(item, isDark)),
+                ...() {
+                  final allItems = (_executionRun ?? _preview)!.items;
+                  final paginated = PaginatedResult.paginateList(
+                    allItems,
+                    page: _breakdownPage,
+                    limit: _breakdownPageSize,
+                  );
+                  return [
+                    ...paginated.items
+                        .map((item) => _buildEmployeePayrollCard(item, isDark)),
+                    if (allItems.length > _breakdownPageSize) ...[
+                      const SizedBox(height: 8),
+                      FlowPayPaginationBar(
+                        currentPage: _breakdownPage,
+                        totalPages: paginated.totalPages,
+                        totalItems: allItems.length,
+                        pageSize: _breakdownPageSize,
+                        itemLabel: 'employees',
+                        onPageChanged: (newPage) {
+                          setState(() => _breakdownPage = newPage);
+                        },
+                      ),
+                    ],
+                  ];
+                }(),
 
                 const SizedBox(height: 32),
               ],

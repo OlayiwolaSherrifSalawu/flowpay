@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/models/paginated_result.dart';
 import '../../core/repositories/activity_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
@@ -75,6 +76,8 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
   ActivityFilter _selectedFilter = ActivityFilter.all;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int _currentPage = 1;
+  static const int _pageSize = 10;
 
   @override
   void initState() {
@@ -99,13 +102,21 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
   Future<void> _loadActivities() async {
     setState(() => _isLoading = true);
     final acts =
-        await widget.appState.activityRepo.getRecentActivities(limit: 50);
+        await widget.appState.activityRepo.getRecentActivities(limit: 100);
     if (mounted) {
       setState(() {
         _activities = acts;
         _isLoading = false;
       });
     }
+  }
+
+  PaginatedResult<ActivityModel> get _paginatedActivities {
+    return PaginatedResult.paginateList(
+      _filteredActivities,
+      page: _currentPage,
+      limit: _pageSize,
+    );
   }
 
   void _onActivityApproved(ActivityModel updated) {
@@ -178,6 +189,7 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final canPop = Navigator.canPop(context);
     final filtered = _filteredActivities;
+    final paginated = _paginatedActivities;
 
     Widget body = _isLoading
         ? const FlowPayLoadingState(message: 'Loading your activity...')
@@ -215,13 +227,29 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                           _selectedFilter = ActivityFilter.all;
                           _searchController.clear();
                           _searchQuery = '';
+                          _currentPage = 1;
                         });
                       },
                     ),
                   )
-                else
-                  ...filtered.map((activity) =>
+                else ...[
+                  ...paginated.items.map((activity) =>
                       _buildActivityCard(context, activity, isDark)),
+                  const SizedBox(height: 14),
+                  FlowPayPaginationBar(
+                    currentPage: paginated.page,
+                    totalPages: paginated.totalPages,
+                    totalItems: paginated.total,
+                    pageSize: _pageSize,
+                    itemLabel: 'activities',
+                    onPageChanged: (newPage) {
+                      setState(() {
+                        _currentPage = newPage;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ],
             ),
           );
@@ -294,7 +322,10 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                     border: InputBorder.none,
                     isDense: true,
                   ),
-                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  onChanged: (val) => setState(() {
+                    _searchQuery = val.trim();
+                    _currentPage = 1;
+                  }),
                 ),
               ),
               if (_searchQuery.isNotEmpty)
@@ -302,7 +333,10 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   icon: const Icon(Icons.clear, size: 16),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _searchQuery = '');
+                    setState(() {
+                      _searchQuery = '';
+                      _currentPage = 1;
+                    });
                   },
                 ),
             ],
@@ -385,7 +419,10 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                   ),
                   onSelected: (selected) {
                     if (selected) {
-                      setState(() => _selectedFilter = filter);
+                      setState(() {
+                        _selectedFilter = filter;
+                        _currentPage = 1;
+                      });
                     }
                   },
                 ),

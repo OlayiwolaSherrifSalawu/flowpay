@@ -21,3 +21,4 @@ export 'quick_actions.dart';
 export 'states.dart';
 export 'status_badges.dart';
 export 'logo.dart';
+export 'flowpay_pagination_bar.dart';

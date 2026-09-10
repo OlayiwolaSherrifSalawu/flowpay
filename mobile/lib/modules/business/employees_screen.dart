@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
+import '../../core/models/paginated_result.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
 import 'components/add_employee_modal.dart';
@@ -28,6 +29,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedFilter = 'All';
+  int _currentPage = 1;
+  static const int _pageSize = 10;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -73,6 +76,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
           return emp.country.toUpperCase() == 'NG';
         case 'Mexico':
           return emp.country.toUpperCase() == 'MX';
+        case 'Canada':
+          return emp.country.toUpperCase() == 'CA';
         case 'Ready':
           return emp.isReady;
         case 'Pending':
@@ -190,7 +195,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             ),
                             _HeaderStatPill(
                               label: 'COUNTRIES',
-                              value: '2 (Nigeria, Mexico)',
+                              value: '${_employees.map((e) => e.country.toUpperCase()).toSet().length} regions',
                               icon: Icons.public_rounded,
                               iconColor: FlowPayColors.info,
                               isDark: isDark,
@@ -209,8 +214,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                         ),
                         child: TextField(
                           controller: _searchController,
-                          onChanged: (val) =>
-                              setState(() => _searchQuery = val.trim()),
+                          onChanged: (val) => setState(() {
+                            _searchQuery = val.trim();
+                            _currentPage = 1;
+                          }),
                           style: FlowPayTypography.body(color: textPrimaryColor),
                           decoration: InputDecoration(
                             hintText: 'Search by employee name or country...',
@@ -227,7 +234,10 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                                         size: 18, color: textSecondaryColor),
                                     onPressed: () {
                                       _searchController.clear();
-                                      setState(() => _searchQuery = '');
+                                      setState(() {
+                                        _searchQuery = '';
+                                        _currentPage = 1;
+                                      });
                                     },
                                   )
                                 : null,
@@ -247,40 +257,62 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             _FilterChip(
                               label: 'All (${_employees.length})',
                               isSelected: _selectedFilter == 'All',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'All'),
+                              onTap: () => setState(() {
+                                _selectedFilter = 'All';
+                                _currentPage = 1;
+                              }),
                               isDark: isDark,
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇳🇬 Nigeria',
                               isSelected: _selectedFilter == 'Nigeria',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'Nigeria'),
+                              onTap: () => setState(() {
+                                _selectedFilter = 'Nigeria';
+                                _currentPage = 1;
+                              }),
                               isDark: isDark,
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: '🇲🇽 Mexico',
                               isSelected: _selectedFilter == 'Mexico',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'Mexico'),
+                              onTap: () => setState(() {
+                                _selectedFilter = 'Mexico';
+                                _currentPage = 1;
+                              }),
                               isDark: isDark,
                             ),
+                            if (_employees.any((e) => e.country.toUpperCase() == 'CA')) ...[
+                              const SizedBox(width: 8),
+                              _FilterChip(
+                                label: '🇨🇦 Canada',
+                                isSelected: _selectedFilter == 'Canada',
+                                onTap: () => setState(() {
+                                  _selectedFilter = 'Canada';
+                                  _currentPage = 1;
+                                }),
+                                isDark: isDark,
+                              ),
+                            ],
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: 'Ready ($readyCount)',
                               isSelected: _selectedFilter == 'Ready',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'Ready'),
+                              onTap: () => setState(() {
+                                _selectedFilter = 'Ready';
+                                _currentPage = 1;
+                              }),
                               isDark: isDark,
                             ),
                             const SizedBox(width: 8),
                             _FilterChip(
                               label: 'Pending (${_employees.length - readyCount})',
                               isSelected: _selectedFilter == 'Pending',
-                              onTap: () =>
-                                  setState(() => _selectedFilter = 'Pending'),
+                              onTap: () => setState(() {
+                                _selectedFilter = 'Pending';
+                                _currentPage = 1;
+                              }),
                               isDark: isDark,
                             ),
                           ],
@@ -288,7 +320,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 4. Employee Rows List
+                      // 4. Employee Rows List with Pagination
                       if (_filteredEmployees.isEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 40),
@@ -307,8 +339,12 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             ],
                           ),
                         )
-                      else
-                        ..._filteredEmployees.map(
+                      else ...[
+                        ...PaginatedResult.paginateList(
+                          _filteredEmployees,
+                          page: _currentPage,
+                          limit: _pageSize,
+                        ).items.map(
                           (emp) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _EmployeeRowCard(
@@ -327,6 +363,21 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                             ),
                           ),
                         ),
+                        if (_filteredEmployees.length > _pageSize) ...[
+                          const SizedBox(height: 8),
+                          FlowPayPaginationBar(
+                            currentPage: _currentPage,
+                            totalPages: (_filteredEmployees.length / _pageSize).ceil(),
+                            totalItems: _filteredEmployees.length,
+                            pageSize: _pageSize,
+                            itemLabel: 'employees',
+                            onPageChanged: (newPage) {
+                              setState(() => _currentPage = newPage);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ],
                     ],
                   ),
                 ),

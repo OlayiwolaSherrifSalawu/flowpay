@@ -131,7 +131,7 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
     final List<SharedTransactionModel> ops = [];
 
     // Compose from general activity repository
-    final activities = await activityRepo.getRecentActivities(limit: 40);
+    final activities = await activityRepo.getRecentActivities(limit: 100);
     for (final act in activities) {
       if (act.category == ActivityCategory.transfer ||
           act.category == ActivityCategory.fx ||
@@ -188,7 +188,7 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
   @override
   Future<List<SharedTransactionModel>> getAllActivities({
     AuditFilterCategory filter = AuditFilterCategory.all,
-    int limit = 50,
+    int limit = 100,
   }) async {
     final List<SharedTransactionModel> combined = [];
 

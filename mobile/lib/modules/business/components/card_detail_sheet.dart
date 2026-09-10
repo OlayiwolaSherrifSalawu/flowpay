@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/design_system.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../../core/repositories/card_repository.dart';
 
 /// Interactive Card Management Bottom Sheet.
@@ -73,6 +74,8 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
   bool _showingTransactions = false;
   bool _isLoadingTxs = false;
   List<CardTransactionModel> _transactions = [];
+  int _txPage = 1;
+  static const int _txPageSize = 5;
 
   @override
   void initState() {
@@ -192,6 +195,7 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
       setState(() {
         _transactions = txs;
         _isLoadingTxs = false;
+        _txPage = 1;
       });
     } catch (err) {
       if (!mounted) return;
@@ -437,7 +441,30 @@ class _CardDetailSheetState extends State<CardDetailSheet> {
                   ),
                 ),
               ] else ...[
-                ..._transactions.map((tx) => _TransactionItemRow(tx: tx)),
+                ...() {
+                  final paginated = PaginatedResult.paginateList(
+                    _transactions,
+                    page: _txPage,
+                    limit: _txPageSize,
+                  );
+                  return [
+                    ...paginated.items
+                        .map((tx) => _TransactionItemRow(tx: tx)),
+                    if (_transactions.length > _txPageSize) ...[
+                      const SizedBox(height: 8),
+                      FlowPayPaginationBar(
+                        currentPage: _txPage,
+                        totalPages: paginated.totalPages,
+                        totalItems: _transactions.length,
+                        pageSize: _txPageSize,
+                        itemLabel: 'transactions',
+                        onPageChanged: (newPage) {
+                          setState(() => _txPage = newPage);
+                        },
+                      ),
+                    ],
+                  ];
+                }(),
               ],
               const SizedBox(height: 20),
             ],
