@@ -139,6 +139,16 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
       * Upgraded `EmployeePreviewCard`: 20dp card geometry, country flag squircle avatar, name/email, onboarding status badge, country and currency pill tags, tabular payroll salary and USD equivalent, truthful wallet and card status chips with internal divider, and honest failure retry banner.
       * Upgraded `AddEmployeeModal`: 28dp modal sheet (`FlowPayRadii.sheet`), pull handle, country & rail selector, 16dp pillowed form inputs (`BMoniTextFormField.filled`), universal pill submission button, and upgraded invitation sent view with copyable single-use link box and onboarding test action.
       * Verified with `mobile/test/app_shell_test.dart` (6/6 passed), `mobile/test/payroll_screen_test.dart` (3/3 passed), `mobile/test/employee_invite_flow_test.dart` (3/3 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 10: Global Payroll Orchestration & Confirmation Flow (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `PayrollScreen`: Conforms to Dribbble fintech styling & BMONI transfer proposal protocol:
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * 4-stage Live Execution Timeline Stepper (`Validated` → `Approved` → `Processing` → `Completed`) with emerald pill icons and progress tracking.
+        * Aggregate Bill Hero Card (`FlowPayRadii.card`, core tagline *"One Employer. Many Countries. One Bill."*, `TOTAL AGGREGATE SETTLEMENT` in tabular monospace typography, and 97% savings badge).
+        * Parallel Multi-Rail Breakdown List (`PARALLEL MULTI-RAIL DISBURSEMENTS`) with country flag squircle avatars, exchange rates, and destination rail verification badges (`CNGN Rail Active & Verified`, `MEXe Rail Active & Verified`).
+        * Confirmation Modal before execution with employee count, country count (`2 (NG, MX)`), aggregate disbursement card, and universal pill buttons (`Approve Payroll`).
+        * PIN entry modal titled `'B-Key PIN Signing'` with on-device raw-hash secp256k1 signing, honest error propagation, and payslip download actions (`Download Payslips & Receipts`).
+      * Upgraded `PayrollRunDetailSheet`: 28dp sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive canvas, tabular figures, and granular single-proposal retry.
+      * Verified with `mobile/test/payroll_screen_test.dart` (3/3 passed), `mobile/test/payroll_signing_test.dart` (5/5 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
