@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/design_system/amount_display.dart';
+import '../../../core/design_system/dialogs.dart';
 import '../../../core/models/shared_transaction.dart';
 import '../../../core/theme/colors.dart';
 import '../../../core/theme/components.dart';
+import '../../../core/theme/radii.dart';
 import '../../../core/theme/typography.dart';
 
 /// Modal Bottom Sheet displaying in-depth detail for single transactions:
 /// Card Spends, Smart Wallet Transfers, Employee Payments, or Failures.
-/// Strictly sanitizes references to ensure no private key or signing secrets are exposed.
+/// FlowPay Dribbble Fintech styling:
+/// - 28dp top sheet radius (FlowPayRadii.sheet)
+/// - Theme-adaptive canvas (surfaceOf / borderOf)
+/// - Sanitized references with 1-tap copy action
+/// - Universal pill dismiss button
 class TransactionDetailSheet extends StatelessWidget {
   final SharedTransactionModel transaction;
 
@@ -28,6 +35,14 @@ class TransactionDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     final flag = transaction.country == 'NG'
         ? '🇳🇬'
         : (transaction.country == 'MX'
@@ -36,9 +51,9 @@ class TransactionDetailSheet extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: FlowPayColors.canvas,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: FlowPayColors.hairline),
+        color: surfaceColor,
+        borderRadius: FlowPayRadii.sheet,
+        border: Border.all(color: borderColor),
       ),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       child: Column(
@@ -50,34 +65,40 @@ class TransactionDetailSheet extends StatelessWidget {
               width: 44,
               height: 4.5,
               decoration: BoxDecoration(
-                color: FlowPayColors.hairline,
+                color: borderColor,
                 borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
           const SizedBox(height: 16),
 
-          // Header with Icon & Title
+          // Header with Squircle Icon & Title
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   color: transaction.isFailure
                       ? FlowPayColors.stateError.withValues(alpha: 0.15)
-                      : FlowPayColors.accent.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                      : FlowPayColors.primary.withValues(alpha: isDark ? 0.2 : 0.12),
+                  borderRadius: FlowPayRadii.avatar,
+                  border: Border.all(
+                    color: transaction.isFailure
+                        ? FlowPayColors.stateError.withValues(alpha: 0.35)
+                        : FlowPayColors.primary.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Icon(
                   transaction.isFailure
-                      ? Icons.error_outline
+                      ? Icons.error_outline_rounded
                       : (transaction.type == TransactionType.cardTransaction
-                          ? Icons.credit_card
+                          ? Icons.credit_card_rounded
                           : Icons.account_balance_wallet_outlined),
                   color: transaction.isFailure
                       ? FlowPayColors.stateError
-                      : FlowPayColors.accent,
-                  size: 24,
+                      : FlowPayColors.primary,
+                  size: 22,
                 ),
               ),
               const SizedBox(width: 14),
@@ -89,14 +110,15 @@ class TransactionDetailSheet extends StatelessWidget {
                       transaction.title,
                       style: FlowPayTypography.titleMedium.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: FlowPayColors.ink,
+                        color: textPrimaryColor,
+                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${transaction.counterparty ?? 'FlowPay Business'} · $flag',
                       style: FlowPayTypography.caption.copyWith(
-                        color: FlowPayColors.darkTextSecondary,
+                        color: textSecondaryColor,
                       ),
                     ),
                   ],
@@ -111,7 +133,7 @@ class TransactionDetailSheet extends StatelessWidget {
           FlowPayAmountDisplay(
             amount: transaction.amount.formatFormatted(),
             size: AmountDisplaySize.large,
-            color: FlowPayColors.ink,
+            color: textPrimaryColor,
           ),
           if (transaction.secondaryAmount != null) ...[
             const SizedBox(height: 4),
@@ -134,16 +156,14 @@ class TransactionDetailSheet extends StatelessWidget {
             contentPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
             child: Column(
               children: [
-                _buildRow('Category', transaction.type.name.toUpperCase()),
-                _buildRow('Date & Time', _formatDate(transaction.timestamp)),
+                _buildRow(context, 'Category', transaction.type.name.toUpperCase()),
+                _buildRow(context, 'Date & Time', _formatDate(transaction.timestamp)),
                 if (transaction.flowpayReference != null)
-                  _buildRow('FlowPay Reference', transaction.flowpayReference!,
-                      isMonospace: true),
+                  _buildRowWithCopy(context, 'FlowPay Reference', transaction.flowpayReference!),
                 if (transaction.bmoniReference != null)
-                  _buildRow('BMONI Rail Reference', transaction.bmoniReference!,
-                      isMonospace: true),
+                  _buildRowWithCopy(context, 'BMONI Rail Reference', transaction.bmoniReference!),
                 if (transaction.description.isNotEmpty)
-                  _buildRow('Description', transaction.description),
+                  _buildRow(context, 'Description', transaction.description),
               ],
             ),
           ),
@@ -156,7 +176,7 @@ class TransactionDetailSheet extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: FlowPayColors.stateError.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: FlowPayRadii.input,
                 border: Border.all(
                     color: FlowPayColors.stateError.withValues(alpha: 0.35)),
               ),
@@ -182,14 +202,14 @@ class TransactionDetailSheet extends StatelessWidget {
                   Text(
                     transaction.errorReason!,
                     style: FlowPayTypography.caption
-                        .copyWith(color: FlowPayColors.ink),
+                        .copyWith(color: textPrimaryColor),
                   ),
                   if (transaction.failedStage != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       'Failed Stage: ${transaction.failedStage}',
                       style: FlowPayTypography.caption.copyWith(
-                        color: FlowPayColors.darkTextTertiary,
+                        color: textSecondaryColor,
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -198,12 +218,28 @@ class TransactionDetailSheet extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 20),
+
+          // Dismiss Button
+          FlowPayButton(
+            text: 'Dismiss',
+            variant: FlowPayButtonVariant.secondary,
+            size: FlowPayButtonSize.medium,
+            isFullWidth: true,
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRow(String label, String value, {bool isMonospace = false}) {
+  Widget _buildRow(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -212,7 +248,7 @@ class TransactionDetailSheet extends StatelessWidget {
           Text(
             label,
             style: FlowPayTypography.caption.copyWith(
-              color: FlowPayColors.darkTextSecondary,
+              color: textSecondaryColor,
             ),
           ),
           Flexible(
@@ -221,10 +257,68 @@ class TransactionDetailSheet extends StatelessWidget {
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
               style: FlowPayTypography.caption.copyWith(
-                color: FlowPayColors.ink,
+                color: textPrimaryColor,
                 fontWeight: FontWeight.w600,
-                fontFamily: isMonospace ? 'monospace' : null,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRowWithCopy(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textPrimaryColor =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondaryColor =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: FlowPayTypography.caption.copyWith(
+              color: textSecondaryColor,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    value,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: FlowPayTypography.caption.copyWith(
+                      color: textPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                InkWell(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: value));
+                    BMoniToastOverlay.showSuccess(
+                      context: context,
+                      title: 'Copied',
+                      message: '$label copied to clipboard.',
+                    );
+                  },
+                  child: const Icon(
+                    Icons.copy_rounded,
+                    size: 14,
+                    color: FlowPayColors.primary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

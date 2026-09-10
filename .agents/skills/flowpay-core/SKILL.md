@@ -170,6 +170,23 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Header with high-contrast typography and close action.
         * Action buttons upgraded to universal pill buttons (`FlowPayButton` for View Card / Hide Details, Transactions, Freeze / Unfreeze).
       * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
+    * **Complete Redesign — Phase 12: Business Activity & Corporate Audit + Employee Onboarding Portal (Dribbble Reference & FlowPay Design System)**:
+      * Upgraded `BusinessActivityScreen` (`Corporate Audit Log`):
+        * Theme-adaptive Paper / Obsidian canvas with full test-key fidelity and high-contrast typography.
+        * Cryptographic ledger telemetry pill bar (`AUDITED EVENTS`, `ACTIVE RAILS`, `CONSENSUS`) with monospace metrics.
+        * Pillowed search bar (`FlowPayRadii.input`) and interactive category filter chips (`[ All, Payroll, Onboarding, Cards, Compliance ]`).
+        * Elevated 24dp audit event cards (`FlowPayRadii.card`) with category squircle icon badges, timestamp, event title, category chip, description, tabular settlement figures, and copyable monospace reference hashes (`ref_bmoni_...`).
+        * Tap navigation seamlessly launches `TransactionDetailSheet`.
+      * Upgraded `TransactionDetailSheet`:
+        * 28dp top sheet radius (`FlowPayRadii.sheet`), drag handle, theme-adaptive surface and borders (`surfaceOf(context)` / `borderOf(context)`).
+        * High-contrast typography, status badges (`FlowPayStatusBadge`), tabular amount figures (`FlowPayAmountDisplay`).
+        * Sanitized reference metadata section with 1-tap clipboard copy, country and rail details, error diagnostics card, and universal pill dismiss button (`FlowPayButton`).
+      * Upgraded `EmployeeOnboardingScreen`:
+        * Theme-adaptive scaffold and App Bar with employee name and country jurisdiction.
+        * Redesigned Stage Navigation Stepper (Stage 2: Wallet, Stage 3: KYC, Stage 4: Rail) with dynamic active, ready, and failed state badges.
+        * Elevated 24dp stage cards (`FlowPayRadii.card`) with squircle icons, country-specific KYC forms (Nigeria: no selfie + BVN/NIN/EDD; Mexico: selfie + CURP/RFC), Etherfuse agreements signing prerequisite banner, and BMONI webhook simulation bar.
+        * Upgraded all CTAs to universal pill buttons (`FlowPayButton`).
+      * Verified with `mobile/test/employee_invite_flow_test.dart` (3/3 passed), `mobile/test/app_shell_test.dart` (6/6 passed), full test suite (180/180 passed), and `flutter analyze` (0 issues).
     * `FlowPayTypography` with tabular monospaced numbers.
     * `FlowPaySpacing` with standard 8-point grid, presets, and border radii.
     * `FlowPayCard`, `FlowPayGlassCard`, `FlowPayStatCard`.
