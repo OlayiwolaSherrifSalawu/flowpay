@@ -4,7 +4,7 @@ import { prisma, isPostgresDb } from '../db/index.js';
 
 export const authRouter = Router();
 
-interface RegisteredUser {
+export interface RegisteredUser {
   userId: string;
   fullName: string;
   email: string;
@@ -17,7 +17,7 @@ interface RegisteredUser {
   nationalId?: string;
 }
 
-const registeredUsers = new Map<string, RegisteredUser>();
+export const registeredUsers = new Map<string, RegisteredUser>();
 
 // Seed default sandbox master user
 registeredUsers.set('usr_flowpay_sandbox_master', {
@@ -31,6 +31,67 @@ registeredUsers.set('usr_flowpay_sandbox_master', {
   companyRole: 'ADMIN',
   kycStatus: 'verified',
 });
+
+/**
+ * Look up a registered user across in-memory registry and PostgreSQL database.
+ */
+export async function findUserByQuery(query: string): Promise<RegisteredUser | undefined> {
+  const clean = query.trim().toLowerCase();
+  if (!clean) return undefined;
+
+  // 1. Direct ID lookup
+  if (registeredUsers.has(query)) {
+    return registeredUsers.get(query);
+  }
+
+  // 2. Search in-memory registry by email, phone, fullName, or userId
+  for (const u of registeredUsers.values()) {
+    if (
+      u.userId.toLowerCase() === clean ||
+      u.email.toLowerCase() === clean ||
+      (u.phone && u.phone.replace(/[^0-9+]/g, '') === clean.replace(/[^0-9+]/g, '')) ||
+      u.fullName.toLowerCase() === clean ||
+      u.fullName.toLowerCase().includes(clean)
+    ) {
+      return u;
+    }
+  }
+
+  // 3. Search database if Postgres is connected
+  if (isPostgresDb()) {
+    try {
+      const dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { id: query },
+            { bmoniUserId: query },
+            { email: { equals: query, mode: 'insensitive' } },
+            { fullName: { contains: query, mode: 'insensitive' } },
+            { phoneNumber: query },
+          ],
+        },
+      });
+      if (dbUser) {
+        const user: RegisteredUser = {
+          userId: dbUser.id,
+          fullName: dbUser.fullName,
+          email: dbUser.email,
+          accountType: dbUser.accountType as any,
+          country: dbUser.country,
+          phone: dbUser.phoneNumber || '',
+          companyName: dbUser.companyName || undefined,
+          companyRole: dbUser.companyRole || undefined,
+          kycStatus: dbUser.kycStatus as any,
+          nationalId: dbUser.nationalId || undefined,
+        };
+        registeredUsers.set(user.userId, user);
+        return user;
+      }
+    } catch (_) {}
+  }
+
+  return undefined;
+}
 
 async function resolveCapabilities(bmoniUserId: string) {
   let user = registeredUsers.get(bmoniUserId);

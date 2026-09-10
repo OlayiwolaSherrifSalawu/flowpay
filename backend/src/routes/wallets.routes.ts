@@ -74,7 +74,10 @@ walletsRouter.post('/create-managed', async (req, res, next) => {
 // GET /api/wallets/:walletId/balance
 walletsRouter.get('/:walletId/balance', async (req, res, next) => {
   try {
-    const userId = (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const userId =
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const balance = await WalletService.getWalletBalance(req.params.walletId, userId);
     res.json({ success: true, data: balance });
   } catch (err) {
@@ -87,7 +90,11 @@ walletsRouter.post('/:walletId/debit', async (req, res, next) => {
   try {
     const { amount, userId } = req.body;
     const num = parseFloat(amount) || 0;
-    const effectiveUser = userId || (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const effectiveUser =
+      userId ||
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const ok = await WalletService.debitWallet(req.params.walletId, num, effectiveUser);
     res.json({ success: ok, data: { walletId: req.params.walletId, debited: num } });
   } catch (err) {
@@ -100,7 +107,11 @@ walletsRouter.post('/:walletId/credit', async (req, res, next) => {
   try {
     const { amount, userId } = req.body;
     const num = parseFloat(amount) || 0;
-    const effectiveUser = userId || (req.query.userId as string) || 'usr_flowpay_sandbox_master';
+    const effectiveUser =
+      userId ||
+      (req.query.userId as string) ||
+      (req.headers['x-user-id'] as string) ||
+      'usr_flowpay_sandbox_master';
     const ok = await WalletService.creditWallet(req.params.walletId, num, effectiveUser);
     res.json({ success: ok, data: { walletId: req.params.walletId, credited: num } });
   } catch (err) {

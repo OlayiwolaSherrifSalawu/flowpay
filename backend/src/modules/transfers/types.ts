@@ -1,4 +1,5 @@
 import type { SupportedCurrency } from '../../core/money.js';
+export type { SupportedCurrency };
 
 export type TransferErrorCode =
   | 'INSUFFICIENT_FUNDS'
@@ -42,6 +43,7 @@ export interface FundingSourceOption {
   fxFeeFormatted: string;
   totalDebitMinor: string; // Converted debit + fees in funding currency
   totalDebitFormatted: string;
+  totalDebit?: string | number;
   targetPaymentMinor: string; // Delivered to recipient
   targetPaymentFormatted: string;
 }

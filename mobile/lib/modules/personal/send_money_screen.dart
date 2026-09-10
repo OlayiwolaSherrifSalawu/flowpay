@@ -660,13 +660,8 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
         proposal: proposal,
       );
 
-      // Debit funding wallet
-      try {
-        await widget.appState.walletRepo.debitWallet(
-          walletId: fundingOption.fundingWalletId,
-          amount: fundingOption.totalDebit,
-        );
-      } catch (_) {}
+      // Note: executeProposal already debits the funding wallet on the backend
+      // (and in DemoTransferRepository). Do NOT call walletRepo.debitWallet here.
 
       // Record activity in ActivityRepository
       try {
