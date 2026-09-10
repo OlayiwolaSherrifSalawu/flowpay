@@ -4,11 +4,40 @@ import { EmployeeOnboardingService } from '../modules/employees/onboarding.servi
 
 export const employeesRouter = Router();
 
-// GET /api/employees?status=READY
+import { parsePaginationParams, paginateArray } from '../core/pagination.js';
+
+// GET /api/employees?status=READY&country=NG&search=Bunch&page=1&limit=10
 employeesRouter.get('/', async (req, res, next) => {
   try {
     const status = req.query.status as string | undefined;
-    const list = await EmployeeService.listEmployees(status);
+    const country = req.query.country as string | undefined;
+    const search = req.query.search as string | undefined;
+    let list = await EmployeeService.listEmployees(status);
+
+    if (country && country !== 'ALL') {
+      list = list.filter(
+        (e: any) => e.country?.toUpperCase() === country.toUpperCase()
+      );
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (e: any) =>
+          e.firstName?.toLowerCase().includes(q) ||
+          e.lastName?.toLowerCase().includes(q) ||
+          e.email?.toLowerCase().includes(q) ||
+          e.country?.toLowerCase().includes(q) ||
+          e.countryName?.toLowerCase().includes(q)
+      );
+    }
+
+    if (req.query.page !== undefined || req.query.limit !== undefined) {
+      const { page, limit } = parsePaginationParams(req.query, 10);
+      const paginated = paginateArray(list, page, limit);
+      return res.json({ success: true, data: paginated });
+    }
+
     res.json({ success: true, data: list });
   } catch (err) {
     next(err);

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
-import '../../../core/design_system/amount_display.dart';
+import '../../../core/design_system/design_system.dart';
+import '../../../core/models/paginated_result.dart';
 import '../../../core/repositories/payroll_repository.dart';
 import '../../../core/state/business_provider.dart';
-import '../../../core/theme/colors.dart';
-import '../../../core/theme/components.dart';
-import '../../../core/theme/radii.dart';
-import '../../../core/theme/typography.dart';
 import '../../../core/wallet/components/wallet_pin_auth_sheet.dart';
 
 /// Modal Bottom Sheet displaying in-depth Payroll Run Detail and Audit Trail.
@@ -49,6 +46,8 @@ class PayrollRunDetailSheet extends StatefulWidget {
 class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
   late PayrollRunModel _currentRun;
   final Set<String> _retryingEmployeeIds = {};
+  int _paymentsPage = 1;
+  static const int _paymentsPageSize = 5;
 
   @override
   void initState() {
@@ -428,16 +427,40 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                       ),
                       child: Column(
                         children: [
-                          for (int i = 0;
-                              i < _currentRun.items.length;
-                              i++) ...[
-                            _buildEmployeePaymentRow(_currentRun.items[i], isDark),
-                            if (i < _currentRun.items.length - 1)
-                              Divider(
-                                  height: 20,
-                                  thickness: 1,
-                                  color: borderColor),
-                          ],
+                          ...() {
+                            final paginated = PaginatedResult.paginateList(
+                              _currentRun.items,
+                              page: _paymentsPage,
+                              limit: _paymentsPageSize,
+                            );
+                            return [
+                              for (int i = 0;
+                                  i < paginated.items.length;
+                                  i++) ...[
+                                _buildEmployeePaymentRow(
+                                    paginated.items[i], isDark),
+                                if (i < paginated.items.length - 1)
+                                  Divider(
+                                      height: 20,
+                                      thickness: 1,
+                                      color: borderColor),
+                              ],
+                              if (_currentRun.items.length >
+                                  _paymentsPageSize) ...[
+                                const SizedBox(height: 12),
+                                FlowPayPaginationBar(
+                                  currentPage: _paymentsPage,
+                                  totalPages: paginated.totalPages,
+                                  totalItems: _currentRun.items.length,
+                                  pageSize: _paymentsPageSize,
+                                  itemLabel: 'payments',
+                                  onPageChanged: (newPage) {
+                                    setState(() => _paymentsPage = newPage);
+                                  },
+                                ),
+                              ],
+                            ];
+                          }(),
                         ],
                       ),
                     ),

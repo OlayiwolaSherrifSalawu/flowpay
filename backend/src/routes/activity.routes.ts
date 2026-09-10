@@ -52,30 +52,52 @@ export function recordInMemoryActivity(activity: any): void {
   }
 }
 
-// GET /api/activity
+import { parsePaginationParams, paginateArray } from '../core/pagination.js';
+
+// GET /api/activity?category=PERSONAL&page=1&limit=10
 activityRouter.get('/', async (req, res, next) => {
   try {
     const category = req.query.category as string | undefined;
+    const search = req.query.search as string | undefined;
 
+    let rows: any[] = [];
     if (isPostgresDb()) {
       try {
-        const rows = await prisma.auditActivity.findMany({
+        rows = await prisma.auditActivity.findMany({
           where: category ? { category: category.toUpperCase() } : undefined,
           orderBy: { createdAt: 'desc' },
-          take: 50,
+          take: 100,
         });
-        return res.json({ success: true, data: rows });
       } catch (dbErr) {
         console.warn('[Activity] DB read failed, using in-memory store fallback:', dbErr);
       }
     }
 
-    let list = inMemoryActivities;
-    if (category) {
-      list = list.filter((a) => a.category.toUpperCase() === category.toUpperCase());
+    if (rows.length === 0) {
+      let list = inMemoryActivities;
+      if (category) {
+        list = list.filter((a) => a.category?.toUpperCase() === category.toUpperCase());
+      }
+      rows = list;
     }
 
-    res.json({ success: true, data: list });
+    if (search) {
+      const q = search.toLowerCase();
+      rows = rows.filter(
+        (a) =>
+          a.action?.toLowerCase().includes(q) ||
+          a.actor?.toLowerCase().includes(q) ||
+          JSON.stringify(a.detailsJson ?? {}).toLowerCase().includes(q)
+      );
+    }
+
+    if (req.query.page !== undefined || req.query.limit !== undefined) {
+      const { page, limit } = parsePaginationParams(req.query, 10);
+      const paginated = paginateArray(rows, page, limit);
+      return res.json({ success: true, data: paginated });
+    }
+
+    res.json({ success: true, data: rows });
   } catch (err) {
     next(err);
   }

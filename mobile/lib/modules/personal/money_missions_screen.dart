@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../core/design_system/buttons.dart';
+import '../../core/design_system/flowpay_pagination_bar.dart';
 import '../../core/design_system/states.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
+import '../../core/models/paginated_result.dart';
 import '../../core/money/money.dart';
 import '../../core/navigation/personal_tab_provider.dart';
 import '../../core/repositories/activity_repository.dart';
@@ -33,6 +35,8 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
 
   List<MoneyMissionModel> missions = [];
   bool isLoadingMissions = true;
+  int _missionPage = 1;
+  static const int _missionPageSize = 5;
 
   // AI Pipeline State
   bool isInterpreting = false;
@@ -1088,8 +1092,12 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       ],
                     ),
                   )
-                else
-                  ...missions.map((m) {
+                else ...[
+                  ...PaginatedResult.paginateList(
+                    missions,
+                    page: _missionPage,
+                    limit: _missionPageSize,
+                  ).items.map((m) {
                     return MissionCard(
                       mission: m,
                       onToggleActive: (_) => _toggleMission(m.id),
@@ -1097,6 +1105,21 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                       onDelete: () => _confirmDeleteMission(m),
                     );
                   }),
+                  if (missions.length > _missionPageSize) ...[
+                    const SizedBox(height: 12),
+                    FlowPayPaginationBar(
+                      currentPage: _missionPage,
+                      totalPages: (missions.length / _missionPageSize).ceil(),
+                      totalItems: missions.length,
+                      pageSize: _missionPageSize,
+                      onPageChanged: (newPage) {
+                        setState(() {
+                          _missionPage = newPage;
+                        });
+                      },
+                    ),
+                  ],
+                ],
               ],
             ),
           );

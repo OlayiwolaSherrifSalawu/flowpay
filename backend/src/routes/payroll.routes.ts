@@ -48,22 +48,31 @@ payrollRouter.post('/proposals/:proposalId/retry', async (req, res, next) => {
   }
 });
 
-// GET /api/payroll/runs
+import { parsePaginationParams, paginateArray } from '../core/pagination.js';
+
+// GET /api/payroll/runs?page=1&limit=10
 payrollRouter.get('/runs', async (req, res, next) => {
   try {
+    let runs: any[] = [];
     if (isPostgresDb()) {
       try {
-        const runs = await prisma.payrollRun.findMany({
+        runs = await prisma.payrollRun.findMany({
           include: { items: true },
           orderBy: { createdAt: 'desc' },
-          take: 20,
+          take: 100,
         });
-        return res.json({ success: true, data: runs });
       } catch (dbErr) {
         console.warn('[Payroll] DB read runs failed, using empty list fallback:', dbErr);
       }
     }
-    res.json({ success: true, data: [] });
+
+    if (req.query.page !== undefined || req.query.limit !== undefined) {
+      const { page, limit } = parsePaginationParams(req.query, 10);
+      const paginated = paginateArray(runs, page, limit);
+      return res.json({ success: true, data: paginated });
+    }
+
+    res.json({ success: true, data: runs });
   } catch (err) {
     next(err);
   }

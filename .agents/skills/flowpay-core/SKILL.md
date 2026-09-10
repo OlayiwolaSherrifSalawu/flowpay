@@ -857,6 +857,34 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * 100% adherence to AGENTS.md: zero fabricated success responses on failed BMONI calls; all real error handling and typed exceptions preserved.
         * Updated all 10 affected unit, widget, and integration test suites in `mobile/test/` to match the new plain-English UI copy.
         * Zero compilation or static analysis issues across the entire codebase (`flutter analyze`).
+    * **Pagination & Long-List UX Overhaul (Personal & Business Sides)**:
+      * **Core Pagination Primitive (`mobile/lib/core/models/paginated_result.dart`)**:
+        * Built generic, immutable `PaginatedResult<T>` with deterministic `paginateList` factory, bounds clamping, 1-based indexing (`startItemIndex`, `endItemIndex`), and tabular figure range formatting (`rangeLabel`).
+      * **Shared Pagination Bar Widget (`mobile/lib/core/design_system/flowpay_pagination_bar.dart`)**:
+        * Created theme-adaptive `FlowPayPaginationBar` with `Prev`, page indicator (`safePage / totalPages`), `Next`, boundary disabling, localized loading spinner, and range summary (`Showing 1–10 of 47 employees`).
+        * Exported in `design_system.dart`.
+      * **Backend Pagination Support (`backend/src/core/pagination.ts`)**:
+        * Created universal query helpers `parsePaginationParams`, `paginateArray`, and `buildPaginatedResponse`.
+        * Added pagination and filter params (`page`, `limit`, `search`, `category`, `country`) to `GET /api/employees`, `GET /api/activity`, and `GET /api/payroll/runs`.
+        * Clean TypeScript compilation (`npm run build`).
+      * **Deterministic Demo Data Scaled for Rich Multi-Page Testing**:
+        * Expanded `demo_data.dart` to exactly 47 employees across Nigeria, Mexico, and Canada with realistic salaries and wallet addresses.
+        * Expanded `demo_activity_repo.dart` to 50 activities across 5 pages, preserving all 12 original test-expected activities.
+        * Expanded `demo_mission_repo.dart` to 8 missions.
+      * **Personal Side Long-List Pagination**:
+        * `PersonalActivityScreen`: Sliced to 10 activities/page with `FlowPayPaginationBar`, search and category tab page-1 resets.
+        * `MoneyMissionsScreen`: Sliced to 5 missions/page with `FlowPayPaginationBar`.
+      * **Business Side Long-List Pagination & Authoritative Metrics**:
+        * `EmployeesScreen`: Sliced to 10 employees/page with search query and country/status filter chip page-1 resets. Global authoritative metrics (`TOTAL ROSTER` count of 47, `PAYROLL READY` count) remain computed over the entire dataset.
+        * `BusinessActivityScreen`: Sliced to 10 events/page with search and category chip page-1 resets.
+        * `PayrollScreen`: Employee breakdown cards sliced to 10/page with pagination controls. Hero Aggregate Bill Card and confirmation modal metrics remain computed over full dataset.
+        * `PayrollRunDetailSheet`: Employee payments in Section 3 sliced to 5/page with pagination bar.
+        * `CardDetailSheet`: Card transactions list sliced to 5/page with pagination bar.
+      * **Testing & Verification**:
+        * Created dedicated test suites: `mobile/test/pagination_bar_test.dart` (6/6 passing), `mobile/test/employees_pagination_test.dart` (2/2 passing), `mobile/test/personal_activity_pagination_test.dart` (1/1 passing).
+        * Verified all 189 Flutter tests passing 100% green (`flutter test`).
+        * 0 static analysis issues across entire workspace (`flutter analyze`).
+        * Verified release web build compiles cleanly (`flutter build web --release`).
 
 ---
 
@@ -869,6 +897,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [x] Implement Send Money feature with natural language entry, balance-aware smart routing, premium confirmation screen, "Nothing moves until you approve." trust banner, on-device B-Key signing, and activity logging.
 - [x] Implement Personal Activity ledger with 7 filters, 6 statuses, transaction details modal, and zero credential leakage.
 - [x] Implement Personal Security screen with 3 core sections (Wallet Security, Signing Security, Approval Rules), "Financial actions require your approval." enforcement, and hardware key indicators.
+- [x] Implement Personal pagination & long-list UX controls (Activities, Missions) with search/filter resets.
 - [ ] Connect `PersonalDashboardScreen` to live real-time wallet balance polling with backend webhook sync.
 
 ### Business Track Owner
@@ -877,6 +906,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 - [x] Implement FlowPay Business Virtual Employee Cards on BMONI rails (Amber Card-as-Object, `signTransactionHash`, E101 NIN enrollment, dual amount formatters, card actions).
 - [x] Implement FlowPay Business Global Payroll ("One Employer. Many Countries. One Bill.") with 4-call proposal sequence, raw-hash signing, rail validation, 4-stage timeline, and granular retry.
 - [x] Implement FlowPay Business Corporate Payroll Activity & Audit subsystem with composed repositories, bkey_uikit ActivitySectionCard and StatusText, shared transaction models, and failure retry.
+- [x] Implement Business pagination & long-list UX controls (Global Team, Business Activity, Payroll Breakdown, Card Details) with authoritative global aggregates and search/filter resets.
 - [ ] Add virtual card spend limit presets (Junior / Senior / Contractor dropdowns).
 - [ ] Add PDF export / receipt sharing for aggregate payroll disbursement runs.
 
