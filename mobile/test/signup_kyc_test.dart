@@ -244,7 +244,7 @@ void main() {
 
       // Starts on LoginScreen
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('Log In to FlowPay'), findsOneWidget);
+      expect(find.text('Welcome Back'), findsOneWidget);
 
       // Enter login credentials into the two TextFields on LoginScreen
       final textFields = find.byType(TextField);

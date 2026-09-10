@@ -6,11 +6,7 @@ import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/config/api_config.dart';
-import '../../core/design_system/buttons.dart';
-import '../../core/design_system/input_fields.dart';
-import '../../core/theme/colors.dart';
-import '../../core/theme/radii.dart';
-import '../../core/theme/typography.dart';
+import '../../core/design_system/design_system.dart';
 
 import 'set_pin_screen.dart';
 
@@ -188,23 +184,30 @@ class _KycScreenState extends ConsumerState<KycScreen> {
   @override
   Widget build(BuildContext context) {
     final isPersonal = widget.userProfile.isPersonal;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
 
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: FlowPayColors.canvas,
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: FlowPayColors.ink),
+          icon: Icon(Icons.arrow_back, color: textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           isPersonal ? 'Identity Verification' : 'Corporate KYB Compliance',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: FlowPayColors.ink,
+            color: textPrimary,
           ),
         ),
         centerTitle: true,
@@ -217,13 +220,26 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Compliance Status Hero Card
+                // ── 3-Step Progress Indicator ──
+                _buildStepProgress(isPersonal ? 0 : 0),
+                const SizedBox(height: 20),
+
+                // ── Compliance Status Hero Card ──
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.surfaceAlt,
+                    color: surfaceColor,
                     borderRadius: FlowPayRadii.card,
-                    border: Border.all(color: FlowPayColors.hairline),
+                    border: Border.all(
+                        color: FlowPayColors.primary.withValues(alpha: 0.3),
+                        width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: FlowPayColors.primary.withValues(alpha: 0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -231,15 +247,18 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: FlowPayColors.primary.withAlpha(40),
+                          color: FlowPayColors.emerald600.withValues(alpha: 0.12),
                           borderRadius: FlowPayRadii.avatar,
+                          border: Border.all(
+                              color:
+                                  FlowPayColors.emerald600.withValues(alpha: 0.3)),
                         ),
                         child: Icon(
                           isPersonal
                               ? Icons.verified_user_outlined
                               : Icons.shield_outlined,
-                          color: FlowPayColors.primaryLight,
-                          size: 24,
+                          color: FlowPayColors.emerald600,
+                          size: 22,
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -251,10 +270,10 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                               isPersonal
                                   ? 'Tier 1 BMONI Smart Wallet'
                                   : 'Global Payroll Rail Verification',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: FlowPayColors.ink,
+                                color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -262,9 +281,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                               isPersonal
                                   ? 'Unlocks self-custody wallets and instant virtual spend cards.'
                                   : 'Authorizes aggregate multi-country payroll fan-out & corporate cards.',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: FlowPayColors.textSecondary,
+                                color: isDark
+                                    ? FlowPayColors.darkTextSecondary
+                                    : FlowPayColors.textSecondary,
                               ),
                             ),
                           ],
@@ -281,7 +302,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     'Step 1: Government Identity',
                     style: FlowPayTypography.headingSm.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: FlowPayColors.textPrimary,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -329,7 +350,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     'Step 2: Facial Biometric Liveness',
                     style: FlowPayTypography.headingSm.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: FlowPayColors.textPrimary,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -350,7 +371,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                     'Step 1: Corporate Legal Entity',
                     style: FlowPayTypography.headingSm.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: FlowPayColors.textPrimary,
+                      color: textPrimary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -448,7 +469,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Submit Verification Button
+                // ── Submit Verification Button ──
                 FlowPayButton(
                   text: _isSubmitting
                       ? 'Verifying with BMONI...'
@@ -458,6 +479,39 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   icon: Icons.arrow_forward,
                   isLoading: _isSubmitting,
                   onPressed: _isSubmitting ? null : _completeKyc,
+                ),
+                const SizedBox(height: 12),
+                // ── Trust Guarantee Banner ──
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? FlowPayColors.darkSurfaceElevated
+                        : FlowPayColors.mint100.withValues(alpha: 0.5),
+                    borderRadius: FlowPayRadii.input,
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 13,
+                          color: FlowPayColors.primary.withValues(alpha: 0.7)),
+                      const SizedBox(width: 6),
+                      const Flexible(
+                        child: Text(
+                          'Your data is encrypted. Only used for regulatory compliance.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: FlowPayColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -500,6 +554,44 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStepProgress(int activeStep) {
+    final steps = ['Verification', 'Selfie', 'Review'];
+    return Row(
+      children: List.generate(steps.length, (i) {
+        final isActive = i <= activeStep;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < steps.length - 1 ? 6 : 0),
+            child: Column(
+              children: [
+                Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? FlowPayColors.primary
+                        : FlowPayColors.hairline,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  steps[i],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: isActive
+                        ? FlowPayColors.primary
+                        : FlowPayColors.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 

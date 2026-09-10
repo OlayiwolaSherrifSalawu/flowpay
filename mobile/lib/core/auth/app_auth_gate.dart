@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../design_system/design_system.dart';
 import '../state/app_state.dart';
-import '../theme/colors.dart';
-import '../theme/components.dart';
-import '../theme/radii.dart';
-import '../theme/typography.dart';
 import 'account_capabilities.dart';
 import 'account_mode_picker_modal.dart';
 import 'auth_providers.dart';
 import '../../modules/auth/signup_screen.dart';
 import '../../modules/auth/login_screen.dart';
+
 
 /// App-Auth Gate: Controls biometric unlock, account mode resolution,
 /// and lifecycle background re-lock.
@@ -111,14 +109,18 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
     final capabilitiesAsync = ref.watch(accountCapabilitiesProvider);
 
     return capabilitiesAsync.when(
-      loading: () => const Scaffold(
-        backgroundColor: FlowPayColors.canvas,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: FlowPayColors.ink,
+      loading: () {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Scaffold(
+          backgroundColor:
+              isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
+          body: const Center(
+            child: CircularProgressIndicator(
+              color: FlowPayColors.primary,
+            ),
           ),
-        ),
-      ),
+        );
+      },
       error: (err, stack) => _renderActiveShell(),
       data: (capabilities) {
         _checkInitialModePicker(capabilities);
@@ -126,6 +128,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
       },
     );
   }
+
 
   Widget _renderActiveShell() {
     final activeMode = ref.watch(currentAccountModeProvider);
@@ -137,23 +140,54 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
   Widget _buildLockScreen(BuildContext context, AppLockState lockState) {
     final isExpired = lockState.isAuthExpired;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor =
+        isDark ? FlowPayColors.darkBackground : FlowPayColors.paper;
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondary =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+    final surfaceColor = FlowPayColors.surfaceOf(context);
+    final borderColor = FlowPayColors.borderOf(context);
 
     return Scaffold(
-      backgroundColor: FlowPayColors.canvas,
+      backgroundColor: bgColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Brand Icon & Badge
+              // ── Brand Mark ──
+              const FlowPayLogo.horizontal(size: 28),
+              const SizedBox(height: 24),
+
+              // ── Status Icon Container ──
               Container(
                 width: 72,
                 height: 72,
-                decoration: const BoxDecoration(
-                  color: FlowPayColors.ink,
+                decoration: BoxDecoration(
+                  color: isExpired
+                      ? FlowPayColors.amber.withValues(alpha: 0.12)
+                      : isDark
+                          ? FlowPayColors.darkSurfaceElevated
+                          : FlowPayColors.mint100,
                   borderRadius: FlowPayRadii.card,
+                  border: Border.all(
+                    color: isExpired
+                        ? FlowPayColors.amber.withValues(alpha: 0.4)
+                        : FlowPayColors.primary.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isExpired ? FlowPayColors.amber : FlowPayColors.primary)
+                          .withValues(alpha: 0.12),
+                      blurRadius: 20,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
                 child: Icon(
                   isExpired
@@ -163,16 +197,18 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                           : (lockState.hasFingerprint
                               ? Icons.fingerprint
                               : Icons.shield_outlined)),
-                  size: 38,
-                  color: isExpired ? FlowPayColors.amber : Colors.white,
+                  size: 36,
+                  color: isExpired
+                      ? FlowPayColors.amber
+                      : FlowPayColors.primary,
                 ),
               ),
               const SizedBox(height: 18),
 
-              // Title & Subtitle
+              // ── Title & Subtitle ──
               Text(
                 isExpired ? 'Session Expired' : 'FlowPay is Locked',
-                style: FlowPayTypography.headline(),
+                style: FlowPayTypography.headline().copyWith(color: textPrimary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -180,25 +216,25 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 isExpired
                     ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
                     : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: FlowPayColors.textSecondary,
+                  color: textSecondary,
                   height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 14),
 
-              // Status Badge
+              // ── Status Pill Badge ──
               if (isExpired)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.amber.withAlpha(30),
+                    color: FlowPayColors.amber.withValues(alpha: 0.12),
                     borderRadius: FlowPayRadii.chip,
-                    border:
-                        Border.all(color: FlowPayColors.amber.withAlpha(120)),
+                    border: Border.all(
+                        color: FlowPayColors.amber.withValues(alpha: 0.4)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -222,9 +258,10 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.surfaceAlt,
+                    color: FlowPayColors.primary.withValues(alpha: 0.08),
                     borderRadius: FlowPayRadii.chip,
-                    border: Border.all(color: FlowPayColors.hairline),
+                    border: Border.all(
+                        color: FlowPayColors.primary.withValues(alpha: 0.25)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -232,7 +269,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                       Icon(
                         lockState.hasFaceId ? Icons.face : Icons.fingerprint,
                         size: 14,
-                        color: FlowPayColors.ink,
+                        color: FlowPayColors.primary,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -240,33 +277,34 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: FlowPayColors.ink,
+                          color: FlowPayColors.primary,
                         ),
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // Direct In-App PIN Entry (Always accessible)
-              _buildPinEntry(),
+              // ── PIN Entry ──
+              _buildPinEntry(isDark, surfaceColor, borderColor),
               const SizedBox(height: 16),
 
-              // Error or Status message
+              // ── Auth Error / Status message ──
               if (lockState.lastResult?.errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: FlowPayColors.surfaceAlt,
+                    color: FlowPayColors.error.withValues(alpha: 0.08),
                     borderRadius: FlowPayRadii.input,
-                    border: Border.all(color: FlowPayColors.hairline),
+                    border: Border.all(
+                        color: FlowPayColors.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       const Icon(
-                        Icons.info_outline,
+                        Icons.error_outline_rounded,
                         size: 18,
-                        color: FlowPayColors.ink,
+                        color: FlowPayColors.error,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -274,7 +312,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                           lockState.lastResult!.errorMessage!,
                           style: const TextStyle(
                             fontSize: 12,
-                            color: FlowPayColors.textSecondary,
+                            color: FlowPayColors.error,
                           ),
                         ),
                       ),
@@ -284,7 +322,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 const SizedBox(height: 16),
               ],
 
-              // Primary Biometric Unlock Button
+              // ── Primary: Biometric Unlock Button ──
               FlowPayButton(
                 text: lockState.isAuthenticating
                     ? 'Verifying...'
@@ -297,28 +335,13 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                       },
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              // Log In Button
-              OutlinedButton.icon(
-                icon:
-                    const Icon(Icons.login, size: 16, color: FlowPayColors.ink),
-                label: const Text(
-                  'Log In to Existing Account',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: FlowPayColors.ink,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: FlowPayColors.hairline),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  minimumSize: const Size(double.infinity, 46),
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: FlowPayRadii.button),
-                ),
+              // ── Secondary: Log In to Existing Account ──
+              FlowPayButton(
+                text: 'Log In to Existing Account',
+                icon: Icons.login_rounded,
+                variant: FlowPayButtonVariant.secondary,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -327,28 +350,13 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                 },
               ),
 
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
 
-              // Create New Account (Sign Up & KYC)
-              OutlinedButton.icon(
-                icon: const Icon(Icons.person_add_outlined,
-                    size: 16, color: FlowPayColors.ink),
-                label: const Text(
-                  'Create New Account / Sign Up',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: FlowPayColors.ink,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: FlowPayColors.hairline),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  minimumSize: const Size(double.infinity, 46),
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: FlowPayRadii.button),
-                ),
+              // ── Secondary: Create New Account ──
+              FlowPayButton(
+                text: 'Create New Account',
+                icon: Icons.person_add_outlined,
+                variant: FlowPayButtonVariant.secondary,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -361,15 +369,15 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
               const SizedBox(height: 12),
 
-              // Log Out / Switch Account
+              // ── Log Out / Switch Account ──
               TextButton.icon(
-                icon: const Icon(Icons.logout, size: 15, color: FlowPayColors.textSecondary),
-                label: const Text(
+                icon: Icon(Icons.logout, size: 15, color: textSecondary),
+                label: Text(
                   'Log Out / Switch Account',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: FlowPayColors.textSecondary,
+                    color: textSecondary,
                   ),
                 ),
                 onPressed: () {
@@ -383,26 +391,37 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
     );
   }
 
-  Widget _buildPinEntry() {
+  Widget _buildPinEntry(
+    bool isDark,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
+    final textPrimary =
+        isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
+    final textSecondary =
+        isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
     return Column(
       children: [
-        const Text(
+        Text(
           'Enter 6-Digit PIN',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: FlowPayColors.textPrimary,
+            color: textPrimary,
           ),
         ),
         const SizedBox(height: 10),
         Container(
           width: 220,
           decoration: BoxDecoration(
-            color: FlowPayColors.surface,
+            color: surfaceColor,
             borderRadius: FlowPayRadii.input,
             border: Border.all(
-              color:
-                  _pinError ? FlowPayColors.stateError : FlowPayColors.hairline,
+              color: _pinError
+                  ? FlowPayColors.error
+                  : borderColor,
+              width: _pinError ? 1.5 : 1,
             ),
           ),
           child: TextField(
@@ -411,18 +430,18 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
             obscureText: true,
             maxLength: 6,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               letterSpacing: 12,
               fontWeight: FontWeight.w700,
-              color: FlowPayColors.ink,
+              color: textPrimary,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               counterText: '',
               border: InputBorder.none,
               hintText: '••••••',
               hintStyle: TextStyle(
-                color: FlowPayColors.textTertiary,
+                color: textSecondary,
                 letterSpacing: 8,
               ),
             ),
@@ -450,7 +469,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               'Incorrect 6-digit PIN. Try again.',
               style: TextStyle(
                 fontSize: 11,
-                color: FlowPayColors.stateError,
+                color: FlowPayColors.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
