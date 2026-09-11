@@ -24,6 +24,7 @@ class FlowPayTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final int maxLines;
   final List<TextInputFormatter>? inputFormatters;
+  final AutovalidateMode? autovalidateMode;
 
   const FlowPayTextField({
     super.key,
@@ -45,6 +46,7 @@ class FlowPayTextField extends StatelessWidget {
     this.onTap,
     this.maxLines = 1,
     this.inputFormatters,
+    this.autovalidateMode,
   });
 
   @override
@@ -71,6 +73,7 @@ class FlowPayTextField extends StatelessWidget {
           controller: controller,
           onChanged: onChanged,
           validator: validator,
+          autovalidateMode: autovalidateMode ?? AutovalidateMode.onUserInteraction,
           obscureText: obscureText,
           keyboardType: keyboardType,
           textInputAction: textInputAction,
