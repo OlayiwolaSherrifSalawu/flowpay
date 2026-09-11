@@ -923,6 +923,16 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
         * Verified all 189 Flutter tests passing 100% green (`flutter test`).
         * 0 static analysis issues across entire workspace (`flutter analyze`).
         * Verified release web build compiles cleanly (`flutter build web --release`).
+    * **Comprehensive Production README & Repository Presentation (`README.md`)**:
+      * Delivered root [README.md](file:///README.md) featuring:
+        * Premium brand header with hero artwork, tagline (*"Your Money. Your Rules. AI Executes."*), and technology badges.
+        * The 10x hook narrative: *"One Employer, Many Countries, One Bill"* aggregate payroll orchestrator saving 97% in fees ($10 vs $340 SWIFT fees).
+        * Comprehensive comparison matrix contrasting traditional banking vs FlowPay's autonomous OS.
+        * Complete Mermaid architecture flowcharts for both the Invariant Financial Safety Pipeline and the multi-tier system topology.
+        * Detailed feature breakdown across Personal (Wallets, Operator, Missions, Send, Security) and Business (Payroll, Invite-Then-Self-Onboard v2, Virtual Cards, Live Facial Liveness, Corporate Audit).
+        * Complete Developer Runbooks for Backend (`npm run build/test/dev`), Mobile (`flutter run/test/analyze`), Web/PWA, and standalone Android Release APK compilation.
+        * Full Backend REST API reference across 10 resource groups (Health, Auth, Wallets, Transfers, Banks, Missions, Business, Cards, Webhooks).
+        * Explicit security and compliance invariants (Hardware Enclave key custody, canonical raw-hash signing, double-debit prevention, zero fabricated success responses).
 
 ---
 
@@ -955,6 +965,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 ```text
 flowpay/
 ├── AGENTS.md                                # Mandatory AI agent & team guidelines
+├── README.md                                # Comprehensive project documentation
 ├── .env.example                             # Environment variable configuration
 ├── .agents/
 │   ├── skills/
