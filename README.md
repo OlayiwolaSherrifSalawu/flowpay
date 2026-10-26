@@ -1,564 +1,296 @@
-# FlowPay — Intelligent Financial Operating Layer
-
 <div align="center">
 
-![FlowPay Brand](mobile/assets/images/flowpay_landing_hero.jpg)
+<img src="mobile/assets/images/flowpay_logo_256.png" width="88" alt="FlowPay" />
 
-### *"Your Money. Your Rules. AI Executes."*
+# FlowPay
 
-**The autonomous cross-border financial operating system built on BMONI infrastructure.**  
-*Empowering individuals with self-custody smart wallets & automated saving rules, and global businesses with aggregate multi-country payroll.*
+### Pay anyone, anywhere. Settled in seconds.
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.24+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![BMONI](https://img.shields.io/badge/BMONI-Embedded%20SDK-00E599?style=for-the-badge)](https://bkey.mintlify.app)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
-[![Prisma](https://img.shields.io/badge/Prisma-6.x-2D3748?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io)
-[![Tests](https://img.shields.io/badge/Tests-316%20Passing%20(100%25)-success?style=for-the-badge)]()
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)]()
+**Cross-border payroll and personal money for people who work across borders, built on the Stellar network.**
+One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, 🇬🇧 UK and 🇳🇬 Nigeria in a **single atomic Stellar transaction**, signed on the employer's phone. FlowPay never holds a key.
 
-[Live Backend API](https://flowpay-k2wn.onrender.com/api/health) • [BMONI Docs](https://bkey.mintlify.app/) • [Project Memory](.agents/skills/flowpay-core/SKILL.md)
+[![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-FDDA24?style=for-the-badge&logo=stellar&logoColor=black)](https://stellar.expert/explorer/testnet)
+[![Non-custodial](https://img.shields.io/badge/Keys-On%20device-0F0F0F?style=for-the-badge)](#-security-model)
+[![SEP-10 · SEP-24](https://img.shields.io/badge/SEP-10%20·%2024-00A7B5?style=for-the-badge)](#-what-we-use-from-stellar)
+[![Tests](https://img.shields.io/badge/Tests-274%20passing-12A150?style=for-the-badge)](#-tests)
+[![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
+
+[**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
+
+<br/>
+
+<img src="docs/screenshots/landing.png" width="180" alt="Landing" />&nbsp;
+<img src="docs/screenshots/dashboard.png" width="180" alt="Personal dashboard" />&nbsp;
+<img src="docs/screenshots/wallets.png" width="180" alt="Multi-currency wallets" />&nbsp;
+<img src="docs/screenshots/audit.png" width="180" alt="Business audit log" />
+
+<sub>Screens from the app's labelled demo mode. Live mode shows the same UI over your real testnet balances.</sub>
 
 </div>
 
 ---
 
-## 📖 Table of Contents
+## The problem
 
-- [Overview & The 10x Hook](#-overview--the-10x-hook)
-- [The Problem vs The FlowPay Solution](#-the-problem-vs-the-flowpay-solution)
-- [Financial Safety & Responsible AI Directives](#-financial-safety--responsible-ai-directives)
-- [System Architecture](#-system-architecture)
-- [Feature Breakdown](#-feature-breakdown)
-  - [Personal Track](#1-personal-track)
-  - [Business Track](#2-business-track)
-- [Tech Stack](#-tech-stack)
-- [Repository Structure](#-repository-structure)
-- [Getting Started & Local Development](#-getting-started--local-development)
-  - [Prerequisites](#prerequisites)
-  - [Environment Configuration](#environment-configuration)
-  - [Backend Setup](#backend-setup)
-  - [Mobile Application Setup](#mobile-application-setup)
-  - [Web / PWA Hosting](#web--pwa-hosting)
-  - [Android Release Build](#android-release-build)
-- [Testing & Quality Assurance](#-testing--quality-assurance)
-- [Backend REST API Reference](#-backend-rest-api-reference)
-- [Security & Compliance Invariants](#-security--compliance-invariants)
+A startup in Austin employs a designer in Lagos, an engineer in Guadalajara and a writer in Manchester. Every month it pays three wires, three FX spreads and three sets of intermediary fees. The money arrives days later, and the employer can't see where it is in between. For the person in Lagos, a late or short salary isn't an inconvenience. It's rent.
+
+## The FlowPay answer
+
+**One employer. Many countries. One bill.** The employer funds payroll in USD. FlowPay builds **one Stellar transaction** containing a path payment for each employee. Each employee receives their **exact salary in their own currency**: ₦ for Nigeria, Mex$ for Mexico, £ for the UK. The transaction settles in about 5 seconds, and either **every employee is paid or nobody is**. There are no half-finished payroll runs and no "where is my money" tickets.
+
+The same rails power a personal wallet for USD, CAD, MXN, GBP and NGN, with transfers, currency conversion, locked savings and plain-English money rules.
 
 ---
 
-## ⚡ Overview & The 10x Hook
+## 🔎 Don't trust us, check the ledger
 
-**FlowPay** is an intelligent financial operating layer built on top of [BMONI Embedded Financial Infrastructure](https://bkey.mintlify.app/). It bridges the gap between complex web3 self-custody rails, local emerging-market payment schemes, and intuitive consumer fintech.
+Every row below is a real, successful transaction on **Stellar testnet**. FlowPay's backend built it, a user's device signed it, and it was then submitted to Horizon. Our opt-in live test suites (`mobile/test/live/`) produced them, and those suites assert the resulting on-chain balances.
 
-### 🌟 The 10x Hook: *"One Employer, Many Countries, One Bill"*
-Global employers face nightmare fragmentation paying distributed contractors and staff across Africa and Latin America. Traditional SWIFT rails charge \$300–\$400/month in cumulative wire fees with 3-to-5-day settlement delays.
-
-With FlowPay:
-1. An employer reviews their entire multi-country payroll roster (e.g. Nigeria 🇳🇬 and Mexico 🇲🇽).
-2. FlowPay aggregates disbursements into **one consolidated USD settlement**.
-3. With a single click and hardware B-Key PIN signing, FlowPay fans out local currency disbursements in parallel:
-   - **Nigeria**: Disburses directly in **CNGN** via local clearing.
-   - **Mexico**: Disburses directly in **MEXe** via SPEI clearing.
-4. **Result**: 97% savings in cross-border fees (**~\$10.00 total** vs **\$340.00+** in SWIFT fees) with near-instant settlement.
-
----
-
-## 🎯 The Problem vs The FlowPay Solution
-
-| Challenge | Traditional Banking / Payroll Rails | FlowPay Autonomous Financial OS |
+| What happened | Stellar operations | Transaction |
 | :--- | :--- | :--- |
-| **Cross-Border Fees** | \$25–\$50 per outbound wire + 3–5% hidden FX spreads. | Flat network fee (~₦15 / Mex\$1.50 / \$0.05) + 25 bps FX. 97% savings. |
-| **Settlement Time** | 3 to 5 business days across international correspondent banks. | Sub-minute settlement via BMONI smart wallets and local rails. |
-| **Currency Management** | Multiple disjoint domestic bank accounts required. | Multi-currency self-custody smart wallets (USD, NGN, MXN, CAD). |
-| **Financial Automation** | Rigid scheduled transfers or manual banking portal inputs. | **Money Missions**: Autonomous AI-interpreted rules (e.g., auto-sweep 20% income to tax reserve). |
-| **Custody & Security** | Centralized platforms holding and controlling user funds. | **Zero Key Custody**: Private keys generated and isolated in hardware Secure Enclaves / Keystores. |
-| **Account Resolution** | Prone to mistyped routing numbers and bounced wire transfers. | Real-time **Paystack NUBAN** resolution with live account holder verification. |
+| **Payroll to 3 countries in one transaction.** The employer paid $297.80 USD. Employees received exactly **₦150,000**, **Mex$1,750** and **£78**. Fee: 300 stroops (0.00003 XLM). | 3 × `path_payment_strict_receive`, atomic | [`64fcedbc…`](https://stellar.expert/explorer/testnet/tx/64fcedbcd650f5394092d89b41e50a3a44eb32bb82d888c2553f7fbcea59d72a) |
+| **A second payroll run**, same team, same guarantees | 3 × `path_payment_strict_receive` | [`7da85d6a…`](https://stellar.expert/explorer/testnet/tx/7da85d6a7f44647dd3498b986c493c8cf134c3f2eb69b4f4e46eabf5e4869bab) |
+| **Money mission.** "Split $200: half to naira, half locked in savings for 30 days." Converts $100 → ₦154,517 **and** locks $100 that only the owner can claim, and only after the unlock date | `path_payment_strict_send` + `create_claimable_balance` (`not(before(t))` predicate) | [`c7eb118d…`](https://stellar.expert/explorer/testnet/tx/c7eb118da2f876bfbc9bba077bb94f149ec1de219bac14a785edb929c1eb1e22) |
+| **Currency conversion to self.** Exactly $100 → Mex$1,743.53 through a USD/MXN liquidity pool | `path_payment_strict_send` | [`2ee6a07b…`](https://stellar.expert/explorer/testnet/tx/2ee6a07bb8c8a50eadcdf81b5f48f8f3c3d5f611c4541e2264bd0c118857575f) |
+| **Cross-currency send.** The recipient gets exactly ₦10,000; the sender pays $6.47 | `path_payment_strict_receive` | [`14b58a5f…`](https://stellar.expert/explorer/testnet/tx/14b58a5fe2efb34b6e0c12be3036c3ed7b429b7b714396b89fbf877691c2b969) |
+| **Send by email.** $25 to a user looked up by email, resolved to their `G…` account | `payment` | [`24515f8b…`](https://stellar.expert/explorer/testnet/tx/24515f8b517acbfc818b939d05c9aefd4e8074fec9f8303198fae5b8f3a44797) |
+| **First device-signed transaction.** Trustlines created by a key that exists only on the phone | `change_trust` × 2 | [`e1b1277a…`](https://stellar.expert/explorer/testnet/tx/e1b1277ae1f74f551b15b5b5437b69525596901e0163049b9f21589a60342955) |
+
+FlowPay's testnet treasury: issuer [`GD3JY7…XWN433`](https://stellar.expert/explorer/testnet/account/GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433) · distributor / market maker [`GBX5PM…MOS56`](https://stellar.expert/explorer/testnet/account/GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56).
+
+> Stellar resets testnet periodically. If a link stops resolving, `npm run stellar:bootstrap` plus the live suites recreate everything from scratch. See [Run it yourself](#-run-it-yourself).
 
 ---
 
-## 🛡️ Financial Safety & Responsible AI Directives
+## 🔁 How it works
 
-FlowPay enforces strict financial engineering guardrails to prevent unauthorized fund movements, floating-point drift, and AI hallucinations:
+The device holds the key, the backend holds no secrets that belong to users, and Horizon is the source of truth.
 
 ```mermaid
-flowchart LR
-    A["User Request / Directive"] --> B["NLP Intent Interpreter"]
-    B --> C["Structured Financial Plan"]
-    C --> D["Deterministic Policy Validator"]
-    D --> E["User Preview & Explicit Review"]
-    E --> F["On-Device B-Key PIN Signing"]
-    F --> G["BMONI Protocol Execution"]
-    G --> H["Cryptographic Activity Ledger"]
+sequenceDiagram
+    autonumber
+    participant D as 📱 Device (Flutter)
+    participant B as 🖥️ FlowPay API (Node)
+    participant H as ⭐ Horizon (testnet)
+
+    D->>B: "Run payroll" (session JWT)
+    B->>H: Load balances, find paths (USD → NGN / MXN / GBP)
+    B-->>D: Proposal: unsigned XDR, ≤100 ops, worst-case cost, fee in XLM
+    Note over D: User reviews the exact transaction,<br/>enters PIN → key decrypted in memory → ed25519 signature
+    D->>B: Signed XDR
+    B->>B: Hash(signed tx) == proposal ID? Single use? Same user? Not expired?
+    B->>H: Submit
+    alt Horizon: successful + hash
+        H-->>B: ✅ COMPLETED, real hash stored, explorer link
+    else Horizon: result_codes
+        H-->>B: ❌ FAILED, with the real error
+    else Timeout
+        H-->>B: ⏳ PENDING, reconciled later by hash, never re-submitted blindly
+    end
+    B-->>D: Honest status
 ```
 
-1. **AI is Strictly Advisory**: The AI engine (`@google/genai` Gemini 2.5 Flash) parses natural language, extracts entities, and proposes plans. **The AI has ZERO autonomous transaction execution capabilities.**
-2. **Deterministic Invariant Pipeline**:
-   - **Entity Knowledge State**: Critical fields (recipients, amounts, currencies) never silently transition from `unknown` to `known` through AI guessing.
-   - **Reservation Ledger & Spendable Balance**: Active reserves (taxes, emergency savings, active missions) are strictly locked from spendable balance calculations.
-   - **Minor Unit Math**: Floating-point math is strictly forbidden. All monetary operations use the integer minor-unit `Money` abstraction.
-3. **Hardware Enclave Key Custody**: Private keys are generated on-device via `bmoni_embedded_sdk`. Private keys **never leave the user's phone**, are never sent to the backend, never transmitted to AI, and never logged.
-4. **Ironclad BMONI Rule — Never Fabricate Success**:
-   > When a call to BMONI fails, the failure **must propagate as an explicit failure**. The codebase strictly forbids catching errors and returning dummy transaction hashes, fake addresses, or synthetic `COMPLETED` statuses.
+**Why the proposal ID is the transaction hash.** The backend can't be tricked into submitting a different transaction than the one the user reviewed. A swapped amount, destination or extra operation changes the hash, and the submission is rejected.
 
 ---
 
-## 🏗️ System Architecture
+## ⭐ What we use from Stellar
 
-FlowPay is structured across three primary tiers:
+| Stellar primitive | What FlowPay does with it |
+| :--- | :--- |
+| **Atomic multi-operation transactions** (≤100 ops) | Payroll for a whole team in one transaction: all paid or none. Larger teams are split into 100-op batches, each reported separately. |
+| **`pathPaymentStrictReceive`** | "Employee gets exactly ₦150,000." The employer's USD cost is quoted live from path-finding with a 1% `sendMax` slippage cap. |
+| **`pathPaymentStrictSend`** | "Convert exactly $100." Used for FX to self and for money-mission splits. |
+| **Liquidity pools (AMM)** | USD/CAD, USD/MXN, USD/GBP and USD/NGN pools seeded at reference rates provide on-chain FX for test assets. |
+| **Claimable balances + time predicates** | Locked savings vaults: `claimant = self`, `predicate = not(before(unlock))`. The lock is enforced by the ledger, not by our database. |
+| **Issued assets + trustlines** | FlowPay-issued test USD/CAD/MXN/GBP/NGN. Codes and issuers are configuration, so mainnet swaps in real anchored assets without code changes. |
+| **SEP-10** web authentication | The device proves ownership of its key to the anchor (challenge validated with a 60 s clock-skew grace). The anchor JWT never touches FlowPay's servers. |
+| **SEP-24** interactive deposit/withdraw | "Add money" and "Cash out" through the anchor's own KYC and bank pages ([`testanchor.stellar.org`](https://testanchor.stellar.org), Circle testnet USDC). |
+| **ed25519 message signing** | Passwordless login: the server issues a challenge, the device signs it with the wallet key, and the server issues a session token. |
+| **Memos** | Payroll and transfer references (≤28 bytes) on every payment. |
+| **Friendbot** | One-tap testnet activation (gated to `STELLAR_NETWORK=testnet`). |
 
-```mermaid
-graph TB
-    subgraph Client["Frontend Client (Flutter Mobile & Web PWA)"]
-        UI["FlowPay Custom Design System<br/>(Dark Obsidian Canvas / Emerald Accents)"]
-        RoleSwitch["Dual Shell Router<br/>[ Personal Shell | Business Shell ]"]
-        Operator["Intelligent Financial Operator<br/>(18 Financial Intents + Entity Resolver)"]
-        State["Riverpod State Management & Notifiers"]
-        LocalAuth["AppLockService (Biometrics / LocalAuth)"]
-        SDK["BmoniSdkService<br/>(Hardware Keystore / Secure Enclave)"]
-    end
+---
 
-    subgraph Backend["Backend Relay & Financial Engine (Node.js / Express / TypeScript)"]
-        API["Express REST API (ESM) + Zod Schemas"]
-        BmoniClient["BMONI API Client (Exponential Backoff & Retries)"]
-        HMAC["Raw-Buffer HMAC-SHA256 Webhook Verifier"]
-        PayrollEngine["Payroll Fanout & Proposal Sequence Orchestrator"]
-        SafetyEngine["AI Safety Validator & Completeness Checker"]
-        Paystack["Paystack Bank Resolution & NUBAN Resolver"]
-        MailRelay["Gmail SMTP Relay (IPv4 DNS Pre-Resolution)"]
-    end
+## ✨ Features
 
-    subgraph Data["Persistence & Cloud Infrastructure"]
-        DB[("Supabase PostgreSQL<br/>14 Tables + 100% RLS Coverage")]
-        Prisma["Prisma ORM Client"]
-    end
+**Personal**
+- **One wallet, five currencies.** USD · CAD · MXN · GBP · NGN, with balances read live from Horizon.
+- **Send** to a `G…` address, an email, a phone number or a federation address (`name*domain`). Recipient resolution is strict: an ambiguous match is an error, never a guess.
+- **Receive** with your real address and a QR code.
+- **Convert** between any pair at a live path-payment quote. The quote *is* the transaction you sign.
+- **Money missions.** Describe a rule in plain English ("keep 30%, convert 50% to naira, lock 20% for tax"). FlowPay compiles it into Stellar operations and shows the exact transaction, and you approve it with your PIN. The AI interprets; it never signs.
+- **Bank in/out** through a Stellar anchor (SEP-24), with KYC handled by the anchor.
 
-    subgraph External["External Financial Infrastructure"]
-        BMONI["BMONI Embedded Infrastructure<br/>(Smart Wallets, Cards, Transfers, Rails)"]
-        PaystackAPI["Paystack Banking API"]
-        GoogleGemini["Google Gemini 2.5 Flash"]
-    end
+**Business**
+- **Invite employees by link.** The employee joins with *their own* wallet. Invites are bound to the invited email (verified), single use, and only the SHA-256 hash of the token is stored.
+- **Payroll preview = the real transactions.** It shows who gets paid, the exact local amounts, the worst-case USD cost and the network fee. Employees who can't be paid yet are listed with the reason instead of being dropped silently.
+- **Pay-period guard.** Nobody is accidentally paid twice in the same period.
+- **Audit log** of payroll runs, employee payments and wallet operations, each linked to its Stellar transaction.
 
-    UI --> RoleSwitch
-    RoleSwitch --> State
-    State --> Operator
-    Operator --> SDK
-    State --> API
-    SDK -.->|EIP-712 Raw Hash Signatures| State
+---
 
-    API --> BmoniClient
-    API --> HMAC
-    API --> PayrollEngine
-    API --> SafetyEngine
-    API --> Paystack
-    API --> MailRelay
-    API --> Prisma
-    Prisma --> DB
+## 🧭 Engineering principles
 
-    BmoniClient --> BMONI
-    Paystack --> PaystackAPI
-    SafetyEngine --> GoogleGemini
+We treat testnet money like real money. Three rules run through the whole codebase and are written into [`AGENTS.md`](AGENTS.md) for every contributor, human or AI:
+
+1. **A failed Stellar call is a failure.** No synthesized hashes, no `COMPLETED` without a Horizon response that says `successful: true` and carries a real hash, and no database row that implies success.
+2. **A timeout is not a failure and not a success.** It is `PENDING`, reconciled by hash against Horizon.
+3. **Keys never leave the device.** Not to our API, not to logs, not to the AI.
+
+These rules were earned. This project began on a custodial provider, and the migration to Stellar surfaced (and removed) dozens of places where a failed call quietly returned something that *looked* successful. The full inventory is in [`.agents/skills/stellar/SKILL.md`](.agents/skills/stellar/SKILL.md#-bug-inventory-found-during-migration-fix-in-m7-unless-noted).
+
+---
+
+## 🔐 Security model
+
+| Layer | How |
+| :--- | :--- |
+| **Keys** | Ed25519 keypair generated on device. The seed is encrypted with **AES-256-GCM** under **PBKDF2-HMAC-SHA256** (PIN, 24-byte salt, 100k iterations) and stored in the OS keychain/keystore. A wrong PIN fails GCM authentication; no PIN hash exists to attack. Lockout starts after 5 failures. Recovery-key export/import is available. |
+| **Sessions** | HS256 JWTs (12 h), issued only at signup or after a signed ownership challenge. Identity comes **only** from the token, never from headers, query strings or bodies. Production refuses to start without a real secret. |
+| **Transactions** | Proposal ID = transaction hash, single use, per user, with expiry. Signed payloads are never echoed back. |
+| **Invites** | 48-hex tokens with only the hash stored. Acceptance requires the invited, verified email and a wallet whose ownership has been proven. The landing page is HTML-escaped. |
+
+**Honest limits, and what we plan to do about them:**
+- A 6-digit PIN can be brute-forced offline if the encrypted blob is ever exfiltrated. Protection rests on the OS keystore plus lockout. On **web**, "secure storage" is browser storage, which is weaker. → [Passkey-based smart wallets](#-road-to-mainnet) are the planned fix.
+- The test assets are FlowPay-issued and the liquidity pools are seeded by us. That makes them realistic plumbing, but they are not real money or real market rates.
+
+---
+
+## 🧱 Architecture
+
 ```
-
----
-
-## 📦 Feature Breakdown
-
-### 1. Personal Track
-
-- **Multi-Currency Smart Wallets**:
-  - Native accounts in **USDB** (USD), **CNGN** (NGN), **MEXe** (MXN), and **CADC** (CAD).
-  - Interactive **"Receive & Deposit"** bottom sheet with instant quick-deposit chips (`+$100`, `+$250`, `+$500`, `+$1,000`), custom amounts, and copyable public EVM addresses.
-- **Conversational AI Financial Operator**:
-  - Recognizes **18 strongly typed financial intents** (`SEND_MONEY`, `CONVERT_CURRENCY`, `CREATE_MISSION`, `CREATE_RESERVE`, etc.).
-  - Handles complex multi-intent requests (e.g., *"Send $20 to Mom and $30 to Dad"* or *"Send 100,000 NGN from my naira wallet to my USD wallet"*).
-  - Contextual clarification engine offering 1-tap resolution cards for ambiguous counterparties.
-- **Autonomous Money Missions**:
-  - *"Tell your money what to do."* — Set rules like *"Whenever I get paid in USD, keep 20% for taxes and send $200 to my designer"*.
-  - Event-driven mission runtime reacting to incoming wallet inflows (`WalletInflowEvent`).
-  - Strict priority ordering: tax reservations are locked first before discretionary payouts.
-  - Interactive mission cards with live execution counters, progress meters, and `⚡ Run Now` manual triggers.
-- **Send Money & Cross-Border Payments**:
-  - **Balance-Aware Auto-Funding**: Automatically identifies liquidity shortfalls and calculates exact cross-currency conversion requirements with zero over-conversion.
-  - **Paystack NUBAN Integration**: Resolves 10-digit Nigerian bank accounts in real-time across commercial banks (GTBank, Access, Zenith, First Bank) and fintechs (OPay, Kuda, PalmPay, Moniepoint) with live green verification badges (`✓ Verified Account Holder: [NAME]`).
-  - **Transparent Fee Breakdown**: Clearly itemizes network clearing fees vs FlowPay platform charges.
-  - **On-Device B-Key PIN Signing**: Mandatory 6-digit numeric keypad entry to authorize all outbound proposals.
-- **Personal Security & Activity**:
-  - Biometric app-lock (`local_auth`) with auto-lock on app resume.
-  - Cryptographic Activity Ledger displaying all transfers, conversions, card transactions, and missions with granular status filters and 10-item pagination.
-
----
-
-### 2. Business Track
-
-- **"One Employer, Many Countries, One Bill" Global Payroll**:
-  - Composes BMONI's 4-call transfer proposal sequence (`proposals` → `approve` → `sign-payload` → `sign`).
-  - Derives canonical 32-byte SHA-256 proposal hashes per item with duplicate collision safeguards.
-  - Generates distinct on-device hardware signatures per proposal item.
-  - 4-stage visual execution timeline (`Validated` → `Approved` → `Processing` → `Completed`).
-  - **Granular Single-Proposal Retry**: If one employee's disbursement fails (e.g. unactivated recipient rail), other payments settle uninterrupted, and the failed item can be retried individually.
-- **Remote Employee Management & Self-Onboarding (v2)**:
-  - **Zero Employer Key Custody**: Replaces legacy setups where employers generated employee keys. Employees hold their own keys in their own phone's hardware enclave.
-  - **Single-Use Invite Tokens**: Generates 24-byte cryptographically secure tokens with 72-hour expiration.
-  - **Automated Email Dispatch**: Sends branded dark-mode onboarding invitations with single-use invite codes via the built-in Gmail SMTP relay.
-  - **Session-Gated Wallet Linking**: Verifies that the employee's active mobile session matches the invite before linking the destination wallet address.
-- **Virtual Spend Cards**:
-  - Corporate virtual cards powered by BMONI issuing rails.
-  - Full card controls: View card details, copy PAN/CVV, view dedicated card transaction feeds, and freeze/unfreeze toggling.
-  - Honest error propagation handling BMONI `E101` KYC enrollment requirements.
-- **Production Camera Facial Liveness Verification**:
-  - Real-time front/back camera feed powered by `camera: 0.12.1`.
-  - Animated laser scan overlay with oval guidance and 99.8% anti-spoofing confidence checks.
-  - Strict 11-digit BVN regex validation and interactive adult age (`18+`) Date of Birth calendar picker.
-  - Dual onboarding support: Remote self-invite flow and Employer-assisted portal.
-- **Corporate Activity & Audit Log**:
-  - Cryptographically anchored audit trail of all disbursements, card issuances, and compliance changes.
-  - Sanitize reference hashes with 1-tap clipboard copying and category filters.
-
----
-
-## 💻 Tech Stack
-
-### Mobile & Web (`mobile/`)
-- **Framework**: Flutter 3.24+ / Dart 3.4+
-- **Architecture**: Domain-Driven Feature Modules + Repository Pattern
-- **State Management**: `flutter_riverpod: ^3.2.1`
-- **BMONI Integration**:
-  - `bmoni_embedded_sdk: 0.0.2` (Strictly unstyled on-device hardware enclave crypto driver)
-  - `bmoni_embedded_wallets_cards` (Shared data models & read data sources)
-- **Design System**: FlowPay Custom Design System (Zero `bkey_uikit` frontend dependencies)
-  - Dark Obsidian palette (`#090A0F`, `#12141C`, `#181B26`)
-  - Electric Emerald accents (`#00E599`, `#128A63`)
-  - Tabular monospace numbers with `FontFeature.tabularFigures()`
-- **Security & Hardware**:
-  - `flutter_secure_storage: ^10.0.0` (Encrypted keychain session storage)
-  - `local_auth: ^2.3.0` (Biometrics / Face ID / Fingerprint)
-  - `camera: ^0.12.1` (Production live liveness video stream)
-
-### Backend Service (`backend/`)
-- **Runtime**: Node.js v20+ (ESM)
-- **Framework**: Express 4.x, TypeScript 5.4
-- **Database & ORM**: Supabase PostgreSQL, Prisma ORM 6.x
-- **Validation**: Zod 3.23
-- **AI Engine**: `@google/genai: ^2.21.0` (Gemini 2.5 Flash)
-- **Cryptography**: `ethers: ^6.17.0`, Node.js native `crypto` (HMAC-SHA256, PBKDF2)
-- **Email Relay**: Nodemailer with IPv4 DNS pre-resolution (`dns.promises.lookup`) to eliminate container `ENETUNREACH` routing failures.
-- **Banking Integrations**: Paystack API (NUBAN Bank Account Resolution)
-
----
-
-## 📁 Repository Structure
-
-```text
 flowpay/
-├── AGENTS.md                                # AI Assistant & team protocol (Standing Rules)
-├── .env.example                             # Environment configuration template
-├── README.md                                # Main project documentation
-├── build-web.sh                             # Automated Flutter Web SDK & build script
-├── vercel.json                              # Vercel SPA routing & WASM MIME headers
-├── .github/
-│   └── workflows/
-│       └── build.yml                        # GitHub Actions CI (Android APK & iOS IPA)
-├── .agents/
-│   └── skills/                              # Subsystem architecture runbooks & memory
-│       ├── flowpay-core/SKILL.md            # Master memory & project backlog
-│       ├── bmoni-backend/SKILL.md           # Backend architecture & BMONI client
-│       ├── flowpay-mobile/SKILL.md          # Mobile architecture & Riverpod state
-│       ├── flowpay-operator/SKILL.md        # AI Financial Operator & safety pipeline
-│       ├── flowpay-payroll/SKILL.md         # Payroll orchestrator & proposal sequence
-│       ├── flowpay-cards/SKILL.md           # Virtual employee cards
-│       ├── flowpay-audit/SKILL.md           # Corporate audit & activity
-│       └── flowpay-design/SKILL.md          # FlowPay Design System guidelines
-├── backend/                                 # Node.js + Express + TypeScript Backend
-│   ├── Dockerfile                           # Production multi-stage Docker build
-│   ├── package.json                         # Node dependencies & test scripts
-│   ├── tsconfig.json                        # Strict ESM TypeScript compiler config
-│   ├── prisma/
-│   │   └── schema.prisma                    # Prisma schema (14 tables, relations)
+├── backend/                     Node 20 · TypeScript · Express · Prisma/Postgres (in-memory fallback)
 │   └── src/
-│       ├── server.ts                        # Server bootstrap & route registration
-│       ├── config/env.ts                    # Zod-validated environment config
-│       ├── db/                              # Database pool, Prisma client, in-memory store
-│       ├── core/                            # Money class, currency mappings, pagination
-│       ├── bmoni/                           # BMONI REST client & HMAC webhook handler
-│       ├── modules/
-│       │   ├── ai/                          # Gemini intent interpreter & safety validator
-│       │   ├── banks/                       # Paystack NUBAN bank resolution service
-│       │   ├── cards/                       # Virtual card issuance & proposal signing
-│       │   ├── employees/                   # Roster, invite tokens, onboarding service
-│       │   ├── mail/                        # Gmail SMTP relay & dark fintech email templates
-│       │   ├── missions/                    # Money Missions proposal & execution engine
-│       │   ├── payroll/                     # Multi-country aggregate payroll orchestrator
-│       │   ├── transfers/                   # Transfer proposal creation & execution
-│       │   └── wallets/                     # Smart wallet registration & balance tracking
-│       └── routes/                          # Express REST endpoints
-└── mobile/                                  # Flutter Mobile & Web Application
-    ├── pubspec.yaml                         # Flutter dependencies & assets
-    ├── android/                             # Android native platform project (Gradle 8.14)
-    ├── ios/                                 # iOS native platform project
-    ├── web/                                 # Web platform index.html & PWA manifest
-    ├── assets/images/                       # Official FlowPay logo & 3D hero assets
-    ├── lib/
-    │   ├── main.dart                        # Entrypoint & BMONI SDK initialization
-    │   ├── app.dart                         # AppAuthGate & shell routing
-    │   ├── core/
-    │   │   ├── auth/                        # Session management, biometrics, secure storage
-    │   │   ├── bmoni_sdk/                   # On-device B-Key hardware enclave service
-    │   │   ├── design_system/               # 13 shared FlowPay UI primitives
-    │   │   ├── financial_engine/            # Reservation ledger & quote models
-    │   │   ├── financial_operator/          # AI operator, intent engine, clarification
-    │   │   ├── money/                       # Integer minor-unit Money & Currency models
-    │   │   ├── navigation/                  # Modular routers & role switcher
-    │   │   ├── repositories/                # Unified repository interfaces
-    │   │   └── state/                       # AppState, BusinessProvider, PersonalProvider
-    │   └── modules/
-    │       ├── auth/                        # Flagship 3D Landing, Login, Signup, KYC, PIN
-    │       ├── personal/                    # Dashboard, Wallets, Missions, Send, Security
-    │       └── business/                    # Dashboard, Roster, Payroll, Cards, Audit
-    └── test/                                # 198 automated unit, widget & integration tests
+│       ├── stellar/             The Stellar layer: config, horizon (honest error mapping + reconcile),
+│       │                        payments, batch (≤100-op atomic txs), proposals, directory,
+│       │                        challenge, faucet, history, bootstrap
+│       ├── auth/session.ts      JWT sessions + requireAuth
+│       ├── modules/             transfers · payments · missions · employees · payroll · activity · ai · banks
+│       └── routes/              REST API (below)
+├── mobile/                      Flutter 3 · Riverpod: one codebase for iOS, Android and Web
+│   └── lib/core/
+│       ├── stellar/             Key vault (AES-GCM/PBKDF2), Horizon reads, activation, SEP-10/24 anchor client
+│       ├── wallet/              WalletSigner: the only path to a signature (PIN always required)
+│       ├── providers/stellar/   Stellar*Repository: live implementations, no silent fallbacks
+│       └── providers/demo/      Demo*Repository: a clearly-labelled simulation mode
+└── .agents/skills/              Living architecture docs (start with stellar/SKILL.md)
 ```
 
----
+**API surface** (all user routes require a session token):
 
-## 🚀 Getting Started & Local Development
+| Area | Endpoints |
+| :--- | :--- |
+| Auth | `POST /api/auth/signup` · `/challenge` · `/login` · `/email/send` · `/email/verify` · `GET /capabilities` |
+| Stellar | `GET /api/stellar/config` · `/accounts/:id` · `/accounts/:id/payments` · `POST /transactions` · `GET /transactions/:hash` |
+| Wallets | `GET /api/wallets` · `/balances` · `/transactions` · `POST /challenge` · `/register` |
+| Transfers | `POST /api/transfers/interpret` · `/recipient` · `/propose` · `/execute` · `GET /rates` |
+| Batch payments | `POST /api/payments/batch/propose` · `/execute` |
+| Missions | `GET/POST /api/missions` · `POST /:id/prepare` · `/:id/execute` |
+| Employees | `GET/POST /api/employees` · `GET /invite/:token` · `POST /invite/:token/accept` · `/:id/resend-invite` · `PATCH /:id` |
+| Payroll | `GET /api/payroll/preview` · `POST /execute` · `GET /runs` · `/runs/:id` |
+| Health | `GET /api/health` · `/api/health/stellar` |
 
-### Prerequisites
-- **Node.js**: `v20.x` or `v22.x`
-- **Flutter SDK**: `v3.24.x` or higher
-- **Android SDK / Xcode**: For mobile emulator or physical device testing
-- **Git**: For version control
-
----
-
-### Environment Configuration
-
-1. Copy `.env.example` to `backend/.env` (or root `.env`):
-   ```bash
-   cp .env.example backend/.env
-   ```
-2. Configure your environment variables:
-   ```env
-   PORT=4000
-   NODE_ENV=development
-   FLOWPAY_JWT_SECRET=your_32_char_development_secret_here
-   
-   # PostgreSQL Connection (Supabase or local PostgreSQL)
-   DATABASE_URL=postgresql://postgres:password@localhost:5432/flowpay
-   
-   # BMONI Infrastructure
-   BMONI_BASE_URL=https://embedded-dev.bmoni.com
-   BMONI_API_KEY=pk_a025cacbf33a_76fb864113f3540909de5b1da39cc146906e35b1c6d4d1e4
-   BMONI_WEBHOOK_SECRET=87f88be98b96faf6d6ece5b26bf4a9fe20739ae9634fb7b530a24aac4f71ed32
-   BMONI_PARTNER_ID=b7e6a1d0-4f3c-4c2a-9e8b-1a2b3c4d5e6f
-   
-   # AI Financial Operator
-   GEMINI_API_KEY=your_google_gemini_api_key
-   
-   # Paystack Nigerian Bank Resolution
-   PAYSTACK_SECRET_KEY=sk_test_your_paystack_secret_key
-   
-   # SMTP Mail Relay (Optional, defaults to console log if unconfigured)
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PORT=587
-   SMTP_USER=your_email@gmail.com
-   SMTP_PASS=your_gmail_app_password
-   ```
+`POST` endpoints that submit to the network return **200** COMPLETED, **202** PENDING, or **4xx** FAILED with Horizon `result_codes` translated into plain language.
 
 ---
 
-### Backend Setup
+## 🚀 Run it yourself
+
+**Prerequisites:** Node 20+, Flutter 3.24+, and an internet connection to reach Stellar testnet. Postgres is optional: without it the backend runs in memory.
 
 ```bash
+git clone https://github.com/flowpay-bmoni/flowpay.git && cd flowpay
+
+# 1 · Backend
 cd backend
-
-# 1. Install dependencies
 npm install
+npm run stellar:bootstrap   # creates YOUR testnet issuer + market maker, issues 5 assets,
+                            # seeds 4 liquidity pools, writes keys to backend/.env (gitignored)
+npm run build && npm test   # 95 tests
+DATABASE_URL=postgresql://none:none@127.0.0.1:1/none \
+DEV_ECHO_EMAIL_CODES=true PORT=4000 npm start       # in-memory DB, email codes echoed (dev only)
 
-# 2. Generate Prisma Client & Compile TypeScript
-npm run build
-
-# 3. Run automated tests (118 tests across 13 suites)
-npm test
-
-# 4. Start local development server with hot reload
-npm run dev
-```
-
-The backend starts at `http://localhost:4000`. Test the health check endpoint:
-```bash
-curl http://localhost:4000/api/health
-```
-
----
-
-### Mobile Application Setup
-
-```bash
+# 2 · App (new terminal)
 cd mobile
-
-# 1. Fetch Flutter dependencies
 flutter pub get
-
-# 2. Run static analysis (0 lints guaranteed)
-flutter analyze
-
-# 3. Run automated test suite (198 tests)
-flutter test
-
-# 4. Run on connected emulator or device (defaults to local backend)
-flutter run
-
-# To target the live production backend directly:
-flutter run --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com
+flutter test                # 179 tests
+flutter run -d chrome --dart-define=FLOWPAY_API_URL=http://localhost:4000
 ```
 
----
+Sign up, choose a PIN and your wallet is created on the device. Activate it to get testnet XLM, trustlines and test USD, and you can send, convert and run payroll for real on testnet.
 
-### Web / PWA Hosting
-
-FlowPay is fully compiled for Web and PWA execution with full PIN signing compatibility:
+**Prove it end to end against testnet.** These six suites create users, sign on a device key and assert on-chain balances:
 
 ```bash
-cd mobile
-
-# Compile release web bundle pointing to local backend
-flutter build web --release --dart-define=FLOWPAY_API_URL=http://localhost:4000
-
-# Serve locally over port 8080 (accessible to desktop and mobile browsers over LAN)
-cd build/web
-python3 -m http.server 8080
+cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none DEV_ECHO_EMAIL_CODES=true PORT=4099 node dist/server.js &
+cd mobile  && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test/live --concurrency=1
 ```
 
-Access from any device on your local Wi-Fi: `http://<your-lan-ip>:8080`.
+<details>
+<summary><b>Environment variables</b></summary>
+
+| Variable | Purpose |
+| :--- | :--- |
+| `STELLAR_NETWORK` | `testnet` (default) or `public` |
+| `STELLAR_HORIZON_URL`, `STELLAR_FRIENDBOT_URL` | Override the endpoints |
+| `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`, `STELLAR_DISTRIBUTOR_SECRET` | Written by `stellar:bootstrap`. Never commit them. |
+| `STELLAR_ASSET_USD` … `_NGN` | Optional per-asset `CODE:ISSUER` overrides (e.g. real anchored assets on mainnet) |
+| `FLOWPAY_JWT_SECRET` | **Required in production** (≥32 random chars) |
+| `DATABASE_URL` | Postgres. An unreachable URL means in-memory mode. |
+| `DEV_ECHO_EMAIL_CODES` | `true` returns verification codes in API responses. Refused when `NODE_ENV=production`. |
+| `SMTP_*` / `RESEND_API_KEY` / `MAILGUN_*` | Email delivery for verification codes and invites |
+| `PAYSTACK_SECRET_KEY` | Nigerian bank account-name resolution |
+| `GEMINI_API_KEY` | Plain-English rule interpretation (optional; the rules engine works without it) |
+
+Mobile `--dart-define`s: `FLOWPAY_API_URL`, `STELLAR_NETWORK`.
+
+Database: schema changes for the Stellar migration are in `backend/prisma/sql/2026-10-26_*.sql`. Apply them in order before deploying against an existing database.
+</details>
 
 ---
 
-### Android Release Build
+## 🧪 Tests
 
-```bash
-cd mobile
-
-# Build standalone Android Release APK targeting production Render backend
-flutter build apk --release --dart-define=FLOWPAY_API_URL=https://flowpay-k2wn.onrender.com
-```
-
-The resulting signed APK is located at:  
-`mobile/build/app/outputs/flutter-apk/app-release.apk` (~55MB).
-
----
-
-## 🧪 Testing & Quality Assurance
-
-FlowPay maintains a 100% passing test suite across both frontend and backend repositories with zero static analysis warnings:
-
-```text
-Backend Test Summary:  118 / 118 Passing (100% Green)
-Mobile Test Summary:   198 / 198 Passing (100% Green)
-Total Project Tests:   316 / 316 Passing (100% Green)
-Dart Analyzer:         0 issues found
-TypeScript Compiler:   0 errors (strict mode)
-```
-
-### Backend Test Coverage (`backend/`)
-Execute via `npm test`:
-- `core/money.test.ts`: Integer minor units, zero float drift, currency safety.
-- `bmoni/webhooks.test.ts`: Raw-buffer constant-time HMAC-SHA256 signature verification.
-- `modules/ai/safety.test.ts`: AI multi-action interpretation, completeness checking, batch limits.
-- `modules/employees/employee.test.ts`: Invite token issuance, TTL expiry, foreign session rejection.
-- `modules/employees/onboarding.test.ts`: 4-state lifecycle, Nigeria BVN vs Mexico CURP/RFC.
-- `modules/missions/mission.test.ts`: Percentage splits, threshold triggers, SHA-256 proposal hashes.
-- `modules/transfers/transfer.test.ts`: Balance-aware funding, proposal creation, execution crediting.
-- `modules/wallets/wallets.test.ts`: Isolated multi-currency wallets, debit/credit integrity.
-- `modules/cards/cards.test.ts`: Virtual card issuance, E101 NIN error propagation.
-- `modules/payroll/payroll.test.ts`: 4-call sequence, Anvil test-vector raw hash signing, rail checks.
-- `modules/payroll/audit.test.ts`: Corporate audit logging, filtered queries.
-- `modules/mail/mail.test.ts`: Responsive email template generation & SMTP transport diagnostics.
-- `modules/banks/banks.test.ts`: Paystack NUBAN bank listing, caching, account name resolution.
-
-### Mobile Test Coverage (`mobile/`)
-Execute via `flutter test`:
-- `test/design_system_foundation_test.dart`: Color tokens, radii, typography, spacing.
-- `test/phase2_components_test.dart`: Buttons, scalloped cards, quick actions, analytics.
-- `test/app_shell_test.dart`: Personal and Business shell routing, role switcher.
-- `test/personal_dashboard_test.dart`: Balances, missions, quick actions.
-- `test/send_money_flow_test.dart`: Balance-aware routing, NUBAN resolution, review modal.
-- `test/financial_operator_test.dart`: 18 intents, multi-action clause splitting, approval gates.
-- `test/financial_operator_conversations_test.dart`: 7 full multi-turn conversational scenarios.
-- `test/money_missions_test.dart`: Autonomous saving rules, threshold triggers, live execution.
-- `test/wallet_service_test.dart` & `test/wallet_provisioning_ui_test.dart`: Enclave keys, PIN pad.
-- `test/payroll_signing_test.dart`: Canonical SHA-256 proposal hashing, collision protection.
-- `test/payroll_screen_test.dart`: Aggregate bill card, 4-stage execution stepper.
-- `test/employee_invite_flow_test.dart`: Token validation, KYC, session wallet linking.
-- `test/pagination_bar_test.dart`: Long-list UX controls, boundaries, page resets.
-
----
-
-## 📡 Backend REST API Reference
-
-| Method | Endpoint | Description |
+| Suite | Count | What it covers |
 | :--- | :--- | :--- |
-| **Health** | | |
-| `GET` | `/api/health` | Service health, DB connectivity, BMONI sandbox origin |
-| `GET` | `/api/health/bmoni` | BMONI partner credentials probe & authentication check |
-| **Auth & Sessions** | | |
-| `POST` | `/api/auth/login` | Email & PIN authentication, session establishment |
-| `GET` | `/api/auth/session` | Validate active session header (`x-user-id`) |
-| `GET` | `/api/auth/capabilities` | Retrieve account capabilities (`hasPersonalWallet`, `hasBusinessAccess`) |
-| `POST` | `/api/auth/kyc` | Submit user identity details (DOB, BVN, address, liveness) |
-| **Smart Wallets** | | |
-| `GET` | `/api/wallets` | List multi-currency smart wallets for authenticated user |
-| `POST` | `/api/wallets/register` | Register client device-generated keypair address |
-| `POST` | `/api/wallets/:id/debit` | Debit funding wallet upon verified transaction |
-| `POST` | `/api/wallets/:id/credit` | Credit wallet upon verified deposit or transfer receipt |
-| **Transfers** | | |
-| `POST` | `/api/transfers/propose` | Create transfer proposal & generate `hashToSign` |
-| `POST` | `/api/transfers/execute` | Submit 65-byte on-device signature to execute transfer |
-| `GET` | `/api/transfers/rates` | Real-time FX exchange rates & fee quotes |
-| **Bank Resolution** | | |
-| `GET` | `/api/banks` | List supported commercial banks & fintechs (Paystack) |
-| `GET` | `/api/banks/resolve` | Verify 10-digit NUBAN account number & return account name |
-| **Money Missions** | | |
-| `GET` | `/api/missions` | List active autonomous money directives |
-| `POST` | `/api/missions/propose` | Propose mission rule with deterministic validation |
-| `POST` | `/api/missions/:id/execute` | Trigger manual execution of mission (`⚡ Run Now`) |
-| `DELETE`| `/api/missions/:id` | Delete saved mission directive |
-| **Business & Payroll** | | |
-| `GET` | `/api/employees` | List team roster with onboarding status & wallet tags (paginated) |
-| `POST` | `/api/employees` | Create employee & generate single-use 72-hour invite token |
-| `GET` | `/api/employees/invite/:code` | Validate invite token & fetch prefilled details |
-| `POST` | `/api/employees/link-wallet` | Bind employee on-device wallet to invited roster record |
-| `GET` | `/api/payroll/preview` | Generate aggregate multi-country payroll bill |
-| `POST` | `/api/payroll/execute` | Submit signed proposal batch to fan out payroll |
-| `POST` | `/api/payroll/proposals/:id/retry` | Retry individual failed proposal item |
-| **Corporate Virtual Cards** | | |
-| `POST` | `/api/cards/issue` | Issue BMONI-backed corporate virtual employee card |
-| `GET` | `/api/cards/:id` | Fetch virtual card details, balances, and spend limits |
-| `POST` | `/api/cards/:id/toggle` | Freeze or unfreeze active virtual card |
-| **Webhooks** | | |
-| `POST` | `/api/webhooks/bmoni` | Ingest BMONI events (verified with raw HMAC-SHA256) |
+| Backend unit (`npm test`) | **95** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens |
+| App (`flutter test`) | **179** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
+| Live testnet (`LIVE_STELLAR=1`) | **6 suites** | Transfers, FX, missions + locked savings, employee invites (impostor → 403, unverified email blocked), multi-country payroll, SEP-10/24 |
 
 ---
 
-## 🔒 Security & Compliance Invariants
+## 🚩 Road to mainnet
 
-1. **Zero Key Transmission**:
-   Private keys are generated strictly on-device in hardware Secure Enclaves / Keystores via `bmoni_embedded_sdk`. No private key is ever transmitted over HTTP, written to disk unencrypted, or shared with AI.
-2. **Raw-Hash Proposal Signing**:
-   BMONI transfer proposals require signing a raw 32-byte hash (`keccak256` or `sha256`), **never** pre-hashed with `\x19Ethereum Signed Message`. FlowPay's signing coordinator strictly enforces canonical hash signing.
-3. **Double-Debit Prevention**:
-   All fund movements are handled atomically. Wallet debiting is linked directly to proposal execution on the backend, preventing duplicate deductions.
-4. **Strict Isolation & Scoping**:
-   All database queries and in-memory caches are scoped strictly by `userId`. Users can never view or access counterparties' activity or wallet balances.
-5. **Constant-Time Webhook Verification**:
-   Incoming BMONI webhook payloads are validated using constant-time `crypto.timingSafeEqual` against raw Buffer bytes before JSON parsing to eliminate timing attacks.
+FlowPay was built so that going live is mostly configuration plus partnerships, not a rewrite.
+
+- [x] Non-custodial wallets, atomic payroll, path-payment FX, locked savings and SEP-10/24 on testnet
+- [ ] **Real anchored assets.** Point `STELLAR_ASSET_*` at anchored USDC and local-currency anchors in each corridor (NG, MX, CA, UK)
+- [ ] **SEP-31 + SEP-38** for regulated cross-border payouts with firm quotes, and **SEP-12** for reusable KYC
+- [ ] **Passkey smart wallets (Soroban)** so web users get hardware-backed keys instead of browser storage
+- [ ] **Scheduled payroll** with an on-chain escrow contract, so employers can pre-fund and employees can see the guarantee
+- [ ] Recovery-key backup during onboarding, and a persisted contacts book for plain-English payments
+- [ ] Production deploy (web on Vercel, API on Render), audit, then mainnet
 
 ---
+
+## 📍 Project status
+
+| Milestone | |
+| :--- | :--- |
+| M1 Stellar core · M2 on-device keys · M3 wallets, transfers, missions, FX | ✅ |
+| M4 employees · M5 atomic payroll · M6 anchors and honest KYC | ✅ |
+| M7 removal of the previous custodial provider · M8 real authentication + end-to-end live tests | ✅ |
+| M9 Stellar-inspired redesign + visual QA | ✅ |
+| M10 public deploy | 🔜 |
+
+The development history and every decision are recorded in [`.agents/skills/stellar/SKILL.md`](.agents/skills/stellar/SKILL.md).
 
 <div align="center">
+<br/>
 
-**Built with ❤️ for the BMONI Hackathon.**  
-*FlowPay — The Future of Cross-Border Financial Operations.*
+**FlowPay**: your money, your rules, your approval.<br/>
+<sub>Built on <a href="https://stellar.org">Stellar</a>. Testnet only: no real funds are moved.</sub>
 
 </div>
-
