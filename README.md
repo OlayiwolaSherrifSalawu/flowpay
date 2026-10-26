@@ -120,7 +120,7 @@ sequenceDiagram
 | **SEP-10** web authentication | The device proves ownership of its key to the anchor (challenge validated with a 60 s clock-skew grace). The anchor JWT never touches FlowPay's servers. |
 | **SEP-24** interactive deposit/withdraw | "Add money" and "Cash out" through the anchor's own KYC and bank pages ([`testanchor.stellar.org`](https://testanchor.stellar.org), Circle testnet USDC). |
 | **ed25519 message signing** | Passwordless login: the server issues a challenge, the device signs it with the wallet key, and the server issues a session token. |
-| **SEP-1 `stellar.toml`** | Published at `/.well-known/stellar.toml`: FlowPay's federation server, accounts and test assets (marked `status="test"`). The issuer's `home_domain` points at it, so explorers show the assets' names. |
+| **SEP-1 `stellar.toml`** | Published at `/.well-known/stellar.toml`: FlowPay's federation server, accounts and test assets (marked `status="test"`). Running `stellar:bootstrap` with `FLOWPAY_HOME_DOMAIN` set points the issuer's `home_domain` at it, so explorers can show the assets' names. |
 | **SEP-2 federation** | Opt-in payment addresses: claim `ada` and be paid at `ada*<FlowPay domain>` from any Stellar wallet. Only claimed names resolve, so the server can't be used to discover who has an account. |
 | **Memos** | Payroll and transfer references (≤28 bytes) on every payment. |
 | **Friendbot** | One-tap testnet activation (gated to `STELLAR_NETWORK=testnet`). |
