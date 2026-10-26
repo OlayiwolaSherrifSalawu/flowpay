@@ -123,6 +123,21 @@ sequenceDiagram
 
 ---
 
+## 🤝 FlowPay and the Stellar Disbursement Platform
+
+Stellar already has a great tool for bulk payouts: SDF's open-source [Stellar Disbursement Platform (SDP)](https://developers.stellar.org/platforms/stellar-disbursement-platform). We see FlowPay as complementary to it, not a replacement.
+
+| | Stellar Disbursement Platform | FlowPay |
+| :--- | :--- | :--- |
+| **Built for** | Organizations running disbursement programs (aid, payouts at scale), self-hosted (Helm/Kubernetes) | A small employer with a remote team, who needs nothing to host and runs payroll from a phone or browser |
+| **What recipients get** | Each disbursement pays out the one asset the admin selects (e.g. USDC) | Each employee gets **their exact salary in their own currency** (₦, Mex$, £, C$, $) via `path_payment_strict_receive`, with the whole team in one atomic transaction |
+| **Onboarding** | CSV upload; recipients verify by phone OTP + an identity field, then register through SEP-24 or a passkey [embedded wallet](https://developers.stellar.org/docs/platforms/stellar-disbursement-platform/admin-guide/embedded-wallets) | Invite link bound to a verified email; the employee joins with a wallet whose key lives only on their device |
+| **After payday** | Funds sit in the recipient's wallet | The same app is the employee's wallet: send, convert, lock savings and cash out through an anchor (SEP-24) |
+
+**How they could work together:** SDP's passkey smart wallets are where we want FlowPay's web wallet to go (see the [road to mainnet](#-road-to-mainnet)), and an employer paying thousands of people could hand that run to an SDP deployment. FlowPay's own focus is the small-team, multi-currency payroll experience.
+
+---
+
 ## ✨ Features
 
 **Personal**
