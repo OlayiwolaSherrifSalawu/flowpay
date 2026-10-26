@@ -1,20 +1,20 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
-import '../../core/config/api_config.dart';
+import '../../core/network/api_client.dart';
+import '../../core/navigation/invite_link.dart';
+import '../../core/stellar/stellar_activation.dart';
+import '../../core/stellar/stellar_api.dart';
+import '../../core/wallet/wallet_service.dart';
 import '../../core/design_system/design_system.dart';
 
 /// Dedicated 6-Digit PIN Setup Screen.
 /// Step 3 of the Onboarding Flow: Signup -> KYC -> Set PIN.
-/// Conforms to official BMONI Embedded SDK guidelines:
 /// 1. Asks user to enter and confirm 6-digit PIN.
-/// 2. Provisions on-device wallet keypair via `BmoniSdkService.initWallet()`.
-/// 3. Stores salted PBKDF2 digest in secure hardware storage via `BmoniSdkService.setPin()`.
+/// 2. Creates the user's Stellar keypair on this device, encrypted under that PIN
+///    (see `StellarKeyVault`). The PIN itself is never stored.
 class SetPinScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
   final String? employeeInviteToken;
@@ -35,6 +35,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   String _initialPin = '';
   String _confirmPin = '';
   bool _isConfirming = false;
+  String? _activationStatus;
   bool _isSettingUp = false;
   String? _errorMessage;
 
@@ -99,83 +100,60 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
     setState(() => _isSettingUp = true);
 
     try {
-      // 1. Provision hardware keypair on device via BMONI Embedded SDK
-      final generatedAddress = await BmoniSdkService.initWallet();
-
-      // 2. Set 6-digit PIN in BMONI SDK (salted PBKDF2 digest in Secure Storage)
-      await BmoniSdkService.setPin(_initialPin);
-
-      // 3. Store fallback PIN and establish active user session
-      final storage = ref.read(secureStorageServiceProvider);
-      await storage.setFallbackPin(_initialPin);
-
-      // 4. Register on-device wallet keypair with FlowPay backend
-      try {
-        final walletAddr =
-            await BmoniSdkService.walletAddress() ?? generatedAddress;
-        if (!SecureStorageService.isTestEnv) {
-          await http.post(
-            Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-id': widget.userProfile.userId,
-            },
-            body: jsonEncode({
-              'userId': widget.userProfile.userId,
-              'address': walletAddr,
-            }),
-          ).timeout(const Duration(seconds: 4));
+      // 1. Create the Stellar keypair on this device, encrypted under the PIN.
+      //    If this device already holds a wallet, the PIN must unlock it.
+      final walletService = ref.read(walletServiceProvider);
+      if (await walletService.hasWallet()) {
+        if (!await walletService.matchPin(_initialPin)) {
+          setState(() {
+            _isSettingUp = false;
+            _errorMessage =
+                'This device already has a FlowPay wallet. Enter that wallet\'s PIN, or remove it from Security settings first.';
+            _initialPin = '';
+            _confirmPin = '';
+            _isConfirming = false;
+          });
+          return;
         }
-      } catch (regErr) {
-        debugPrint('[SetPinScreen] register wallet notice: $regErr');
+      } else {
+        await walletService.createWallet(pin: _initialPin);
+      }
+      await ref.read(walletStateProvider.notifier).loadWalletState();
+
+      // 2. Activate on Stellar: prove ownership + link to this user, create the
+      //    account (testnet: Friendbot), enable currencies, claim test USD.
+      ActivationReport? activation;
+      if (!SecureStorageService.isTestEnv) {
+        setState(() => _activationStatus = 'Activating your wallet on Stellar…');
+        try {
+          activation = await StellarActivation(
+            api: StellarApi(FlowPayApiClient(userId: widget.userProfile.userId)),
+          ).activate(pin: _initialPin);
+        } catch (e) {
+          debugPrint('[SetPinScreen] activation error: $e');
+        }
       }
 
-      // 5. Link employee's self-custody wallet to payroll roster if invite flow
-      if (widget.employeeInviteToken != null &&
-          widget.employeeInviteToken!.trim().isNotEmpty) {
-        try {
-          final walletAddr =
-              await BmoniSdkService.walletAddress() ?? generatedAddress;
-          final sessionToken = await storage.getAuthToken() ??
-              'flowpay_jwt_${widget.userProfile.userId}';
-
-          if (!SecureStorageService.isTestEnv) {
-            await http.post(
-              Uri.parse('${ApiConfig.baseUrl}/api/employees/link-wallet'),
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer $sessionToken',
-                'x-user-id': widget.userProfile.userId,
-              },
-              body: jsonEncode({
-                'employeeId': widget.employeeId,
-                'inviteToken': widget.employeeInviteToken,
-                'bmoniUserId': widget.userProfile.userId,
-                'walletAddress': walletAddr,
-                'requestingUserId': widget.userProfile.userId,
-              }),
-            ).timeout(const Duration(seconds: 4));
-          }
-        } catch (linkErr) {
-          debugPrint('[SetPinScreen] link-wallet notice: $linkErr');
-        }
+      // 3. Employee invite: once signed in, the app opens the accept sheet, which
+      //    verifies the user's email and links this wallet to the payroll.
+      if (widget.employeeInviteToken != null && widget.employeeInviteToken!.trim().isNotEmpty) {
+        InviteLink.pendingToken = widget.employeeInviteToken!.trim();
       }
 
       if (!mounted) return;
       // Log in user and unlock into corresponding shell
       await ref
           .read(appLockStateProvider.notifier)
-          .loginAsPersona(widget.userProfile, pin: _initialPin);
+          .loginAsPersona(widget.userProfile);
 
       if (!mounted) return;
-      if (widget.employeeInviteToken != null) {
+      if (activation != null && !activation.isActive) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            backgroundColor: FlowPayColors.success,
+            backgroundColor: FlowPayColors.warning,
             content: Text(
-              'Hardware wallet linked to corporate payroll! You have full custody of your earnings.',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              'Your wallet was created but isn\'t fully activated yet. Open Wallets to finish activation.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         );
@@ -379,7 +357,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                               color: FlowPayColors.primary),
                           const SizedBox(height: 12),
                           Text(
-                            'Setting up your secure wallet...',
+                            _activationStatus ?? 'Setting up your secure wallet...',
                             style: TextStyle(
                                 fontSize: 13, color: textSecondary),
                           ),

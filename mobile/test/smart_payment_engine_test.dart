@@ -12,8 +12,14 @@ import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_activity_repo.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_wallet_repo.dart';
 import 'package:flowpay_mobile/core/repositories/wallet_repository.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FLOWPAY — SMART PAYMENT ENGINE & OPERATOR SUITE', () {
     late DemoWalletRepository walletRepo;
     late DemoBeneficiaryRepository beneficiaryRepo;
@@ -34,7 +40,7 @@ void main() {
           id: 'sw_demo_eure_05',
           address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
           currency: Currency.eur,
-          stablecoinToken: 'EURe',
+          stablecoinToken: 'EUR',
           balance: Money.fromMajorString('2000.00', Currency.eur),
           status: 'active',
         ),
@@ -192,7 +198,7 @@ void main() {
     // -------------------------------------------------------------------------
     // Scenario 5: Hero Multi-Payment Batch ($500 Mom + $2,000 Designer)
     // -------------------------------------------------------------------------
-    test('Scenario 5: Complete Hero Multi-Payment Batch with B-Key PIN Signing', () async {
+    test('Scenario 5: Complete Hero Multi-Payment Batch with wallet PIN Signing', () async {
       // User says: "Send $500 USD to Mom and pay my designer $2,000 USD."
       await operator.processInput('Send \$500 USD to Mom and pay my designer \$2,000 USD.');
 
@@ -223,13 +229,13 @@ void main() {
       final eurImpact = plan.expectedBalanceChanges.firstWhere((b) => b.currency == Currency.eur);
       expect(eurImpact.isDebit, isTrue);
 
-      // Approve and execute with B-Key cryptographic PIN
+      // Approve and execute with wallet key cryptographic PIN
       await operator.approveAndExecute(pin: '123456');
 
       expect(operator.status, equals(OperatorSessionStatus.completed));
       expect(operator.activePlan?.executionState, equals('COMPLETED'));
       expect(operator.activePlan?.txHash, isNotNull);
-      expect(operator.activePlan?.txHash!.startsWith('0x'), isTrue);
+      expect(operator.activePlan?.txHash, matches(RegExp(r'^[0-9a-f]{64}$')));
     });
 
     // -------------------------------------------------------------------------
@@ -267,7 +273,7 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // Scenario 7: Provider unavailable (BMONI outage surfaces message, does not crash)
+    // Scenario 7: Provider unavailable (Stellar outage surfaces message, does not crash)
     // -------------------------------------------------------------------------
     test('Scenario 7: Provider offline surfaces clear error without crashing', () async {
       executionProvider.setAvailable(false);

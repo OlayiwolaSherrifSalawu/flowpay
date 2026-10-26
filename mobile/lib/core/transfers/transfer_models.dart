@@ -22,13 +22,13 @@ enum TransferErrorCode {
       case TransferErrorCode.conversionUnavailable:
         return 'Currency conversion between the requested pairs is currently unavailable.';
       case TransferErrorCode.transferFailure:
-        return 'Transfer failed to settle on BMONI rails. Please verify recipient details and try again.';
+        return 'Transfer failed to settle on Stellar. Please verify recipient details and try again.';
       case TransferErrorCode.signatureFailure:
-        return 'B-Key PIN verification failed or was cancelled. Transaction was not authorized.';
+        return 'wallet PIN verification failed or was cancelled. Transaction was not authorized.';
       case TransferErrorCode.proposalExpiration:
         return 'Transfer proposal expired (15-minute validity). Exchange rates have been refreshed; please review and confirm again.';
       case TransferErrorCode.networkFailure:
-        return 'Network connection error. Unable to communicate with FlowPay backend or BMONI infrastructure.';
+        return 'Network connection error. Unable to communicate with FlowPay backend or Stellar infrastructure.';
     }
   }
 }
@@ -77,22 +77,31 @@ class TransferExecutionResult {
   final DateTime timestamp;
   final String? auditActivityId;
 
+  /// Block-explorer link for [transactionHash], when settled on Stellar.
+  final String? explorerUrl;
+
   const TransferExecutionResult({
     required this.proposalId,
     required this.status,
     required this.transactionHash,
     required this.timestamp,
     this.auditActivityId,
+    this.explorerUrl,
   });
+
+  bool get isCompleted => status == 'COMPLETED';
+  bool get isPending => status == 'PENDING';
 
   factory TransferExecutionResult.fromJson(Map<String, dynamic> json) {
     return TransferExecutionResult(
       proposalId: json['proposalId']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'COMPLETED',
+      // Never assume success: a missing status is UNKNOWN.
+      status: json['status']?.toString() ?? 'UNKNOWN',
       transactionHash: json['transactionHash']?.toString() ?? '',
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
       auditActivityId: json['auditActivityId']?.toString(),
+      explorerUrl: json['explorerUrl']?.toString(),
     );
   }
 }

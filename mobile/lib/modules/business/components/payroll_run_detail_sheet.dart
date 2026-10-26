@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/models/paginated_result.dart';
+import '../../../core/repositories/employee_repository.dart';
 import '../../../core/repositories/payroll_repository.dart';
 import '../../../core/state/business_provider.dart';
-import '../../../core/wallet/components/wallet_pin_auth_sheet.dart';
 
 /// Modal Bottom Sheet displaying in-depth Payroll Run Detail and Audit Trail.
 /// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
 /// - 28dp sheet radius (FlowPayRadii.sheet)
 /// - Theme-adaptive canvas with drag handle
 /// - Never surfaces hashToSign, signature, private key material, or webhook secrets.
-/// - Surfaces public/audit references (FlowPay reference, BMONI proposal ID, tx hash).
+/// - Surfaces public/audit references (FlowPay reference, Stellar proposal ID, tx hash).
 /// - Supports granular retry of failed proposal items via on-device PIN authorization.
 class PayrollRunDetailSheet extends StatefulWidget {
   final PayrollRunModel run;
@@ -60,71 +59,12 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
   }
 
   Future<void> _handleRetryItem(PayrollItemModel item) async {
-    final pin = await WalletPinAuthSheet.show(
-      context: context,
-      title: 'Authorize Payout Retry',
-      subtitle:
-          'Enter your 6-digit PIN to retry payment to ${item.employeeName}',
-      onAuthorize: (pin) => BmoniSdkService.signMessage(
-        'Retry payroll proposal ${item.proposalId ?? item.employeeId}',
-        pin: pin,
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('That payment did not go through, and nobody in its batch was paid. '
+            'Run payroll again to retry — only a new, signed run can move money.'),
       ),
     );
-
-    if (pin == null || pin.length != BmoniSdkService.pinLength) return;
-
-    setState(() => _retryingEmployeeIds.add(item.employeeId));
-
-    try {
-      final updatedItem = await widget.businessProvider.retryPayrollProposal(
-        proposalId: item.proposalId ?? 'prop_retry_${item.employeeId}',
-        employeeId: item.employeeId,
-        pin: pin,
-      );
-
-      final updatedItems = _currentRun.items.map((i) {
-        if (i.employeeId == item.employeeId) {
-          return updatedItem;
-        }
-        return i;
-      }).toList();
-
-      final allCompleted = updatedItems
-          .every((i) => i.status == 'COMPLETED' || i.status == 'SUCCESS');
-
-      setState(() {
-        _currentRun = _currentRun.copyWith(
-          status: allCompleted ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
-          items: updatedItems,
-        );
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: FlowPayColors.stateSuccess,
-            content: Text(
-              'Payment resent successfully to ${item.employeeName}.',
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: FlowPayColors.stateError,
-            content: Text('Retry failed: $e'),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _retryingEmployeeIds.remove(item.employeeId));
-      }
-    }
   }
 
   @override
@@ -307,7 +247,9 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Saved ${_currentRun.totalSavedFeeUsd.formatted} (${_currentRun.savedPercentage.toStringAsFixed(0)}% vs SWIFT Wire)',
+                                        _currentRun.hasSavings
+                                            ? 'Saved ${_currentRun.totalSavedFeeUsd.formatted} (${_currentRun.savedPercentage.toStringAsFixed(0)}% vs SWIFT wire, demo)'
+                                            : 'Network fee: ${_currentRun.networkFeeXlm ?? '0'} XLM on Stellar',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w700,
                                           color: inkColor,
@@ -328,7 +270,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          // Audit Reference Data (FlowPay reference & BMONI reference - ZERO secrets!)
+                          // Audit Reference Data (FlowPay reference & Stellar reference - ZERO secrets!)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -610,9 +552,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
 
   Widget _buildEmployeePaymentRow(PayrollItemModel item, bool isDark) {
     final isFailed = item.status == 'FAILED';
-    final flag = item.country == 'NG'
-        ? '🇳🇬'
-        : (item.country == 'MX' ? '🇲🇽' : '🇨🇦');
+    final flag = EmployeeModel.flagForCountry(item.country);
     final isRetrying = _retryingEmployeeIds.contains(item.employeeId);
     final inkColor =
         isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;

@@ -20,7 +20,7 @@ extension AccountModeExtension on AccountMode {
   String get description {
     switch (this) {
       case AccountMode.personal:
-        return 'Multi-currency smart wallets, virtual spend cards, and money missions.';
+        return 'One wallet for five currencies, instant transfers, and money missions.';
       case AccountMode.business:
         return 'Multi-country payroll, team spend limits, and one-bill settlement.';
     }
@@ -28,15 +28,15 @@ extension AccountModeExtension on AccountMode {
 }
 
 /// What this device's logged-in user is allowed to see.
-/// Derived from FlowPay backend (which employer/company records reference this bmoniUserId,
+/// Derived from FlowPay backend (which employer/company records reference this flowpayUserId,
 /// plus whether a personal smart wallet exists).
 class AccountCapabilities {
   final bool hasPersonalWallet;
   final bool
-      hasBusinessAccess; // true if bmoniUserId is linked as employer/admin to a company
+      hasBusinessAccess; // true if flowpayUserId is linked as employer/admin to a company
   final String? companyName;
   final String? companyRole;
-  final String? bmoniUserId;
+  final String? flowpayUserId;
   final DateTime? cachedAt;
 
   const AccountCapabilities({
@@ -44,7 +44,7 @@ class AccountCapabilities {
     required this.hasBusinessAccess,
     this.companyName,
     this.companyRole,
-    this.bmoniUserId,
+    this.flowpayUserId,
     this.cachedAt,
   });
 
@@ -54,26 +54,26 @@ class AccountCapabilities {
         hasBusinessAccess: true,
         companyName: 'FlowPay Technologies Ltd',
         companyRole: 'ADMIN',
-        bmoniUserId: 'usr_flowpay_sandbox_master',
+        flowpayUserId: 'usr_flowpay_sandbox_master',
         cachedAt: DateTime.now(),
       );
 
   /// Personal-only account capabilities
   factory AccountCapabilities.personalOnly({
-    required String bmoniUserId,
+    required String flowpayUserId,
   }) =>
       AccountCapabilities(
         hasPersonalWallet: true,
         hasBusinessAccess: false,
         companyName: null,
         companyRole: null,
-        bmoniUserId: bmoniUserId,
+        flowpayUserId: flowpayUserId,
         cachedAt: DateTime.now(),
       );
 
   /// Business-only account capabilities
   factory AccountCapabilities.businessOnly({
-    required String bmoniUserId,
+    required String flowpayUserId,
     required String companyName,
     String companyRole = 'ADMIN',
   }) =>
@@ -82,7 +82,7 @@ class AccountCapabilities {
         hasBusinessAccess: true,
         companyName: companyName,
         companyRole: companyRole,
-        bmoniUserId: bmoniUserId,
+        flowpayUserId: flowpayUserId,
         cachedAt: DateTime.now(),
       );
 
@@ -93,7 +93,7 @@ class AccountCapabilities {
         'hasBusinessAccess': hasBusinessAccess,
         if (companyName != null) 'companyName': companyName,
         if (companyRole != null) 'companyRole': companyRole,
-        if (bmoniUserId != null) 'bmoniUserId': bmoniUserId,
+        if (flowpayUserId != null) 'userId': flowpayUserId,
         if (cachedAt != null) 'cachedAt': cachedAt!.toIso8601String(),
       };
 
@@ -105,7 +105,7 @@ class AccountCapabilities {
           (json['company'] is Map ? json['company']['name'] as String? : null),
       companyRole: json['companyRole'] as String? ??
           (json['company'] is Map ? json['company']['role'] as String? : null),
-      bmoniUserId: json['bmoniUserId'] as String?,
+      flowpayUserId: (json['userId'] ?? json['flowpayUserId']) as String?,
       cachedAt: json['cachedAt'] != null
           ? DateTime.tryParse(json['cachedAt'] as String)
           : null,

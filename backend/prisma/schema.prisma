@@ -13,7 +13,10 @@ datasource db {
 model User {
   id             String   @id
   bmoniUserId    String?  @unique @map("bmoni_user_id")
+  // Public Stellar account (G...) proven to belong to this user via a signed challenge.
+  stellarAccountId String? @unique @map("stellar_account_id")
   email          String   @unique
+  emailVerified  Boolean  @default(false) @map("email_verified")
   fullName       String   @map("full_name")
   phoneNumber    String?  @map("phone_number")
   accountType    String   @default("personal") @map("account_type") // 'personal', 'business', 'both'
@@ -71,6 +74,11 @@ model Employee {
   cardId             String?       @map("card_id")
   status             String        @default("INVITED") // 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
   failedStage        String?       @map("failed_stage")
+  // SHA-256 of the single-use invite token (the token itself is never stored).
+  inviteTokenHash    String?       @unique @map("invite_token_hash")
+  inviteExpiresAt    DateTime?     @map("invite_expires_at") @db.Timestamptz
+  // FlowPay user who accepted the invite (their proven Stellar account is walletAddress).
+  linkedUserId       String?       @map("linked_user_id")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -215,6 +223,7 @@ model Invoice {
 
 model PayrollRun {
   id            String   @id
+  employerUserId String? @map("employer_user_id")
   title         String
   totalUsdMinor Int      @map("total_usd_minor") // integer minor units ($100.00 -> 10000)
   feeUsdMinor   Int      @default(0) @map("fee_usd_minor")
@@ -241,6 +250,8 @@ model PayrollItem {
   exchangeRate      Decimal  @map("exchange_rate") @db.Decimal(18, 8)
   status            String   @default("SUCCESS") // 'SUCCESS', 'FAILED', 'PENDING'
   proposalId        String?  @map("proposal_id")
+  transactionHash   String?  @map("transaction_hash")
+  errorReason       String?  @map("error_reason")
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   payrollRun        PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
@@ -251,6 +262,8 @@ model PayrollItem {
 
 model MoneyMission {
   id               String            @id
+  // Owner of the rule. Nullable only for legacy rows created before 2026-10-26.
+  userId           String?           @map("user_id")
   title            String
   description      String
   ruleType         String            @map("rule_type") // 'AUTO_SWEEP', 'SPEND_CAP', 'EMERGENCY_RESERVE', 'FX_TARGET'
@@ -261,6 +274,7 @@ model MoneyMission {
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   pendingApprovals PendingApproval[]
 
+  @@index([userId], name: "idx_money_missions_user_id")
   @@map("money_missions")
 }
 

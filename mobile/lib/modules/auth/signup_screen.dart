@@ -1,3 +1,5 @@
+import '../../core/auth/auth_providers.dart';
+import '../../core/network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -160,9 +162,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final localUserId =
-        'usr_${_accountType.name}_${DateTime.now().millisecondsSinceEpoch}';
-    var effectiveUserId = localUserId;
+    // Test runs have no backend; real signups must succeed server-side first.
+    var effectiveUserId = 'usr_${_accountType.name}_test';
 
     if (!SecureStorageService.isTestEnv) {
       try {
@@ -170,7 +171,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           Uri.parse('${ApiConfig.baseUrl}/api/auth/signup'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'userId': localUserId,
             'fullName': _fullNameController.text.trim(),
             'email': _emailController.text.trim(),
             'accountType': _accountType.name,
@@ -187,13 +187,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           }),
         ).timeout(const Duration(seconds: 10));
 
-        if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          if (data['user'] != null && data['user']['userId'] != null) {
-            effectiveUserId = data['user']['userId'];
-          }
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (res.statusCode != 200 && res.statusCode != 201) {
+          throw StateError(data['message']?.toString() ?? 'Sign up failed (${res.statusCode}).');
         }
-      } catch (_) {}
+        effectiveUserId = data['user']['userId'] as String;
+        final token = data['token'] as String;
+        FlowPayApiClient.sessionToken = token;
+        await ref.read(secureStorageServiceProvider).saveAuthToken(token);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(backgroundColor: FlowPayColors.error, content: Text('$e')),
+          );
+        }
+        return;
+      }
     }
 
     final profile = UserProfile(
@@ -262,7 +271,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     center: Alignment(0, -0.6),
                     radius: 0.95,
                     colors: [
-                      Color(0xFF0F3224),
+                      Color(0xFF2A2510),
                       Colors.transparent,
                     ],
                   ),
@@ -284,7 +293,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       FlowPayLogo.horizontal(size: 36),
                       SizedBox(height: 8),
                       Text(
-                        'Your money. Your rules. AI executes.',
+                        'Cross-border payments on Stellar.',
                         style: TextStyle(
                           fontSize: 12,
                           color: FlowPayColors.textSecondary,
@@ -431,7 +440,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                         title: 'Personal',
                         tagline: 'Freelancer & Worker',
                         description:
-                            'Multi-currency wallets, virtual cards & money missions',
+                            'One wallet for five currencies, transfers & money missions',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -465,8 +474,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 FlowPayTextField(
                   label: 'Full Legal Name',
                   hintText: _accountType == AccountType.personal
-                      ? 'e.g. Bunch Dillon'
-                      : 'e.g. Waffiyyi Fashola',
+                      ? 'e.g. Ada Okafor'
+                      : 'e.g. Ada Okafor',
                   controller: _fullNameController,
                   prefix: const Icon(Icons.person,
                       size: 18, color: FlowPayColors.textSecondary),
@@ -514,19 +523,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 4),
                       decoration: BoxDecoration(
-                        color: FlowPayColors.surfaceAlt,
+                        color: FlowPayColors.surfaceOf(context),
                         borderRadius: FlowPayRadii.input,
-                        border: Border.all(color: FlowPayColors.hairline),
+                        border: Border.all(color: FlowPayColors.borderOf(context)),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedCountry,
                           isExpanded: true,
-                          dropdownColor: FlowPayColors.surface,
-                          style: const TextStyle(
+                          dropdownColor: FlowPayColors.surfaceElevatedOf(context),
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: FlowPayColors.ink,
+                            color: FlowPayColors.textPrimaryOf(context),
                           ),
                           items: _countries.map((c) {
                             return DropdownMenuItem<String>(
@@ -669,6 +678,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     required String description,
   }) {
     final isSelected = _accountType == type;
+    final selected = FlowPayColors.selectedOf(context);
 
     return GestureDetector(
       onTap: () => setState(() => _accountType = type),
@@ -677,13 +687,13 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? FlowPayColors.primary.withValues(alpha: 0.07)
-              : FlowPayColors.surfaceAlt,
+              ? selected.withValues(alpha: 0.08)
+              : FlowPayColors.surfaceOf(context),
           borderRadius: FlowPayRadii.card,
           border: Border.all(
             color: isSelected
-                ? FlowPayColors.primary
-                : FlowPayColors.hairline,
+                ? selected
+                : FlowPayColors.borderOf(context),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -698,16 +708,16 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   height: 36,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? FlowPayColors.emerald600
-                        : FlowPayColors.surfaceSubtle,
+                        ? selected
+                        : FlowPayColors.surfaceElevatedOf(context),
                     borderRadius: FlowPayRadii.chip,
                   ),
                   child: Icon(
                     icon,
                     size: 20,
                     color: isSelected
-                        ? Colors.white
-                        : FlowPayColors.textSecondary,
+                        ? FlowPayColors.onSelectedOf(context)
+                        : FlowPayColors.textSecondaryOf(context),
                   ),
                 ),
                 Icon(
@@ -716,34 +726,34 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       : Icons.radio_button_unchecked,
                   size: 20,
                   color: isSelected
-                      ? FlowPayColors.primary
-                      : FlowPayColors.textTertiary,
+                      ? selected
+                      : FlowPayColors.textSecondaryOf(context),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: FlowPayColors.ink,
+                color: FlowPayColors.textPrimaryOf(context),
               ),
             ),
             Text(
               tagline,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: FlowPayColors.primary,
+                color: FlowPayColors.accentTextOf(context),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               description,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: FlowPayColors.textSecondary,
+                color: FlowPayColors.textSecondaryOf(context),
                 height: 1.25,
               ),
             ),

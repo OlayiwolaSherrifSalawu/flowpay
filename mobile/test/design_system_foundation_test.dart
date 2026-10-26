@@ -5,13 +5,14 @@ import 'package:flowpay_mobile/core/design_system/design_system.dart';
 void main() {
   group('FlowPay Design System Foundation (Phase 1)', () {
     test('FlowPayColors matches approved Current palette tokens', () {
-      expect(FlowPayColors.emerald700, const Color(0xFF0B6E4F));
-      expect(FlowPayColors.emerald600, const Color(0xFF128A63));
-      expect(FlowPayColors.emerald400, const Color(0xFF3FAE85));
-      expect(FlowPayColors.primary, const Color(0xFF128A63));
-      expect(FlowPayColors.mint100, const Color(0xFFD8F0E4));
-      expect(FlowPayColors.ink, const Color(0xFF0F1712));
-      expect(FlowPayColors.paper, const Color(0xFFFAF9F6));
+      expect(FlowPayColors.emerald700, const Color(0xFF005F67));
+      expect(FlowPayColors.emerald600, const Color(0xFF00818B));
+      expect(FlowPayColors.emerald400, const Color(0xFF00A7B5));
+      expect(FlowPayColors.primary, const Color(0xFF00818B));
+      expect(FlowPayColors.gold, const Color(0xFFFDDA24));
+      expect(FlowPayColors.mint100, const Color(0xFFFFF6CC));
+      expect(FlowPayColors.ink, const Color(0xFF0F0F0F));
+      expect(FlowPayColors.paper, const Color(0xFFF9F9F9));
 
       // Transaction states
       expect(FlowPayColors.success, const Color(0xFF12A150));
@@ -20,18 +21,18 @@ void main() {
       expect(FlowPayColors.info, const Color(0xFF2E6FF2));
 
       // Dark mode palette
-      expect(FlowPayColors.darkBackground, const Color(0xFF0C1210));
-      expect(FlowPayColors.darkSurface, const Color(0xFF16241D));
-      expect(FlowPayColors.darkAccent, const Color(0xFF4FC996));
+      expect(FlowPayColors.darkBackground, const Color(0xFF0F0F0F));
+      expect(FlowPayColors.darkSurface, const Color(0xFF191919));
+      expect(FlowPayColors.darkAccent, const Color(0xFFFDDA24));
     });
 
-    test('FlowPayRadii conforms to Dribbble reference geometry', () {
-      expect(FlowPayRadii.cardValue, 24.0);
-      expect(FlowPayRadii.cardLargeValue, 28.0);
+    test('FlowPayRadii conforms to Stellar-style low-radius geometry', () {
+      expect(FlowPayRadii.cardValue, 12.0);
+      expect(FlowPayRadii.cardLargeValue, 16.0);
       expect(FlowPayRadii.buttonValue, 9999.0);
-      expect(FlowPayRadii.inputValue, 16.0);
-      expect(FlowPayRadii.sheetValue, 28.0);
-      expect(FlowPayRadii.quickActionValue, 18.0);
+      expect(FlowPayRadii.inputValue, 10.0);
+      expect(FlowPayRadii.sheetValue, 20.0);
+      expect(FlowPayRadii.quickActionValue, 12.0);
     });
 
     testWidgets('FlowPayTheme mounts properly in Light and Dark MaterialApp',

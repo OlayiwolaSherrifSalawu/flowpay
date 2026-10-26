@@ -159,7 +159,7 @@ void main() {
                   code: 'NGN',
                   symbol: '₦',
                   name: 'Nigerian Naira',
-                  tokenName: 'BMONI cNGN',
+                  tokenName: 'Stellar cNGN',
                 ),
                 FlowPayCurrencyDisplay(
                   code: 'USD',
@@ -174,7 +174,7 @@ void main() {
       );
 
       expect(find.text('Nigerian Naira'), findsOneWidget);
-      expect(find.text('BMONI cNGN'), findsOneWidget);
+      expect(find.text('Stellar cNGN'), findsOneWidget);
       expect(find.text('USD'), findsOneWidget);
     });
 

@@ -1,9 +1,12 @@
+import 'wallet_login.dart';
+import '../stellar/stellar_key_vault.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import '../network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
 import 'account_capabilities.dart';
 import 'app_lock_service.dart';
 import 'secure_storage_service.dart';
@@ -43,9 +46,12 @@ class UserProfileNotifier extends StateNotifier<UserProfile?> {
     _ref.invalidate(accountCapabilitiesProvider);
   }
 
-  Future<void> setKycVerified() async {
+  /// The user finished the in-app identity form. That is NOT a verification:
+  /// identity is verified by the licensed anchor when they move money to or
+  /// from a bank. Status stays `pending` until an anchor confirms it.
+  Future<void> markKycSubmitted() async {
     if (state != null) {
-      final updated = state!.copyWith(kycStatus: KycStatus.verified);
+      final updated = state!.copyWith(kycStatus: KycStatus.pending);
       await _storage.saveUserProfile(updated);
       await _storage.setKycCompleted(true);
       state = updated;
@@ -55,6 +61,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile?> {
 
   Future<void> clearProfile() async {
     await _storage.resetSession();
+    FlowPayApiClient.sessionToken = null;
     state = null;
     _ref.invalidate(accountCapabilitiesProvider);
   }
@@ -83,11 +90,11 @@ final accountCapabilitiesProvider =
     AccountCapabilities capabilities;
     if (profile.accountType == AccountType.personal) {
       capabilities = AccountCapabilities.personalOnly(
-        bmoniUserId: profile.userId,
+        flowpayUserId: profile.userId,
       );
     } else {
       capabilities = AccountCapabilities.businessOnly(
-        bmoniUserId: profile.userId,
+        flowpayUserId: profile.userId,
         companyName: profile.companyName ?? 'Business Account',
         companyRole: profile.companyRole ?? 'ADMIN',
       );
@@ -97,13 +104,14 @@ final accountCapabilitiesProvider =
   }
 
   // 3. Fetch fresh capabilities from FlowPay backend
-  final bmoniUserId = await storage.getBmoniUserId();
-  if (bmoniUserId != null && bmoniUserId.isNotEmpty) {
+  final flowpayUserId = await storage.getSessionUserId();
+  if (flowpayUserId != null && flowpayUserId.isNotEmpty) {
     try {
-      final uri = Uri.parse(
-          '${ApiConfig.baseUrl}/api/auth/capabilities?bmoniUserId=$bmoniUserId');
-
-      final response = await http.get(uri).timeout(const Duration(seconds: 4));
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/auth/capabilities');
+      final token = FlowPayApiClient.sessionToken;
+      final response = await http
+          .get(uri, headers: {if (token != null) 'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final capabilities = AccountCapabilities.fromJson(data);
@@ -117,7 +125,7 @@ final accountCapabilitiesProvider =
 
   // 4. Default to personal capability for authenticated user
   final fallback = AccountCapabilities.personalOnly(
-    bmoniUserId: bmoniUserId ?? 'user_unauthenticated',
+    flowpayUserId: flowpayUserId ?? 'user_unauthenticated',
   );
   await storage.saveCapabilities(fallback);
   return fallback;
@@ -310,6 +318,16 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     final isValid = await _storage.verifyFallbackPin(pin);
     if (isValid) {
       await _storage.updateAuthTimestamp();
+      // The PIN just unlocked the wallet key: use it to renew the server session.
+      // Offline is fine — the app unlocks locally and API calls will ask again.
+      if (!SecureStorageService.isTestEnv && await StellarKeyVault.instance.hasWallet()) {
+        try {
+          final result = await WalletLogin.signIn(pin: pin);
+          await _storage.saveAuthToken(result.token);
+        } catch (e) {
+          debugPrint('[AppLock] session refresh skipped: $e');
+        }
+      }
       state = state.copyWith(
         isLocked: false,
         isAuthExpired: false,
@@ -342,9 +360,9 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
   Future<void> resetToSignup() async {
     await _storage.resetSession();
     await _ref.read(currentUserProfileProvider.notifier).clearProfile();
-    try {
-      await BmoniSdkService.deleteWallet();
-    } catch (_) {}
+    // The on-device wallet is intentionally KEPT on logout: it holds the user's
+    // Stellar key, and deleting it without a backup would destroy their funds.
+    // Removing it is an explicit, PIN-gated action in Security settings.
     state = state.copyWith(isLocked: true, hasSession: false);
   }
 
@@ -365,25 +383,9 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
         : AccountMode.business;
     await setAccountMode(mode);
     await _ref.read(currentUserProfileProvider.notifier).saveProfile(profile);
-    await _ref.read(currentUserProfileProvider.notifier).setKycVerified();
 
-    // Register active wallet address with backend
-    try {
-      final addr = await BmoniSdkService.walletAddress();
-      if (addr != null && addr.isNotEmpty && !SecureStorageService.isTestEnv) {
-        await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': profile.userId,
-          },
-          body: jsonEncode({
-            'userId': profile.userId,
-            'address': addr,
-          }),
-        ).timeout(const Duration(seconds: 3));
-      }
-    } catch (_) {}
+    // Wallet registration happens only via the signed ownership challenge
+    // during activation (see StellarActivation).
 
     state = state.copyWith(isLocked: false, hasSession: true, activeMode: mode);
   }

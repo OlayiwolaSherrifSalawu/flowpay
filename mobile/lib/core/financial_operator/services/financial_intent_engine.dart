@@ -312,10 +312,9 @@ class FinancialIntentEngine {
       }
     }
 
-    // Pattern 3: Check for EVM address (e.g. "0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242")
+    // Pattern 3: Check for a Stellar account ID (G + 55 base32 chars)
     if (recipient == null) {
-      final addrMatch =
-          RegExp(r'(0x[a-fA-F0-9]{40})', caseSensitive: false).firstMatch(clause);
+      final addrMatch = RegExp(r'\b(G[A-Z2-7]{55})\b').firstMatch(clause);
       if (addrMatch != null) {
         recipient = addrMatch.group(1);
       }
@@ -324,7 +323,7 @@ class FinancialIntentEngine {
     // Pattern 4: Check for "to/for (my )?<recipient>" (e.g. "Send $500 to Mom", "30 usd to dad", "send 80 usd to my sister")
     if (recipient == null) {
       final toMatches = RegExp(
-        r'(?:to|for)\s+(?:my\s+|our\s+)?(0x[a-fA-F0-9]{40}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)',
+        r'(?:to|for)\s+(?:my\s+|our\s+)?(G[A-Z2-7]{55}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)',
         caseSensitive: false,
       ).allMatches(clause);
 
@@ -352,7 +351,7 @@ class FinancialIntentEngine {
     // Pattern 5: "pay/send (my )?<recipient> <amount>" (e.g. "pay my designer $2,000 USD", "send designer 2000")
     if (recipient == null) {
       final payMatch = RegExp(
-        r'(?:pay|send)\s+(?:my\s+|our\s+)?(0x[a-fA-F0-9]{40}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)\s+(?:[\$₦€£GH₵]?[0-9]+|\$[0-9]+)',
+        r'(?:pay|send)\s+(?:my\s+|our\s+)?(G[A-Z2-7]{55}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|[A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?)\s+(?:[\$₦€£GH₵]?[0-9]+|\$[0-9]+)',
         caseSensitive: false,
       ).firstMatch(clause);
       if (payMatch != null) {

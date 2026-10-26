@@ -2,7 +2,7 @@ import { FinancialSafetyError } from '../../core/errors.js';
 import { Money, type SupportedCurrency } from '../../core/money.js';
 import type { MissionIntent, MissionValidationResult } from './types.js';
 
-export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ['USD', 'NGN', 'MXN', 'CAD', 'EUR'];
+export const SUPPORTED_CURRENCIES: SupportedCurrency[] = ['USD', 'NGN', 'MXN', 'CAD', 'GBP'];
 export const SUPPORTED_ACTION_TYPES = ['HOLD', 'CONVERT_FX', 'SWEEP_VAULT', 'TRANSFER'] as const;
 
 export class MissionValidator {

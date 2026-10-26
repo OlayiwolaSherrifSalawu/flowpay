@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/modules/business/payroll_screen.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FlowPay Global Payroll Screen Widget Tests', () {
     testWidgets(
         'Renders global payroll header, core message, and aggregate bill',
@@ -42,8 +48,8 @@ void main() {
       expect(find.text('Samson Jabo'), findsOneWidget);
 
       // 4. Destination Rail Verification Badges
-      expect(find.text('CNGN Rail Active & Verified'), findsOneWidget);
-      expect(find.text('MEXe Rail Active & Verified'), findsOneWidget);
+      expect(find.text('NGN Rail Active & Verified'), findsOneWidget);
+      expect(find.text('MXN Rail Active & Verified'), findsOneWidget);
 
       // 5. "Run Payroll" action button
       expect(find.text('Run Payroll'), findsOneWidget);

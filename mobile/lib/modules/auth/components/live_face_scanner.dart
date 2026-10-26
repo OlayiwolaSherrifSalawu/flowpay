@@ -338,14 +338,14 @@ class _LiveFaceScannerState extends State<LiveFaceScanner>
                                     gradient: const LinearGradient(
                                       colors: [
                                         Colors.transparent,
-                                        Color(0xFF00E599),
-                                        Color(0xFF00B4D8),
+                                        Color(0xFFFDDA24),
+                                        Color(0xFF00A7B5),
                                         Colors.transparent,
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF00E599)
+                                        color: const Color(0xFFFDDA24)
                                             .withValues(alpha: 0.8),
                                         blurRadius: 8,
                                         spreadRadius: 2,

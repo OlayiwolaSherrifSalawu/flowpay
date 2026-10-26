@@ -1,12 +1,15 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import 'dart:convert';
+import 'package:cryptography/cryptography.dart' hide KeyPair;
+import '../stellar/stellar_key_vault.dart';
 import 'account_capabilities.dart';
 
 /// Secure Storage Service for identity-adjacent credentials and mode selection.
 /// Strictly uses flutter_secure_storage (encrypted on-device keychain/keystore),
 /// never SharedPreferences.
 class SecureStorageService {
-  static const String _keyBmoniUserId = 'bmoni_user_id';
+  // Storage key kept from the pre-Stellar app so existing sessions survive.
+  static const String _keyUserId = 'bmoni_user_id';
   static const String _keyCapabilities = 'account_capabilities';
   static const String _keyCapabilitiesTimestamp = 'account_capabilities_ts';
   static const String _keyAccountMode = 'account_mode';
@@ -71,13 +74,13 @@ class SecureStorageService {
 
   /// Check if this device has an established user session
   Future<bool> hasSession() async {
-    final userId = await _safeRead(_keyBmoniUserId);
+    final userId = await _safeRead(_keyUserId);
     return userId != null && userId.isNotEmpty;
   }
 
-  /// Get active bmoniUserId
-  Future<String?> getBmoniUserId() async {
-    return await _safeRead(_keyBmoniUserId);
+  /// Get active flowpayUserId
+  Future<String?> getSessionUserId() async {
+    return await _safeRead(_keyUserId);
   }
 
   /// Get active authentication JWT/session token
@@ -92,7 +95,7 @@ class SecureStorageService {
 
   /// Save session on successful onboarding or login
   Future<void> saveSession(String userId) async {
-    await _safeWrite(_keyBmoniUserId, userId);
+    await _safeWrite(_keyUserId, userId);
     await updateAuthTimestamp();
   }
 
@@ -150,10 +153,11 @@ class SecureStorageService {
   Future<void> resetSession() async {
     await _safeDelete(_keyUserProfile);
     await _safeDelete(_keyKycCompleted);
-    await _safeDelete(_keyBmoniUserId);
+    await _safeDelete(_keyUserId);
     await _safeDelete(_keyCapabilities);
     await _safeDelete(_keyCapabilitiesTimestamp);
     await _safeDelete(_keyAccountMode);
+    await _safeDelete(_keyAuthToken);
   }
 
   /// Read cached AccountCapabilities if within TTL
@@ -216,15 +220,31 @@ class SecureStorageService {
     await _safeWrite(_keyAppLockEnabled, enabled.toString());
   }
 
-  /// Verify in-app fallback PIN (when device lock is unavailable)
+  /// Verify the in-app unlock PIN (when device biometrics are unavailable).
+  ///
+  /// When this device holds a wallet, the PIN is checked by decrypting the
+  /// wallet key. Otherwise it is compared against a salted PBKDF2 hash —
+  /// the PIN itself is never stored.
   Future<bool> verifyFallbackPin(String inputPin) async {
-    final storedPin = await _safeRead(_keyFallbackPin);
-    if (storedPin != null && inputPin == storedPin) return true;
-    return await BmoniSdkService.matchPin(inputPin);
+    final vault = StellarKeyVault.instance;
+    if (await vault.hasWallet()) return vault.verifyPin(inputPin);
+
+    final stored = await _safeRead(_keyFallbackPin);
+    final parts = stored?.split('|');
+    if (parts == null || parts.length != 2) return false;
+    final hash = await _hashPin(inputPin, base64Decode(parts[0]));
+    return hash == parts[1];
   }
 
   Future<void> setFallbackPin(String pin) async {
-    await _safeWrite(_keyFallbackPin, pin);
+    final salt = SecretKeyData.random(length: 16).bytes;
+    await _safeWrite(_keyFallbackPin, '${base64Encode(salt)}|${await _hashPin(pin, salt)}');
+  }
+
+  static Future<String> _hashPin(String pin, List<int> salt) async {
+    final key = await Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: 100000, bits: 256)
+        .deriveKeyFromPassword(password: pin, nonce: salt);
+    return base64Encode(await key.extractBytes());
   }
 
   /// Clear all stored identity data

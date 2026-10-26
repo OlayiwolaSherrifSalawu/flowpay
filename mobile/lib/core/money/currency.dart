@@ -3,37 +3,37 @@ enum Currency {
       code: 'USD',
       symbol: '\$',
       decimals: 2,
-      stablecoinToken: 'USDB',
+      stablecoinToken: 'USD',
       name: 'US Dollar'),
   ngn(
       code: 'NGN',
       symbol: '₦',
       decimals: 2,
-      stablecoinToken: 'CNGN',
+      stablecoinToken: 'NGN',
       name: 'Nigerian Naira'),
   mxn(
       code: 'MXN',
       symbol: 'Mex\$',
       decimals: 2,
-      stablecoinToken: 'MEXe',
+      stablecoinToken: 'MXN',
       name: 'Mexican Peso'),
   eur(
       code: 'EUR',
       symbol: '€',
       decimals: 2,
-      stablecoinToken: 'EURe',
+      stablecoinToken: 'EUR',
       name: 'Euro'),
   cad(
       code: 'CAD',
       symbol: 'CA\$',
       decimals: 2,
-      stablecoinToken: 'CADC',
+      stablecoinToken: 'CAD',
       name: 'Canadian Dollar'),
   gbp(
       code: 'GBP',
       symbol: '£',
       decimals: 2,
-      stablecoinToken: 'GBPe',
+      stablecoinToken: 'GBP',
       name: 'British Pound'),
   ghs(
       code: 'GHS',
@@ -45,6 +45,7 @@ enum Currency {
   final String code;
   final String symbol;
   final int decimals;
+  /// Stellar asset code for this currency (FlowPay assets use the ISO code).
   final String stablecoinToken;
   final String name;
 
@@ -63,9 +64,14 @@ enum Currency {
     );
   }
 
+  /// Legacy (pre-Stellar) token names still found in stored data.
+  static const _legacyTokens = {'USD': 'USD', 'NGN': 'NGN', 'MEXE': 'MXN', 'EURE': 'EUR', 'CAD': 'CAD', 'GBPE': 'GBP'};
+
   static Currency fromToken(String token) {
+    final upper = token.toUpperCase();
+    final code = _legacyTokens[upper] ?? upper;
     return Currency.values.firstWhere(
-      (c) => c.stablecoinToken.toUpperCase() == token.toUpperCase(),
+      (c) => c.code == code,
       orElse: () => Currency.usd,
     );
   }

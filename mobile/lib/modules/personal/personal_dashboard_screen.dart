@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/repositories/activity_repository.dart';
@@ -26,14 +27,14 @@ import '../../core/navigation/personal_tab_provider.dart';
 /// FLOWPAY — PERSONAL DASHBOARD
 ///
 /// Route/Screen: Personal Dashboard
-/// Tagline: "Your money. Your rules. AI executes."
+/// Tagline: "Your money. Your rules. Your approval."
 ///
 /// Features:
 /// - Total portfolio value & available balances (no fake precision, sandbox identified)
 /// - Multi-currency wallet summaries (USD, NGN, MXN, CAD) using shared components
 /// - AI Command interaction ("What should your money do?")
 /// - Task-specific financial workflows (Allocation, Send, FX Convert)
-/// - Pending Approvals queue with on-device B-Key PIN signing
+/// - Pending Approvals queue with on-device wallet PIN signing
 /// - Active Money Missions summary with live toggling
 /// - Shared Activity model transaction history
 /// - Architecture powered by PersonalProvider decoupling data from widgets
@@ -76,7 +77,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => AiFxConversionModal(
         personalProvider: _provider,
-        initialAmount: amount ?? Money.fromMajorString('1000.00', Currency.usd),
+        initialAmount: amount ?? Money.fromMajorString('100.00', Currency.usd),
+        apiClient: widget.appState.isDemo ? null : widget.appState.apiClient,
       ),
     );
   }
@@ -226,7 +228,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         ),
                         const SizedBox(height: 3),
                         const Text(
-                          'Your money. Your rules. AI executes.',
+                          'Your money. Your rules. Your approval.',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -293,11 +295,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               const SizedBox(height: 16),
 
               // 2. Premium Scalloped Card Hero
-              FlowPayScallopedCard(
+              Consumer(builder: (context, ref, _) => FlowPayScallopedCard(
                 title: 'Total balance',
                 balance: totalFormatted,
-                holderName: 'Waffiyyi Fashola',
-                expiryDate: '',
+                holderName: '',
                 actionLabel: 'Details',
                 onActionTap: () {
                   _navigateToTab(
@@ -314,11 +315,11 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFD8F0E4),
+                        color: Color(0xFFFFF6CC),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    BMoniWalletCardBalance(
+                    FlowPayBalanceDisplay(
                       wholePart: wholePart,
                       decimalPart: decimalPart,
                       isHidden: _provider.isBalanceHidden,
@@ -335,7 +336,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFD8F0E4),
+                            color: Color(0xFFFFF6CC),
                           ),
                         ),
                         Text(
@@ -350,7 +351,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     ),
                   ],
                 ),
-              ),
+              )),
 
               const SizedBox(height: 16),
 
@@ -469,7 +470,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             ),
                             SizedBox(height: 3),
                             Text(
-                              '"Your money. Your rules. AI executes."',
+                              '"Your money. Your rules. Your approval."',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,

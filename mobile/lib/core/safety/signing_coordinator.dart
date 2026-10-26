@@ -7,7 +7,7 @@ class SigningCoordinator {
   final WalletSigner _signer;
 
   const SigningCoordinator({WalletSigner? signer})
-      : _signer = signer ?? const BmoniWalletSigner();
+      : _signer = signer ?? const StellarWalletSigner();
 
   /// Complete Financial Safety Pipeline:
   /// 1. Validate intent deterministically against available balance
@@ -42,8 +42,8 @@ class SigningCoordinator {
     required String pin,
     WalletSigner? signer,
   }) async {
-    // Executes strictly on-device using WalletSigner (Keystore / Secure Enclave)
-    final activeSigner = signer ?? const BmoniWalletSigner();
+    // Executes strictly on-device using WalletSigner (PIN-encrypted Stellar key)
+    final activeSigner = signer ?? const StellarWalletSigner();
     return await activeSigner.signTransactionHash(hashToSign, pin: pin);
   }
 }

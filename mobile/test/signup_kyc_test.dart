@@ -1,3 +1,5 @@
+import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/app.dart';
@@ -233,7 +235,7 @@ void main() {
       expect(find.text('Activity'), findsOneWidget);
     });
 
-    testWidgets('Logs in via email and PIN from LoginScreen',
+    testWidgets('Sign in uses the on-device wallet: restore mode without one, local PIN check with one',
         (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
@@ -243,30 +245,34 @@ void main() {
       final appState = AppState();
       await tester.pumpWidget(FlowPayApp(appState: appState));
       await tester.pumpAndSettle();
-
-      // Starts on LandingScreen
       expect(find.byType(LandingScreen), findsOneWidget);
       await tester.tap(find.text(AppCopy.signIn));
       await tester.pumpAndSettle();
 
-      // Enters LoginScreen
+      // No wallet on this device yet → restore with recovery key; no email/password.
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('Welcome Back'), findsOneWidget);
+      expect(find.text('Restore your wallet'), findsOneWidget);
+      expect(find.byKey(const Key('login_recovery_key')), findsOneWidget);
 
-      // Enter login credentials into the two TextFields on LoginScreen
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.at(0), 'user@flowpay.finance');
-      await tester.enterText(textFields.at(1), '123456');
+      // A bad recovery key is rejected before anything is sent anywhere.
+      await tester.enterText(find.byKey(const Key('login_recovery_key')), 'not-a-key');
+      await tester.enterText(find.byKey(const Key('login_pin')), '123456');
+      await tester.tap(find.byKey(const Key('login_submit')));
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key('login_error')), findsOneWidget);
+    });
 
-      // Tap Log In
-      await tester.tap(find.text('Log In'));
+    testWidgets('Sign in with an existing wallet checks the PIN on-device', (tester) async {
+      await StellarKeyVault.instance.createWallet(pin: '123456');
+      await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: LoginScreen())));
       await tester.pumpAndSettle();
+      expect(find.text('Unlock your wallet'), findsOneWidget);
+      expect(find.byKey(const Key('login_recovery_key')), findsNothing);
 
-      // Lands in Personal shell
-      expect(find.byType(LoginScreen), findsNothing);
-      expect(find.text('Overview'), findsOneWidget);
-      expect(find.text('Wallets'), findsWidgets);
+      await tester.enterText(find.byKey(const Key('login_pin')), '000000');
+      await tester.tap(find.byKey(const Key('login_submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Incorrect PIN.'), findsOneWidget);
     });
   });
 }

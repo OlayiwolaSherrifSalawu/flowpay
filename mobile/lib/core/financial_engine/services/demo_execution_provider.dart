@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../../design_system/states.dart';
 import '../../money/currency.dart';
 import '../../money/money.dart';
@@ -78,9 +82,9 @@ class DemoExecutionProvider implements ExecutionProvider {
     _wallets[Currency.usd] = WalletBalanceDetails(
       walletId: 'sw_demo_usdb_01',
       walletName: 'USD Smart Wallet',
-      address: '0x8f2d6B48e89405d414a3D65B2Af6d73f1d93E3C1',
+      address: 'GCY2TJMHLBYVBSKDGD242ZAH7VL4V4IWR3LHNEJD3WMISNLANWPXA7VH',
       currency: Currency.usd,
-      stablecoinToken: 'USDB',
+      stablecoinToken: 'USD',
       available: usd,
       reserved: Money.zero(Currency.usd),
       pending: Money.zero(Currency.usd),
@@ -93,9 +97,9 @@ class DemoExecutionProvider implements ExecutionProvider {
     _wallets[Currency.eur] = WalletBalanceDetails(
       walletId: 'sw_demo_eure_05',
       walletName: 'EUR Smart Wallet',
-      address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+      address: 'GDG4ROWUVX6ST7AJDK653G2QPTSZKIKPBJR5R3BAPLK3XDCBQDY7V545',
       currency: Currency.eur,
-      stablecoinToken: 'EURe',
+      stablecoinToken: 'EUR',
       available: eur,
       reserved: Money.zero(Currency.eur),
       pending: Money.zero(Currency.eur),
@@ -106,9 +110,9 @@ class DemoExecutionProvider implements ExecutionProvider {
     _wallets[Currency.ngn] = WalletBalanceDetails(
       walletId: 'sw_demo_cngn_02',
       walletName: 'NGN Smart Wallet',
-      address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+      address: 'GCLXFXJUCE4VPFRDDYZL2TDR3KMF7FI7IZRETVR25EJJ6HVRDMW5VCP2',
       currency: Currency.ngn,
-      stablecoinToken: 'CNGN',
+      stablecoinToken: 'NGN',
       available: ngn,
       reserved: Money.zero(Currency.ngn),
       pending: Money.zero(Currency.ngn),
@@ -119,9 +123,9 @@ class DemoExecutionProvider implements ExecutionProvider {
     _wallets[Currency.mxn] = WalletBalanceDetails(
       walletId: 'sw_demo_mexe_03',
       walletName: 'MXN Smart Wallet',
-      address: '0x9B10d4818F2312643a60a7F03C12b07C6418B573',
+      address: 'GBHAHA6MB4C42VI2SFORBQUFBEHR2GY2KFHJ2B37ZACS4YFZSZMPQIAG',
       currency: Currency.mxn,
-      stablecoinToken: 'MEXe',
+      stablecoinToken: 'MXN',
       available: mxn,
       reserved: Money.zero(Currency.mxn),
       pending: Money.zero(Currency.mxn),
@@ -132,9 +136,9 @@ class DemoExecutionProvider implements ExecutionProvider {
     _wallets[Currency.cad] = WalletBalanceDetails(
       walletId: 'sw_demo_cadc_04',
       walletName: 'CAD Smart Wallet',
-      address: '0x1C44F5a92B7e012354c41893D9B0A361e2A89F90',
+      address: 'GAT3EOJZMSUG6FBKNCPKDY2PNVNJEZNO5JVN5QCL6FFE3J55SCVFWENY',
       currency: Currency.cad,
-      stablecoinToken: 'CADC',
+      stablecoinToken: 'CAD',
       available: cad,
       reserved: Money.zero(Currency.cad),
       pending: Money.zero(Currency.cad),
@@ -408,7 +412,7 @@ class DemoExecutionProvider implements ExecutionProvider {
     if (pin.trim().length < 4) {
       return ExecutionResult.failed(
         plan.planId,
-        'On-device B-Key PIN signature required for execution.',
+        'On-device wallet PIN signature required for execution.',
       );
     }
 
@@ -437,7 +441,8 @@ class DemoExecutionProvider implements ExecutionProvider {
       _reservations.remove(reservationId);
 
       // 3. Log activity ledger
-      final txHash = '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}${plan.planId.hashCode.abs().toRadixString(16)}';
+      // Demo-only: a Stellar-shaped (64-hex) hash, clearly not on any ledger.
+      final txHash = sha256.convert(utf8.encode('demo_${plan.planId}_${DateTime.now().microsecondsSinceEpoch}')).toString();
 
       if (activityRepo != null) {
         for (final item in plan.items) {

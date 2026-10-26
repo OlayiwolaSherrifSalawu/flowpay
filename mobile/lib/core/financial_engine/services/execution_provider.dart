@@ -5,7 +5,7 @@ import '../models/quote_model.dart';
 import '../models/smart_payment_plan.dart';
 import '../models/wallet_balance_model.dart';
 
-/// Exception thrown when a provider (e.g. BMONI sandbox) is unreachable or times out
+/// Exception thrown when a provider (e.g. Stellar sandbox) is unreachable or times out
 class ProviderUnavailableException implements Exception {
   final String provider;
   final String message;
@@ -34,9 +34,9 @@ class QuoteExpiredException implements Exception {
 }
 
 /// Decoupled Execution Provider Interface
-/// The AI layer has zero knowledge of the underlying provider (BMONI, Smart Contract, Demo).
+/// The AI layer has zero knowledge of the underlying provider (Stellar, Smart Contract, Demo).
 abstract class ExecutionProvider {
-  /// Provider identity (e.g. 'bmoni', 'demo', 'smart_contract')
+  /// Provider identity (e.g. 'stellar', 'demo')
   String get providerId;
 
   /// Whether the provider is currently online and accessible

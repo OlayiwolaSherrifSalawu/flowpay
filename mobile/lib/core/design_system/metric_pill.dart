@@ -36,7 +36,7 @@ class FlowPayMetricPill extends StatelessWidget {
             : const Color(0xFF14291F))
         : (isIncome
             ? const Color(0xFFFBF4D8)
-            : const Color(0xFFD8F0E4));
+            : const Color(0xFFFFF6CC));
 
     final iconBgColor = isIncome
         ? FlowPayColors.warning.withAlpha(isDark ? 80 : 180)

@@ -35,15 +35,6 @@ class EmployeePreviewCard extends StatelessWidget {
     return 'Not provisioned';
   }
 
-  /// Truthful card line — never invents a "•••• 4289" (per AGENTS.md).
-  String _cardDisplay(EmployeeModel e) {
-    final last4 = e.cardLast4;
-    if (last4 != null && last4.isNotEmpty) {
-      return '${e.cardStatus} • •••• $last4';
-    }
-    return 'Not issued';
-  }
-
   Color _getCurrencyBg(String code, bool isDark) {
     switch (code.toUpperCase()) {
       case 'NGN':
@@ -240,7 +231,7 @@ class EmployeePreviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Row 3: Wallet Status & Card Status Chips
+            // Row 3: Wallet Status
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -282,50 +273,11 @@ class EmployeePreviewCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Container(
-                    width: 1,
-                    height: 24,
-                    color: borderColor,
-                    margin: const EdgeInsets.symmetric(horizontal: 10),
-                  ),
-
-                  // Card Status Chip
-                  Expanded(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.credit_card_rounded,
-                            size: 14, color: FlowPayColors.amber),
-                        const SizedBox(width: 6),
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'CARD STATUS',
-                                style: FlowPayTypography.captionStyle(
-                                  color: textTertiaryColor,
-                                ).copyWith(fontSize: 9),
-                              ),
-                              Text(
-                                _cardDisplay(employee),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: inkColor,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
 
-            // Failure banner + Retry — only for employees whose BMONI identity
+            // Failure banner + Retry — only for employees whose Stellar identity
             // creation failed, so the employer can see WHY and fix it without
             // re-entering everything.
             if (_isFailed) ...[
@@ -356,7 +308,7 @@ class EmployeePreviewCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             employee.failureReason ??
-                                (employee.failedStage == 'BMONI_USER_CREATION'
+                                (employee.failedStage == 'Stellar_USER_CREATION'
                                     ? 'Employee account could not be created. Please retry.'
                                     : 'This employee could not be onboarded. Tap retry to try again.'),
                             style: FlowPayTypography.captionStyle(

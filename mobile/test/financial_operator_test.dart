@@ -20,8 +20,14 @@ import 'package:flowpay_mobile/core/providers/demo/demo_wallet_repo.dart';
 import 'package:flowpay_mobile/core/repositories/wallet_repository.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/modules/personal/ai_operator_modal.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FlowPay Financial Operator — Core Intelligence Tests', () {
     late DemoWalletRepository walletRepo;
     late DemoBeneficiaryRepository beneficiaryRepo;
@@ -175,7 +181,7 @@ void main() {
         id: 'sw_low_01',
         address: '0x123',
         currency: Currency.usd,
-        stablecoinToken: 'USDB',
+        stablecoinToken: 'USD',
         balance: Money.fromMajorString('2000.00', Currency.usd),
         status: 'active',
       );
@@ -417,7 +423,7 @@ void main() {
       // User types "approve" in chat
       await op.processInput('approve');
 
-      // Must NOT transition to completed; must stay in readyForReview and prompt for B-Key PIN
+      // Must NOT transition to completed; must stay in readyForReview and prompt for wallet PIN
       expect(op.status, equals(OperatorSessionStatus.readyForReview));
       expect(op.activePlan?.executionState, equals('READY_FOR_REVIEW'));
       expect(

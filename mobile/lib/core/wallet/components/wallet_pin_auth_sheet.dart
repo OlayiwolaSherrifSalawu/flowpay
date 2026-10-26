@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../bmoni_sdk/bmoni_sdk_service.dart';
+import '../../stellar/stellar_key_vault.dart';
 import '../../theme/colors.dart';
 import '../../theme/radii.dart';
 import '../../theme/typography.dart';
 import '../wallet_signer.dart';
 
-/// Modal bottom sheet for on-device B-Key PIN signing authorization.
+/// Modal bottom sheet for on-device PIN signing authorization.
 ///
 /// Features:
 /// 1. Prominently reassures: "Your FlowPay wallet is secured on this device."
 /// 2. Interactive 6-digit PIN pad with masked dots.
-/// 3. Immediate feedback on incorrect PIN (`BmoniSignerErrorCode.pinMismatch`).
+/// 3. Immediate feedback on incorrect PIN (`StellarVaultErrorCode.pinMismatch`).
 /// 4. Handles user cancellation cleanly without leaving hanging state.
 /// 5. Never logs or persists the entered PIN.
 class WalletPinAuthSheet extends StatefulWidget {
@@ -94,34 +94,19 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
     });
 
     try {
-      // Verify against on-device PIN store first
-      final isValid = await BmoniSdkService.matchPin(_pin);
-      if (!isValid) {
-        _failedAttempts++;
-        if (mounted) {
-          setState(() {
-            _isAuthorizing = false;
-            _errorMessage =
-                'Incorrect PIN ($_failedAttempts/5 attempts). Please try again.';
-            _pin = '';
-          });
-        }
-        return;
-      }
-
-      // Execute on-device signing callback
+      // The PIN decrypts the on-device key; a wrong PIN surfaces as pinMismatch.
       final signature = await widget.onAuthorize(_pin);
 
       if (mounted) {
         Navigator.of(context).pop(signature);
       }
-    } on BmoniSignerException catch (e) {
-      _failedAttempts++;
+    } on StellarVaultException catch (e) {
+      if (e.code == StellarVaultErrorCode.pinMismatch) _failedAttempts++;
       if (mounted) {
         setState(() {
           _isAuthorizing = false;
-          _errorMessage = e.errorCode == BmoniSignerErrorCode.pinMismatch
-              ? 'Incorrect PIN. Please re-enter.'
+          _errorMessage = e.code == StellarVaultErrorCode.pinMismatch
+              ? 'Incorrect PIN ($_failedAttempts/${StellarKeyVault.freeAttempts} attempts). Please try again.'
               : e.message;
           _pin = '';
         });
@@ -329,7 +314,7 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
             const CircularProgressIndicator(color: FlowPayColors.primary),
             const SizedBox(height: 12),
             const Text(
-              'Signing on-device with B-Key Secure Enclave...',
+              'Signing securely on this device...',
               style:
                   TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
             ),

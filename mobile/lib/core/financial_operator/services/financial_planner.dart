@@ -235,7 +235,7 @@ class FinancialPlanner {
               ? '${act.amount.percentage!.toStringAsFixed(0)}%'
               : null,
           sourceWalletId: 'sw_demo_usdb_01',
-          sourceWalletName: 'USD Wallet (USDB)',
+          sourceWalletName: 'USD Wallet (USD)',
           destinationId: destId,
           destinationName: destName,
           destinationType: destType,

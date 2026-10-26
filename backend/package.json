@@ -1,7 +1,7 @@
 {
   "name": "flowpay-backend",
   "version": "1.0.0",
-  "description": "FlowPay Intelligent Financial Operating Layer Backend for BMONI Infrastructure",
+  "description": "FlowPay backend — cross-border wallets and payroll on the Stellar network",
   "type": "module",
   "main": "dist/server.js",
   "engines": {
@@ -14,11 +14,13 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/employees/onboarding.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/wallets/wallets.test.js dist/modules/cards/cards.test.js dist/modules/payroll/payroll.test.js dist/modules/payroll/audit.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js"
+    "test": "node --test dist/core/money.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/payroll/payroll.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js dist/stellar/stellar.test.js dist/modules/payments/batch.test.js dist/auth/session.test.js",
+    "stellar:bootstrap": "tsx src/stellar/bootstrap.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
     "@prisma/client": "^6.19.3",
+    "@stellar/stellar-sdk": "17.2.1",
     "@types/pg": "^8.23.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

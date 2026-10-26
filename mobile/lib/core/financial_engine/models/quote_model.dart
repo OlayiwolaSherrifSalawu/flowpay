@@ -10,12 +10,12 @@ class PaymentQuote {
   final Currency destinationCurrency;
   final Money destinationAmount;
   final double exchangeRate; // e.g. 1 USD = 1550 NGN, or 1 EUR = 1.08 USD
-  final Money providerFee; // FlowPay / BMONI FX fee
+  final Money providerFee; // FlowPay / Stellar FX fee
   final Money networkFee; // Blockchain / bank network fee
   final Money totalSourceAmount; // sourceAmount + providerFee + networkFee
   final DateTime expiresAt;
   final String route; // e.g. "EUR -> USD" or "USD -> NGN"
-  final String provider; // e.g. "bmoni", "demo", "smart_contract"
+  final String provider; // e.g. "stellar", "demo"
 
   const PaymentQuote({
     required this.quoteId,

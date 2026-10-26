@@ -5,12 +5,12 @@
  * 1. Financial amounts are ALWAYS stored and computed as integer minor units (e.g. cents, kobo, centavos).
  * 2. Zero floating-point arithmetic.
  * 3. Currency-aware operations (cannot accidentally add NGN to USD without explicit conversion).
- * 4. Safe formatting and serializing to/from BMONI API representations.
+ * 4. Safe formatting to decimal strings (Stellar amounts use src/stellar/amount.ts).
  */
 
 export type SupportedCurrency = 'USD' | 'NGN' | 'MXN' | 'EUR' | 'CAD' | 'GBP';
 
-// Standard decimals per currency (typically 2 for fiat/stablecoins USDB, CNGN, MEXe)
+// Standard decimals per currency (2 for every FlowPay currency)
 const CURRENCY_DECIMALS: Record<SupportedCurrency, number> = {
   USD: 2,
   NGN: 2,
@@ -125,18 +125,6 @@ export class Money {
     return `${isNegative ? '-' : ''}${whole}.${fractionStr}`;
   }
 
-  /**
-   * BMONI format representation:
-   * BMONI typically expects minor units as strings for certain endpoints (e.g. "1050")
-   * or decimal strings for others.
-   */
-  toBmoniMinorString(): string {
-    return this.amountMinor.toString();
-  }
-
-  toBmoniDecimalString(): string {
-    return this.toMajorString();
-  }
 
   toJSON() {
     return {

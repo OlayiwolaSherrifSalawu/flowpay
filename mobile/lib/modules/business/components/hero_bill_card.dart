@@ -26,7 +26,6 @@ class HeroBillCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pending = businessProvider.pendingPayroll;
     final totalUsd = businessProvider.totalPayrollUsd;
     final savedUsd = businessProvider.savedFeeUsd;
     final savedPct = businessProvider.savedPercentage.toStringAsFixed(0);
@@ -99,7 +98,7 @@ class HeroBillCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Send international payroll to Nigeria & Mexico with instant virtual cards — paid in one simple USD bill.',
+                      'Pay your team in the US, Canada, Mexico, the UK and Nigeria in one Stellar transaction — paid in one simple USD bill.',
                       style: FlowPayTypography.captionStyle(
                         color: textSecondaryColor,
                       ).copyWith(
@@ -199,7 +198,7 @@ class HeroBillCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      totalUsd.formatFormatted(),
+                      businessProvider.payrollAmountText(totalUsd),
                       style: FlowPayTypography.display(color: inkColor).copyWith(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
@@ -226,7 +225,7 @@ class HeroBillCard extends StatelessWidget {
                         color: FlowPayColors.signal, size: 14),
                     const SizedBox(width: 4),
                     Text(
-                      'Saved ${savedUsd.formatFormatted()} ($savedPct%)',
+                      savedUsd.minorUnits > 0 ? 'Saved ${savedUsd.formatFormatted()} ($savedPct%)' : 'Settles on Stellar',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -240,24 +239,22 @@ class HeroBillCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Sub-metrics (Rail fee vs Wire)
-          Row(
+          // Sub-metrics (real network cost + atomicity)
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
               Text(
-                'Transfer Fee: ${pending?.totalFeeUsd.formatFormatted() ?? "\$10.00"}',
+                businessProvider.payrollCostLabel,
                 style: FlowPayTypography.captionStyle(
                   color: textSecondaryColor,
                 ).copyWith(fontSize: 12),
               ),
-              const Spacer(),
               Text(
-                'Traditional Wire: ~\$340.00',
+                'All-or-nothing · one transaction',
                 style: FlowPayTypography.captionStyle(
                   color: textTertiaryColor,
-                ).copyWith(
-                  decoration: TextDecoration.lineThrough,
-                  fontSize: 12,
-                ),
+                ).copyWith(fontSize: 12),
               ),
             ],
           ),

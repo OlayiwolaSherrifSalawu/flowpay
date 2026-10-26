@@ -1,7 +1,9 @@
+import '../../core/stellar/stellar_key_vault.dart';
+import '../../core/financial_operator/services/stellar_execution_provider.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/financial_operator/financial_operator.dart';
 import '../../core/financial_operator/models/financial_plan_models.dart';
@@ -18,7 +20,7 @@ import 'components/choose_beneficiary_modal.dart';
 /// FlowPay AI Financial Operator Modal
 /// Embedded intelligent financial operator interface supporting natural language
 /// multi-action requests, entity disambiguation, multi-turn clarification,
-/// structured plan review, and on-device B-Key PIN signing.
+/// structured plan review, and on-device wallet PIN signing.
 class AiOperatorModal extends StatefulWidget {
   final AppState appState;
   final String? initialPrompt;
@@ -48,10 +50,12 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       missionRepo: widget.appState.missionRepo,
       activityRepo: widget.appState.activityRepo,
     );
-    final executionProvider = DemoFinancialExecutionProvider(
-      walletRepo: widget.appState.walletRepo,
-      activityRepo: widget.appState.activityRepo,
-    );
+    final FinancialExecutionProvider executionProvider = widget.appState.isDemo
+        ? DemoFinancialExecutionProvider(
+            walletRepo: widget.appState.walletRepo,
+            activityRepo: widget.appState.activityRepo,
+          )
+        : StellarFinancialExecutionProvider(apiClient: widget.appState.apiClient);
 
     _operator = FinancialOperator(
       contextService: contextService,
@@ -181,6 +185,29 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
 
+      if (_operator.executionProvider.settlesAtomically) {
+        // Live: confirm the PIN here (so typos show in the sheet), then the operator
+        // builds, signs and submits ONE Stellar transaction for the whole plan.
+        final pin = await WalletPinAuthSheet.show(
+          context: context,
+          title: 'Confirm payment',
+          subtitle: 'Enter your 6-digit PIN to confirm',
+          amountDisplay: plan.totalDebit.toFormattedString(),
+          recipient: plan.summary,
+          onAuthorize: (pin) async {
+            if (!await StellarKeyVault.instance.verifyPin(pin)) {
+              throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+            }
+            return pin;
+          },
+        );
+        if (pin != null) {
+          await _operator.approveAndExecute(pin: pin);
+          await widget.appState.personalProvider.refresh();
+        }
+        return;
+      }
+
       final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Confirm payment',
@@ -188,8 +215,8 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         amountDisplay: plan.totalDebit.toFormattedString(),
         recipient: plan.summary,
         onAuthorize: (pin) async {
-          // Perform authentic on-device signing via BmoniSdkService
-          return await BmoniSdkService.signTransactionHash(
+          // Demo mode: sign the simulated plan hash.
+          return await const StellarWalletSigner().signTransactionHash(
             hashToSign,
             pin: pin,
           );

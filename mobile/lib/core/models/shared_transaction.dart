@@ -1,7 +1,6 @@
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../repositories/activity_repository.dart';
-import '../repositories/card_repository.dart';
 import '../repositories/payroll_repository.dart';
 import '../wallets_cards/models/embedded_wallet.dart';
 
@@ -44,14 +43,22 @@ extension TransactionStatusX on TransactionStatus {
     }
   }
 
+  /// Unknown or missing statuses map to [TransactionStatus.processing] — never
+  /// to completed. A record only reads as done when its source says so.
   static TransactionStatus fromString(String? value) {
-    if (value == null) return TransactionStatus.completed;
-    final norm =
-        value.trim().toUpperCase().replaceAll(' ', '_').replaceAll('-', '_');
+    if (value == null) return TransactionStatus.processing;
+    final norm = value
+        .trim()
+        // camelCase enum names (e.g. awaitingApproval) → AWAITING_APPROVAL
+        .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]}_${m[2]}')
+        .toUpperCase()
+        .replaceAll(' ', '_')
+        .replaceAll('-', '_');
     switch (norm) {
       case 'DRAFT':
         return TransactionStatus.draft;
       case 'PENDING':
+      case 'SUBMITTED':
       case 'PENDING_APPROVAL':
       case 'AWAITING_APPROVAL':
       case 'VALIDATED':
@@ -72,9 +79,10 @@ extension TransactionStatusX on TransactionStatus {
       case 'ERROR':
       case 'DECLINED':
       case 'REJECTED':
+      case 'CANCELLED':
         return TransactionStatus.failed;
       default:
-        return TransactionStatus.completed;
+        return TransactionStatus.processing;
     }
   }
 }
@@ -89,12 +97,12 @@ class SharedTransactionModel {
   final String description;
   final Money amount;
   final Money? secondaryAmount;
-  final String? secondaryCurrency; // Stablecoin code: CNGN, MEXe, CADC, USDB
+  final String? secondaryCurrency; // Stablecoin code: NGN, MXN, CAD, USD
   final TransactionStatus status;
   final DateTime timestamp;
   final String? flowpayReference;
   final String?
-      bmoniReference; // Sanitized public reference (proposalId, txHash) - NEVER secret keys!
+      networkReference; // Sanitized public reference (proposalId, txHash) - NEVER secret keys!
   final String? counterparty;
   final String? country;
   final String? errorReason;
@@ -112,7 +120,7 @@ class SharedTransactionModel {
     required this.status,
     required this.timestamp,
     this.flowpayReference,
-    this.bmoniReference,
+    this.networkReference,
     this.counterparty,
     this.country,
     this.errorReason,
@@ -152,12 +160,12 @@ class SharedTransactionModel {
           'Disbursed ${run.totalUsd.formatted} to ${run.employeeCount} employees across ${run.countries.join(', ')}',
       amount: run.totalUsd,
       secondaryAmount: run.totalFeeUsd,
-      secondaryCurrency: 'USDB',
+      secondaryCurrency: 'USD',
       status: status,
       timestamp: run.executedAt,
       flowpayReference:
           'FP-PAY-${run.runId.length > 8 ? run.runId.substring(run.runId.length - 8) : run.runId}',
-      bmoniReference: run.items.isNotEmpty ? run.items.first.proposalId : null,
+      networkReference: run.items.isNotEmpty ? run.items.first.proposalId : null,
       counterparty: '${run.employeeCount} Employees',
       country: run.countries.join('/'),
       errorReason: run.failedCount > 0
@@ -199,7 +207,7 @@ class SharedTransactionModel {
       status: status,
       timestamp: date,
       flowpayReference: 'FP-EMP-${item.employeeId}',
-      bmoniReference: item.proposalId ?? item.transactionHash,
+      networkReference: item.proposalId ?? item.transactionHash,
       counterparty: item.employeeName,
       country: item.country,
       errorReason: item.errorReason,
@@ -213,43 +221,6 @@ class SharedTransactionModel {
         'transactionHash': item.transactionHash,
         'railValidationMessage': item.railValidationMessage,
         'runId': runId,
-      },
-    );
-  }
-
-  /// Adapter from CardTransactionModel
-  factory SharedTransactionModel.fromCardTransaction(
-    CardTransactionModel tx, {
-    String? cardName,
-    String? last4,
-  }) {
-    final isFailed = tx.status.toUpperCase() == 'DECLINED' ||
-        tx.status.toUpperCase() == 'FAILED';
-    final status = isFailed
-        ? TransactionStatus.failed
-        : TransactionStatusX.fromString(tx.status);
-
-    return SharedTransactionModel(
-      id: tx.id,
-      type:
-          isFailed ? TransactionType.failure : TransactionType.cardTransaction,
-      title: tx.merchantName,
-      description: 'Card •••• ${last4 ?? '••••'} · ${tx.category}',
-      amount: tx.amount,
-      status: status,
-      timestamp: tx.timestamp,
-      flowpayReference:
-          'FP-CRD-${tx.id.length > 6 ? tx.id.substring(tx.id.length - 6) : tx.id}',
-      bmoniReference: 'TX-${tx.id}',
-      counterparty: tx.merchantName,
-      country: 'US',
-      errorReason: isFailed
-          ? 'Card spend declined (merchant rule or spend ceiling)'
-          : null,
-      metadata: {
-        'cardId': tx.cardId,
-        'category': tx.category,
-        'merchantName': tx.merchantName,
       },
     );
   }
@@ -282,7 +253,7 @@ class SharedTransactionModel {
       timestamp: tx.createdAt,
       flowpayReference: tx.reference ??
           'FP-WLT-${tx.id.length > 6 ? tx.id.substring(tx.id.length - 6) : tx.id}',
-      bmoniReference: tx.id,
+      networkReference: tx.id,
       counterparty: tx.counterpartyName ?? 'Smart Wallet',
       country: currency == Currency.ngn
           ? 'NG'
@@ -323,11 +294,11 @@ class SharedTransactionModel {
       status: status,
       timestamp: act.timestamp,
       flowpayReference: act.reference,
-      bmoniReference: act.reference,
+      networkReference: act.reference,
       counterparty: act.metadata?['recipient'] ?? act.metadata?['merchant'],
-      country: act.metadata?['rail'] == 'CNGN'
+      country: act.metadata?['rail'] == 'NGN'
           ? 'NG'
-          : (act.metadata?['rail'] == 'MEXe' ? 'MX' : 'US'),
+          : (act.metadata?['rail'] == 'MXN' ? 'MX' : 'US'),
       metadata: act.metadata,
     );
   }

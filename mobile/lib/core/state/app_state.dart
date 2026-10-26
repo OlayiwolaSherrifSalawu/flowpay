@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import '../network/api_client.dart';
-import '../providers/bmoni/bmoni_activity_repo.dart';
-import '../providers/bmoni/bmoni_approval_repo.dart';
-import '../providers/bmoni/bmoni_business_audit_repo.dart';
-import '../providers/bmoni/bmoni_card_repo.dart';
-import '../providers/bmoni/bmoni_employee_repo.dart';
-import '../providers/bmoni/bmoni_mission_repo.dart';
-import '../providers/bmoni/bmoni_payroll_repo.dart';
-import '../providers/bmoni/bmoni_transfer_repo.dart';
-import '../providers/bmoni/bmoni_wallet_repo.dart';
+import '../providers/live/live_activity_repo.dart';
+import '../providers/live/live_approval_repo.dart';
+import '../providers/live/live_business_audit_repo.dart';
+import '../providers/stellar/stellar_employee_repo.dart';
+import '../providers/stellar/stellar_mission_repo.dart';
+import '../providers/stellar/stellar_payroll_repo.dart';
+import '../providers/stellar/stellar_transfer_repo.dart';
+import '../providers/stellar/stellar_wallet_repo.dart';
 import '../providers/demo/demo_activity_repo.dart';
 import '../providers/demo/demo_approval_repo.dart';
 import '../providers/demo/demo_business_audit_repo.dart';
-import '../providers/demo/demo_card_repo.dart';
 import '../providers/demo/demo_employee_repo.dart';
 import '../providers/demo/demo_mission_repo.dart';
 import '../providers/demo/demo_payroll_repo.dart';
@@ -22,7 +20,6 @@ import '../beneficiaries/beneficiary_repository.dart';
 import '../repositories/activity_repository.dart';
 import '../repositories/approval_repository.dart';
 import '../repositories/business_audit_repository.dart';
-import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
 import '../repositories/mission_repository.dart';
 import '../repositories/payroll_repository.dart';
@@ -33,7 +30,7 @@ import 'personal_provider.dart';
 
 enum AppRole { personal, business }
 
-enum ProviderMode { demo, bmoniSandbox }
+enum ProviderMode { demo, live }
 
 class AppState extends ChangeNotifier {
   AppRole _activeRole = AppRole.personal;
@@ -50,7 +47,6 @@ class AppState extends ChangeNotifier {
     activityRepo: _demoActivity,
     walletRepo: _demoWallet,
   );
-  final DemoCardRepository _demoCard = DemoCardRepository();
   final DemoEmployeeRepository _demoEmployee = DemoEmployeeRepository();
   final DemoPayrollRepository _demoPayroll = DemoPayrollRepository();
   late final DemoMissionRepository _demoMission = DemoMissionRepository(
@@ -62,37 +58,30 @@ class AppState extends ChangeNotifier {
   late final DemoBusinessAuditRepository _demoAudit =
       DemoBusinessAuditRepository(
     payrollRepo: _demoPayroll,
-    cardRepo: _demoCard,
     walletRepo: _demoWallet,
     activityRepo: _demoActivity,
   );
 
-  // BMONI Live Repositories (connected to FlowPay backend & Supabase DB)
-  late final BmoniWalletRepository _bmoniWallet =
-      BmoniWalletRepository(apiClient: _apiClient);
-  late final BmoniTransferRepository _bmoniTransfer =
-      BmoniTransferRepository(apiClient: _apiClient);
-  late final BmoniCardRepository _bmoniCard =
-      BmoniCardRepository(apiClient: _apiClient);
-  late final BmoniEmployeeRepository _bmoniEmployee =
-      BmoniEmployeeRepository(apiClient: _apiClient);
-  late final BmoniPayrollRepository _bmoniPayroll =
-      BmoniPayrollRepository(apiClient: _apiClient);
-  late final BmoniActivityRepository _bmoniActivity =
-      BmoniActivityRepository(apiClient: _apiClient);
-  late final BmoniMissionRepository _bmoniMission = BmoniMissionRepository(
-    apiClient: _apiClient,
-    walletRepo: _bmoniWallet,
-    activityRepo: _bmoniActivity,
-  );
-  late final BmoniApprovalRepository _bmoniApproval =
-      BmoniApprovalRepository(apiClient: _apiClient);
-  late final BmoniBusinessAuditRepository _bmoniAudit =
-      BmoniBusinessAuditRepository(
-    payrollRepo: _bmoniPayroll,
-    cardRepo: _bmoniCard,
-    walletRepo: _bmoniWallet,
-    activityRepo: _bmoniActivity,
+  // Stellar Live Repositories (connected to FlowPay backend & Supabase DB)
+  // Stellar: wallets & transfers settle on the Stellar network.
+  late final StellarWalletRepository _liveWallet =
+      StellarWalletRepository(apiClient: _apiClient);
+  late final StellarTransferRepository _liveTransfer =
+      StellarTransferRepository(apiClient: _apiClient);
+  late final StellarEmployeeRepository _liveEmployee =
+      StellarEmployeeRepository(apiClient: _apiClient);
+  late final StellarPayrollRepository _livePayroll =
+      StellarPayrollRepository(apiClient: _apiClient);
+  late final LiveActivityRepository _liveActivity =
+      LiveActivityRepository(apiClient: _apiClient);
+  late final StellarMissionRepository _liveMission = StellarMissionRepository(apiClient: _apiClient);
+  late final LiveApprovalRepository _liveApproval =
+      LiveApprovalRepository(apiClient: _apiClient);
+  late final LiveBusinessAuditRepository _liveAudit =
+      LiveBusinessAuditRepository(
+    payrollRepo: _livePayroll,
+    walletRepo: _liveWallet,
+    activityRepo: _liveActivity,
   );
 
   // Business Providers
@@ -100,16 +89,14 @@ class AppState extends ChangeNotifier {
     employeeRepo: _demoEmployee,
     payrollRepo: _demoPayroll,
     walletRepo: _demoWallet,
-    cardRepo: _demoCard,
     auditRepo: _demoAudit,
   );
 
-  late final BusinessProvider _bmoniBusinessProvider = BusinessProvider(
-    employeeRepo: _bmoniEmployee,
-    payrollRepo: _bmoniPayroll,
-    walletRepo: _bmoniWallet,
-    cardRepo: _bmoniCard,
-    auditRepo: _bmoniAudit,
+  late final BusinessProvider _liveBusinessProvider = BusinessProvider(
+    employeeRepo: _liveEmployee,
+    payrollRepo: _livePayroll,
+    walletRepo: _liveWallet,
+    auditRepo: _liveAudit,
   );
 
   // Personal Providers
@@ -121,12 +108,12 @@ class AppState extends ChangeNotifier {
     transferRepo: _demoTransfer,
   );
 
-  late final PersonalProvider _bmoniPersonalProvider = PersonalProvider(
-    walletRepo: _bmoniWallet,
-    activityRepo: _bmoniActivity,
-    missionRepo: _bmoniMission,
-    approvalRepo: _bmoniApproval,
-    transferRepo: _bmoniTransfer,
+  late final PersonalProvider _livePersonalProvider = PersonalProvider(
+    walletRepo: _liveWallet,
+    activityRepo: _liveActivity,
+    missionRepo: _liveMission,
+    approvalRepo: _liveApproval,
+    transferRepo: _liveTransfer,
   );
 
   AppState({ProviderMode providerMode = ProviderMode.demo})
@@ -145,7 +132,7 @@ class AppState extends ChangeNotifier {
     final target = userId ?? 'usr_flowpay_sandbox_master';
     if (_apiClient.userId != target) {
       _apiClient.setUserId(target);
-      _bmoniActivity.clearLocalActivities();
+      _liveActivity.clearLocalActivities();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
       });
@@ -153,26 +140,25 @@ class AppState extends ChangeNotifier {
   }
 
   // Active Repositories
-  WalletRepository get walletRepo => isDemo ? _demoWallet : _bmoniWallet;
+  WalletRepository get walletRepo => isDemo ? _demoWallet : _liveWallet;
   TransferRepository get transferRepo =>
-      isDemo ? _demoTransfer : _bmoniTransfer;
-  CardRepository get cardRepo => isDemo ? _demoCard : _bmoniCard;
+      isDemo ? _demoTransfer : _liveTransfer;
   EmployeeRepository get employeeRepo =>
-      isDemo ? _demoEmployee : _bmoniEmployee;
-  PayrollRepository get payrollRepo => isDemo ? _demoPayroll : _bmoniPayroll;
+      isDemo ? _demoEmployee : _liveEmployee;
+  PayrollRepository get payrollRepo => isDemo ? _demoPayroll : _livePayroll;
   ActivityRepository get activityRepo =>
-      isDemo ? _demoActivity : _bmoniActivity;
-  MissionRepository get missionRepo => isDemo ? _demoMission : _bmoniMission;
+      isDemo ? _demoActivity : _liveActivity;
+  MissionRepository get missionRepo => isDemo ? _demoMission : _liveMission;
   ApprovalRepository get approvalRepo =>
-      isDemo ? _demoApproval : _bmoniApproval;
-  BusinessAuditRepository get auditRepo => isDemo ? _demoAudit : _bmoniAudit;
+      isDemo ? _demoApproval : _liveApproval;
+  BusinessAuditRepository get auditRepo => isDemo ? _demoAudit : _liveAudit;
   BeneficiaryRepository get beneficiaryRepo => _demoBeneficiary;
 
   // Active Providers
   BusinessProvider get businessProvider =>
-      isDemo ? _demoBusinessProvider : _bmoniBusinessProvider;
+      isDemo ? _demoBusinessProvider : _liveBusinessProvider;
   PersonalProvider get personalProvider =>
-      isDemo ? _demoPersonalProvider : _bmoniPersonalProvider;
+      isDemo ? _demoPersonalProvider : _livePersonalProvider;
 
   void setRole(AppRole role) {
     if (_activeRole != role) {

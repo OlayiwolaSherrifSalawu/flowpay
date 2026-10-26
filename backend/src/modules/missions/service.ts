@@ -1,434 +1,162 @@
-import crypto from 'node:crypto';
-import { prisma } from '../../db/index.js';
-import { FinancialSafetyError } from '../../core/errors.js';
-import { WalletService } from '../wallets/service.js';
-import { recordInMemoryActivity } from '../../routes/activity.routes.js';
-import type {
-  MissionAllocation,
-  MissionExecutionResult,
-  MissionIntent,
-  MissionProposalPayload,
-  MissionStatus,
-} from './types.js';
+import { randomUUID } from 'node:crypto';
+import { InvalidRequestError, NotFoundError } from '../../core/errors.js';
+import { Money } from '../../core/money.js';
+import { isPostgresDb, prisma } from '../../db/index.js';
+import type { BatchLegInput } from '../../stellar/batch.js';
+import { recordActivity } from '../activity/record.js';
+import { BatchPaymentService } from '../payments/batch_service.js';
+import type { MissionAllocation, MissionIntent, MissionStatus } from './types.js';
 import { MissionValidator } from './validator.js';
 
-export type MoneyMissionRecord = NonNullable<Awaited<ReturnType<typeof prisma.moneyMission.findFirst>>>;
-export type MoneyMission = MoneyMissionRecord;
+/**
+ * Money Missions = saved rules owned by one user. FlowPay never holds user keys, so a
+ * mission cannot move money on its own: every run is ONE atomic Stellar transaction
+ * that the user reviews and signs on their device.
+ *
+ *   HOLD        → keep in the source currency (no operation)
+ *   CONVERT_FX  → path payment to yourself (exact source amount)
+ *   SWEEP_VAULT → convert if needed, then a claimable balance only you can claim after N days
+ *   TRANSFER    → payment / path payment to the recipient
+ */
+
+export const DEFAULT_LOCK_DAYS = 30;
 
 export interface EnrichedMission {
   id: string;
+  userId: string;
   title: string;
   description: string;
   ruleType: string;
   isActive: boolean;
-  is_active?: boolean;
+  is_active: boolean;
   status: MissionStatus;
   condition: Record<string, unknown>;
   action: Record<string, unknown>;
   allocations: MissionAllocation[];
   lastExecution: string | null;
+  lastTransactionHash: string | null;
+  executionCount: number;
   nextExecution: string;
   createdAt: string;
 }
 
-function isPostgresDb(): boolean {
-  const url = process.env.DATABASE_URL || '';
-  return url.startsWith('postgres://') || url.startsWith('postgresql://');
-}
+const missions = new Map<string, EnrichedMission>();
 
-function parseJsonField(val: unknown): Record<string, unknown> {
+function asObject(val: unknown): Record<string, unknown> {
   if (!val) return {};
   if (typeof val === 'string') {
     try {
       const parsed = JSON.parse(val);
-      return typeof parsed === 'object' && parsed !== null ? parsed : {};
+      return typeof parsed === 'object' && parsed ? parsed : {};
     } catch {
       return {};
     }
   }
-  if (typeof val === 'object' && val !== null) {
-    return val as Record<string, unknown>;
-  }
-  return {};
+  return typeof val === 'object' ? (val as Record<string, unknown>) : {};
 }
 
-// Resilient default missions for sandbox, testing, and offline database fallback
-const DEFAULT_DEMO_MISSIONS: EnrichedMission[] = [
-  {
-    id: 'm_flagship_split',
-    title: 'Incoming 3-Way Split: USD, NGN & Tax',
-    description:
-      'Keep 30% in USD, convert 50% to Naira for expenses, and reserve 20% for tax.',
-    ruleType: 'SPLIT_INCOMING',
-    isActive: true,
-    is_active: true,
-    status: 'ACTIVE',
-    condition: {
-      type: 'WHEN_RECEIVE',
-      sourceCurrency: 'USD',
-      sourceAmount: '2000.00',
-      sourceAmountMinor: '200000',
-      description: 'Whenever I receive $2,000 USD',
-    },
-    action: {
-      allocationsCount: 3,
-      status: 'ACTIVE',
-    },
-    allocations: [
-      {
-        id: 'alloc_usd',
-        category: 'RESERVE',
-        label: 'USD Reserve',
-        percentage: 30,
-        targetCurrency: 'USD',
-        sourceAmountMinor: '60000',
-        sourceAmountFormatted: '$600.00',
-        destinationWalletTag: 'USD Smart Vault',
-        actionType: 'HOLD',
-      },
-      {
-        id: 'alloc_ngn',
-        category: 'EXPENSES',
-        label: 'NGN Expenses',
-        percentage: 50,
-        targetCurrency: 'NGN',
-        sourceAmountMinor: '100000',
-        sourceAmountFormatted: '$1,000.00',
-        targetAmountMinor: '155000000',
-        targetAmountFormatted: '₦1,550,000.00',
-        destinationWalletTag: 'Main Naira Wallet',
-        actionType: 'CONVERT_FX',
-      },
-      {
-        id: 'alloc_tax',
-        category: 'TAX',
-        label: 'Tax Reserve',
-        percentage: 20,
-        targetCurrency: 'USD',
-        sourceAmountMinor: '40000',
-        sourceAmountFormatted: '$400.00',
-        destinationWalletTag: 'Tax Escrow Vault',
-        actionType: 'SWEEP_VAULT',
-      },
-    ],
-    lastExecution: new Date(Date.now() - 3600000 * 24).toISOString(),
-    nextExecution: 'On Incoming Transfer ($2,000.00)',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'mission_emergency_sweep',
-    title: '20% Emergency Fund Auto-Sweep',
-    description:
-      'Automatically route 20% of international USD disbursements into high-yield NGN savings.',
-    ruleType: 'AUTO_SWEEP',
-    isActive: true,
-    is_active: true,
-    status: 'ACTIVE',
-    condition: {
-      trigger: 'DEPOSIT_RECEIVED',
-      currency: 'USD',
-      description: 'When international USD deposit arrives',
-    },
-    action: { percentage: 20, destinationCurrency: 'NGN' },
-    allocations: [
-      {
-        id: 'alloc_sweep_1',
-        category: 'SAVINGS',
-        label: 'Emergency Fund Savings',
-        percentage: 20,
-        targetCurrency: 'NGN',
-        sourceAmountMinor: '40000',
-        sourceAmountFormatted: '$400.00',
-        destinationWalletTag: 'NGN High-Yield Savings Vault',
-        actionType: 'CONVERT_FX',
-      },
-      {
-        id: 'alloc_sweep_2',
-        category: 'RESERVE',
-        label: 'Main Balance',
-        percentage: 80,
-        targetCurrency: 'USD',
-        sourceAmountMinor: '160000',
-        sourceAmountFormatted: '$1,600.00',
-        destinationWalletTag: 'Primary USD Wallet',
-        actionType: 'HOLD',
-      },
-    ],
-    lastExecution: null,
-    nextExecution: 'On Incoming Deposit',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'mission_card_cap',
-    title: 'Contractor Card Monthly Cap',
-    description:
-      'Enforce a strict $500/month spending limit on virtual cards for team contractors.',
-    ruleType: 'SPEND_CAP',
-    isActive: true,
-    is_active: true,
-    status: 'ACTIVE',
-    condition: {
-      role: 'CONTRACTOR',
-      description: 'Monthly spend reaches $500 limit',
-    },
-    action: { monthlyLimitUsdMinor: 50000 },
-    allocations: [
-      {
-        id: 'alloc_cap_1',
-        category: 'EXPENSES',
-        label: 'Contractor Spending Cap',
-        percentage: 100,
-        targetCurrency: 'USD',
-        sourceAmountMinor: '50000',
-        sourceAmountFormatted: '$500.00',
-        destinationWalletTag: 'Contractor Virtual Card',
-        actionType: 'HOLD',
-      },
-    ],
-    lastExecution: null,
-    nextExecution: '1st of Next Month',
-    createdAt: new Date().toISOString(),
-  },
-];
+function fromRow(row: any): EnrichedMission {
+  const action = asObject(row.actionJson);
+  const status = (action.status as MissionStatus) ?? (row.isActive ? 'ACTIVE' : 'PAUSED');
+  return {
+    id: row.id,
+    userId: row.userId ?? '',
+    title: row.title,
+    description: row.description,
+    ruleType: row.ruleType,
+    isActive: row.isActive,
+    is_active: row.isActive,
+    status,
+    condition: asObject(row.conditionJson),
+    action,
+    allocations: Array.isArray(action.allocations) ? (action.allocations as MissionAllocation[]) : [],
+    lastExecution: (action.lastExecutedAt as string) ?? null,
+    lastTransactionHash: (action.lastTransactionHash as string) ?? null,
+    executionCount: Number(action.executionCount ?? 0),
+    nextExecution: row.isActive ? 'Runs when you tap Run now' : 'Paused',
+    createdAt: new Date(row.createdAt).toISOString(),
+  };
+}
 
-// Persistent in-memory mission registry
-const inMemoryMissions: Map<string, EnrichedMission> = new Map(
-  DEFAULT_DEMO_MISSIONS.map((m) => [m.id, { ...m }])
-);
+async function save(m: EnrichedMission): Promise<void> {
+  m.action = {
+    ...m.action,
+    status: m.status,
+    allocations: m.allocations,
+    lastExecutedAt: m.lastExecution,
+    lastTransactionHash: m.lastTransactionHash,
+    executionCount: m.executionCount,
+  };
+  missions.set(m.id, m);
+  if (!isPostgresDb()) return;
+  const data = {
+    userId: m.userId,
+    title: m.title,
+    description: m.description,
+    ruleType: m.ruleType,
+    conditionJson: m.condition as any,
+    actionJson: m.action as any,
+    isActive: m.isActive,
+  };
+  try {
+    await prisma.moneyMission.upsert({ where: { id: m.id }, create: { id: m.id, ...data }, update: data });
+  } catch (err: any) {
+    console.warn('[Missions] persistence failed:', err.message);
+  }
+}
+
+/** Builds the transaction legs for one run of a mission. Returns [] when nothing moves. */
+export function legsForMission(m: Pick<EnrichedMission, 'title' | 'condition' | 'allocations'>, now = Date.now()): BatchLegInput[] {
+  const sourceCurrency = String(m.condition.sourceCurrency ?? 'USD').toUpperCase();
+  const legs: BatchLegInput[] = [];
+  for (const a of m.allocations) {
+    const amountMinor = String(a.sourceAmountMinor ?? '0');
+    if (BigInt(amountMinor) <= 0n || a.actionType === 'HOLD') continue;
+    const target = String(a.targetCurrency ?? sourceCurrency).toUpperCase();
+    const base = { label: a.label || m.title, mode: 'exact_send' as const, amount: { amountMinor, currency: sourceCurrency }, fundingCurrency: sourceCurrency, destCurrency: target };
+    if (a.actionType === 'CONVERT_FX') {
+      if (target === sourceCurrency) continue;
+      legs.push({ ...base, to: 'self' });
+    } else if (a.actionType === 'SWEEP_VAULT') {
+      const days = Number((a as any).lockDays ?? DEFAULT_LOCK_DAYS);
+      legs.push({ ...base, to: 'self', lockUntil: new Date(now + days * 86_400_000).toISOString() });
+    } else if (a.actionType === 'TRANSFER') {
+      if (!a.recipientIdentifier) throw new InvalidRequestError(`${a.label}: a recipient is required for transfers.`);
+      legs.push({ ...base, to: a.recipientIdentifier });
+    }
+  }
+  return legs;
+}
 
 export class MoneyMissionService {
-  /**
-   * Lists all missions enriched with status, rule, allocations, and execution metadata
-   */
-  static async listMissions(): Promise<EnrichedMission[]> {
+  static async listMissions(userId: string): Promise<EnrichedMission[]> {
     if (isPostgresDb()) {
       try {
-        const records = await prisma.moneyMission.findMany({
-          orderBy: { createdAt: 'desc' },
-        });
-
-        if (records.length > 0) {
-          return records.map((m) => {
-            const condition = parseJsonField(m.conditionJson);
-            const action = parseJsonField(m.actionJson);
-            const rawAllocations = Array.isArray(action.allocations)
-              ? action.allocations
-              : [];
-
-            const allocations: MissionAllocation[] =
-              rawAllocations.length > 0
-                ? rawAllocations.map((a: any, idx: number) => ({
-                    id: a.id || `alloc_${m.id}_${idx + 1}`,
-                    category: a.category || 'CUSTOM',
-                    label: a.label || m.title,
-                    percentage:
-                      typeof a.percentage === 'number' ? a.percentage : 100,
-                    targetCurrency:
-                      a.targetCurrency || action.destinationCurrency || 'USD',
-                    sourceAmountMinor:
-                      a.sourceAmountMinor ||
-                      String(action.monthlyLimitUsdMinor || '0'),
-                    sourceAmountFormatted:
-                      a.sourceAmountFormatted ||
-                      a.amountFormatted ||
-                      (action.monthlyLimitUsdMinor
-                        ? `$${(Number(action.monthlyLimitUsdMinor) / 100).toFixed(2)}`
-                        : '100%'),
-                    targetAmountMinor: a.targetAmountMinor,
-                    targetAmountFormatted: a.targetAmountFormatted,
-                    destinationWalletTag:
-                      a.destinationWalletTag || 'Primary Wallet',
-                    actionType: a.actionType || (m.ruleType as any) || 'HOLD',
-                    recipientIdentifier: a.recipientIdentifier,
-                  }))
-                : [
-                    {
-                      id: `alloc_${m.id}_1`,
-                      category: 'CUSTOM',
-                      label: m.title,
-                      percentage: (action.percentage as number) || 100,
-                      targetCurrency:
-                        (action.destinationCurrency as any) || 'USD',
-                      sourceAmountMinor: String(
-                        action.monthlyLimitUsdMinor || '0'
-                      ),
-                      sourceAmountFormatted: action.monthlyLimitUsdMinor
-                        ? `$${(Number(action.monthlyLimitUsdMinor) / 100).toFixed(2)}`
-                        : '100%',
-                      destinationWalletTag: 'Primary Wallet',
-                      actionType: (m.ruleType as any) || 'HOLD',
-                    },
-                  ];
-
-            let status: MissionStatus = m.isActive ? 'ACTIVE' : 'PAUSED';
-            if (action.status) {
-              status = action.status as MissionStatus;
-            }
-
-            const createdDate =
-              m.createdAt instanceof Date
-                ? m.createdAt
-                : new Date(m.createdAt || Date.now());
-
-            return {
-              id: m.id,
-              title: m.title,
-              description: m.description,
-              ruleType: m.ruleType,
-              isActive: m.isActive,
-              is_active: m.isActive,
-              status,
-              condition,
-              action,
-              allocations,
-              lastExecution: (action.lastExecutedAt as string) || null,
-              nextExecution:
-                (action.nextExecution as string) ||
-                'Manual Trigger / On Incoming Transfer',
-              createdAt: createdDate.toISOString(),
-            };
-          });
-        }
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] listMissions DB notice:',
-          (err as any)?.message || err
-        );
+        const rows = await prisma.moneyMission.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
+        for (const r of rows) missions.set(r.id, fromRow(r));
+      } catch (err: any) {
+        console.warn('[Missions] list failed, serving in-memory missions:', err.message);
       }
     }
-
-    return Array.from(inMemoryMissions.values());
+    return [...missions.values()].filter((m) => m.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
-  /**
-   * Retrieves single mission by ID
-   */
-  static async getMissionById(id: string): Promise<EnrichedMission | undefined> {
-    const list = await this.listMissions();
-    return list.find((m) => m.id === id);
-  }
-
-  /**
-   * Generic mission creation
-   */
-  static async createMission(data: {
-    title: string;
-    description: string;
-    ruleType: string;
-    condition: Record<string, unknown>;
-    action: Record<string, unknown>;
-  }): Promise<MoneyMissionRecord> {
-    const id = `mission_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const now = new Date();
-
-    const inMem: EnrichedMission = {
-      id,
-      title: data.title,
-      description: data.description,
-      ruleType: data.ruleType,
-      isActive: true,
-      is_active: true,
-      status: 'ACTIVE',
-      condition: data.condition,
-      action: data.action,
-      allocations: [
-        {
-          id: `alloc_${id}_1`,
-          category: 'CUSTOM',
-          label: data.title,
-          percentage: 100,
-          targetCurrency: 'USD',
-          sourceAmountMinor: '0',
-          sourceAmountFormatted: '$0.00',
-          destinationWalletTag: 'Primary Wallet',
-          actionType: 'HOLD',
-        },
-      ],
-      lastExecution: null,
-      nextExecution: 'On Trigger Condition',
-      createdAt: now.toISOString(),
-    };
-    inMemoryMissions.set(id, inMem);
-
-    if (isPostgresDb()) {
-      try {
-        return await prisma.moneyMission.create({
-          data: {
-            id,
-            title: data.title,
-            description: data.description,
-            ruleType: data.ruleType,
-            conditionJson: data.condition as any,
-            actionJson: data.action as any,
-            isActive: true,
-          },
-        });
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB createMission notice (using in-memory fallback):',
-          (err as any)?.message || err
-        );
-      }
+  static async getMission(id: string, userId: string): Promise<EnrichedMission> {
+    let m = missions.get(id);
+    if (!m && isPostgresDb()) {
+      const row = await prisma.moneyMission.findUnique({ where: { id } });
+      if (row) m = fromRow(row);
     }
-
-    return {
-      id,
-      title: data.title,
-      description: data.description,
-      ruleType: data.ruleType,
-      conditionJson: data.condition,
-      actionJson: data.action,
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    } as MoneyMissionRecord;
+    if (!m || m.userId !== userId) throw new NotFoundError('Mission not found.');
+    return m;
   }
 
-  /**
-   * Deletes a money mission by ID
-   */
-  static async deleteMission(id: string): Promise<boolean> {
-    inMemoryMissions.delete(id);
-    if (isPostgresDb()) {
-      try {
-        await prisma.moneyMission.delete({ where: { id } });
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB deleteMission notice:',
-          (err as any)?.message || err
-        );
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Generates a BMONI proposal and on-device B-Key signing payload for a validated mission
-   */
-  static async proposeMission(intent: MissionIntent): Promise<MissionProposalPayload> {
-    // 1. Deterministic validation guard
+  /** Saves a validated rule (PENDING_APPROVAL) and prepares its first run for signing. */
+  static async proposeMission(userId: string, intent: MissionIntent) {
     MissionValidator.validateOrThrow(intent);
-
-    const missionId = `mission_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const proposalId = `bmoni_prop_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-    // 2. Generate 32-byte cryptographic hash payload to be signed by B-Key hardware enclave
-    const payloadToHash = JSON.stringify({
-      missionId,
-      proposalId,
-      intentId: intent.intentId,
-      triggerCondition: intent.triggerCondition,
-      allocations: intent.allocations,
-      timestamp: Date.now(),
-    });
-    const hashToSign =
-      '0x' + crypto.createHash('sha256').update(payloadToHash).digest('hex');
-
-    const createdIso = new Date().toISOString();
-
-    // In-memory record
-    const inMem: EnrichedMission = {
-      id: missionId,
+    const mission: EnrichedMission = {
+      id: `mission_${randomUUID()}`,
+      userId,
       title: intent.ruleTitle,
       description: intent.explanation,
       ruleType: intent.intentType,
@@ -436,330 +164,135 @@ export class MoneyMissionService {
       is_active: false,
       status: 'PENDING_APPROVAL',
       condition: intent.triggerCondition as unknown as Record<string, unknown>,
-      action: {
-        status: 'PENDING_APPROVAL',
-        proposalId,
-        allocations: intent.allocations,
-        destinationWallets: intent.destinationWallets,
-        nextExecution: 'Awaiting B-Key PIN signature',
-      },
+      action: { destinationWallets: intent.destinationWallets },
       allocations: intent.allocations,
       lastExecution: null,
-      nextExecution: 'Awaiting B-Key PIN signature',
-      createdAt: createdIso,
+      lastTransactionHash: null,
+      executionCount: 0,
+      nextExecution: 'Awaiting your approval',
+      createdAt: new Date().toISOString(),
     };
-    inMemoryMissions.set(missionId, inMem);
+    await save(mission);
+    const run = await this.prepareRun(mission.id, userId);
+    return { ...run, ruleTitle: mission.title, allocations: mission.allocations, createdAt: mission.createdAt };
+  }
 
-    // 3. Persist mission in PENDING_APPROVAL state in Prisma if available
-    if (isPostgresDb()) {
-      try {
-        await prisma.moneyMission.create({
-          data: {
-            id: missionId,
-            title: intent.ruleTitle,
-            description: intent.explanation,
-            ruleType: intent.intentType,
-            conditionJson: intent.triggerCondition as any,
-            actionJson: {
-              status: 'PENDING_APPROVAL',
-              proposalId,
-              allocations: intent.allocations,
-              destinationWallets: intent.destinationWallets,
-              nextExecution: 'Awaiting B-Key PIN signature',
-            } as any,
-            isActive: false,
-          },
-        });
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB stage error (non-fatal):',
-          (err as any)?.message || err
-        );
-      }
-    }
-
-    return {
-      proposalId,
-      missionId,
-      ruleTitle: intent.ruleTitle,
-      hashToSign,
-      signingInstructions:
-        'Authorize autonomous money mission via on-device BMONI B-Key PIN',
-      allocations: intent.allocations,
-      createdAt: createdIso,
-    };
+  /** Builds this run's transaction. `proposal` is null when every allocation is HOLD. */
+  static async prepareRun(missionId: string, userId: string, accountId?: string) {
+    const mission = await this.getMission(missionId, userId);
+    const legs = legsForMission(mission);
+    if (legs.length === 0) return { missionId, proposal: null };
+    const proposal = await BatchPaymentService.propose({
+      userId,
+      accountId,
+      legs,
+      memo: mission.title,
+      context: { purpose: 'MISSION', reference: missionId },
+    });
+    return { missionId, proposal };
   }
 
   /**
-   * Executes a mission with user's on-device B-Key PIN signature
+   * Activates the mission and, if a signed run is provided, submits it. Activation of a
+   * HOLD-only mission needs no transaction. A failed submission leaves the mission's
+   * status unchanged and propagates the error.
    */
-  static async executeMission(args: {
-    missionId: string;
-    signature: string;
-    pinValidated: boolean;
-  }): Promise<MissionExecutionResult> {
-    const { missionId, signature, pinValidated } = args;
-
-    if (!signature || signature.trim() === '') {
-      throw new FinancialSafetyError(
-        'Explicit BMONI signature is required to execute money movement.'
-      );
+  static async executeMission(args: { missionId: string; userId: string; proposalId?: string; signedXdr?: string }) {
+    const mission = await this.getMission(args.missionId, args.userId);
+    let execution: Awaited<ReturnType<typeof BatchPaymentService.execute>> | null = null;
+    if (args.proposalId || args.signedXdr) {
+      if (!args.proposalId || !args.signedXdr) throw new InvalidRequestError('proposalId and signedXdr are required together.');
+      execution = await BatchPaymentService.execute({ userId: args.userId, proposalId: args.proposalId, signedXdr: args.signedXdr });
+    } else if (legsForMission(mission).length > 0) {
+      throw new InvalidRequestError('This mission moves money; sign the prepared run to execute it.');
     }
 
-    const executedAt = new Date();
-    const executedIso = executedAt.toISOString();
-    const reference = `bmoni_tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const auditId = `audit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-    // Update in-memory record
-    let allocationsCount = 3;
-    const inMem = inMemoryMissions.get(missionId);
-    if (inMem) {
-      inMem.isActive = true;
-      inMem.is_active = true;
-      inMem.status = 'ACTIVE';
-      inMem.lastExecution = executedIso;
-      inMem.nextExecution = 'On Incoming Transfer ($2,000.00)';
-      inMem.action = {
-        ...inMem.action,
-        status: 'ACTIVE',
-        lastExecutedAt: executedIso,
-        lastTransactionReference: reference,
-        lastSignature: signature,
-        nextExecution: 'On Incoming Transfer ($2,000.00)',
-      };
-      if (inMem.allocations && inMem.allocations.length > 0) {
-        allocationsCount = inMem.allocations.length;
-      }
+    const executedAt = new Date().toISOString();
+    mission.isActive = mission.is_active = true;
+    mission.status = 'ACTIVE';
+    if (execution) {
+      mission.lastExecution = executedAt;
+      mission.lastTransactionHash = execution.transactionHash;
+      mission.executionCount += 1;
     }
-
-    // Resolve allocations and action details
-    let allocationsList: MissionAllocation[] = [];
-    let missionTitle = 'Autonomous Money Mission';
-    let missionCurrency = 'USD';
-    let missionAmount = '0.00';
-
-    if (inMem) {
-      allocationsList = inMem.allocations || [];
-      missionTitle = inMem.title || missionTitle;
-      const cond = inMem.condition as any;
-      missionCurrency = cond?.sourceCurrency || 'USD';
-      missionAmount = cond?.sourceAmount || '0.00';
-    }
-
-    if (isPostgresDb()) {
-      try {
-        const existing = await prisma.moneyMission.findUnique({
-          where: { id: missionId },
-        });
-
-        if (existing) {
-          missionTitle = existing.title || missionTitle;
-          const currentAction = parseJsonField(existing.actionJson);
-          const currentCondition = parseJsonField(existing.conditionJson);
-          missionCurrency = (currentCondition?.sourceCurrency as string) || missionCurrency;
-          missionAmount = (currentCondition?.sourceAmount as string) || missionAmount;
-          if (Array.isArray(currentAction.allocations)) {
-            allocationsList = currentAction.allocations as MissionAllocation[];
-          }
-          allocationsCount = allocationsList.length || allocationsCount;
-
-          await prisma.moneyMission.update({
-            where: { id: missionId },
-            data: {
-              isActive: true,
-              actionJson: {
-                ...currentAction,
-                status: 'ACTIVE',
-                lastExecutedAt: executedIso,
-                lastTransactionReference: reference,
-                lastSignature: signature,
-                nextExecution: 'Active • Monitored',
-              } as any,
-            },
-          });
-        }
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB execution update error (non-fatal):',
-          (err as any)?.message || err
-        );
-      }
-    }
-
-    // Determine actual amount to debit and execute
-    let totalDebitAmt = 0;
-    let primaryRecipient: string | undefined;
-
-    for (const alloc of allocationsList) {
-      const amtStr = alloc.sourceAmountFormatted || '0';
-      const num = parseFloat(amtStr.replace(/[^0-9.]/g, '')) || 0;
-      if (alloc.actionType === 'TRANSFER' || alloc.actionType === 'SWEEP_VAULT' || alloc.actionType === 'CONVERT_FX') {
-        totalDebitAmt += num;
-        if (!primaryRecipient && alloc.recipientIdentifier) {
-          primaryRecipient = alloc.recipientIdentifier;
-        }
-      }
-    }
-
-    if (totalDebitAmt === 0 && parseFloat(missionAmount) > 0) {
-      totalDebitAmt = parseFloat(missionAmount);
-    }
-
-    // 1. Deduct balance from sender's funding wallet
-    if (totalDebitAmt > 0) {
-      try {
-        const walletTarget = missionCurrency === 'USD' ? 'USDB' : missionCurrency;
-        await WalletService.debitWallet(walletTarget, totalDebitAmt);
-      } catch (debitErr) {
-        console.warn('[MoneyMissionService] Wallet debit notice:', debitErr);
-      }
-    }
-
-    // 2. Structured activity details
-    const finalAmountStr = totalDebitAmt > 0 ? totalDebitAmt.toFixed(2) : missionAmount;
-    const auditDetails = {
-      missionId,
-      reference,
-      signatureHex:
-        signature.length > 20
-          ? `${signature.substring(0, 10)}...${signature.substring(signature.length - 8)}`
-          : signature,
-      pinValidated,
-      allocationsCount: allocationsList.length || allocationsCount,
-      executedAt: executedIso,
-      amount: finalAmountStr,
-      currency: missionCurrency,
-      recipient: primaryRecipient || 'BMONI Settlement Rails',
-      counterparty: primaryRecipient || 'BMONI Settlement Rails',
-      fundingWallet: `${missionCurrency} Smart Wallet`,
-      totalDebited: `$${finalAmountStr}`,
-      rule: missionTitle,
-      status: 'COMPLETED',
-    };
-
-    // 3. Persist to in-memory activities for instant query reflection
-    recordInMemoryActivity({
-      id: auditId,
-      category: 'PERSONAL',
-      action: primaryRecipient ? 'TRANSFER_COMPLETED' : 'MONEY_MISSION_EXECUTED',
-      actor: 'B-Key Enclave (PIN Confirmed)',
-      detailsJson: auditDetails,
-      createdAt: executedIso,
+    await save(mission);
+    await recordActivity({
+      action: execution ? 'MISSION_EXECUTED' : 'MISSION_ACTIVATED',
+      actor: args.userId,
+      details: {
+        missionId: mission.id,
+        rule: mission.title,
+        status: 'COMPLETED',
+        transactionHash: execution?.transactionHash,
+        explorerUrl: execution?.explorerUrl,
+        legs: execution?.legs,
+        executedAt,
+      },
     });
-
-    // 4. Persist to PostgreSQL audit log entry if DB connected
-    if (isPostgresDb()) {
-      try {
-        await prisma.auditActivity.create({
-          data: {
-            id: auditId,
-            category: 'PERSONAL',
-            action: primaryRecipient ? 'TRANSFER_COMPLETED' : 'MONEY_MISSION_EXECUTED',
-            actor: 'B-Key Enclave (PIN Confirmed)',
-            detailsJson: auditDetails as any,
-          },
-        });
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB audit write error (non-fatal):',
-          (err as any)?.message || err
-        );
-      }
-    }
-
     return {
       success: true,
-      missionId,
-      status: 'ACTIVE',
-      executedAt: executedIso,
-      transactionReference: reference,
-      allocationsExecuted: allocationsCount,
-      auditId,
-      summary:
-        'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI infrastructure.',
+      missionId: mission.id,
+      status: mission.status,
+      executedAt,
+      transactionHash: execution?.transactionHash ?? null,
+      explorerUrl: execution?.explorerUrl ?? null,
+      legs: execution?.legs ?? [],
     };
   }
 
-  /**
-   * Toggles mission active state and returns enriched model with both naming conventions
-   */
-  static async toggleMission(id: string): Promise<{
-    id: string;
-    title: string;
-    description: string;
-    ruleType: string;
-    rule_type: string;
-    isActive: boolean;
-    is_active: boolean;
-    status: MissionStatus;
-  }> {
-    const inMem = inMemoryMissions.get(id);
-    let title = inMem?.title || 'Mission';
-    let description = inMem?.description || '';
-    let ruleType = inMem?.ruleType || 'AUTO_SWEEP';
-    let nextState = inMem ? !inMem.isActive : true;
-    let nextStatus: MissionStatus = nextState ? 'ACTIVE' : 'PAUSED';
+  static async createMission(userId: string, data: { title: string; description: string; ruleType: string; condition: Record<string, unknown>; action: Record<string, unknown> }) {
+    if (!data?.title) throw new InvalidRequestError('title is required');
+    const mission: EnrichedMission = {
+      id: `mission_${randomUUID()}`,
+      userId,
+      title: data.title,
+      description: data.description ?? '',
+      ruleType: data.ruleType ?? 'CUSTOM',
+      isActive: true,
+      is_active: true,
+      status: 'ACTIVE',
+      condition: data.condition ?? {},
+      action: data.action ?? {},
+      allocations: Array.isArray((data.action as any)?.allocations) ? (data.action as any).allocations : [],
+      lastExecution: null,
+      lastTransactionHash: null,
+      executionCount: 0,
+      nextExecution: 'Runs when you tap Run now',
+      createdAt: new Date().toISOString(),
+    };
+    await save(mission);
+    return mission;
+  }
 
+  static async toggleMission(id: string, userId: string) {
+    const m = await this.getMission(id, userId);
+    m.isActive = m.is_active = !m.isActive;
+    m.status = m.isActive ? 'ACTIVE' : 'PAUSED';
+    await save(m);
+    return { ...m, rule_type: m.ruleType };
+  }
+
+  static async deleteMission(id: string, userId: string): Promise<boolean> {
+    await this.getMission(id, userId);
+    missions.delete(id);
     if (isPostgresDb()) {
       try {
-        const mission = await prisma.moneyMission.findUnique({
-          where: { id },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            ruleType: true,
-            isActive: true,
-            actionJson: true,
-          },
-        });
-
-        if (mission) {
-          title = mission.title;
-          description = mission.description;
-          ruleType = mission.ruleType;
-          nextState = !mission.isActive;
-          nextStatus = nextState ? 'ACTIVE' : 'PAUSED';
-
-          const currentAction = parseJsonField(mission.actionJson);
-
-          await prisma.moneyMission.update({
-            where: { id },
-            data: {
-              isActive: nextState,
-              actionJson: {
-                ...currentAction,
-                status: nextStatus,
-              } as any,
-            },
-          });
-        }
-      } catch (err) {
-        console.warn(
-          '[MoneyMissionService] DB toggle error (using in-memory fallback):',
-          (err as any)?.message || err
-        );
+        await prisma.moneyMission.delete({ where: { id } });
+      } catch (err: any) {
+        console.warn('[Missions] delete failed:', err.message);
       }
     }
+    return true;
+  }
 
-    if (inMem) {
-      inMem.isActive = nextState;
-      inMem.is_active = nextState;
-      inMem.status = nextStatus;
-      inMem.action = { ...inMem.action, status: nextStatus };
-    }
+  /** Approximate total of one run, in the mission's source currency. */
+  static runTotal(m: Pick<EnrichedMission, 'condition' | 'allocations'>): Money {
+    const currency = String(m.condition.sourceCurrency ?? 'USD').toUpperCase() as any;
+    return m.allocations.reduce((sum, a) => sum.add(Money.fromMinor(a.sourceAmountMinor ?? '0', currency)), Money.zero(currency));
+  }
 
-    return {
-      id,
-      title,
-      description,
-      ruleType,
-      rule_type: ruleType,
-      isActive: nextState,
-      is_active: nextState,
-      status: nextStatus,
-    };
+  /** Testing hook. */
+  static resetForTests(): void {
+    missions.clear();
   }
 }
-

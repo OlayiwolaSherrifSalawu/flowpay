@@ -3,7 +3,7 @@
 /// Single source of truth for all user-facing strings in the FlowPay app.
 ///
 /// Rules:
-/// - No "B-Key", "BMONI", "secp256k1", "EVM", "rails", "multi-rail"
+/// - No "wallet key", "Stellar", "secp256k1", "EVM", "rails", "multi-rail"
 /// - No "custody", "settlement", "deterministic", "invariant pipeline"
 /// - No "execution provider", "funding route", "smart contract"
 /// - Plain English, action-oriented, consumer-friendly
@@ -15,9 +15,9 @@ abstract class AppCopy {
 
   // ── Landing & Onboarding ───────────────────────────────────────────────────
 
-  static const String landingHeadline = 'Your Money.\nYour Rules.\nAI Executes.';
+  static const String landingHeadline = 'Pay anyone, anywhere.\nSettled in seconds.';
   static const String landingSubtitle =
-      'FlowPay gives you multi-currency smart wallets, automated saving rules, and instant global transfers — secured on your device.';
+      'One wallet for USD, CAD, MXN, GBP and NGN. Send money and run payroll across borders on the Stellar network — your keys never leave your phone.';
   static const String getStarted = 'Get Started';
   static const String signIn = 'Sign in';
   static const String logIn = 'Log In';

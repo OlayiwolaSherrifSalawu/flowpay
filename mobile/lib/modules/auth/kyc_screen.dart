@@ -1,3 +1,4 @@
+import '../../core/network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -212,7 +213,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
     try {
       final updatedProfile = widget.userProfile.copyWith(
-        kycStatus: KycStatus.verified,
+        kycStatus: KycStatus.pending,
         nationalId: _nationalIdController.text.trim(),
         nationalIdType: _idLabel,
       );
@@ -224,9 +225,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           await http
               .post(
                 uri,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                  'Content-Type': 'application/json',
+                  if (FlowPayApiClient.sessionToken != null) 'Authorization': 'Bearer ${FlowPayApiClient.sessionToken}',
+                },
                 body: jsonEncode({
-                  'userId': updatedProfile.userId,
                   'accountType': updatedProfile.accountType.name,
                   'nationalId': updatedProfile.nationalId,
                   'nationalIdType': _idLabel,
@@ -236,7 +239,6 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   'livenessVerified': _faceScanCompleted,
                   if (_capturedFacePath != null)
                     'faceProofPath': _capturedFacePath,
-                  'status': 'VERIFIED',
                 }),
               )
               .timeout(const Duration(seconds: 10));
@@ -256,9 +258,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       await storage.saveAccountMode(targetMode);
 
       final capabilities = widget.userProfile.isPersonal
-          ? AccountCapabilities.personalOnly(bmoniUserId: updatedProfile.userId)
+          ? AccountCapabilities.personalOnly(flowpayUserId: updatedProfile.userId)
           : AccountCapabilities.businessOnly(
-              bmoniUserId: updatedProfile.userId,
+              flowpayUserId: updatedProfile.userId,
               companyName: updatedProfile.companyName ?? 'Business Account',
               companyRole: updatedProfile.companyRole ?? 'ADMIN',
             );
@@ -269,7 +271,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       await ref
           .read(currentUserProfileProvider.notifier)
           .saveProfile(updatedProfile);
-      await ref.read(currentUserProfileProvider.notifier).setKycVerified();
+      await ref.read(currentUserProfileProvider.notifier).markKycSubmitted();
 
       // 4. Navigate to Step 3: Set Security PIN
       if (mounted) {

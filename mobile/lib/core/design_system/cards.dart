@@ -4,7 +4,14 @@ import '../theme/radii.dart';
 import '../theme/spacing.dart';
 import '../theme/typography.dart';
 
-enum FlowPayCardVariant { surface, elevated, outlined, accent, heroEmerald, heroInk }
+enum FlowPayCardVariant {
+  surface,
+  elevated,
+  outlined,
+  accent,
+  heroEmerald,
+  heroInk
+}
 
 /// FlowPay Card Primitive
 /// Conforms to Dribbble Reference: 24dp pillowed radius with soft, tactile borders
@@ -83,7 +90,8 @@ class FlowPayCard extends StatelessWidget {
       case FlowPayCardVariant.heroInk:
         bg = isDark ? FlowPayColors.darkSurfaceElevated : FlowPayColors.ink;
         b ??= Border.all(
-          color: isDark ? FlowPayColors.darkBorderLight : FlowPayColors.hairline,
+          color:
+              isDark ? FlowPayColors.darkBorderLight : FlowPayColors.hairline,
           width: 1,
         );
         break;
@@ -167,9 +175,9 @@ class FlowPayScallopedCard extends StatelessWidget {
         (isEmerald
             ? const LinearGradient(
                 colors: [
-                  Color(0xFF149E72),
-                  Color(0xFF128A63),
-                  Color(0xFF0B6E4F),
+                  Color(0xFF00454B),
+                  Color(0xFF1A1A1A),
+                  Color(0xFF0F0F0F),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -177,17 +185,16 @@ class FlowPayScallopedCard extends StatelessWidget {
             : const LinearGradient(
                 colors: [
                   Color(0xFF1B2422),
-                  Color(0xFF0F1712),
-                  Color(0xFF0C1210),
+                  Color(0xFF0F0F0F),
+                  Color(0xFF0F0F0F),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ));
 
     const textColor = Colors.white;
-    final subtextColor = isEmerald
-        ? const Color(0xFFD8F0E4)
-        : const Color(0xFFA3B8AD);
+    final subtextColor =
+        isEmerald ? const Color(0xFFFFF6CC) : const Color(0xFFA3B8AD);
 
     return InkWell(
       onTap: onTap,
@@ -199,9 +206,8 @@ class FlowPayScallopedCard extends StatelessWidget {
           borderRadius: FlowPayRadii.cardLarge,
           boxShadow: [
             BoxShadow(
-              color: isEmerald
-                  ? FlowPayColors.emerald600.withAlpha(70)
-                  : const Color(0x33000000),
+              color:
+                  isEmerald ? const Color(0x40000000) : const Color(0x33000000),
               blurRadius: 24,
               offset: const Offset(0, 10),
             ),
@@ -332,37 +338,16 @@ class FlowPayScallopedCard extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Bottom Row: Holder Name & Expiry / Details
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Holder',
-                      style: TextStyle(
-                        color: subtextColor,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      holderName,
-                      style: const TextStyle(
-                        color: textColor,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                if (expiryDate != null)
+            if (holderName.isNotEmpty ||
+                (expiryDate != null && expiryDate!.isNotEmpty))
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Exp Date',
+                        'Holder',
                         style: TextStyle(
                           color: subtextColor,
                           fontSize: 11,
@@ -371,18 +356,41 @@ class FlowPayScallopedCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        expiryDate!,
+                        holderName,
                         style: const TextStyle(
                           color: textColor,
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
                   ),
-              ],
-            ),
+                  if (expiryDate != null && expiryDate!.isNotEmpty)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Exp Date',
+                          style: TextStyle(
+                            color: subtextColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          expiryDate!,
+                          style: const TextStyle(
+                            color: textColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
           ],
         ),
       ),

@@ -340,18 +340,18 @@ class _FlowPayBalanceState extends State<FlowPayBalance> {
 }
 
 /// Background configuration for FlowPayHeroCard
-class BMoniWalletCardBackground {
+class FlowPayWalletCardBackground {
   final Gradient? gradient;
   final Color? color;
-  const BMoniWalletCardBackground.gradient(this.gradient) : color = null;
-  const BMoniWalletCardBackground.solid(this.color) : gradient = null;
+  const FlowPayWalletCardBackground.gradient(this.gradient) : color = null;
+  const FlowPayWalletCardBackground.solid(this.color) : gradient = null;
 }
 
 /// FlowPay Hero Card — Obsidian Slate Container for Account Portfolio
 class FlowPayHeroCard extends StatelessWidget {
   final double? height;
   final Widget balanceChild;
-  final BMoniWalletCardBackground? background;
+  final FlowPayWalletCardBackground? background;
   final Decoration? decoration;
 
   const FlowPayHeroCard({
@@ -374,7 +374,7 @@ class FlowPayHeroCard extends StatelessWidget {
                   colors: [
                     Color(0xFF181B26),
                     Color(0xFF12141C),
-                    Color(0xFF090A0F),
+                    Color(0xFF0F0F0F),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -395,7 +395,6 @@ class FlowPayHeroCard extends StatelessWidget {
   }
 }
 
-typedef BMoniWalletCard = FlowPayHeroCard;
 
 /// FlowPay Balance Display — Tabular Monospaced Figure with Privacy Toggle
 class FlowPayBalanceDisplay extends StatelessWidget {
@@ -462,7 +461,6 @@ class FlowPayBalanceDisplay extends StatelessWidget {
   }
 }
 
-typedef BMoniWalletCardBalance = FlowPayBalanceDisplay;
 
 
 /// FlowPay Status Badge — Live status badge with solid or pulsing dot

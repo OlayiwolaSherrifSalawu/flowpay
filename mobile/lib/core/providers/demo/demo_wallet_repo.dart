@@ -1,12 +1,12 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../../repositories/wallet_repository.dart';
-import '../../wallets_cards/bmoni_embedded_wallets_cards.dart';
+import '../../wallets_cards/wallets_cards.dart';
 import 'demo_data.dart';
 
 /// Deterministic Demo Implementation of [WalletRepository] satisfying
 /// the exact [EmbeddedWalletReadDataSource], [EmbeddedWalletStorage],
-/// and [EmbeddedWalletBalanceCache] contracts from bmoni_embedded_wallets_cards.
+/// and [EmbeddedWalletBalanceCache] contracts from core/wallets_cards.
 class DemoWalletRepository implements WalletRepository {
   late List<WalletAccount> _wallets;
 
@@ -19,16 +19,16 @@ class DemoWalletRepository implements WalletRepository {
   final InMemoryEmbeddedWalletBalanceCache _cache =
       InMemoryEmbeddedWalletBalanceCache();
 
-  // Deterministic Demo Embedded Wallets matching BMONI Sandbox personas
+  // Deterministic Demo Embedded Wallets matching Stellar Sandbox personas
   final List<EmbeddedWallet> _demoEmbeddedWallets = [
     const EmbeddedWallet(
       walletId: 'sw_ngn_bunch_dillon_01',
       name: 'Nigerian Naira Smart Wallet',
       currency: 'NGN',
-      stablecoinToken: 'CNGN',
+      stablecoinToken: 'NGN',
       balance: 4850000.00,
       colorSuffix: '01',
-      address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
+      address: 'GCLXFXJUCE4VPFRDDYZL2TDR3KMF7FI7IZRETVR25EJJ6HVRDMW5VCP2',
       status: 'active',
       metadata: {'employeeId': 'emp_1', 'country': 'NG'},
     ),
@@ -36,10 +36,10 @@ class DemoWalletRepository implements WalletRepository {
       walletId: 'sw_mxn_samson_jabo_02',
       name: 'Mexican Peso Smart Wallet',
       currency: 'MXN',
-      stablecoinToken: 'MEXe',
+      stablecoinToken: 'MXN',
       balance: 52000.00,
       colorSuffix: '02',
-      address: '0x7e81C44F35dB56E522432d6771F52994B6b021ad',
+      address: 'GBYR6LMRNXWEBZVLKAVO6R3BMSMLN6NUH76AJKQLJ342HY6DLYZE57ZV',
       status: 'active',
       metadata: {'employeeId': 'emp_2', 'country': 'MX'},
     ),
@@ -47,10 +47,10 @@ class DemoWalletRepository implements WalletRepository {
       walletId: 'sw_usd_treasury_03',
       name: 'US Dollar Smart Wallet',
       currency: 'USD',
-      stablecoinToken: 'USDB',
+      stablecoinToken: 'USD',
       balance: 12450.00,
       colorSuffix: '03',
-      address: '0x8f2d6B48e89405d414a3D65B2Af6d73f1d93E3C1',
+      address: 'GCY2TJMHLBYVBSKDGD242ZAH7VL4V4IWR3LHNEJD3WMISNLANWPXA7VH',
       status: 'active',
       metadata: {'employeeId': 'emp_master', 'country': 'US'},
     ),
@@ -58,10 +58,10 @@ class DemoWalletRepository implements WalletRepository {
       walletId: 'sw_cad_tremblay_04',
       name: 'Canadian Dollar Smart Wallet',
       currency: 'CAD',
-      stablecoinToken: 'CADC',
+      stablecoinToken: 'CAD',
       balance: 6500.00,
       colorSuffix: '04',
-      address: '0x192eF2D252b4737d9282cA5F024d9c79238e819b',
+      address: 'GCLBQ5ETNH4CPFBWHKECSASMTTIOJ5FN4BTZPYGEO6CMS7JEXDWO4B26',
       status: 'active',
       metadata: {'employeeId': 'emp_3', 'country': 'CA'},
     ),
@@ -122,7 +122,7 @@ class DemoWalletRepository implements WalletRepository {
     );
 
     final isNg = wallet.currency.toUpperCase() == 'NGN' ||
-        wallet.currency.toUpperCase() == 'CNGN';
+        wallet.currency.toUpperCase() == 'NGN';
     final isMx = wallet.currency.toUpperCase() == 'MXN' ||
         wallet.currency.toUpperCase() == 'MEXE';
 

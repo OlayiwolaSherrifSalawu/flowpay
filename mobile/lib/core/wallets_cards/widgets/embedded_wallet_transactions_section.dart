@@ -165,13 +165,13 @@ class _DefaultTransactionTile extends StatelessWidget {
     final amountColor = isIncoming ? FlowPayColors.signal : FlowPayColors.ink;
 
     final sym = transaction.currency.toUpperCase() == 'NGN' ||
-            transaction.currency.toUpperCase() == 'CNGN'
+            transaction.currency.toUpperCase() == 'NGN'
         ? '₦'
         : transaction.currency.toUpperCase() == 'MXN' ||
                 transaction.currency.toUpperCase() == 'MEXE'
             ? 'Mex\$'
             : transaction.currency.toUpperCase() == 'CAD' ||
-                    transaction.currency.toUpperCase() == 'CADC'
+                    transaction.currency.toUpperCase() == 'CAD'
                 ? 'CA\$'
                 : '\$';
 

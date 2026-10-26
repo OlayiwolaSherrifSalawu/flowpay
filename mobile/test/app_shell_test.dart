@@ -145,7 +145,9 @@ void main() {
       await tester
           .tap(find.descendant(of: navBar, matching: find.text('Activity')));
       await tester.pumpAndSettle();
-      expect(find.text('Payroll Sent'), findsOneWidget);
+      // The audit log renders real (demo-provider) records, never a hardcoded list.
+      expect(find.text('NETWORK'), findsOneWidget);
+      expect(find.text('Payroll Sent'), findsNothing);
     });
 
     testWidgets('Switches tabs cleanly in Personal mode', (tester) async {
@@ -169,13 +171,14 @@ void main() {
       await tester
           .tap(find.descendant(of: navBar, matching: find.text('Missions')));
       await tester.pumpAndSettle();
-      expect(find.text('Your money. Your rules. AI executes.'), findsOneWidget);
+      expect(find.text('Your money. Your rules. Your approval.'), findsOneWidget);
 
       // Tap Security tab in nav bar
       await tester
           .tap(find.descendant(of: navBar, matching: find.text('Security')));
       await tester.pumpAndSettle();
-      expect(find.text('Your account is secured'), findsOneWidget);
+      // No wallet is provisioned in this test, so the header must say so.
+      expect(find.text('Set up your secure wallet'), findsOneWidget);
     });
 
     testWidgets('Lock button locks app back to AppAuthGate', (tester) async {

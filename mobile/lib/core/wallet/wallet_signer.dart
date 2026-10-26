@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../stellar/stellar_key_vault.dart';
+import '../stellar/stellar_network.dart';
 
 /// Thrown when a signing operation is cancelled by the user.
 class SigningCancelledException implements Exception {
@@ -13,39 +17,57 @@ class SigningCancelledException implements Exception {
 
 /// Abstract contract for on-device cryptographic signing.
 ///
-/// Under BMONI B-Key architecture:
-/// 1. Private keys reside strictly within hardware secure elements (Android Keystore / iOS Secure Enclave).
-/// 2. Private keys are never accessible to FlowPay Dart code, backend servers, or AI models.
-/// 3. Sensitive signing operations are gated by a user-configured 6-digit PIN.
+/// 1. The Stellar secret key lives only on this device, encrypted under the PIN.
+/// 2. It is never accessible to backend servers or AI models.
+/// 3. Every signature requires the user's 6-digit PIN — there is no default.
 abstract class WalletSigner {
-  /// Signs an arbitrary UTF-8 message using EIP-191 personal_sign format.
-  /// Used for login challenges, owner-proof verification, and off-chain authorization.
-  Future<String> signMessage(String message, {String? pin});
+  /// Signs a Stellar transaction envelope (base64 XDR) and returns the signed envelope.
+  Future<String> signTransactionXdr(String envelopeXdr, {required String pin});
 
-  /// Signs a 32-byte pre-computed hash directly (no prefix).
-  /// Used for ERC-4337 userOpHash, EIP-712 typed proposals, and transaction payloads.
-  Future<String> signTransactionHash(String hashHex, {String? pin});
+  /// ed25519 signature (hex) over the UTF-8 bytes of [message].
+  /// Used for owner-proof and off-chain authorization.
+  Future<String> signMessage(String message, {required String pin});
+
+  /// ed25519 signature (hex) over raw bytes given as hex (e.g. a 32-byte hash).
+  Future<String> signTransactionHash(String hashHex, {required String pin});
 }
 
-/// Official on-device BMONI B-Key signer implementation.
-///
-/// Directly delegates to `bmoni_embedded_sdk` on-device primitives.
-/// Guarantees that no raw private keys, hashes, or PINs are ever logged or exposed.
-class BmoniWalletSigner implements WalletSigner {
-  const BmoniWalletSigner();
+/// On-device Stellar signer backed by [StellarKeyVault].
+class StellarWalletSigner implements WalletSigner {
+  final StellarKeyVault? _vaultOverride;
+
+  const StellarWalletSigner([this._vaultOverride]);
+
+  StellarKeyVault get _vault => _vaultOverride ?? StellarKeyVault.instance;
 
   @override
-  Future<String> signMessage(String message, {String? pin}) async {
-    return await BmoniSdkService.signMessage(message, pin: pin ?? '123456');
+  Future<String> signTransactionXdr(String envelopeXdr, {required String pin}) {
+    return _vault.signTransactionXdr(
+      envelopeXdr,
+      pin: pin,
+      networkPassphrase: StellarNetwork.current.passphrase,
+    );
   }
 
   @override
-  Future<String> signTransactionHash(String hashHex, {String? pin}) async {
-    return await BmoniSdkService.signTransactionHash(hashHex, pin: pin ?? '123456');
+  Future<String> signMessage(String message, {required String pin}) {
+    return _vault.signBytes(Uint8List.fromList(utf8.encode(message)), pin: pin);
+  }
+
+  @override
+  Future<String> signTransactionHash(String hashHex, {required String pin}) {
+    final clean = hashHex.startsWith('0x') ? hashHex.substring(2) : hashHex;
+    if (clean.isEmpty || clean.length.isOdd || !RegExp(r'^[0-9a-fA-F]+$').hasMatch(clean)) {
+      throw const StellarVaultException(StellarVaultErrorCode.signingFailed, 'Value to sign must be hex-encoded bytes.');
+    }
+    final bytes = Uint8List.fromList([
+      for (var i = 0; i < clean.length; i += 2) int.parse(clean.substring(i, i + 2), radix: 16),
+    ]);
+    return _vault.signBytes(bytes, pin: pin);
   }
 }
 
 /// Riverpod provider for the active [WalletSigner].
 final walletSignerProvider = Provider<WalletSigner>((ref) {
-  return const BmoniWalletSigner();
+  return const StellarWalletSigner();
 });

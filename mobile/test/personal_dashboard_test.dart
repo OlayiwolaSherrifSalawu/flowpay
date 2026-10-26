@@ -66,7 +66,7 @@ void main() {
 
       // 1. Header & Purpose
       expect(find.text('Personal Account'), findsWidgets);
-      expect(find.text('Your money. Your rules. AI executes.'), findsWidgets);
+      expect(find.text('Your money. Your rules. Your approval.'), findsWidgets);
       expect(find.text('Sandbox Demo'), findsOneWidget);
       expect(find.text('Secure wallet'), findsOneWidget);
 
@@ -180,8 +180,9 @@ void main() {
 
       // Verify AiFxConversionModal opened
       expect(find.byType(AiFxConversionModal), findsOneWidget);
-      expect(find.text('Instant Currency Exchange'), findsOneWidget);
-      expect(find.text('Low-fee exchange rates'), findsOneWidget);
+      expect(find.text('Convert currency'), findsOneWidget);
+      // Default AppState is demo mode: the modal must say so.
+      expect(find.text('Demo mode — simulated at reference rates.'), findsOneWidget);
       expect(find.text('Convert'), findsOneWidget);
     });
 
@@ -225,14 +226,14 @@ void main() {
       expect(find.textContaining('\$37,671'), findsOneWidget);
 
       // Tap balance to toggle privacy
-      await tester.tap(find.byType(BMoniWalletCardBalance));
+      await tester.tap(find.byType(FlowPayBalanceDisplay));
       await tester.pumpAndSettle();
 
       // Now hidden with placeholder
       expect(find.text('••••••'), findsOneWidget);
 
       // Tap again to reveal
-      await tester.tap(find.byType(BMoniWalletCardBalance));
+      await tester.tap(find.byType(FlowPayBalanceDisplay));
       await tester.pumpAndSettle();
 
       // Balance visible again

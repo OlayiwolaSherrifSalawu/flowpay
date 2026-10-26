@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/auth/account_capabilities.dart';
 import 'package:flowpay_mobile/core/auth/secure_storage_service.dart';
-import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
 import 'package:flowpay_mobile/core/design_system/input_fields.dart';
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
@@ -15,10 +14,6 @@ import 'package:flowpay_mobile/modules/auth/set_pin_screen.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUpAll(() async {
-    await BmoniSdkService.initialize();
-  });
 
   setUp(() {
     SecureStorageService.resetMemoryCacheForTesting();
@@ -55,19 +50,12 @@ void main() {
       expect(empInitial.status, EmployeeLifecycleStages.invited);
       expect(empInitial.walletAddress, isNull);
 
-      // 3. Employee self-onboards on own device, generates hardware keypair
-      const employeeDeviceWallet = '0x1234567890abcdef1234567890abcdef12345678';
-      const employeeBmoniUserId = 'usr_bmoni_zainab_device';
-
-      final linkResult = await repo.linkEmployeeWallet(
-        employeeId: employeeId,
-        inviteToken: token,
-        bmoniUserId: employeeBmoniUserId,
-        walletAddress: employeeDeviceWallet,
-      );
-
-      expect(linkResult['status'], 'READY');
-      expect(linkResult['walletAddress'], employeeDeviceWallet);
+      // 3. Employee accepts on their own device with their own proven wallet.
+      final accepted = await repo.acceptInvite(token);
+      expect(accepted.status, EmployeeLifecycleStages.ready);
+      final employeeDeviceWallet = accepted.walletAddress;
+      expect(employeeDeviceWallet, isNotNull);
+      await expectLater(repo.acceptInvite(token), throwsA(isA<StateError>()), reason: 'single use');
 
       // 4. Employee record in roster is now READY and ready for payroll!
       final empUpdated = await repo.getEmployeeById(employeeId);

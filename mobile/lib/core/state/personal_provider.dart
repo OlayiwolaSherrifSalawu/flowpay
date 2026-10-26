@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../design_system/states.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../stellar/stellar_key_vault.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../repositories/activity_repository.dart';
@@ -72,11 +72,11 @@ class PersonalProvider extends ChangeNotifier {
   }
 
   /// Aggregate multi-currency portfolio valuation in USD.
-  /// Computed with deterministic minor-unit conversion across BMONI rails:
-  /// - USDB: 1.00
-  /// - CNGN (NGN): 1550 NGN per USD
-  /// - MEXe (MXN): 17.50 MXN per USD
-  /// - CADC (CAD): 1.375 CAD per USD
+  /// Computed with deterministic minor-unit conversion across Stellar:
+  /// - USD: 1.00
+  /// - NGN (NGN): 1550 NGN per USD
+  /// - MXN (MXN): 17.50 MXN per USD
+  /// - CAD (CAD): 1.375 CAD per USD
   Money get totalPortfolioUsd {
     if (_wallets.isEmpty) {
       return Money.zero(Currency.usd);
@@ -184,11 +184,10 @@ class PersonalProvider extends ChangeNotifier {
     try {
       final approval = _pendingApprovals.firstWhere((a) => a.id == approvalId);
 
-      // Sign authorization payload on-device via BMONI B-Key SDK
-      await BmoniSdkService.signTransactionHash(
-        '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
-        pin: pin,
-      );
+      // The PIN must unlock this device's wallet to approve anything.
+      if (!await StellarKeyVault.instance.verifyPin(pin)) {
+        throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+      }
 
       // Execute approval in repository
       final success = await approvalRepo.approveAction(approvalId, pin: pin);

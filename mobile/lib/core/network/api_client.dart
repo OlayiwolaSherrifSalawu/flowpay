@@ -1,8 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
+/// A non-2xx response from the FlowPay API, keeping the status and machine code
+/// so callers can tell "failed" apart from "pending" or "not found".
+class ApiException implements Exception {
+  final int statusCode;
+  final String? code;
+  final String message;
+  final dynamic data;
+
+  const ApiException(this.statusCode, this.message, {this.code, this.data});
+
+  @override
+  String toString() => message;
+}
+
 class FlowPayApiClient {
+  /// Generous because the hosted backend can cold-start; never infinite.
+  static const Duration requestTimeout = Duration(seconds: 45);
+
   final String baseUrl;
   final http.Client _client;
   String? _userId;
@@ -13,18 +31,22 @@ class FlowPayApiClient {
     String? userId,
   })  : baseUrl = baseUrl ?? ApiConfig.baseUrl,
         _client = client ?? http.Client(),
-        _userId = userId ?? 'usr_flowpay_sandbox_master';
+        _userId = userId;
 
-  String get userId => _userId ?? 'usr_flowpay_sandbox_master';
+  /// Session token for every request (set after signup / wallet login).
+  /// The server takes identity ONLY from this token.
+  static String? sessionToken;
+
+  String get userId => _userId ?? '';
 
   void setUserId(String? userId) {
-    _userId = userId ?? 'usr_flowpay_sandbox_master';
+    _userId = userId;
   }
 
   Map<String, String> _buildHeaders([Map<String, String>? extra]) {
     final headers = <String, String>{
       'Accept': 'application/json',
-      if (_userId != null && _userId!.isNotEmpty) 'x-user-id': _userId!,
+      if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
     };
     if (extra != null) headers.addAll(extra);
     return headers;
@@ -33,7 +55,7 @@ class FlowPayApiClient {
   Future<dynamic> get(String path, {Map<String, String>? queryParams, Map<String, String>? headers}) async {
     final uri =
         Uri.parse('$baseUrl$path').replace(queryParameters: queryParams);
-    final res = await _client.get(uri, headers: _buildHeaders(headers));
+    final res = await _client.get(uri, headers: _buildHeaders(headers)).timeout(requestTimeout);
     return _handleResponse(res);
   }
 
@@ -45,7 +67,7 @@ class FlowPayApiClient {
       uri,
       headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(requestTimeout);
     return _handleResponse(res);
   }
 
@@ -57,7 +79,7 @@ class FlowPayApiClient {
       uri,
       headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(requestTimeout);
     return _handleResponse(res);
   }
 
@@ -69,13 +91,13 @@ class FlowPayApiClient {
       uri,
       headers: allHeaders,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(requestTimeout);
     return _handleResponse(res);
   }
 
   Future<dynamic> delete(String path, {Map<String, String>? headers}) async {
     final uri = Uri.parse('$baseUrl$path');
-    final res = await _client.delete(uri, headers: _buildHeaders(headers));
+    final res = await _client.delete(uri, headers: _buildHeaders(headers)).timeout(requestTimeout);
     return _handleResponse(res);
   }
 
@@ -90,12 +112,16 @@ class FlowPayApiClient {
     }
 
     String errorMsg = 'HTTP ${response.statusCode}';
+    String? code;
+    dynamic data;
     try {
       final errObj = jsonDecode(response.body);
       if (errObj['message'] != null) {
         errorMsg = errObj['message'].toString();
       }
+      code = errObj['code']?.toString();
+      data = errObj['data'];
     } catch (_) {}
-    throw Exception(errorMsg);
+    throw ApiException(response.statusCode, errorMsg, code: code, data: data);
   }
 }

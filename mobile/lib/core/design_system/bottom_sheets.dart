@@ -320,7 +320,7 @@ class FlowPaySelectorBottomSheet<T> extends StatelessWidget {
 typedef SelectorBottomSheet<T> = FlowPaySelectorBottomSheet<T>;
 
 /// Compatibility helper for bottom sheet display
-class BMoniBottomSheet {
+class FlowPaySheets {
   static Future<T?> show<T>({
     required BuildContext context,
     required Widget child,

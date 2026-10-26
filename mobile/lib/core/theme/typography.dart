@@ -23,13 +23,33 @@ class FlowPayTypography {
         fontFeatures: const [FontFeature.tabularFigures()],
       );
 
-  /// Headline — 24dp, weight 600, letterSpacing -0.24, height 1.15
+  /// Headline — 24dp Lora serif (Stellar's editorial display face), weight 500.
   static TextStyle headline({Color color = FlowPayColors.textPrimary}) =>
-      GoogleFonts.inter(
+      GoogleFonts.lora(
         fontSize: 24,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.2,
+        height: 1.2,
+        color: color,
+      );
+
+  /// Hero statement — 34dp Lora serif for landing / section heroes.
+  static TextStyle heroSerif({Color color = FlowPayColors.textPrimary}) =>
+      GoogleFonts.lora(
+        fontSize: 34,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.6,
+        height: 1.1,
+        color: color,
+      );
+
+  /// Eyebrow — 11dp uppercase, tracked: small section labels above titles.
+  static TextStyle eyebrow({Color color = FlowPayColors.textSecondary}) =>
+      GoogleFonts.inter(
+        fontSize: 11,
         fontWeight: FontWeight.w600,
-        letterSpacing: -0.24,
-        height: 1.15,
+        letterSpacing: 1.4,
+        height: 1.3,
         color: color,
       );
 

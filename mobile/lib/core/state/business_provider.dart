@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../wallet/wallet_signer.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../models/shared_transaction.dart';
 import '../repositories/business_audit_repository.dart';
-import '../repositories/card_repository.dart';
 import '../repositories/employee_repository.dart';
 import '../repositories/payroll_repository.dart';
 import '../repositories/wallet_repository.dart';
@@ -14,19 +11,17 @@ import '../repositories/wallet_repository.dart';
 /// BusinessProvider
 /// Central domain state coordinator for FlowPay Business.
 /// Adheres strictly to the architectural directive:
-/// "Use deterministic data through BusinessProvider. Do not put fake BMONI calls inside widgets."
+/// "Use deterministic data through BusinessProvider. Do not put fake Stellar calls inside widgets."
 class BusinessProvider extends ChangeNotifier {
   final EmployeeRepository employeeRepo;
   final PayrollRepository payrollRepo;
   final WalletRepository walletRepo;
-  final CardRepository cardRepo;
   final BusinessAuditRepository? auditRepo;
 
   BusinessProvider({
     required this.employeeRepo,
     required this.payrollRepo,
     required this.walletRepo,
-    required this.cardRepo,
     this.auditRepo,
   });
 
@@ -34,10 +29,13 @@ class BusinessProvider extends ChangeNotifier {
   String? _errorMessage;
 
   List<EmployeeModel> _employees = [];
+  String? _payrollPreviewError;
+
+  /// Why the payroll preview couldn't be built (e.g. business wallet not activated).
+  String? get payrollPreviewError => _payrollPreviewError;
   PayrollRunModel? _pendingPayroll;
   PayrollRunModel? _lastExecutedPayroll;
   List<WalletAccount> _wallets = [];
-  List<VirtualCardModel> _cards = [];
 
   // Audit State
   List<SharedTransactionModel> _auditActivities = [];
@@ -53,7 +51,6 @@ class BusinessProvider extends ChangeNotifier {
   PayrollRunModel? get pendingPayroll => _pendingPayroll;
   PayrollRunModel? get lastExecutedPayroll => _lastExecutedPayroll;
   List<WalletAccount> get wallets => List.unmodifiable(_wallets);
-  List<VirtualCardModel> get cards => List.unmodifiable(_cards);
 
   // Audit Getters
   List<SharedTransactionModel> get auditActivities => List.unmodifiable(_auditActivities);
@@ -66,9 +63,12 @@ class BusinessProvider extends ChangeNotifier {
   // Computed Core Dashboard Metrics
   int get employeeCount => _employees.length;
 
+  /// Employees who have joined (live: lifecycle READY; demo: ONBOARDED/ACTIVE).
   int get onboardedEmployeeCount => _employees
       .where((e) =>
-          e.onboardingStatus == 'ONBOARDED' || e.onboardingStatus == 'ACTIVE')
+          e.status.toUpperCase() == EmployeeLifecycleStages.ready ||
+          const {'ONBOARDED', 'ACTIVE', 'READY'}
+              .contains(e.onboardingStatus.toUpperCase()))
       .length;
 
   List<String> get uniqueCountryCodes =>
@@ -100,49 +100,38 @@ class BusinessProvider extends ChangeNotifier {
   }
 
   /// Total number of provisioned smart wallets
-  int get walletsProvisionedCount {
-    if (_wallets.isNotEmpty) return _wallets.length;
-    return _employees
-        .where((e) =>
-            e.walletStatus == 'PROVISIONED' || e.walletStatus == 'ACTIVE')
-        .length;
-  }
-
-  /// Total number of active corporate spend cards
-  int get cardsActiveCount {
-    if (_cards.isNotEmpty) {
-      return _cards.where((c) => c.status == 'active').length;
-    }
-    return _employees
-        .where((e) => e.cardStatus == 'ACTIVE' || e.cardStatus == 'ISSUED')
-        .length;
-  }
+  /// Employees with their own wallet linked. (Not the employer's wallets —
+  /// those are [wallets].)
+  int get walletsProvisionedCount => _employees
+      .where((e) =>
+          (e.walletAddress?.isNotEmpty ?? false) ||
+          e.walletStatus == 'PROVISIONED' ||
+          e.walletStatus == 'ACTIVE')
+      .length;
 
   /// Saved cross-border fees compared to traditional SWIFT/wire rails
-  /// Traditional wire: ~$170 per destination country
-  /// BMONI aggregate bill: ~$5 per country (96% savings)
-  Money get savedFeeUsd {
-    final countryCount =
-        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
-    final traditionalWireTotal =
-        countryCount * 17000; // $170 in cents per country
-    final bmoniRailTotal =
-        _pendingPayroll?.totalFeeUsd.minorUnits ?? (countryCount * 500);
-    final savedMinor = traditionalWireTotal - bmoniRailTotal;
-    return Money.fromMinor(savedMinor > 0 ? savedMinor : 32800, Currency.usd);
-  }
+  /// Savings vs. a reference wire fee — only demo runs report one. Live runs
+  /// report their real cost instead ([PayrollRunModel.networkFeeXlm]).
+  Money get savedFeeUsd => _pendingPayroll?.totalSavedFeeUsd ?? Money.zero(Currency.usd);
 
-  double get savedPercentage {
-    final countryCount =
-        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
-    final traditionalWireTotal = countryCount * 170.0;
-    final bmoniRailTotal =
-        (_pendingPayroll?.totalFeeUsd.majorUnits ?? (countryCount * 5.0))
-            .toDouble();
-    if (traditionalWireTotal <= 0) return 96.0;
-    final pct =
-        ((traditionalWireTotal - bmoniRailTotal) / traditionalWireTotal) * 100;
-    return pct.clamp(80.0, 98.0);
+  double get savedPercentage => _pendingPayroll?.savedPercentage ?? 0;
+
+  /// True while the first payroll preview is still being built — totals are
+  /// unknown then, not zero.
+  bool get isPayrollCalculating => _isLoading && _pendingPayroll == null;
+
+  /// Display text for a payroll total: '—' while it is still being calculated.
+  String payrollAmountText(Money amount) =>
+      isPayrollCalculating ? '—' : amount.formatFormatted();
+
+  /// Human-readable cost line for the current payroll preview.
+  String get payrollCostLabel {
+    final run = _pendingPayroll;
+    if (run == null) {
+      return isPayrollCalculating ? 'Quoting live rates on Stellar…' : 'No payroll to run yet';
+    }
+    if (run.networkFeeXlm != null) return 'Stellar network fee: ${run.networkFeeXlm} XLM';
+    return 'Transfer fee: ${run.totalFeeUsd.formatFormatted()}';
   }
 
   /// Initial load of all business data
@@ -152,17 +141,22 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final results = await Future.wait([
-        employeeRepo.getEmployees(),
-        payrollRepo.getPayrollPreview(),
-        walletRepo.getWallets(),
-        cardRepo.getCards(),
-      ]);
-
-      _employees = results[0] as List<EmployeeModel>;
-      _pendingPayroll = results[1] as PayrollRunModel;
-      _wallets = results[2] as List<WalletAccount>;
-      _cards = results[3] as List<VirtualCardModel>;
+      // Each section loads independently: a payroll preview problem (e.g. the
+      // business wallet isn't activated yet) must not hide the team or balances.
+      _employees = await employeeRepo.getEmployees();
+      try {
+        _wallets = await walletRepo.getWallets();
+      } catch (e) {
+        _wallets = [];
+        _errorMessage = 'Could not load balances: $e';
+      }
+      try {
+        _pendingPayroll = await payrollRepo.getPayrollPreview();
+        _payrollPreviewError = null;
+      } catch (e) {
+        _pendingPayroll = null;
+        _payrollPreviewError = e.toString();
+      }
 
     } catch (e) {
       _errorMessage = 'Failed to load business data: $e';
@@ -260,40 +254,26 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
-  /// Retry BMONI user creation for an employee stuck at FAILED /
-  /// BMONI_USER_CREATION, then re-sync the list so the row updates in place.
-  Future<EmployeeModel> retryEmployeeUserCreation(String employeeId) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final updated = await employeeRepo.retryUserCreation(employeeId);
-      _employees = await employeeRepo.getEmployees();
-      return updated;
-    } catch (e) {
-      _errorMessage = 'Retry failed: $e';
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+  /// Signs every atomic batch of a previewed run exactly as shown (live), or
+  /// verifies the PIN against a simulated payload (demo). Returns
+  /// `{proposalId: signedPayload}`.
+  static Future<Map<String, String>> signPayrollBatches(PayrollRunModel run, String pin) async {
+    const signer = StellarWalletSigner();
+    final signed = <String, String>{};
+    if (run.isDemo) {
+      await signer.signMessage('demo-payroll:${run.runId}', pin: pin);
+      return signed;
     }
+    if (!run.isBalanceSufficient) throw StateError('Your USD balance does not cover this payroll.');
+    if (run.batches.isEmpty) throw StateError('Nobody is ready to be paid yet.');
+    for (final batch in run.batches) {
+      final payload = batch.signPayload;
+      if (payload == null) throw StateError('Payroll preview is missing a transaction. Refresh and try again.');
+      signed[batch.proposalId] = await signer.signTransactionXdr(payload, pin: pin);
+    }
+    return signed;
   }
 
-  /// Compute canonical 32-byte hash for a payroll proposal item
-  static String computeProposalHash({
-    required String runId,
-    required PayrollItemModel item,
-  }) {
-    final canonicalPayload = jsonEncode({
-      'amount': item.targetAmount.amountMinor.toString(),
-      'country': item.country,
-      'currency': item.destinationStablecoin,
-      'employeeId': item.employeeId,
-      'runId': runId,
-    });
-    return '0x${sha256.convert(utf8.encode(canonicalPayload))}';
-  }
-
-  /// Primary Action: Run Global Payroll with on-device B-Key signing
   Future<PayrollRunModel> runPayroll({required String pin}) async {
     if (_pendingPayroll == null) {
       throw Exception('No pending payroll run available to execute.');
@@ -306,39 +286,9 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Generate distinct cryptographic 32-byte hash and sign each proposal independently
-      final signatures = <String, String>{};
-      final seenHashes = <String>{};
-
-      for (final item in _pendingPayroll!.items) {
-        final hash32 = computeProposalHash(
-          runId: _pendingPayroll!.runId,
-          item: item,
-        );
-
-        // Safeguard: Disallow identical signing payloads in the same batch
-        if (seenHashes.contains(hash32)) {
-          throw StateError(
-            'Fintech signing violation: Duplicate proposal hash detected in batch for employee '
-            '${item.employeeId} (${item.employeeName}). Proposals within a batch must have unique hash inputs.',
-          );
-        }
-        seenHashes.add(hash32);
-
-        final sig = await BmoniSdkService.signTransactionHash(
-          hash32,
-          pin: pin,
-        );
-        signatures[item.employeeId] = sig;
-      }
-
-      // 2. Execute aggregate fan-out via repository
-      final primarySig = signatures.values.first;
-      final completed = await payrollRepo.executePayrollRun(
-        runId: _pendingPayroll!.runId,
-        signature: primarySig,
-      );
-
+      final run = _pendingPayroll!;
+      final signed = await signPayrollBatches(run, pin);
+      final completed = await payrollRepo.executePayrollRun(runId: run.runId, signedBatches: signed);
       _lastExecutedPayroll = completed;
       return completed;
     } catch (e) {
@@ -350,47 +300,4 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
-  /// Retry a single failed payroll proposal
-  /// Per BMONI docs: "A FAILED proposal can be retried by calling approve again, restarting the workflow."
-  Future<PayrollItemModel> retryPayrollProposal({
-    required String proposalId,
-    required String employeeId,
-    required String pin,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final updatedItem = await payrollRepo.retryFailedProposal(
-        proposalId: proposalId,
-        employeeId: employeeId,
-        pin: pin,
-      );
-
-      // Update item in lastExecutedPayroll if present
-      if (_lastExecutedPayroll != null) {
-        final updatedItems = _lastExecutedPayroll!.items.map((item) {
-          if (item.proposalId == proposalId || item.employeeId == employeeId) {
-            return updatedItem;
-          }
-          return item;
-        }).toList();
-
-        final allSucceeded = updatedItems.every((i) => i.status == 'SUCCESS' || i.status == 'COMPLETED');
-
-        _lastExecutedPayroll = _lastExecutedPayroll!.copyWith(
-          status: allSucceeded ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
-          items: updatedItems,
-        );
-      }
-
-      return updatedItem;
-    } catch (e) {
-      _errorMessage = 'Proposal retry failed: $e';
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 }

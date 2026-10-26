@@ -17,18 +17,6 @@ export class ValidationError extends FlowPayError {
   }
 }
 
-export class BmoniApiError extends FlowPayError {
-  constructor(
-    message: string,
-    statusCode: number,
-    public readonly bmoniError?: string,
-    details?: unknown
-  ) {
-    super(message, statusCode, 'BMONI_API_ERROR', details);
-    this.name = 'BmoniApiError';
-  }
-}
-
 export class FinancialSafetyError extends FlowPayError {
   constructor(message: string, details?: unknown) {
     super(message, 422, 'FINANCIAL_SAFETY_VIOLATION', details);
@@ -47,13 +35,6 @@ export class NotFoundError extends FlowPayError {
   constructor(message: string = 'Resource not found') {
     super(message, 404, 'NOT_FOUND');
     this.name = 'NotFoundError';
-  }
-}
-
-export class CardEnrollmentRequiredError extends FlowPayError {
-  constructor(message: string = 'Card owner is not enrolled for cards yet. 11-digit NIN is required.') {
-    super(message, 400, 'E101', { isEnrollmentRequired: true });
-    this.name = 'CardEnrollmentRequiredError';
   }
 }
 
@@ -79,7 +60,7 @@ export class KycOnboardingError extends FlowPayError {
 }
 
 export class SignatureFailureError extends FlowPayError {
-  constructor(message: string = 'B-Key on-device hardware PIN signature verification failed.') {
+  constructor(message: string = 'On-device PIN signature verification failed.') {
     super(message, 400, 'SIGNATURE_FAILURE');
     this.name = 'SignatureFailureError';
   }
@@ -94,59 +75,43 @@ export class ProposalExpiredError extends FlowPayError {
 
 export class UnsupportedCurrencyError extends FlowPayError {
   constructor(currency: string) {
-    super(`Currency ${currency} is not supported on available BMONI rails. Supported: USD, NGN, MXN, CAD, EUR.`, 400, 'UNSUPPORTED_CURRENCY');
+    super(`Currency ${currency} is not supported. Supported: USD, CAD, MXN, GBP, NGN.`, 400, 'UNSUPPORTED_CURRENCY');
     this.name = 'UnsupportedCurrencyError';
   }
 }
 
-export class BmoniTimeoutError extends FlowPayError {
-  constructor(message: string = 'BMONI rail communication timed out. Please retry or check activity status.') {
-    super(message, 504, 'BMONI_TIMEOUT');
-    this.name = 'BmoniTimeoutError';
+/**
+ * A Stellar operation failed. `resultCodes` carries Horizon's `extras.result_codes`
+ * (e.g. { transaction: 'tx_failed', operations: ['op_underfunded'] }) so callers and the
+ * UI can explain *why* — never swallow this into a success.
+ */
+export class StellarError extends FlowPayError {
+  constructor(
+    message: string,
+    statusCode: number = 502,
+    code: string = 'STELLAR_ERROR',
+    public readonly resultCodes?: { transaction?: string; operations?: string[] },
+    details?: unknown
+  ) {
+    super(message, statusCode, code, { resultCodes, ...(details as object | undefined) });
+    this.name = 'StellarError';
   }
 }
 
-export class BmoniUnavailableError extends FlowPayError {
-  constructor(message: string = 'BMONI infrastructure rail is temporarily unavailable. Demo fallback active.') {
-    super(message, 503, 'BMONI_UNAVAILABLE');
-    this.name = 'BmoniUnavailableError';
+export class StellarAccountNotFoundError extends StellarError {
+  constructor(public readonly accountId: string) {
+    super(`Stellar account ${accountId} does not exist on the network yet (it must be funded first).`, 404, 'STELLAR_ACCOUNT_NOT_FOUND');
+    this.name = 'StellarAccountNotFoundError';
   }
 }
 
 /**
- * Sanitizes BMONI errors to safe FlowPay errors, never exposing raw internal stack or partner credentials
+ * Submission outcome is UNKNOWN (Horizon timeout / network drop). The transaction may still
+ * land. Record it as PENDING and reconcile by `hash` — never report it as failed or completed.
  */
-export function sanitizeBmoniError(err: unknown): FlowPayError {
-  if (err instanceof FlowPayError) {
-    if (err instanceof BmoniApiError) {
-      const msg = (err.message || '').toLowerCase();
-      if (err.statusCode === 504 || msg.includes('timed out') || msg.includes('timeout')) {
-        return new BmoniTimeoutError();
-      }
-      if (err.statusCode === 502 || err.statusCode === 503 || msg.includes('unavailable') || msg.includes('econnrefused')) {
-        return new BmoniUnavailableError();
-      }
-      if (msg.includes('insufficient') || msg.includes('balance')) {
-        return new InsufficientFundsError(err.message);
-      }
-      if (msg.includes('point is not on curve') || msg.includes('parity') || msg.includes('signature')) {
-        return new SignatureFailureError('Cryptographic signature verification failed on BMONI rails.');
-      }
-      if (msg.includes('expired') || msg.includes('deadline')) {
-        return new ProposalExpiredError();
-      }
-      if (msg.includes('e101') || msg.includes('not enrolled')) {
-        return new CardEnrollmentRequiredError();
-      }
-      if (err.statusCode === 400) {
-        return new InvalidRequestError(err.message);
-      }
-      // Mask any unexpected internal 500
-      if (err.statusCode >= 500) {
-        return new BmoniUnavailableError('BMONI processing error. Safe fallback maintained.');
-      }
-    }
-    return err;
+export class StellarSubmitTimeoutError extends StellarError {
+  constructor(public readonly hash: string, details?: unknown) {
+    super(`Stellar submission for ${hash} timed out; outcome pending reconciliation.`, 504, 'STELLAR_SUBMIT_PENDING', undefined, details);
+    this.name = 'StellarSubmitTimeoutError';
   }
-  return new FlowPayError('An unexpected internal error occurred.');
 }

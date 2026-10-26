@@ -6,7 +6,7 @@ import 'package:http/testing.dart';
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/network/api_client.dart';
-import 'package:flowpay_mobile/core/providers/bmoni/bmoni_activity_repo.dart';
+import 'package:flowpay_mobile/core/providers/live/live_activity_repo.dart';
 import 'package:flowpay_mobile/core/repositories/activity_repository.dart';
 import 'package:flowpay_mobile/core/design_system/states.dart';
 
@@ -45,13 +45,13 @@ void main() {
       expect(incoming.displayIcon, Icons.south_west);
     });
 
-    test('BmoniActivityRepository isolates local activities per user', () async {
+    test('LiveActivityRepository isolates local activities per user', () async {
       final mockClient = MockClient((request) async {
         return http.Response(jsonEncode({'success': true, 'data': []}), 200);
       });
 
       final apiClient = FlowPayApiClient(client: mockClient, userId: 'usr_sender_A');
-      final repo = BmoniActivityRepository(apiClient: apiClient);
+      final repo = LiveActivityRepository(apiClient: apiClient);
 
       // Sender A records a local send activity
       await repo.recordActivity(ActivityModel(
@@ -78,7 +78,7 @@ void main() {
       expect(actsForB, isEmpty, reason: 'Receiver must not inherit Sender A local activities');
     });
 
-    test('BmoniActivityRepository sets isIncoming: true for TRANSFER_RECEIVED from backend', () async {
+    test('LiveActivityRepository sets isIncoming: true for TRANSFER_RECEIVED from backend', () async {
       final mockClient = MockClient((request) async {
         return http.Response(
           jsonEncode({
@@ -105,7 +105,7 @@ void main() {
       });
 
       final apiClient = FlowPayApiClient(client: mockClient, userId: 'usr_receiver_B');
-      final repo = BmoniActivityRepository(apiClient: apiClient);
+      final repo = LiveActivityRepository(apiClient: apiClient);
 
       final acts = await repo.getRecentActivities();
       expect(acts.length, 1);

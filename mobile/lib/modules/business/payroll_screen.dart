@@ -1,7 +1,8 @@
+import '../../core/state/business_provider.dart';
 import 'package:flutter/material.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
 import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import '../../core/models/paginated_result.dart';
+import '../../core/repositories/employee_repository.dart';
 import '../../core/repositories/payroll_repository.dart';
 import '../../core/state/app_state.dart';
 
@@ -15,8 +16,8 @@ enum PayrollExecutionStep {
 /// Multi-Country Global Payroll Screen
 /// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
 /// Core message: "One Employer. Many Countries. One Bill."
-/// Conforms to design.md & BMONI transfer proposal protocol:
-/// - Recipient destination currency rail validation (CNGN, MEXe)
+/// Conforms to design.md & Stellar transfer proposal protocol:
+/// - Recipient destination currency rail validation (NGN, MXN)
 /// - Review screen with aggregate bill, fees, and 97% savings
 /// - Confirmation modal before execution (employee count, country count, total)
 /// - 4-state execution timeline: Validated → Approved → Processing → Completed
@@ -199,14 +200,18 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 12),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: surfaceAltColor,
                     borderRadius: FlowPayRadii.card,
                     border: Border.all(color: borderColor),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +248,9 @@ class _PayrollScreenState extends State<PayrollScreen> {
                               color: FlowPayColors.signal.withValues(alpha: 0.25)),
                         ),
                         child: Text(
-                          'Saved ${_preview!.totalSavedFeeUsd.formatFormatted()}',
+                          _preview!.hasSavings
+                              ? 'Saved ${_preview!.totalSavedFeeUsd.formatFormatted()}'
+                              : 'Network fee ${_preview!.networkFeeXlm ?? '0'} XLM',
                           style: FlowPayTypography.captionStyle(
                                   color: FlowPayColors.signal)
                               .copyWith(
@@ -256,7 +263,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Once approved, payroll will be sent to all employees simultaneously.',
+                  'Once approved, everyone is paid in one Stellar transaction — all of them, or none of them.',
                   style: FlowPayTypography.captionStyle(
                       color: textSecondaryColor).copyWith(height: 1.4),
                 ),
@@ -380,19 +387,15 @@ class _PayrollScreenState extends State<PayrollScreen> {
 
       setState(() {
         _currentStep = PayrollExecutionStep.processing;
-        _executingMessage =
-            'Sending payments to Nigeria and Mexico...';
+        _executingMessage = 'Signing and sending payments...';
       });
 
       // Step 3: Processing (On-device secp256k1 raw-hash signing + submission)
-      final sig = await BmoniSdkService.signTransactionHash(
-        '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
-        pin: pin,
-      );
-
+      // Sign each atomic batch exactly as previewed, then submit.
+      final signed = await BusinessProvider.signPayrollBatches(_preview!, pin);
       final completedRun = await widget.appState.payrollRepo.executePayrollRun(
         runId: _preview!.runId,
-        signature: sig,
+        signedBatches: signed,
       );
 
       if (!mounted) return;
@@ -400,9 +403,12 @@ class _PayrollScreenState extends State<PayrollScreen> {
       setState(() {
         _executionRun = completedRun;
         _currentStep = PayrollExecutionStep.completed;
-        _executingMessage = completedRun.status == 'PARTIALLY_COMPLETED'
-            ? 'Completed with partial failures. Review items below.'
-            : 'All employee payments sent successfully!';
+        _executingMessage = switch (completedRun.status) {
+          'COMPLETED' => 'Everyone was paid on Stellar.',
+          'PARTIALLY_COMPLETED' => 'Some batches failed — nobody in a failed batch was paid. Review below.',
+          'PENDING' => 'Submitted — waiting for the Stellar network to confirm.',
+          _ => 'Payroll did not go through. Nobody was paid.',
+        };
         _isExecuting = false;
       });
     } catch (e) {
@@ -516,55 +522,12 @@ class _PayrollScreenState extends State<PayrollScreen> {
   }
 
   Future<void> _handleRetryEmployee(PayrollItemModel item) async {
-    final pin = await _showPinDialog();
-    if (pin == null || pin.isEmpty) return;
-
-    setState(() => _retryingEmployeeIds.add(item.employeeId));
-
-    try {
-      final updatedItem = await widget.appState.payrollRepo.retryFailedProposal(
-        proposalId: item.proposalId ?? 'prop_retry_${item.employeeId}',
-        employeeId: item.employeeId,
-        pin: pin,
-      );
-
-      if (!mounted) return;
-
-      if (_executionRun != null) {
-        final newItems = _executionRun!.items.map((i) {
-          return i.employeeId == item.employeeId ? updatedItem : i;
-        }).toList();
-
-        final allCompleted = newItems.every((i) => i.status == 'COMPLETED');
-
-        setState(() {
-          _executionRun = _executionRun!.copyWith(
-            status: allCompleted ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
-            items: newItems,
-          );
-        });
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Successfully retried and settled disbursement for ${item.employeeName}.'),
-          backgroundColor: FlowPayColors.signal,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Retry failed: $e'),
-          backgroundColor: FlowPayColors.stateError,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _retryingEmployeeIds.remove(item.employeeId));
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('That payment did not go through, and nobody in its batch was paid. '
+            'Run payroll again to retry — only a new, signed run can move money.'),
+      ),
+    );
   }
 
   @override
@@ -939,9 +902,9 @@ class _PayrollScreenState extends State<PayrollScreen> {
     final totalFormatted =
         run != null ? run.totalUsd.formatFormatted() : '\$0.00';
     final feeFormatted =
-        run != null ? run.totalFeeUsd.formatFormatted() : '\$10.00';
+        run?.networkFeeXlm != null ? '${run!.networkFeeXlm} XLM' : (run?.totalFeeUsd.formatFormatted() ?? '—');
     final savedFormatted =
-        run != null ? run.totalSavedFeeUsd.formatFormatted() : '\$330.00';
+        run != null && run.hasSavings ? run.totalSavedFeeUsd.formatFormatted() : '—';
 
     final inkColor =
         isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
@@ -1069,13 +1032,24 @@ class _PayrollScreenState extends State<PayrollScreen> {
                   ),
                 ],
               ),
-              Text(
-                'Saved: $savedFormatted (97%)',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
-                    .copyWith(
-                  fontWeight: FontWeight.w700,
+              // Savings are only shown when the run actually reports them
+              // (demo); live runs report the real network fee above.
+              if (run != null && run.hasSavings)
+                Text(
+                  'Saved: $savedFormatted (${run.savedPercentage.toStringAsFixed(0)}%)',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
+                      .copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                )
+              else
+                Text(
+                  'One atomic transaction',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
+                      .copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -1085,16 +1059,11 @@ class _PayrollScreenState extends State<PayrollScreen> {
 
   /// Per-Employee Payroll Card with Destination Rail & Outcome
   Widget _buildEmployeePayrollCard(PayrollItemModel item, bool isDark) {
-    final flag = item.country == 'NG'
-        ? '🇳🇬'
-        : item.country == 'MX'
-            ? '🇲🇽'
-            : '🇨🇦';
-    final countryName = item.country == 'NG'
-        ? 'Nigeria'
-        : item.country == 'MX'
-            ? 'Mexico'
-            : 'Canada';
+    final flag = EmployeeModel.flagForCountry(item.country);
+    final countryName = EmployeeModel.nameForCountry(item.country);
+    final rate = item.exchangeRate >= 100
+        ? item.exchangeRate.toStringAsFixed(2)
+        : item.exchangeRate.toStringAsFixed(4);
 
     final isFailed = item.status == 'FAILED';
     final isRetrying = _retryingEmployeeIds.contains(item.employeeId);
@@ -1146,7 +1115,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                         ),
                       ),
                       Text(
-                        '$countryName • Rate: ${item.exchangeRate} / USD',
+                        '$countryName • $rate ${item.targetCurrency.code} / USD',
                         style: FlowPayTypography.captionStyle(
                             color: textSecondaryColor),
                       ),

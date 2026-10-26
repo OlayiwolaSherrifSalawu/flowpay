@@ -339,7 +339,7 @@ class MissionCard extends StatelessWidget {
                 ],
               ),
               FlowPayButton(
-                text: '⚡ Run Now',
+                text: 'Run now',
                 size: FlowPayButtonSize.small,
                 onPressed: onTriggerManual,
               ),

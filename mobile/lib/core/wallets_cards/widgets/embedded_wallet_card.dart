@@ -3,7 +3,6 @@ import '../../design_system/design_system.dart';
 import '../models/embedded_wallet.dart';
 
 enum FlowPayWalletType { usd, ngn, mxn, eur, gbp, cad }
-typedef BMoniWalletType = FlowPayWalletType;
 
 /// EmbeddedWalletCard wraps the FlowPayWalletCard primitive with
 /// currency formatting, 6 background art variants per currency (USD/NGN/EUR/GBP/CAD/MXN),
@@ -28,29 +27,26 @@ class EmbeddedWalletCard extends StatelessWidget {
     this.onTap,
   });
 
-  /// Resolves the canonical BMoniWalletType background variant matching
+  /// Resolves the canonical FlowPayWalletType background variant matching
   /// the employee's payroll currency rather than picking arbitrarily.
-  static BMoniWalletType resolveWalletType(String currency) {
+  static FlowPayWalletType resolveWalletType(String currency) {
     switch (currency.toUpperCase()) {
       case 'NGN':
-      case 'CNGN':
-        return BMoniWalletType.ngn;
+        return FlowPayWalletType.ngn;
       case 'MXN':
       case 'MEXE':
-        return BMoniWalletType.mxn;
+        return FlowPayWalletType.mxn;
       case 'CAD':
-      case 'CADC':
-        return BMoniWalletType.cad;
+        return FlowPayWalletType.cad;
       case 'EUR':
       case 'EURE':
-        return BMoniWalletType.eur;
+        return FlowPayWalletType.eur;
       case 'GBP':
       case 'GBPE':
-        return BMoniWalletType.gbp;
+        return FlowPayWalletType.gbp;
       case 'USD':
-      case 'USDB':
       default:
-        return BMoniWalletType.usd;
+        return FlowPayWalletType.usd;
     }
   }
 
@@ -58,8 +54,7 @@ class EmbeddedWalletCard extends StatelessWidget {
   static BoxDecoration resolveCardArtDecoration(String currency) {
     switch (currency.toUpperCase()) {
       case 'NGN':
-      case 'CNGN':
-        // Emerald / Forest Green for Nigerian Naira (CNGN)
+        // Emerald / Forest Green for Nigerian Naira (NGN)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -80,7 +75,7 @@ class EmbeddedWalletCard extends StatelessWidget {
         );
       case 'MXN':
       case 'MEXE':
-        // Warm Terracotta / Aztec Amber for Mexican Peso (MEXe)
+        // Warm Terracotta / Aztec Amber for Mexican Peso (MXN)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -100,8 +95,7 @@ class EmbeddedWalletCard extends StatelessWidget {
           ],
         );
       case 'CAD':
-      case 'CADC':
-        // Crimson / Maple Red for Canadian Dollar (CADC)
+        // Crimson / Maple Red for Canadian Dollar (CAD)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -122,7 +116,7 @@ class EmbeddedWalletCard extends StatelessWidget {
         );
       case 'EUR':
       case 'EURE':
-        // Deep Indigo for Euro (EURe)
+        // Deep Indigo for Euro (EUR)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -143,7 +137,7 @@ class EmbeddedWalletCard extends StatelessWidget {
         );
       case 'GBP':
       case 'GBPE':
-        // Royal Purple for British Pound (GBPe)
+        // Royal Purple for British Pound (GBP)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -163,9 +157,8 @@ class EmbeddedWalletCard extends StatelessWidget {
           ],
         );
       case 'USD':
-      case 'USDB':
       default:
-        // Royal Sapphire Blue for US Dollar (USDB)
+        // Royal Sapphire Blue for US Dollar (USD)
         return BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           gradient: const LinearGradient(
@@ -188,11 +181,11 @@ class EmbeddedWalletCard extends StatelessWidget {
   }
 
   String _formatCurrency(double amount, String cur) {
-    final sym = cur.toUpperCase() == 'NGN' || cur.toUpperCase() == 'CNGN'
+    final sym = cur.toUpperCase() == 'NGN' || cur.toUpperCase() == 'NGN'
         ? '₦'
         : cur.toUpperCase() == 'MXN' || cur.toUpperCase() == 'MEXE'
             ? 'Mex\$'
-            : cur.toUpperCase() == 'CAD' || cur.toUpperCase() == 'CADC'
+            : cur.toUpperCase() == 'CAD' || cur.toUpperCase() == 'CAD'
                 ? 'CA\$'
                 : '\$';
     final parts = amount.toStringAsFixed(2).split('.');
@@ -207,7 +200,7 @@ class EmbeddedWalletCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardDecoration = resolveCardArtDecoration(wallet.currency);
     final isNg = wallet.currency.toUpperCase() == 'NGN' ||
-        wallet.currency.toUpperCase() == 'CNGN';
+        wallet.currency.toUpperCase() == 'NGN';
     final isMx = wallet.currency.toUpperCase() == 'MXN' ||
         wallet.currency.toUpperCase() == 'MEXE';
 

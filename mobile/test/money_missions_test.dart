@@ -6,8 +6,14 @@ import 'package:flowpay_mobile/core/design_system/states.dart';
 import 'package:flowpay_mobile/modules/personal/components/mission_card.dart';
 import 'package:flowpay_mobile/modules/personal/components/mission_preview_modal.dart';
 import 'package:flowpay_mobile/modules/personal/money_missions_screen.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('Money Missions Flagship Feature Tests', () {
     testWidgets(
         'Renders Money Missions screen with primary heading, input, and 5 suggestion chips',
@@ -204,7 +210,7 @@ void main() {
       // 6. Verify Mission appears in Active Missions list
       expect(find.text('Incoming 3-Way Split: USD, NGN Expenses & Tax'),
           findsOneWidget);
-      expect(find.textContaining('⚡ Run Now'), findsWidgets);
+      expect(find.textContaining('Run now'), findsWidgets);
     });
 
     testWidgets(
@@ -225,13 +231,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find first "⚡ Run Now" button
-      final runNowBtn = find.text('⚡ Run Now').first;
+      // Find first "Run now" button
+      final runNowBtn = find.text('Run now').first;
       await tester.tap(runNowBtn);
       await tester.pumpAndSettle();
 
       // Verify PIN entry sheet opens for test execution
-      expect(find.text('Test this rule'), findsOneWidget);
+      expect(find.text('Run this rule now'), findsOneWidget);
 
       // Enter PIN: 123456
       await tester.tap(find.byKey(const Key('pin_key_1')));
@@ -250,7 +256,7 @@ void main() {
       // Verify success snackbar
       expect(
         find.textContaining(
-            '✓ Rule triggered successfully!'),
+            '✓ Rule ran (demo simulation — no real money moved)'),
         findsOneWidget,
       );
     });

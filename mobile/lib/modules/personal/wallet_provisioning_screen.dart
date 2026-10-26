@@ -1,12 +1,13 @@
+import '../../core/wallet/components/create_pin_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../core/wallet/wallet_service.dart';
 
-/// Polished on-device B-Key / BMONI wallet setup and management screen.
+/// Polished on-device wallet key / Stellar wallet setup and management screen.
 ///
 /// Features:
 /// 1. Explains simply: "Your FlowPay wallet is secured on this device."
@@ -38,8 +39,9 @@ class _WalletProvisioningScreenState
   }
 
   Future<void> _handleCreateWallet() async {
-    final notifier = ref.read(walletStateProvider.notifier);
-    await notifier.createWallet();
+    final pin = await CreatePinSheet.show(context);
+    if (pin == null || !mounted) return;
+    await ref.read(walletStateProvider.notifier).createWallet(pin: pin);
   }
 
   Future<void> _handleTestSigning() async {
@@ -49,7 +51,7 @@ class _WalletProvisioningScreenState
       subtitle: 'Testing hardware enclave signature generation.',
       recipient: 'FlowPay Security Verification',
       onAuthorize: (pin) async {
-        return await BmoniSdkService.signMessage(
+        return await const StellarWalletSigner().signMessage(
             'FlowPay Security Verification Challenge',
             pin: pin);
       },
@@ -101,9 +103,17 @@ class _WalletProvisioningScreenState
     );
 
     if (confirmed == true && mounted) {
-      final success =
-          await ref.read(walletStateProvider.notifier).deleteWallet();
-      if (success && mounted) {
+      final result = await WalletPinAuthSheet.show(
+        context: context,
+        title: 'Delete wallet from this device',
+        subtitle: 'Enter your PIN to permanently remove this wallet.',
+        onAuthorize: (pin) async {
+          await ref.read(walletServiceProvider).deleteWallet(pin: pin);
+          return 'deleted';
+        },
+      );
+      await ref.read(walletStateProvider.notifier).loadWalletState();
+      if (result == 'deleted' && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Wallet deleted from device secure storage.')),
@@ -161,6 +171,7 @@ class _WalletProvisioningScreenState
   // --------------------------------------------------------------------------
   Widget _buildNoWalletView() {
     return ListView(
+      key: const ValueKey('wallet_no_wallet_list'),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       children: [
         const SizedBox(height: 20),
@@ -345,10 +356,11 @@ class _WalletProvisioningScreenState
   // 3. WALLET READY STATE
   // --------------------------------------------------------------------------
   Widget _buildWalletReadyView(WalletState state, bool isDark) {
-    final address =
-        state.address ?? '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
+    // The ready state always carries the real account ID.
+    final address = state.address!;
 
     return ListView(
+      key: const ValueKey('wallet_ready_list'),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
         // Security Status Hero Banner
@@ -475,7 +487,7 @@ class _WalletProvisioningScreenState
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'USD • NGN • EUR • MXN • CAD',
+                    'USD • CAD • MXN • GBP • NGN',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -510,14 +522,14 @@ class _WalletProvisioningScreenState
               ),
               const SizedBox(height: 12),
               _buildSpecRow(
-                label: 'Hardware Security Element',
-                value: 'Android Keystore / Secure Enclave',
+                label: 'Key Storage',
+                value: 'Device keychain, encrypted with your PIN',
                 statusColor: FlowPayColors.stateSuccess,
               ),
               const Divider(height: 16),
               _buildSpecRow(
                 label: 'Encryption Standard',
-                value: 'Bank-Grade Encryption',
+                value: 'AES-256-GCM + PBKDF2',
                 statusColor: FlowPayColors.primary,
               ),
               const Divider(height: 16),

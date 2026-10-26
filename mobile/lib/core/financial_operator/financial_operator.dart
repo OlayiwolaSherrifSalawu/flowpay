@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import '../beneficiaries/beneficiary_model.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../wallet/wallet_signer.dart';
 import '../design_system/states.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
@@ -1120,7 +1120,7 @@ class FinancialOperator extends ChangeNotifier {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
       try {
-        resolvedSignature = await BmoniSdkService.signTransactionHash(
+        resolvedSignature = await const StellarWalletSigner().signTransactionHash(
           hashToSign,
           pin: pin,
         );
@@ -1153,6 +1153,11 @@ class FinancialOperator extends ChangeNotifier {
 
     _session = _session.copyWith(status: OperatorSessionStatus.executing);
     notifyListeners();
+
+    if (executionProvider.settlesAtomically) {
+      await _executeAtomically(plan, pin: pin);
+      return;
+    }
 
     try {
       final updatedActions = <PlannedFinancialAction>[];
@@ -1318,6 +1323,66 @@ class FinancialOperator extends ChangeNotifier {
         messages: [..._session.messages, errorMsg],
       );
     }
+    notifyListeners();
+  }
+
+  /// Live path: the whole plan settles as ONE transaction, so every action shares
+  /// the same outcome and hash. Nothing is recorded as done unless it settled.
+  Future<void> _executeAtomically(FinancialPlan plan, {String? pin}) async {
+    if (pin == null) {
+      _session = _session.copyWith(
+        status: OperatorSessionStatus.error,
+        messages: [..._session.messages, OperatorMessage.operator('Your PIN is required to approve this plan.', isError: true)],
+      );
+      notifyListeners();
+      return;
+    }
+    ExecutionResult result;
+    try {
+      result = await executionProvider.executePlan(plan, pin: pin);
+    } catch (err) {
+      result = ExecutionResult.failed(plan.planId, err.toString());
+    }
+
+    final pending = result.details['status'] == 'PENDING';
+    final actionStatus = !result.success ? 'FAILED' : (pending ? 'PENDING' : 'COMPLETED');
+    final updatedActions = [
+      for (final a in plan.actions)
+        a.copyWith(status: actionStatus, txHash: result.success ? result.txHash : null, executionError: result.errorMessage),
+    ];
+    final completedPlan = plan.copyWith(
+      isApproved: result.success,
+      executionState: actionStatus,
+      txHash: result.txHash,
+      actions: updatedActions,
+    );
+    final text = !result.success
+        ? 'Nothing was sent — the plan did not settle.\n${result.errorMessage}'
+        : pending
+            ? 'Submitted to Stellar. Waiting for the network to confirm (tx ${result.txHash.substring(0, 8)}…).'
+            : 'Done. Every action settled together in one Stellar transaction (tx ${result.txHash.substring(0, 8)}…).';
+    _session = _session.copyWith(
+      status: result.success ? OperatorSessionStatus.completed : OperatorSessionStatus.error,
+      activePlan: completedPlan,
+      messages: [
+        ..._session.messages,
+        OperatorMessage.operator(
+          text,
+          isError: !result.success,
+          plan: completedPlan,
+          executionReceipt: result.success
+              ? {
+                  'txHash': result.txHash,
+                  'explorerUrl': result.details['explorerUrl'],
+                  'timestamp': result.timestamp.toIso8601String(),
+                  'totalDebit': plan.totalDebit.toFormattedString(),
+                  'actionsCount': plan.actions.length,
+                  'status': actionStatus,
+                }
+              : null,
+        ),
+      ],
+    );
     notifyListeners();
   }
 

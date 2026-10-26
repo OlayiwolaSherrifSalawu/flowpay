@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
+import 'helpers/test_wallet.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/core/theme/theme.dart';
 import 'package:flowpay_mobile/core/wallet/components/wallet_pin_auth_sheet.dart';
@@ -11,11 +11,11 @@ import 'package:flowpay_mobile/modules/personal/wallet_provisioning_screen.dart'
 void main() {
   group('FlowPay Personal Security Tests', () {
     late AppState appState;
+    late String walletAddress;
 
     setUp(() async {
       appState = AppState();
-      await BmoniSdkService.initWallet();
-      await BmoniSdkService.setPin('123456');
+      walletAddress = await provisionTestWallet();
     });
 
     testWidgets('Renders all 3 core security sections and required indicators',
@@ -42,14 +42,14 @@ void main() {
       expect(find.text('Your funds are protected on this device'),
           findsOneWidget);
       expect(find.text('SECURE'), findsOneWidget);
-      expect(find.text('BANK-GRADE ENCRYPTION'), findsOneWidget);
+      expect(find.text('AES-256 · PIN-ENCRYPTED KEY'), findsOneWidget);
 
       // 2. Section 1: Wallet Security
       expect(find.text('Secure wallet'), findsOneWidget);
       expect(find.text('READY'),
           findsWidgets); // Shows whether wallet is initialized
       expect(find.text('Account address'), findsOneWidget);
-      expect(find.textContaining('0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19'),
+      expect(find.textContaining(walletAddress),
           findsOneWidget);
       expect(find.text('Manage your secure wallet'), findsOneWidget);
 

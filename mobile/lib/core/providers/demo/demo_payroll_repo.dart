@@ -26,30 +26,30 @@ class DemoPayrollRepository implements PayrollRepository {
           employeeName: 'Bunch Dillon',
           country: 'NG',
           targetCurrency: Currency.ngn,
-          destinationStablecoin: 'CNGN',
+          destinationStablecoin: 'NGN',
           targetAmount: Money.fromMajorString('3100000.00', Currency.ngn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 1550.0,
           status: 'COMPLETED',
           isRailActive: true,
-          railValidationMessage: 'CNGN Settled on BMONI Rails via Providus VBA',
+          railValidationMessage: 'NGN Settled on Stellar via Providus VBA',
           proposalId: 'prop_demo_ng_9941',
-          transactionHash: '0x8f2d...cngn_settled_fanout',
+          transactionHash: '3912ff23350f9ac7a4018ced4faccbd633958e023f72cd9d634f8823ef26dfeb',
         ),
         PayrollItemModel(
           employeeId: 'emp_samson_jabo',
           employeeName: 'Samson Jabo',
           country: 'MX',
           targetCurrency: Currency.mxn,
-          destinationStablecoin: 'MEXe',
+          destinationStablecoin: 'MXN',
           targetAmount: Money.fromMajorString('35000.00', Currency.mxn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 17.5,
           status: 'COMPLETED',
           isRailActive: true,
-          railValidationMessage: 'MEXe Settled on BMONI Rails via STP CLABE',
+          railValidationMessage: 'MXN Settled on Stellar via STP CLABE',
           proposalId: 'prop_demo_mx_9942',
-          transactionHash: '0x9b10...mexe_settled_fanout',
+          transactionHash: 'c05f99ff1aa97483203c3b6641b2f714a3e1a5876a1527e02f68c1f8f02f4e21',
         ),
       ],
     ),
@@ -74,22 +74,22 @@ class DemoPayrollRepository implements PayrollRepository {
           employeeName: 'Bunch Dillon',
           country: 'NG',
           targetCurrency: Currency.ngn,
-          destinationStablecoin: 'CNGN',
+          destinationStablecoin: 'NGN',
           targetAmount: Money.fromMajorString('3100000.00', Currency.ngn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 1550.0,
           status: 'COMPLETED',
           isRailActive: true,
-          railValidationMessage: 'CNGN Settled on BMONI Rails',
+          railValidationMessage: 'NGN Settled on Stellar',
           proposalId: 'prop_demo_ng_8812',
-          transactionHash: '0x8f2d...cngn_settled_mid',
+          transactionHash: '119de3d94375b8829889064c9e2655c8802aa3ecd4e6b759847bfbe47ddbb4e8',
         ),
         PayrollItemModel(
           employeeId: 'emp_samson_jabo',
           employeeName: 'Samson Jabo',
           country: 'MX',
           targetCurrency: Currency.mxn,
-          destinationStablecoin: 'MEXe',
+          destinationStablecoin: 'MXN',
           targetAmount: Money.fromMajorString('35000.00', Currency.mxn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 17.5,
@@ -97,7 +97,7 @@ class DemoPayrollRepository implements PayrollRepository {
           isRailActive: false,
           railValidationMessage: 'Rail activation required',
           proposalId: 'prop_demo_mx_failed_8813',
-          errorReason: 'Destination MEXe smart-wallet unactivated (requires Etherfuse agreement)',
+          errorReason: 'Destination MXN smart-wallet unactivated (requires Etherfuse agreement)',
         ),
       ],
     ),
@@ -122,30 +122,30 @@ class DemoPayrollRepository implements PayrollRepository {
           employeeName: 'Bunch Dillon',
           country: 'NG',
           targetCurrency: Currency.ngn,
-          destinationStablecoin: 'CNGN',
+          destinationStablecoin: 'NGN',
           targetAmount: Money.fromMajorString('3100000.00', Currency.ngn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 1550.0,
           status: 'COMPLETED',
           isRailActive: true,
-          railValidationMessage: 'CNGN Settled on BMONI Rails',
+          railValidationMessage: 'NGN Settled on Stellar',
           proposalId: 'prop_demo_ng_7701',
-          transactionHash: '0x8f2d...cngn_aug_receipt',
+          transactionHash: '35811808802eb94098aed3ebccff2b7e1b3d6d29346b5a6954372b87d2767874',
         ),
         PayrollItemModel(
           employeeId: 'emp_samson_jabo',
           employeeName: 'Samson Jabo',
           country: 'MX',
           targetCurrency: Currency.mxn,
-          destinationStablecoin: 'MEXe',
+          destinationStablecoin: 'MXN',
           targetAmount: Money.fromMajorString('35000.00', Currency.mxn),
           usdAmount: Money.fromMajorString('2000.00', Currency.usd),
           exchangeRate: 17.5,
           status: 'COMPLETED',
           isRailActive: true,
-          railValidationMessage: 'MEXe Settled on BMONI Rails',
+          railValidationMessage: 'MXN Settled on Stellar',
           proposalId: 'prop_demo_mx_7702',
-          transactionHash: '0x9b10...mexe_aug_receipt',
+          transactionHash: '0100d5d98db66c0a21e105e775bc34c1c7f93b0ab4e836982920b87ada7339ed',
         ),
       ],
     ),
@@ -160,7 +160,7 @@ class DemoPayrollRepository implements PayrollRepository {
   @override
   Future<PayrollRunModel> executePayrollRun({
     required String runId,
-    required String signature,
+    required Map<String, String> signedBatches,
   }) async {
     // Deterministic simulation matching demo-mode spec:
     // Fast, reliable, no external sandbox dependency
@@ -179,9 +179,9 @@ class DemoPayrollRepository implements PayrollRepository {
         exchangeRate: i.exchangeRate,
         status: 'COMPLETED',
         isRailActive: true,
-        railValidationMessage: '${i.destinationStablecoin} Settled on BMONI Rails',
+        railValidationMessage: 'Demo simulation — no real money moved',
         proposalId: 'prop_demo_${i.country.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
-        transactionHash: '0x7e81...demo_${i.destinationStablecoin.toLowerCase()}_fanout_receipt',
+        transactionHash: 'demo_tx_${i.employeeId}',
       );
     }).toList();
 
@@ -205,41 +205,6 @@ class DemoPayrollRepository implements PayrollRepository {
 
     _runs.insert(0, completedRun);
     return completedRun;
-  }
-
-  @override
-  Future<PayrollItemModel> retryFailedProposal({
-    required String proposalId,
-    required String employeeId,
-    required String pin,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    // Per BMONI docs: Calling approve again restarts the workflow for this single proposal
-    return PayrollItemModel(
-      employeeId: employeeId,
-      employeeName: 'Retried Employee',
-      country: 'NG',
-      targetCurrency: demoCurrencyForId(employeeId),
-      destinationStablecoin: demoStablecoinForId(employeeId),
-      targetAmount: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).targetAmount,
-      usdAmount: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).usdAmount,
-      exchangeRate: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).exchangeRate,
-      status: 'COMPLETED',
-      isRailActive: true,
-      railValidationMessage: 'Successfully Retried & Settled on BMONI Rails',
-      proposalId: proposalId,
-      transactionHash: '0x7e81...retry_${DateTime.now().millisecondsSinceEpoch}',
-    );
-  }
-
-  dynamic demoCurrencyForId(String employeeId) {
-    final match = DemoData.getPayrollPreview().items.where((i) => i.employeeId == employeeId);
-    return match.isNotEmpty ? match.first.targetCurrency : DemoData.getPayrollPreview().items.first.targetCurrency;
-  }
-
-  String demoStablecoinForId(String employeeId) {
-    final match = DemoData.getPayrollPreview().items.where((i) => i.employeeId == employeeId);
-    return match.isNotEmpty ? match.first.destinationStablecoin : 'CNGN';
   }
 
   @override

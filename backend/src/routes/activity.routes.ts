@@ -1,49 +1,17 @@
+import { authedUserId } from '../auth/session.js';
 import { Router } from 'express';
 import { prisma, isPostgresDb } from '../db/index.js';
 
 export const activityRouter = Router();
 
-// In-memory fallback activities for sandbox / offline / when DB is disconnected
-const inMemoryActivities: any[] = [
-  {
-    id: 'act_seed_01',
-    category: 'PERSONAL',
-    action: 'TRANSFER_COMPLETED',
-    actor: 'usr_flowpay_sandbox_master',
-    detailsJson: {
-      transferId: 'prop_mock_01',
-      recipient: 'Bunch Dillon',
-      amount: '250.00',
-      currency: 'USD',
-      status: 'COMPLETED',
-    },
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 'act_seed_02',
-    category: 'SYSTEM',
-    action: 'WALLET_PROVISIONED',
-    actor: 'BMONI_SYSTEM',
-    detailsJson: {
-      walletId: 'sw_usdb_sandbox_01',
-      currency: 'USD',
-      network: 'Base Sepolia',
-    },
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 'act_seed_03',
-    category: 'BUSINESS',
-    action: 'PAYROLL_PROPOSAL_CREATED',
-    actor: 'usr_flowpay_sandbox_master',
-    detailsJson: {
-      runId: 'payrun_seed_01',
-      employeeCount: 2,
-      totalUsdFormatted: '$4,200.00',
-    },
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
+// In-memory activity log (also the fallback when Postgres is not connected). Starts empty:
+// only real events are ever recorded.
+const inMemoryActivities: any[] = [];
+
+/** Read-only view for tests and diagnostics. */
+export function listInMemoryActivities(): readonly any[] {
+  return inMemoryActivities;
+}
 
 export function recordInMemoryActivity(activity: any): void {
   inMemoryActivities.unshift(activity);
@@ -59,68 +27,29 @@ activityRouter.get('/', async (req, res, next) => {
   try {
     const category = req.query.category as string | undefined;
     const search = req.query.search as string | undefined;
-    const userId = (req.query.userId as string | undefined) || (req.headers['x-user-id'] as string | undefined);
+    const userId = authedUserId(req);
 
+    // Every event is recorded once per involved user (sender, recipient, employer…)
+    // with that user as `actor`, so a user's feed is exactly their own rows.
+    const categoryFilter = category ? { category: category.toUpperCase() } : {};
     let rows: any[] = [];
+    let fromDb = false;
     if (isPostgresDb()) {
       try {
         rows = await prisma.auditActivity.findMany({
-          where: category ? { category: category.toUpperCase() } : undefined,
+          where: { actor: userId, ...categoryFilter },
           orderBy: { createdAt: 'desc' },
-          take: 100,
+          take: 500,
         });
+        fromDb = true;
       } catch (dbErr) {
         console.warn('[Activity] DB read failed, using in-memory store fallback:', dbErr);
       }
     }
-
-    if (rows.length === 0) {
-      let list = inMemoryActivities;
-      if (category) {
-        list = list.filter((a) => a.category?.toUpperCase() === category.toUpperCase());
-      }
-      rows = list;
-    }
-
-    if (userId) {
-      const userLower = userId.toLowerCase().trim();
-      rows = rows.filter((a) => {
-        const actor = (a.actor || '').toLowerCase().trim();
-        const details = a.detailsJson ?? {};
-        const recipient = (details.recipient || '').toLowerCase().trim();
-        const recipientUserId = (details.recipientUserId || '').toLowerCase().trim();
-        const sender = (details.sender || '').toLowerCase().trim();
-        const counterparty = (details.counterparty || '').toLowerCase().trim();
-        const targetUserId = (details.userId || '').toLowerCase().trim();
-
-        const action = (a.action || '').toUpperCase();
-
-        if (action === 'TRANSFER_RECEIVED') {
-          return actor === userLower || recipient === userLower || recipientUserId === userLower;
-        }
-
-        if (action === 'TRANSFER_COMPLETED' || action === 'TRANSFER_SENT') {
-          return actor === userLower || sender === userLower;
-        }
-
-        // Direct ownership or participation
-        if (actor === userLower || targetUserId === userLower) {
-          return true;
-        }
-
-        // If actor is system, only include if user is explicitly involved
-        if (actor === 'bmoni_system' || actor === 'system') {
-          return (
-            recipient === userLower ||
-            recipientUserId === userLower ||
-            sender === userLower ||
-            counterparty === userLower ||
-            targetUserId === userLower
-          );
-        }
-
-        return false;
-      });
+    if (!fromDb) {
+      rows = inMemoryActivities.filter(
+        (a) => a.actor === userId && (!category || a.category?.toUpperCase() === category.toUpperCase())
+      );
     }
 
     if (search) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/repositories/employee_repository.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/amount_display.dart';
 import '../../../core/design_system/dialogs.dart';
@@ -43,11 +44,7 @@ class TransactionDetailSheet extends StatelessWidget {
     final textSecondaryColor =
         isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
 
-    final flag = transaction.country == 'NG'
-        ? '🇳🇬'
-        : (transaction.country == 'MX'
-            ? '🇲🇽'
-            : (transaction.country == 'CA' ? '🇨🇦' : '🌐'));
+    final flag = EmployeeModel.flagForCountry(transaction.country);
 
     return Container(
       decoration: BoxDecoration(
@@ -160,8 +157,8 @@ class TransactionDetailSheet extends StatelessWidget {
                 _buildRow(context, 'Date & Time', _formatDate(transaction.timestamp)),
                 if (transaction.flowpayReference != null)
                   _buildRowWithCopy(context, 'FlowPay Reference', transaction.flowpayReference!),
-                if (transaction.bmoniReference != null)
-                  _buildRowWithCopy(context, 'Payment Reference', transaction.bmoniReference!),
+                if (transaction.networkReference != null)
+                  _buildRowWithCopy(context, 'Payment Reference', transaction.networkReference!),
                 if (transaction.description.isNotEmpty)
                   _buildRow(context, 'Description', transaction.description),
               ],
@@ -306,7 +303,7 @@ class TransactionDetailSheet extends StatelessWidget {
                 InkWell(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: value));
-                    BMoniToastOverlay.showSuccess(
+                    FlowPayToastOverlay.showSuccess(
                       context: context,
                       title: 'Copied',
                       message: '$label copied to clipboard.',

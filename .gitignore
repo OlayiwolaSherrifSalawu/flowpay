@@ -56,3 +56,6 @@ yarn-error.log*
 # Pitch deck & presentation exports
 deck/
 *.pdf
+
+# Editor
+.vscode/
