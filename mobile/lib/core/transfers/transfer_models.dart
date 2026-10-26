@@ -77,22 +77,31 @@ class TransferExecutionResult {
   final DateTime timestamp;
   final String? auditActivityId;
 
+  /// Block-explorer link for [transactionHash], when settled on Stellar.
+  final String? explorerUrl;
+
   const TransferExecutionResult({
     required this.proposalId,
     required this.status,
     required this.transactionHash,
     required this.timestamp,
     this.auditActivityId,
+    this.explorerUrl,
   });
+
+  bool get isCompleted => status == 'COMPLETED';
+  bool get isPending => status == 'PENDING';
 
   factory TransferExecutionResult.fromJson(Map<String, dynamic> json) {
     return TransferExecutionResult(
       proposalId: json['proposalId']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'COMPLETED',
+      // Never assume success: a missing status is UNKNOWN.
+      status: json['status']?.toString() ?? 'UNKNOWN',
       transactionHash: json['transactionHash']?.toString() ?? '',
       timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ??
           DateTime.now(),
       auditActivityId: json['auditActivityId']?.toString(),
+      explorerUrl: json['explorerUrl']?.toString(),
     );
   }
 }

@@ -1,170 +1,97 @@
-import { Router } from 'express';
-import { WalletService } from '../modules/wallets/service.js';
+import { Router, type Request } from 'express';
+import { InvalidRequestError } from '../core/errors.js';
+import { StellarAccountService } from '../stellar/accounts.js';
+import { issueOwnershipChallenge, verifyOwnershipChallenge } from '../stellar/challenge.js';
+import { accountForUser, linkAccount } from '../stellar/directory.js';
+import { fetchPaymentHistory } from '../stellar/history.js';
 
+/**
+ * Wallets = the user's Stellar account. Balances are read from the network; nothing
+ * here keeps its own ledger.
+ */
 export const walletsRouter = Router();
+const accounts = new StellarAccountService();
+
+// TODO(M7): replace header-based identity with authenticated sessions.
+function requestUserId(req: Request): string {
+  const userId = (req.query.userId as string) || (req.body?.userId as string) || (req.headers['x-user-id'] as string);
+  if (!userId) throw new InvalidRequestError('userId is required.');
+  return userId;
+}
+
+async function walletsFor(userId: string) {
+  const accountId = await accountForUser(userId);
+  if (!accountId) return { accountId: null, wallets: [] as any[] };
+  const summary = await accounts.getSummary(accountId);
+  return {
+    accountId,
+    wallets: summary.balances.map((b) => ({
+      id: `${accountId}:${b.currency}`,
+      address: accountId,
+      currency: b.currency,
+      balance: b.balance.toMajorString(),
+      balanceMinor: b.balance.amountMinor.toString(),
+      status: 'active',
+    })),
+  };
+}
+
+// GET /api/wallets — one entry per enabled currency on the user's linked Stellar account.
+walletsRouter.get('/', async (req, res, next) => {
+  try {
+    res.json({ success: true, data: (await walletsFor(requestUserId(req))).wallets });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // GET /api/wallets/balances
 walletsRouter.get('/balances', async (req, res, next) => {
   try {
-    const userId =
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const balances = await WalletService.getBalances(userId);
-    res.json({ success: true, data: balances });
+    const { wallets } = await walletsFor(requestUserId(req));
+    res.json({ success: true, data: wallets.map((w) => ({ currency: w.currency, balance: w.balance, balanceMinor: w.balanceMinor })) });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/wallets
-walletsRouter.get('/', async (req, res, next) => {
+// POST /api/wallets/challenge { userId, accountId } → message for the device to sign.
+walletsRouter.post('/challenge', (req, res, next) => {
   try {
-    const userId =
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const wallets = await WalletService.getWallets(userId);
-    res.json({ success: true, data: wallets });
+    const accountId = String(req.body?.accountId ?? '');
+    res.json({ success: true, data: issueOwnershipChallenge(accountId, requestUserId(req)) });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/wallets/register
+// POST /api/wallets/register { userId, accountId, message, signature } — links a PROVEN account.
 walletsRouter.post('/register', async (req, res, next) => {
   try {
-    const { userId, address } = req.body;
-    const effectiveUserId =
-      userId ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const wallets = await WalletService.registerUserWallet(effectiveUserId, address);
-    res.json({ success: true, data: wallets });
+    const userId = requestUserId(req);
+    const accountId = String(req.body?.accountId ?? req.body?.address ?? '');
+    const { message, signature } = req.body ?? {};
+    if (typeof message !== 'string' || typeof signature !== 'string') {
+      throw new InvalidRequestError('message and signature from /api/wallets/challenge are required.');
+    }
+    verifyOwnershipChallenge({ message, signatureHex: signature, accountId, userId });
+    await linkAccount(userId, accountId);
+    res.json({ success: true, data: { userId, accountId, linked: true } });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/wallets/owner-proof-challenge
-walletsRouter.post('/owner-proof-challenge', async (req, res, next) => {
+// GET /api/wallets/transactions?limit=&cursor= — payment history from Horizon.
+walletsRouter.get('/transactions', async (req, res, next) => {
   try {
-    const { userId, currency, userOwnerAddress } = req.body;
-    const challenge = await WalletService.createOwnerProofChallenge({
-      userId: userId || 'usr_flowpay_sandbox_master',
-      currency: currency || 'USDB',
-      userOwnerAddress,
+    const accountId = await accountForUser(requestUserId(req));
+    if (!accountId) return res.json({ success: true, data: { items: [], nextCursor: null } });
+    const history = await fetchPaymentHistory(accountId, {
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+      cursor: req.query.cursor as string | undefined,
     });
-    res.json({ success: true, data: challenge });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// POST /api/wallets/create-managed
-walletsRouter.post('/create-managed', async (req, res, next) => {
-  try {
-    const wallet = await WalletService.createManagedWallet(req.body);
-    res.json({ success: true, data: wallet });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /api/wallets/:walletId/balance
-walletsRouter.get('/:walletId/balance', async (req, res, next) => {
-  try {
-    const userId =
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const balance = await WalletService.getWalletBalance(req.params.walletId, userId);
-    res.json({ success: true, data: balance });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// POST /api/wallets/:walletId/debit
-walletsRouter.post('/:walletId/debit', async (req, res, next) => {
-  try {
-    const { amount, userId } = req.body;
-    const num = parseFloat(amount) || 0;
-    const effectiveUser =
-      userId ||
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const ok = await WalletService.debitWallet(req.params.walletId, num, effectiveUser);
-    res.json({ success: ok, data: { walletId: req.params.walletId, debited: num } });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// POST /api/wallets/:walletId/credit
-walletsRouter.post('/:walletId/credit', async (req, res, next) => {
-  try {
-    const { amount, userId } = req.body;
-    const num = parseFloat(amount) || 0;
-    const effectiveUser =
-      userId ||
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const ok = await WalletService.creditWallet(req.params.walletId, num, effectiveUser);
-    res.json({ success: ok, data: { walletId: req.params.walletId, credited: num } });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /api/wallets/:walletId/transactions
-walletsRouter.get('/:walletId/transactions', async (req, res, next) => {
-  try {
-    const userId =
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.pageSize as string) || 20;
-    const txData = await WalletService.getWalletTransactions(req.params.walletId, userId, page, pageSize);
-    res.json({ success: true, data: txData });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// GET /api/wallets/:walletId
-walletsRouter.get('/:walletId', async (req, res, next) => {
-  try {
-    const userId =
-      (req.query.userId as string) ||
-      (req.headers['x-user-id'] as string) ||
-      'usr_flowpay_sandbox_master';
-    const wallet = await WalletService.getWalletDetail(req.params.walletId, userId);
-    res.json({ success: true, data: wallet });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// POST /api/wallets/issue-card (Prepares for Prompt 12 card issuance)
-walletsRouter.post('/issue-card', async (req, res, next) => {
-  try {
-    const { employeeId, walletId, currency, cardType } = req.body;
-    res.json({
-      success: true,
-      data: {
-        cardId: `card_${Date.now()}`,
-        walletId: walletId || 'sw_default',
-        currency: currency || 'USDB',
-        type: cardType || 'virtual',
-        status: 'active',
-        cardLast4: '4289',
-        cardHolderName: req.body.cardHolderName || 'Employee',
-      },
-    });
+    res.json({ success: true, data: history });
   } catch (err) {
     next(err);
   }

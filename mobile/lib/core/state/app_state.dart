@@ -7,8 +7,8 @@ import '../providers/bmoni/bmoni_card_repo.dart';
 import '../providers/bmoni/bmoni_employee_repo.dart';
 import '../providers/bmoni/bmoni_mission_repo.dart';
 import '../providers/bmoni/bmoni_payroll_repo.dart';
-import '../providers/bmoni/bmoni_transfer_repo.dart';
-import '../providers/bmoni/bmoni_wallet_repo.dart';
+import '../providers/stellar/stellar_transfer_repo.dart';
+import '../providers/stellar/stellar_wallet_repo.dart';
 import '../providers/demo/demo_activity_repo.dart';
 import '../providers/demo/demo_approval_repo.dart';
 import '../providers/demo/demo_business_audit_repo.dart';
@@ -68,10 +68,11 @@ class AppState extends ChangeNotifier {
   );
 
   // BMONI Live Repositories (connected to FlowPay backend & Supabase DB)
-  late final BmoniWalletRepository _bmoniWallet =
-      BmoniWalletRepository(apiClient: _apiClient);
-  late final BmoniTransferRepository _bmoniTransfer =
-      BmoniTransferRepository(apiClient: _apiClient);
+  // Stellar: wallets & transfers settle on the Stellar network.
+  late final StellarWalletRepository _bmoniWallet =
+      StellarWalletRepository(apiClient: _apiClient);
+  late final StellarTransferRepository _bmoniTransfer =
+      StellarTransferRepository(apiClient: _apiClient);
   late final BmoniCardRepository _bmoniCard =
       BmoniCardRepository(apiClient: _apiClient);
   late final BmoniEmployeeRepository _bmoniEmployee =

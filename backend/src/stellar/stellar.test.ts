@@ -183,3 +183,43 @@ test('StellarAccountService.fundWithFriendbot - already-funded is not an error; 
   await assert.rejects(svc.fundWithFriendbot(id, broken as any), (e: any) => e.code === 'STELLAR_FRIENDBOT_FAILED');
   await assert.rejects(svc.fundWithFriendbot('nope', already as any), /valid Stellar account/);
 });
+
+// ── payment history mapping ──────────────────────────────────────────────────
+
+const { mapPaymentRecord } = await import('./history.js');
+
+test('history - incoming payment of a FlowPay asset is labelled with its currency', () => {
+  const me = Keypair.random().publicKey();
+  const them = Keypair.random().publicKey();
+  const item = mapPaymentRecord(me, {
+    id: '1', paging_token: 'p1', type: 'payment', from: them, to: me, amount: '25.0000000',
+    asset_type: 'credit_alphanum4', asset_code: 'USD', asset_issuer: ISSUER,
+    transaction_hash: 'ab'.repeat(32), created_at: '2026-10-26T10:00:00Z', transaction_successful: true,
+    transaction: { memo_type: 'text', memo: 'rent' },
+  });
+  assert.strictEqual(item?.direction, 'incoming');
+  assert.strictEqual(item?.currency, 'USD');
+  assert.strictEqual(item?.counterparty, them);
+  assert.strictEqual(item?.memo, 'rent');
+  assert.match(item!.explorerUrl, /stellar\.expert\/explorer\/testnet\/tx\//);
+});
+
+test('history - outgoing path payment shows what I sent and what they received', () => {
+  const me = Keypair.random().publicKey();
+  const item = mapPaymentRecord(me, {
+    id: '2', paging_token: 'p2', type: 'path_payment_strict_receive', from: me, to: Keypair.random().publicKey(),
+    amount: '500000.0000000', asset_type: 'credit_alphanum4', asset_code: 'NGN', asset_issuer: ISSUER,
+    source_amount: '446.5100000', source_asset_type: 'credit_alphanum4', source_asset_code: 'CAD', source_asset_issuer: ISSUER,
+    transaction_hash: 'cd'.repeat(32), created_at: '2026-10-26T10:00:00Z',
+  });
+  assert.strictEqual(item?.direction, 'outgoing');
+  assert.deepStrictEqual([item?.amount, item?.currency, item?.counterAmount, item?.counterCurrency], ['446.5100000', 'CAD', '500000.0000000', 'NGN']);
+});
+
+test('history - account creation and unrelated operations', () => {
+  const me = Keypair.random().publicKey();
+  const created = mapPaymentRecord(me, { id: '3', paging_token: 'p3', type: 'create_account', account: me, funder: 'GFRIEND', starting_balance: '10000', transaction_hash: 'ef'.repeat(32), created_at: 'x' });
+  assert.strictEqual(created?.type, 'account_created');
+  assert.strictEqual(created?.currency, 'XLM');
+  assert.strictEqual(mapPaymentRecord(me, { type: 'change_trust' }), null);
+});

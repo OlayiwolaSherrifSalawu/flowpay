@@ -83,6 +83,15 @@ removed completely.
   * Tests: `test/flutter_test_config.dart` gives every test a fresh in-memory vault; `test/helpers/test_wallet.dart`; `test/wallet_service_test.dart` rewritten around real crypto (signatures verified with the SDK). Opt-in live test `test/live/stellar_live_test.dart` (`LIVE_STELLAR=1`) — verified device-signed trustline tx accepted on testnet (`e1b1277a…`). Flutter 179/179, analyzer clean, `flutter build web` OK.
   * **Security note (honest limits)**: a 6-digit PIN has 10^6 combinations, so the KDF alone cannot stop an offline brute force if the encrypted blob is exfiltrated; protection relies on OS keychain/keystore + lockout. On **web**, secure storage is browser storage — weaker. Planned: optional longer passphrase on web, and recovery-key backup prompt in onboarding (M7/M8).
 
+* [x] **M3a — Wallets & transfers**:
+  * Backend: `stellar/challenge.ts` (HMAC'd, 5-min, single-use ownership challenge; ed25519 verify), `stellar/directory.ts` (user ↔ account link; **strict** recipient resolution: G-address, federation `name*domain`, exact email/phone/full-name; ambiguous → error), `stellar/payments.ts` (live funding quotes via path-finding, 1% sendMax slippage cap, unsigned payment / `pathPaymentStrictReceive` with ≤28-byte memo), `stellar/faucet.ts` (testnet-only test funds, anti-farming threshold), `stellar/history.ts` (Horizon payments → normalized history).
+  * `modules/transfers/service.ts` rewritten: proposal ID = tx hash; execute requires signed-tx hash == proposal (no swapping), single use, per-user; COMPLETED only on Horizon success; PENDING (202) on timeout; FAILED recorded with result codes. Fake in-memory wallet ledger (`modules/wallets/service.ts`) **deleted**; wallet routes read the chain.
+  * Routes: `/api/wallets` (GET, `/balances`, `/challenge`, `/register` [requires signed challenge], `/transactions`), `/api/transfers` (`/interpret`, `/recipient`, `/inspect-balances`, `/propose`, `/execute`, `/rates` [live]), `/api/stellar/accounts/:id/payments`, `/api/stellar/accounts/:id/faucet`.
+  * Prisma: `User.stellarAccountId` — **apply `backend/prisma/sql/2026-10-26_add_stellar_account_id.sql` to Supabase before deploying** (not applied to prod by the agent).
+  * Mobile: `core/stellar/stellar_api.dart`, `stellar_activation.dart` (link → create → trustlines → test USD, each step honest & re-runnable), `providers/stellar/stellar_wallet_repo.dart` + `stellar_transfer_repo.dart` (no fallbacks), `ApiException` + 45s timeouts in `FlowPayApiClient`, `ReceiveSheet` (real address + QR via `qr_flutter` 4.1.0, testnet "Get test funds"), activation in `SetPinScreen` + "Activate wallet" state in Wallets, send-money signs the real XDR, receipt shows PENDING + explorer link.
+  * Signup/KYC no longer send PII to BMONI.
+  * Verified live (`test/live/stellar_transfer_live_test.dart`): two users activated; $25 USD by email (`24515f8b…`); ₦10,000 funded from USD via path payment (`14b58a5f…`); on-chain balances asserted. Backend 141/141, Flutter 179/179 (+2 opt-in live), analyzer clean.
+
 ## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
 
 * **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
@@ -92,13 +101,20 @@ removed completely.
 * `personal_provider.approveAction` signs a hardcoded constant hash and discards the signature (signing theatre) — replace with real Stellar tx in M3.
 * Employer-assisted onboarding (`EmployeeOnboardingScreen` stage 2) now refuses until the employee has created their own wallet — redesign in M5.
 * New-device login: user has no local wallet → needs "restore from recovery key" UX (M7/M8).
+* ~~Fixed in M3a~~: backend `executeTransfer` fabricated tx hashes + COMPLETED for any non-BMONI proposal, credited an in-memory ledger, and **invented recipients** (name contains "bunch" → hardcoded Nigerian user; unknown names → `usr_<name>`); mobile live wallet repo showed invented balances ($24,500 etc.) on any error, signed with `'0x_signed_challenge_placeholder'`, debit/credit always `true`; mobile transfer repo returned `'EXECUTED'`/`'0x_bmoni_onchain_settled'`, fixed proposal hash fallback, hardcoded fees, prompt parser defaulted to **$500**; `TransferExecutionResult.fromJson` defaulted status to COMPLETED; fuzzy recipient match (`fullName.includes`); unauthenticated `/api/wallets/register` could redirect anyone's incoming funds; "Receive" sheet credited arbitrary amounts from nowhere; wallets screen spinner hung forever on error, invented a 15% "reserved" split, and showed "Waffiyyi Fashola" on every user's card; `validateIntent` errors were 500s; EUR accepted/GBP rejected; no HTTP timeouts; signup/KYC sent PII to BMONI with fabricated defaults (DOB 1992-04-18, "14 Admiralty Way").
+* **HIGH — KYC is self-certified**: `/api/auth/kyc` always returns VERIFIED and the app marks the profile verified client-side regardless. Replace with anchor SEP-12 verification (M5).
+* **HIGH — mission execution moves no money** (records COMPLETED, used a hardcoded signature on manual trigger) and missions are **not user-scoped** (`listMissions()` returns everyone's) — M3b.
+* `backend/.env` points at the **production Supabase DB**; local runs/tests must override `DATABASE_URL` (live tests use an unreachable URL → in-memory).
+* `FlowPayApiClient` defaults userId to `usr_flowpay_sandbox_master` (M7 auth).
+* `Currency.fromCode` silently maps unknown codes to USD (Stellar layer uses strict `stellarCurrencyFor`; audit remaining callers in M7).
 * `config/env.ts` ships a real BMONI API key and a personal SMTP address as defaults — removed in M6.
 
 ## 🎯 5. Milestone Plan (each milestone = one pushed commit set, tests green)
 
 * [x] **M1 — Stellar backend core** (see §4).
 * [x] **M2 — On-device keys & signing** (see §4).
-* [ ] **M3 — Wallets & transfers**: balances, receive (account ID + QR), same-currency payments, cross-currency path payments, activity from Horizon operations.
+* [x] **M3a — Wallets & transfers** (see §4).
+* [ ] **M3b — Missions, AI operator & FX convert on Stellar**: shared multi-op tx builder; mission allocations → one atomic tx (TRANSFER = payment/path payment, CONVERT_FX = path payment to self, SWEEP_VAULT = time-locked claimable balance to self); user-scope missions; approvals sign real txs.
 * [ ] **M4 — Atomic multi-country payroll**: batched path payments, preview with live path quotes, real hashes + explorer links.
 * [ ] **M5 — Employees, KYC & anchors**: invite → employee creates wallet on device → account linked; SEP-10/12/24 cash-out on testanchor.
 * [ ] **M6 — Remove BMONI entirely**: client, webhooks, packages, cards module, copy; DB `bmoniUserId` → `stellarAccountId`.

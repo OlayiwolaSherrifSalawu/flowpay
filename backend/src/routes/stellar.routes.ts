@@ -3,6 +3,8 @@ import { InvalidRequestError, StellarSubmitTimeoutError } from '../core/errors.j
 import { StellarAccountService, type AccountSummary } from '../stellar/accounts.js';
 import { assetFor, explorerTxUrl, getNetworkConfig, isStellarCurrency, STELLAR_CURRENCIES, type StellarCurrency } from '../stellar/config.js';
 import { StellarHorizon } from '../stellar/horizon.js';
+import { claimTestFunds } from '../stellar/faucet.js';
+import { fetchPaymentHistory } from '../stellar/history.js';
 
 /**
  * Stellar network endpoints. These only read public chain state, build UNSIGNED
@@ -60,6 +62,34 @@ stellarRouter.get('/accounts/:accountId', async (req, res, next) => {
 stellarRouter.post('/accounts/:accountId/fund', async (req, res, next) => {
   try {
     res.json({ success: true, data: await accounts.fundWithFriendbot(req.params.accountId) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/stellar/accounts/:accountId/payments?limit=&cursor= — on-chain payment history.
+stellarRouter.get('/accounts/:accountId/payments', async (req, res, next) => {
+  try {
+    const history = await fetchPaymentHistory(req.params.accountId, {
+      limit: req.query.limit ? Number(req.query.limit) : undefined,
+      cursor: req.query.cursor as string | undefined,
+    });
+    res.json({ success: true, data: history });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/stellar/accounts/:accountId/faucet { currency } — TESTNET test funds only.
+stellarRouter.post('/accounts/:accountId/faucet', async (req, res, next) => {
+  try {
+    const currency = String(req.body?.currency ?? 'USD').toUpperCase();
+    if (!isStellarCurrency(currency)) throw new InvalidRequestError(`currency must be one of ${STELLAR_CURRENCIES.join(', ')}`);
+    const result = await claimTestFunds(horizon, req.params.accountId, currency as StellarCurrency);
+    res.json({
+      success: true,
+      data: { ...result, amount: result.amount.toMajorString(), currency, testnet: true, explorerUrl: explorerTxUrl(result.hash) },
+    });
   } catch (err) {
     next(err);
   }

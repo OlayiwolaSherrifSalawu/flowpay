@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
+import '../../core/network/api_client.dart';
+import '../../core/stellar/stellar_activation.dart';
+import '../../core/stellar/stellar_api.dart';
 import '../../core/wallet/wallet_service.dart';
 import '../../core/config/api_config.dart';
 import '../../core/design_system/design_system.dart';
@@ -34,6 +37,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
   String _initialPin = '';
   String _confirmPin = '';
   bool _isConfirming = false;
+  String? _activationStatus;
   bool _isSettingUp = false;
   String? _errorMessage;
 
@@ -122,23 +126,18 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
 
       final storage = ref.read(secureStorageServiceProvider);
 
-      // 2. Register the wallet's public account ID with the FlowPay backend.
-      try {
-        if (!SecureStorageService.isTestEnv) {
-          await http.post(
-            Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
-            headers: {
-              'Content-Type': 'application/json',
-              'x-user-id': widget.userProfile.userId,
-            },
-            body: jsonEncode({
-              'userId': widget.userProfile.userId,
-              'address': walletAddr,
-            }),
-          ).timeout(const Duration(seconds: 4));
+      // 2. Activate on Stellar: prove ownership + link to this user, create the
+      //    account (testnet: Friendbot), enable currencies, claim test USD.
+      ActivationReport? activation;
+      if (!SecureStorageService.isTestEnv) {
+        setState(() => _activationStatus = 'Activating your wallet on Stellar…');
+        try {
+          activation = await StellarActivation(
+            api: StellarApi(FlowPayApiClient(userId: widget.userProfile.userId)),
+          ).activate(pin: _initialPin);
+        } catch (e) {
+          debugPrint('[SetPinScreen] activation error: $e');
         }
-      } catch (regErr) {
-        debugPrint('[SetPinScreen] register wallet notice: $regErr');
       }
 
       // 3. Link employee's self-custody wallet to payroll roster if invite flow.
@@ -178,6 +177,17 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           .loginAsPersona(widget.userProfile);
 
       if (!mounted) return;
+      if (activation != null && !activation.isActive) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: FlowPayColors.warning,
+            content: Text(
+              'Your wallet was created but isn\'t fully activated yet. Open Wallets to finish activation.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+      }
       if (employeeLinked != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -391,7 +401,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                               color: FlowPayColors.primary),
                           const SizedBox(height: 12),
                           Text(
-                            'Setting up your secure wallet...',
+                            _activationStatus ?? 'Setting up your secure wallet...',
                             style: TextStyle(
                                 fontSize: 13, color: textSecondary),
                           ),

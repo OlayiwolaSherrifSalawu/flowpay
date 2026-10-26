@@ -45,6 +45,11 @@ const inMemoryActivities: any[] = [
   },
 ];
 
+/** Read-only view for tests and diagnostics. */
+export function listInMemoryActivities(): readonly any[] {
+  return inMemoryActivities;
+}
+
 export function recordInMemoryActivity(activity: any): void {
   inMemoryActivities.unshift(activity);
   if (inMemoryActivities.length > 100) {

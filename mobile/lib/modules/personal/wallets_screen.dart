@@ -1,9 +1,13 @@
+import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
+import '../../core/stellar/stellar_activation.dart';
+import '../../core/auth/auth_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/stellar/stellar_api.dart';
+import 'components/receive_sheet.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
-import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/wallet_repository.dart';
 import '../../core/state/app_state.dart';
 import 'send_money_screen.dart';
@@ -29,6 +33,8 @@ class WalletsScreen extends StatefulWidget {
 class _WalletsScreenState extends State<WalletsScreen> {
   List<WalletAccount> wallets = [];
   bool isLoading = true;
+  String? _loadError;
+  bool _activating = false;
   int _selectedWalletIndex = 0;
   late final PageController _pageController;
 
@@ -54,9 +60,13 @@ class _WalletsScreenState extends State<WalletsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => isLoading = true);
-    final list = await widget.appState.walletRepo.getWallets();
-    if (mounted) {
+    setState(() {
+      isLoading = true;
+      _loadError = null;
+    });
+    try {
+      final list = await widget.appState.walletRepo.getWallets();
+      if (!mounted) return;
       setState(() {
         wallets = list;
         if (_selectedWalletIndex >= wallets.length) {
@@ -64,7 +74,68 @@ class _WalletsScreenState extends State<WalletsScreen> {
         }
         isLoading = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      // Never show stale or invented balances: surface the failure.
+      setState(() {
+        isLoading = false;
+        _loadError = 'Could not load your balances: $e';
+      });
     }
+  }
+
+  /// Finishes Stellar activation (link, create, enable currencies, test funds).
+  Future<void> _activateWallet() async {
+    final messenger = ScaffoldMessenger.of(context);
+    String? failure;
+    final result = await WalletPinAuthSheet.show(
+      context: context,
+      title: 'Activate your wallet',
+      subtitle: 'Enter your PIN to finish setting up your wallet on Stellar.',
+      onAuthorize: (pin) async {
+        setState(() => _activating = true);
+        try {
+          final report = await StellarActivation(api: StellarApi(widget.appState.apiClient)).activate(pin: pin);
+          if (!report.isActive) {
+            failure = report.failures.map((f) => f.error).whereType<String>().join('\n');
+          }
+          return 'activated';
+        } finally {
+          if (mounted) setState(() => _activating = false);
+        }
+      },
+    );
+    if (result == null || !mounted) return;
+    messenger.showSnackBar(SnackBar(
+      backgroundColor: failure == null ? FlowPayColors.success : FlowPayColors.warning,
+      content: Text(failure == null ? 'Your wallet is active on Stellar.' : 'Activation incomplete: $failure'),
+    ));
+    await _load();
+    widget.appState.personalProvider.refresh();
+  }
+
+  Widget _buildNotActiveState() {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 40),
+        const Icon(Icons.account_balance_wallet_outlined, size: 48, color: FlowPayColors.primary),
+        const SizedBox(height: 16),
+        Text(
+          _loadError ?? 'Your wallet isn\'t active on Stellar yet.',
+          key: const Key('wallets_not_active_message'),
+          textAlign: TextAlign.center,
+          style: FlowPayTypography.bodyMedium,
+        ),
+        const SizedBox(height: 20),
+        FlowPayButton(
+          key: const Key('wallets_activate_button'),
+          text: _loadError != null ? 'Try again' : 'Activate wallet',
+          isLoading: _activating,
+          onPressed: _activating ? null : (_loadError != null ? _load : _activateWallet),
+        ),
+      ],
+    );
   }
 
   void _handleSend(WalletAccount wallet) {
@@ -76,409 +147,13 @@ class _WalletsScreenState extends State<WalletsScreen> {
   }
 
   void _handleReceive(WalletAccount wallet) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final defaultAmount = wallet.currency == Currency.ngn
-        ? '100000'
-        : (wallet.currency == Currency.mxn ? '5000' : '500.00');
-    final amountController = TextEditingController(text: defaultAmount);
-    bool isDepositing = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark
-          ? FlowPayColors.darkSurfaceElevated
-          : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: FlowPayRadii.sheet,
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-          final quickAmounts = wallet.currency == Currency.ngn
-              ? ['50000', '100000', '250000', '500000']
-              : wallet.currency == Currency.mxn
-                  ? ['1000', '2500', '5000', '10000']
-                  : ['100', '250', '500', '1000'];
-
-          return Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 18,
-              bottom: bottomInset + 24,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? FlowPayColors.darkBorder
-                            : FlowPayColors.lightBorder,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            wallet.currency.flagEmoji,
-                            style: const TextStyle(fontSize: 22),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Receive ${wallet.currency.code}',
-                            style: FlowPayTypography.titleMedium.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.2,
-                              color: isDark
-                                  ? Colors.white
-                                  : FlowPayColors.lightTextPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? FlowPayColors.emerald600.withAlpha(30)
-                              : FlowPayColors.mint100,
-                          borderRadius: FlowPayRadii.chip,
-                          border: Border.all(
-                            color: isDark
-                                ? FlowPayColors.emerald400.withAlpha(60)
-                                : FlowPayColors.emerald600.withAlpha(40),
-                          ),
-                        ),
-                        child: Text(
-                          wallet.currency.code,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? FlowPayColors.emerald400
-                                : FlowPayColors.emerald700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Share your address or add test funds below.',
-                    style: FlowPayTypography.captionStyle(
-                      color: isDark
-                          ? FlowPayColors.darkTextSecondary
-                          : FlowPayColors.lightTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Wallet address box
-                  Text(
-                    'YOUR ACCOUNT ADDRESS',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                      color: isDark
-                          ? FlowPayColors.darkTextSecondary
-                          : FlowPayColors.lightTextSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? FlowPayColors.darkSurface
-                          : FlowPayColors.lightSurface,
-                      borderRadius: FlowPayRadii.cardSmall,
-                      border: Border.all(
-                        color: isDark
-                            ? FlowPayColors.darkBorder
-                            : FlowPayColors.lightBorder,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: SelectableText(
-                            wallet.address,
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? FlowPayColors.emerald400
-                                  : FlowPayColors.emerald700,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.copy_rounded,
-                            size: 16,
-                            color: isDark
-                                ? FlowPayColors.emerald400
-                                : FlowPayColors.emerald700,
-                          ),
-                          tooltip: 'Copy Address',
-                          onPressed: () {
-                            Clipboard.setData(
-                                ClipboardData(text: wallet.address));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Address copied to clipboard'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Simulate deposit section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? FlowPayColors.darkSurface
-                          : FlowPayColors.mint100.withAlpha(90),
-                      borderRadius: FlowPayRadii.cardSmall,
-                      border: Border.all(
-                        color: isDark
-                            ? FlowPayColors.emerald400.withAlpha(50)
-                            : FlowPayColors.emerald600.withAlpha(40),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.south_west_rounded,
-                              size: 16,
-                              color: isDark
-                                  ? FlowPayColors.emerald400
-                                  : FlowPayColors.emerald700,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'ADD TEST FUNDS',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                                color: isDark
-                                    ? FlowPayColors.emerald400
-                                    : FlowPayColors.emerald700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Quick amounts
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: quickAmounts.map((q) {
-                            final isSel = amountController.text == q;
-                            return InkWell(
-                              onTap: () {
-                                setModalState(() {
-                                  amountController.text = q;
-                                });
-                              },
-                              borderRadius: FlowPayRadii.chip,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 11, vertical: 7),
-                                decoration: BoxDecoration(
-                                  color: isSel
-                                      ? FlowPayColors.emerald600
-                                      : (isDark
-                                          ? FlowPayColors.darkSurfaceElevated
-                                          : Colors.white),
-                                  borderRadius: FlowPayRadii.chip,
-                                  border: Border.all(
-                                    color: isSel
-                                        ? FlowPayColors.emerald600
-                                        : (isDark
-                                            ? FlowPayColors.darkBorder
-                                            : FlowPayColors.lightBorder),
-                                  ),
-                                ),
-                                child: Text(
-                                  '+${wallet.currency.symbol}$q',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: isSel
-                                        ? Colors.white
-                                        : (isDark
-                                            ? Colors.white
-                                            : FlowPayColors.lightTextPrimary),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Amount input field
-                        TextField(
-                          controller: amountController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          decoration: InputDecoration(
-                            labelText:
-                                'Amount to receive (${wallet.currency.code})',
-                            prefixText: '${wallet.currency.symbol} ',
-                            filled: true,
-                            fillColor: isDark
-                                ? FlowPayColors.darkSurfaceElevated
-                                : Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: FlowPayRadii.input,
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? FlowPayColors.darkBorder
-                                    : FlowPayColors.lightBorder,
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: FlowPayRadii.input,
-                              borderSide: BorderSide(
-                                color: isDark
-                                    ? FlowPayColors.darkBorder
-                                    : FlowPayColors.lightBorder,
-                              ),
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderRadius: FlowPayRadii.input,
-                              borderSide: BorderSide(
-                                color: FlowPayColors.emerald600,
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Receive button
-                        FlowPayButton(
-                          text: isDepositing
-                              ? 'Depositing...'
-                              : '⚡ Receive Funds into Wallet',
-                          isFullWidth: true,
-                          isLoading: isDepositing,
-                          onPressed: isDepositing
-                              ? null
-                              : () async {
-                                  final numVal = double.tryParse(
-                                          amountController.text.trim()) ??
-                                      0.0;
-                                  if (numVal <= 0) return;
-
-                                  final messenger =
-                                      ScaffoldMessenger.of(context);
-                                  setModalState(() => isDepositing = true);
-                                  try {
-                                    final creditAmount =
-                                        Money.fromMajorString(
-                                      numVal.toStringAsFixed(2),
-                                      wallet.currency,
-                                    );
-
-                                    await widget.appState.walletRepo
-                                        .creditWallet(
-                                      walletId: wallet.id,
-                                      amount: creditAmount,
-                                    );
-
-                                    // Log incoming activity
-                                    try {
-                                      final act = ActivityModel(
-                                        id: 'act_rcv_${DateTime.now().millisecondsSinceEpoch}',
-                                        title:
-                                            'Received ${creditAmount.formatFormatted()}',
-                                        description:
-                                            'Deposit into ${wallet.currency.name} Wallet',
-                                        amount: creditAmount,
-                                        currency: wallet.currency,
-                                        type: ActivityType.transfer,
-                                        category: ActivityCategory.transfer,
-                                        status: FlowPayAppStatus.completed,
-                                        timestamp: DateTime.now(),
-                                        reference:
-                                            'DEP-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-                                      );
-                                      await widget.appState.activityRepo
-                                          .recordActivity(act);
-                                    } catch (_) {}
-
-                                    if (ctx.mounted) {
-                                      Navigator.pop(ctx);
-                                    }
-
-                                    // Refresh provider & screen
-                                    await widget.appState.personalProvider
-                                        .refresh();
-                                    await _load();
-
-                                    if (mounted) {
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                              'Successfully received ${creditAmount.formatFormatted()} into ${wallet.currency.name} Wallet!'),
-                                          backgroundColor:
-                                              FlowPayColors.success,
-                                        ),
-                                      );
-                                    }
-                                  } catch (err) {
-                                    setModalState(() => isDepositing = false);
-                                    if (mounted) {
-                                      messenger.showSnackBar(
-                                        SnackBar(
-                                          content:
-                                              Text('Deposit failed: $err'),
-                                          backgroundColor:
-                                              FlowPayColors.error,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    ReceiveSheet.show(
+      context,
+      accountId: wallet.address,
+      currency: wallet.currency,
+      // Test funds only in live (Stellar testnet) mode; demo mode has no network.
+      api: widget.appState.isDemo ? null : StellarApi(widget.appState.apiClient),
+      onFunded: () => widget.appState.personalProvider.refresh(),
     );
   }
 
@@ -538,25 +213,20 @@ class _WalletsScreenState extends State<WalletsScreen> {
     if (isLoading) {
       return const FlowPayLoadingState(message: 'Loading wallets...');
     }
+    if (!widget.appState.isDemo && (wallets.isEmpty || _loadError != null)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Wallets')),
+        body: _buildNotActiveState(),
+      );
+    }
 
     final activeWallet = wallets.isNotEmpty
         ? wallets[_selectedWalletIndex.clamp(0, wallets.length - 1)]
         : null;
 
-    Money? availableBal;
-    Money? reservedBal;
-    if (activeWallet != null) {
-      final totalBal = activeWallet.balance;
-      final reservedMajor = (totalBal.majorUnits * 0.15);
-      availableBal = Money.fromMajorString(
-        (totalBal.majorUnits - reservedMajor).toStringAsFixed(2),
-        activeWallet.currency,
-      );
-      reservedBal = Money.fromMajorString(
-        reservedMajor.toStringAsFixed(2),
-        activeWallet.currency,
-      );
-    }
+    // Stellar asset balances are fully spendable; nothing is held back.
+    final Money? availableBal = activeWallet?.balance;
+    final Money? reservedBal = activeWallet == null ? null : Money.zero(activeWallet.currency);
 
     Widget content = RefreshIndicator(
       onRefresh: _load,
@@ -580,16 +250,16 @@ class _WalletsScreenState extends State<WalletsScreen> {
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: FlowPayScallopedCard(
+                    child: Consumer(builder: (context, ref, _) => FlowPayScallopedCard(
                       title: '${w.currency.name} Portfolio',
                       balance: w.balance.formatFormatted(includeSymbol: true),
-                      holderName: 'Waffiyyi Fashola',
+                      holderName: ref.watch(currentUserProfileProvider)?.fullName ?? '',
                       expiryDate: w.currency.code,
                       gradient: gradient,
                       actionLabel: 'Receive',
                       onActionTap: () => _handleReceive(w),
                       onTap: () => _handleReceive(w),
-                    ),
+                    )),
                   );
                 },
               ),

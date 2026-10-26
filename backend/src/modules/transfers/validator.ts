@@ -46,7 +46,7 @@ export const TransferIntentSchema = z.object({
   recipient: z.string().min(1, 'Recipient is required'),
   amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format'),
   amountMinor: z.string().regex(/^\d+$/, 'Invalid minor units'),
-  currency: z.enum(['USD', 'NGN', 'MXN', 'CAD', 'EUR']),
+  currency: z.enum(['USD', 'NGN', 'MXN', 'CAD', 'GBP']),
   purpose: z.string().optional(),
   confidenceScore: z.number().min(0).max(1),
   requiresExplicitApproval: z.literal(true),
@@ -55,7 +55,7 @@ export const TransferIntentSchema = z.object({
 
 export const WalletInputSchema = z.object({
   id: z.string(),
-  currency: z.enum(['USD', 'NGN', 'MXN', 'CAD', 'EUR']),
+  currency: z.enum(['USD', 'NGN', 'MXN', 'CAD', 'GBP']),
   balanceMinor: z.string().regex(/^\d+$/),
   name: z.string().optional(),
   status: z.string().optional(),

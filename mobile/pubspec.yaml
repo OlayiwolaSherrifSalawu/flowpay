@@ -37,6 +37,7 @@ dependencies:
   camera: ^0.12.1
   stellar_flutter_sdk: 3.8.0
   cryptography: 2.9.0
+  qr_flutter: 4.1.0
 
 dev_dependencies:
   flutter_test:

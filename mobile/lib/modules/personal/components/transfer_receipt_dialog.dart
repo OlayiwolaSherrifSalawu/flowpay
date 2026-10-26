@@ -75,8 +75,8 @@ class TransferReceiptDialog extends StatelessWidget {
                   width: 1.5,
                 ),
               ),
-              child: const Icon(
-                Icons.check_rounded,
+              child: Icon(
+                result.isPending ? Icons.schedule_rounded : Icons.check_rounded,
                 color: FlowPayColors.primary,
                 size: 32,
               ),
@@ -84,7 +84,7 @@ class TransferReceiptDialog extends StatelessWidget {
             const SizedBox(height: 14),
 
             Text(
-              'Payment Sent',
+              result.isPending ? 'Payment Submitted' : 'Payment Sent',
               style: FlowPayTypography.headingSm.copyWith(
                 fontWeight: FontWeight.w800,
                 color: isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.lightTextPrimary,
@@ -92,7 +92,9 @@ class TransferReceiptDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Payment confirmed and recorded to activity',
+              result.isPending
+                  ? 'Waiting for the Stellar network to confirm. Check Activity shortly.'
+                  : 'Settled on the Stellar network and recorded to activity',
               style: FlowPayTypography.captionStyle(
                 color: FlowPayColors.darkTextSecondary,
               ),
@@ -181,11 +183,14 @@ class TransferReceiptDialog extends StatelessWidget {
                     ),
                     InkWell(
                       onTap: () {
-                        Clipboard.setData(ClipboardData(text: result.transactionHash));
+                        // Copy the explorer link so anyone can verify the payment on-chain.
+                        Clipboard.setData(ClipboardData(text: result.explorerUrl ?? result.transactionHash));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Transaction reference copied'),
-                            duration: Duration(seconds: 1),
+                          SnackBar(
+                            content: Text(result.explorerUrl != null
+                                ? 'Explorer link copied'
+                                : 'Transaction reference copied'),
+                            duration: const Duration(seconds: 1),
                           ),
                         );
                       },

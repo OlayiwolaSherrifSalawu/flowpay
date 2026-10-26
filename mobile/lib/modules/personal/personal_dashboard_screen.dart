@@ -1,3 +1,5 @@
+import '../../core/auth/auth_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/repositories/activity_repository.dart';
@@ -293,10 +295,10 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               const SizedBox(height: 16),
 
               // 2. Premium Scalloped Card Hero
-              FlowPayScallopedCard(
+              Consumer(builder: (context, ref, _) => FlowPayScallopedCard(
                 title: 'Total balance',
                 balance: totalFormatted,
-                holderName: 'Waffiyyi Fashola',
+                holderName: ref.watch(currentUserProfileProvider)?.fullName ?? '',
                 expiryDate: '',
                 actionLabel: 'Details',
                 onActionTap: () {
@@ -350,7 +352,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                     ),
                   ],
                 ),
-              ),
+              )),
 
               const SizedBox(height: 16),
 

@@ -1,5 +1,5 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
-import { bmoniClient } from '../bmoni/client.js';
 import { prisma, isPostgresDb } from '../db/index.js';
 
 export const authRouter = Router();
@@ -16,6 +16,7 @@ export interface RegisteredUser {
   kycStatus: 'unverified' | 'pending' | 'verified';
   nationalId?: string;
   bmoniUserId?: string;
+  stellarAccountId?: string;
 }
 
 export const registeredUsers = new Map<string, RegisteredUser>();
@@ -295,20 +296,8 @@ authRouter.post('/login', async (req, res) => {
  */
 authRouter.post('/signup', async (req, res) => {
   const { fullName, email, accountType, country, phone, companyName, companyRole, userId } = req.body;
-  let bmoniUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${Date.now()}`;
-
-  // Attempt upstream BMONI User creation
-  try {
-    const bmoniUser = await bmoniClient.createUser({
-      email: email || undefined,
-      phoneNumber: phone || undefined,
-    });
-    if (bmoniUser?.id) {
-      bmoniUserId = bmoniUser.id;
-    }
-  } catch (_) {
-    // Non-blocking fallback for local test environment
-  }
+  // FlowPay owns identity now; the user's money lives in their own Stellar account.
+  const bmoniUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${randomUUID()}`;
 
   const user: RegisteredUser = {
     userId: bmoniUserId,
@@ -464,34 +453,8 @@ authRouter.post('/kyc', async (req, res) => {
     }
   }
 
-  // Attempt upstream BMONI KYC profile submission and workflow activation
-  try {
-    if (userId && !userId.startsWith('usr_personal') && !userId.startsWith('usr_business')) {
-      const names = (existing?.fullName || 'FlowPay User').split(' ');
-      await bmoniClient.submitKycProfile({
-        userId,
-        personalInfo: {
-          firstName: names[0] || 'FlowPay',
-          lastName: names.slice(1).join(' ') || 'User',
-          dateOfBirth: dateOfBirth || '1992-04-18',
-        },
-        addressDetails: {
-          street: address || '14 Admiralty Way',
-          city: 'Lagos',
-          state: 'Lagos',
-          countryCode: country || 'NGA',
-        },
-        identificationNumbers: nationalId ? { nationalId } : undefined,
-      });
-
-      await bmoniClient.activateKyc({
-        userId,
-        sumsubLevelName: country === 'NG' ? undefined : 'id-and-liveness',
-      });
-    }
-  } catch (_) {
-    // Non-blocking fallback for test personas
-  }
+  // TODO(M5): real verification via the payout anchor's SEP-12 KYC endpoint. Until then
+  // this only records what the user submitted; no identity data leaves FlowPay.
 
   res.json({
     success: true,

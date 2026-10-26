@@ -1,496 +1,380 @@
-import crypto from 'crypto';
-import { bmoniClient } from '../../bmoni/client.js';
-import { env } from '../../config/env.js';
+import { TransactionBuilder } from '@stellar/stellar-sdk';
+import {
+  InsufficientFundsError,
+  InvalidRequestError,
+  StellarError,
+  StellarSubmitTimeoutError,
+  ValidationError,
+} from '../../core/errors.js';
+import { Money } from '../../core/money.js';
 import { isPostgresDb, prisma } from '../../db/index.js';
+import { recordInMemoryActivity } from '../../routes/activity.routes.js';
+import { StellarAccountService, assertAccountId } from '../../stellar/accounts.js';
+import { assetFor, explorerTxUrl, getNetworkConfig, STELLAR_CURRENCIES, type StellarCurrency } from '../../stellar/config.js';
+import { accountForUser, resolveRecipient, userForAccount, type ResolvedRecipient } from '../../stellar/directory.js';
+import { StellarHorizon } from '../../stellar/horizon.js';
+import { buildTransferTx, quoteFunding, assertCanReceive, type FundingQuote } from '../../stellar/payments.js';
 import { TransferInterpreter } from '../ai/transfer_interpreter.js';
 import type {
   BalanceInspectionResult,
   FundingSourceOption,
-  SupportedCurrency,
   TransferExecuteResult,
   TransferIntent,
   TransferProposalPayload,
 } from './types.js';
-import { EXCHANGE_RATES, TransferValidator } from './validator.js';
-import { WalletService } from '../wallets/service.js';
-import { recordInMemoryActivity } from '../../routes/activity.routes.js';
-import { findUserByQuery } from '../../routes/auth.routes.js';
+import { TransferValidator } from './validator.js';
+
+/**
+ * Stellar-native transfers.
+ *
+ *   intent → live funding quotes (real balances + path-finding)
+ *          → unsigned tx (payment / path payment) → device signs
+ *          → submit → COMPLETED (real hash) | PENDING (timeout, reconcile) | FAILED (reason)
+ *
+ * The backend never holds user keys. A proposal is only executable with the exact
+ * transaction we built (signed tx hash must equal the proposal ID).
+ */
+
+interface PendingProposal {
+  userId: string;
+  sourceAccountId: string;
+  intent: TransferIntent;
+  recipient: ResolvedRecipient;
+  fundingOption: FundingSourceOption;
+  expiresAt: number;
+}
+
+const pendingProposals = new Map<string, PendingProposal>();
+
+let horizon = new StellarHorizon();
+let accounts = new StellarAccountService(horizon);
+
+/** Testing hook: inject a Horizon wrapper backed by a fake gateway. */
+export function setTransferHorizonForTests(h: StellarHorizon): void {
+  horizon = h;
+  accounts = new StellarAccountService(h);
+  pendingProposals.clear();
+}
+
+function asStellarCurrency(code: string): StellarCurrency {
+  const upper = code.toUpperCase();
+  if (!(STELLAR_CURRENCIES as readonly string[]).includes(upper)) {
+    throw new ValidationError(`${code} is not supported. FlowPay supports ${STELLAR_CURRENCIES.join(', ')}.`);
+  }
+  return upper as StellarCurrency;
+}
+
+function validateIntent(intent: unknown): TransferIntent {
+  try {
+    return TransferValidator.validateIntent(intent);
+  } catch (err) {
+    throw new ValidationError((err as Error).message);
+  }
+}
+
+async function sourceAccountFor(userId: string, claimed?: string): Promise<string> {
+  const linked = await accountForUser(userId);
+  if (claimed) {
+    assertAccountId(claimed);
+    if (linked && linked !== claimed) {
+      throw new InvalidRequestError('That wallet is not the one linked to your FlowPay account.');
+    }
+    return claimed;
+  }
+  if (!linked) throw new InvalidRequestError('Your FlowPay wallet is not set up yet.');
+  return linked;
+}
+
+function toFundingOption(q: FundingQuote, sourceAccountId: string, target: Money): FundingSourceOption {
+  const zero = Money.zero(q.currency);
+  const label = q.requiresConversion ? `${q.currency} → ${target.currency} (Stellar path payment)` : `Direct ${q.currency} transfer`;
+  return {
+    fundingWalletId: `${sourceAccountId}:${q.currency}`,
+    fundingCurrency: q.currency,
+    fundingWalletName: `${q.currency} balance`,
+    availableBalanceMinor: q.available.amountMinor.toString(),
+    availableBalanceFormatted: q.available.toMajorString(),
+    requiresConversion: q.requiresConversion,
+    conversionLabel: label,
+    exchangeRate: q.rate,
+    convertedDebitMinor: q.sourceAmount.amountMinor.toString(),
+    convertedDebitFormatted: q.sourceAmount.toMajorString(),
+    // Stellar's network fee is paid in XLM (~0.00001), not in the funding currency.
+    networkFeeMinor: '0',
+    networkFeeFormatted: zero.toMajorString(),
+    serviceFeeMinor: '0',
+    serviceFeeFormatted: zero.toMajorString(),
+    // Conversion cost is already inside the quoted rate; slippage headroom shown here.
+    fxFeeMinor: q.sendMax.subtract(q.sourceAmount).amountMinor.toString(),
+    fxFeeFormatted: q.sendMax.subtract(q.sourceAmount).toMajorString(),
+    totalDebitMinor: q.sendMax.amountMinor.toString(),
+    totalDebitFormatted: q.sendMax.toMajorString(),
+    totalDebit: q.sendMax.toMajorString(),
+    targetPaymentMinor: target.amountMinor.toString(),
+    targetPaymentFormatted: target.toMajorString(),
+    // @ts-expect-error extra field consumed by the mobile client
+    targetCurrency: target.currency,
+  };
+}
+
+async function recordActivity(entry: { id: string; action: string; actor: string; details: Record<string, unknown> }) {
+  const record = {
+    id: entry.id,
+    category: 'PERSONAL',
+    action: entry.action,
+    actor: entry.actor,
+    detailsJson: entry.details,
+    createdAt: new Date().toISOString(),
+  };
+  recordInMemoryActivity(record);
+  if (isPostgresDb()) {
+    try {
+      await prisma.auditActivity.create({
+        data: { id: record.id, category: record.category, action: record.action, actor: record.actor, detailsJson: record.detailsJson as any },
+      });
+    } catch (dbErr: any) {
+      console.warn('[Transfers] activity persistence failed:', dbErr.message);
+    }
+  }
+}
+
+const newId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 export class TransferService {
-  /**
-   * Natural Language Intent Interpretation
-   */
+  /** Natural-language intent → structured intent (AI is advisory; nothing moves here). */
   static async interpret(prompt: string): Promise<TransferIntent> {
     const rawIntent = await TransferInterpreter.interpret(prompt);
-    return TransferValidator.validateIntent(rawIntent);
+    return validateIntent(rawIntent);
   }
 
-  /**
-   * Balance-Aware Wallet Inspection & Routing
-   */
-  static inspectBalances(
-    intent: TransferIntent,
-    wallets: Array<{
-      id: string;
-      currency: any;
-      balanceMinor: string;
-      name?: string;
-    }>
-  ): BalanceInspectionResult {
-    const validatedIntent = TransferValidator.validateIntent(intent);
-    return TransferValidator.inspectBalancesAndFunding(validatedIntent, wallets);
-  }
-
-  /**
-   * Creates a BMONI Transfer Proposal and fetches the on-device signing hash.
-   * Invariant Pipeline:
-   * Flutter -> FlowPay Backend -> BMONI proposal -> Approve -> Sign Payload -> Return to Flutter
-   */
-  static async createProposal(args: {
-    userId: string;
-    intent: TransferIntent;
-    fundingOption: FundingSourceOption;
-  }): Promise<TransferProposalPayload> {
-    const { userId, intent, fundingOption } = args;
-    TransferValidator.validateIntent(intent);
-
-    const proposalId = `prop_fallback_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15-minute TTL
-
-    // Build the deterministic canonical message payload for on-device hardware signing
-    const canonicalPayload = JSON.stringify({
-      flowpayVersion: '1.0',
-      action: 'FLOWPAY_TRANSFER',
-      proposalId,
-      recipient: intent.recipient,
-      amount: intent.amount,
-      currency: intent.currency,
-      fundingWalletId: fundingOption.fundingWalletId,
-      fundingCurrency: fundingOption.fundingCurrency,
-      totalDebit: fundingOption.totalDebitFormatted,
-      conversion: fundingOption.conversionLabel,
-      exchangeRate: fundingOption.exchangeRate ?? 1.0,
-      timestamp: Date.now(),
-    });
-
-    // 32-byte SHA-256 hash to be signed on-device via BMONI SDK (EIP-191 / raw hash)
-    let hashToSign = `0x${crypto.createHash('sha256').update(canonicalPayload).digest('hex')}`;
-
-    let bmoniProposalId = proposalId;
-    let signPayload = hashToSign;
-
-    // If live BMONI environment is active and configured
-    if (env.BMONI_API_KEY && env.BMONI_API_KEY !== 'sandbox-demo-key') {
-      try {
-        const bmoniRes = await bmoniClient.createTransferProposal({
-          userId,
-          smartWalletId: fundingOption.fundingWalletId,
-          toAddress: intent.recipient.startsWith('0x') ? intent.recipient : undefined,
-          toUserId: !intent.recipient.startsWith('0x') ? intent.recipient : undefined,
-          currency: intent.currency === 'USD' ? 'USDB' : intent.currency === 'NGN' ? 'CNGN' : intent.currency,
-          amount: intent.amount,
-          description: intent.purpose || `FlowPay Transfer to ${intent.recipient}`,
-        });
-
-        bmoniProposalId = bmoniRes.id || bmoniRes.proposalId || proposalId;
-
-        // Call BMONI Approve to progress PENDING_APPROVALS -> PENDING_SIGNATURES
-        await bmoniClient.approveProposal({
-          userId,
-          proposalId: bmoniProposalId,
-        });
-
-        // Retrieve BMONI signing payload
-        const payloadRes = await bmoniClient.getProposalSignPayload({
-          userId,
-          proposalId: bmoniProposalId,
-        });
-
-        if (payloadRes.hashToSign) {
-          signPayload = payloadRes.hashToSign;
-          hashToSign = payloadRes.hashToSign;
-        }
-      } catch (err: any) {
-        console.warn('[BMONI Client] Live proposal creation call failed, using deterministic proposal hash:', err.message);
-      }
+  /** Real balances + live quotes for every currency the sender holds. */
+  static async inspectBalances(args: { userId: string; accountId?: string; intent: unknown }): Promise<BalanceInspectionResult> {
+    const intent = validateIntent(args.intent);
+    const target = Money.fromMinor(intent.amountMinor, asStellarCurrency(intent.currency));
+    const sourceAccountId = await sourceAccountFor(args.userId, args.accountId);
+    const summary = await accounts.getSummary(sourceAccountId);
+    if (!summary.exists) {
+      return { intent, isDirectFunded: false, allFundingOptions: [], isPossible: false, reason: 'Your wallet is not active on Stellar yet.' };
     }
 
+    const quotes = await quoteFunding(horizon, summary, target);
+    const options = quotes.map((q) => toFundingOption(q, sourceAccountId, target));
+    const feasible = quotes.filter((q) => q.feasible);
+    const recommended = feasible[0] ?? quotes[0];
     return {
-      proposalId: bmoniProposalId,
-      status: 'PENDING_SIGNATURES',
-      hashToSign,
-      signPayload,
-      expiresAt,
-      fundingOption,
       intent,
+      isDirectFunded: feasible.some((q) => !q.requiresConversion),
+      recommendedFundingOption: recommended ? toFundingOption(recommended, sourceAccountId, target) : undefined,
+      allFundingOptions: options,
+      isPossible: feasible.length > 0,
+      reason: feasible.length > 0 ? undefined : `Not enough balance to send ${target.toMajorString()} ${target.currency}.`,
     };
   }
 
-  /**
-   * Submits the on-device B-Key signature to BMONI and commits the transaction to Activity.
-   * Invariant:
-   * Signature comes from Flutter on-device hardware enclave via BmoniSdkService.
-   * On success, inserts an audit record into PostgreSQL audit_activity table.
-   */
-  static async executeTransfer(args: {
+  /** Re-quotes the chosen funding currency and builds the unsigned Stellar transaction. */
+  static async createProposal(args: {
     userId: string;
-    proposalId: string;
-    signature: string;
-    proposalPayload?: TransferProposalPayload;
-  }): Promise<TransferExecuteResult> {
-    const { userId, proposalId, signature, proposalPayload } = args;
+    accountId?: string;
+    intent: unknown;
+    fundingOption: { fundingCurrency: string };
+  }): Promise<TransferProposalPayload & { recipientAccountId: string; recipientName: string; network: string }> {
+    const intent = validateIntent(args.intent);
+    const target = Money.fromMinor(intent.amountMinor, asStellarCurrency(intent.currency));
+    const fundingCurrency = asStellarCurrency(args.fundingOption?.fundingCurrency ?? '');
+    const sourceAccountId = await sourceAccountFor(args.userId, args.accountId);
 
-    // Normalize signature to 65-byte (130 hex digits + 0x)
-    let normalizedSignature = signature;
-    if (normalizedSignature.startsWith('0x') && normalizedSignature.length === 68) {
-      const clean = normalizedSignature.substring(2);
-      const r = clean.substring(0, 64);
-      const v = clean.substring(64);
-      const s = crypto.createHash('sha256').update(`${proposalId}:s:${r}`).digest('hex');
-      normalizedSignature = `0x${r}${s}${v}`;
-    } else if (normalizedSignature.startsWith('0x') && normalizedSignature.length === 66) {
-      const clean = normalizedSignature.substring(2);
-      const s = crypto.createHash('sha256').update(`${proposalId}:s:${clean}`).digest('hex');
-      normalizedSignature = `0x${clean}${s}1c`;
+    const recipient = await resolveRecipient(intent.recipient);
+    await assertCanReceive(horizon, recipient, target.currency as StellarCurrency);
+
+    const summary = await accounts.getSummary(sourceAccountId);
+    const quote = (await quoteFunding(horizon, summary, target)).find((q) => q.currency === fundingCurrency);
+    if (!quote) {
+      throw new InvalidRequestError(`You can't fund this transfer from ${fundingCurrency} right now.`);
     }
-
-    // Validate 65-byte hex signature
-    if (!/^0x[a-fA-F0-9]{130}$/.test(normalizedSignature)) {
-      throw new Error(
-        TransferValidator.formatError(
-          'SIGNATURE_FAILURE',
-          'Invalid B-Key signature format. Must be a 65-byte hex string produced by on-device enclave.'
-        )
+    if (!quote.feasible) {
+      throw new InsufficientFundsError(
+        `Your ${fundingCurrency} balance (${quote.available.toMajorString()}) can't cover ${quote.sendMax.toMajorString()} ${fundingCurrency}.`
       );
     }
 
-    let txHash: string;
-
-    // Only call remote BMONI signProposal if proposal was created on BMONI rails (not local sandbox fallback)
-    const isBmoniProposal = !proposalId.startsWith('prop_fallback_');
-    if (isBmoniProposal && env.BMONI_API_KEY && env.BMONI_API_KEY !== 'sandbox-demo-key') {
-      try {
-        const signRes = await bmoniClient.signProposal({
-          userId,
-          proposalId,
-          signature: normalizedSignature,
-        });
-
-        const terminalProposal = await bmoniClient.getProposal({ userId, proposalId });
-        if (terminalProposal && terminalProposal.status === 'FAILED') {
-          throw new Error(TransferValidator.formatError('TRANSFER_FAILURE'));
-        }
-
-        const resolvedTxHash = signRes.transactionHash || (terminalProposal as any)?.transactionHash;
-        if (!resolvedTxHash) {
-          throw new Error(`BMONI did not return a transaction hash for proposal ${proposalId}`);
-        }
-        txHash = resolvedTxHash;
-      } catch (err: any) {
-        console.error('[Transfers] BMONI signProposal or getProposal failed:', err.message || err);
-        if (isPostgresDb()) {
-          try {
-            await prisma.auditActivity.create({
-              data: {
-                id: `act_tx_failed_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-                category: 'PERSONAL',
-                action: 'TRANSFER_FAILED',
-                actor: userId,
-                detailsJson: {
-                  transferId: proposalId,
-                  recipient: proposalPayload?.intent.recipient ?? 'Beneficiary',
-                  amount: proposalPayload?.intent.amount ?? '500.00',
-                  currency: proposalPayload?.intent.currency ?? 'USD',
-                  error: err.message || 'Transfer failed on BMONI rails',
-                  proposalId,
-                  bmoniStatus: 'FAILED',
-                  executedAt: new Date().toISOString(),
-                },
-              },
-            });
-          } catch (dbErr: any) {
-            console.warn('[Audit Activity] Failed to write failure record to PostgreSQL:', dbErr.message);
-          }
-        }
-        throw err;
-      }
-    } else {
-      txHash = `0x${crypto.createHash('sha256').update(`${proposalId}_${normalizedSignature}_${Date.now()}`).digest('hex')}`;
-    }
-
-    const activityId = `act_tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const targetAmount = proposalPayload?.intent.amount ?? '0.00';
-    const targetCurrency: SupportedCurrency = (proposalPayload?.intent.currency as SupportedCurrency) ?? 'USD';
-    const fundingWallet = proposalPayload?.fundingOption?.fundingWalletName ?? `${targetCurrency} Smart Wallet`;
-    const fundingCurrency: SupportedCurrency = (proposalPayload?.fundingOption?.fundingCurrency as SupportedCurrency) ?? targetCurrency;
-    const totalDebited = (proposalPayload?.fundingOption?.totalDebitFormatted ??
-      (proposalPayload?.fundingOption?.totalDebit != null ? String(proposalPayload.fundingOption.totalDebit) : undefined) ??
-      targetAmount) as string;
-    const conversion = proposalPayload?.fundingOption?.conversionLabel ?? 'Direct Transfer';
-    const exchangeRate = proposalPayload?.fundingOption?.exchangeRate;
-    const recipient = proposalPayload?.intent?.recipient ?? 'Beneficiary';
-    const purpose = proposalPayload?.intent?.purpose ?? 'Transfer';
-
-    const senderDetailsJson = {
-      transferId: proposalId,
+    const built = await buildTransferTx({ horizon, sourceAccountId, recipient, destAmount: target, funding: quote, purpose: intent.purpose });
+    const fundingOption = toFundingOption(quote, sourceAccountId, target);
+    pendingProposals.set(built.hash, {
+      userId: args.userId,
+      sourceAccountId,
+      intent,
       recipient,
-      amount: targetAmount,
-      amountSent: targetAmount,
-      currency: targetCurrency,
-      fundingWallet,
-      fundingCurrency,
-      totalDebited,
-      conversion,
-      exchangeRate,
-      networkFee: proposalPayload?.fundingOption.networkFeeFormatted,
-      serviceFee: proposalPayload?.fundingOption.serviceFeeFormatted,
-      purpose,
-      transactionHash: txHash,
-      proposalId,
-      bmoniStatus: 'COMPLETED',
-      status: 'COMPLETED',
-      executedAt: new Date().toISOString(),
-    };
-
-    // Always record in in-memory activities store for immediate visibility across sessions
-    recordInMemoryActivity({
-      id: activityId,
-      category: 'PERSONAL',
-      action: 'TRANSFER_COMPLETED',
-      actor: userId,
-      detailsJson: senderDetailsJson,
-      createdAt: new Date().toISOString(),
+      fundingOption,
+      expiresAt: Date.parse(built.expiresAt),
     });
 
-    if (isPostgresDb()) {
-      // Persist into PostgreSQL audit_activity table via Prisma
-      try {
-        await prisma.auditActivity.create({
-          data: {
-            id: activityId,
-            category: 'PERSONAL',
-            action: 'TRANSFER_COMPLETED',
-            actor: userId,
-            detailsJson: senderDetailsJson,
-          },
-        });
-      } catch (dbErr: any) {
-        console.warn('[Audit Activity] Failed to write activity record to PostgreSQL:', dbErr.message);
-      }
-
-      // Persist into Supabase public.transfers table via Prisma
-      try {
-        const amountMinor = BigInt(Math.round((parseFloat(targetAmount) || 0) * 100));
-        const totalDebitMinor = BigInt(proposalPayload?.fundingOption.totalDebitMinor || Number(amountMinor));
-        const combinedFeeMinor =
-          BigInt(proposalPayload?.fundingOption.networkFeeMinor || 0) +
-          BigInt(proposalPayload?.fundingOption.serviceFeeMinor || 0) +
-          BigInt(proposalPayload?.fundingOption.fxFeeMinor || 0);
-        await prisma.transfer.create({
-          data: {
-            id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            proposalId,
-            userId,
-            recipient,
-            recipientAddress: proposalPayload?.intent.recipient.startsWith('0x') ? proposalPayload.intent.recipient : null,
-            amountMinor,
-            currency: targetCurrency,
-            fundingWalletId: proposalPayload?.fundingOption.fundingWalletId || 'sw_default',
-            fundingCurrency,
-            totalDebitMinor,
-            exchangeRate: exchangeRate ? exchangeRate.toString() : null,
-            feeMinor: combinedFeeMinor,
-            status: 'COMPLETED',
-            transactionHash: txHash,
-            purpose,
-            executedAt: new Date(),
-          },
-        });
-      } catch (txDbErr: any) {
-        console.warn('[Transfers] Non-blocking DB transfer persistence notice:', txDbErr.message);
-      }
-    }
-
-    // 1. Deduct balance from sender's funding wallet
-    try {
-      const rawDebit = proposalPayload?.fundingOption?.totalDebitFormatted ??
-        proposalPayload?.fundingOption?.totalDebit ??
-        totalDebited ??
-        targetAmount;
-      const cleanNum = typeof rawDebit === 'number' ? String(rawDebit) : String(rawDebit).replace(/[^0-9.]/g, '');
-      const debitAmt = parseFloat(cleanNum) || parseFloat(targetAmount) || 0;
-      const fundingTarget = proposalPayload?.fundingOption?.fundingWalletId || fundingCurrency || targetCurrency;
-      await WalletService.debitWallet(fundingTarget, debitAmt, userId);
-    } catch (_) {}
-
-    // 2. Automatically credit recipient wallet with cross-border FX conversion if applicable
-    try {
-      const recLower = (recipient || '').toLowerCase().trim();
-      let recipientUserId: string | null = null;
-      let recipientLocalCurrency: 'CNGN' | 'MEXe' | null = null;
-      let fxRateToLocal: number = 1.0;
-
-      if (recipient.startsWith('0x')) {
-        const found = WalletService.findWalletByAddress(recipient);
-        if (found) {
-          recipientUserId = found.userId;
-          if (found.currency === 'CNGN') {
-            recipientLocalCurrency = 'CNGN';
-            fxRateToLocal = 1550.0;
-          } else if (found.currency === 'MEXe') {
-            recipientLocalCurrency = 'MEXe';
-            fxRateToLocal = 17.5;
-          }
-        } else {
-          const adHocUserId = `usr_evm_${recipient.substring(2, 10).toLowerCase()}`;
-          WalletService.ensureUserWallets(adHocUserId, recipient);
-          recipientUserId = adHocUserId;
-        }
-      } else if (recipient.startsWith('sw_')) {
-        const found = WalletService.findWalletById(recipient);
-        if (found) {
-          recipientUserId = found.userId;
-          if (found.currency === 'CNGN') recipientLocalCurrency = 'CNGN';
-          if (found.currency === 'MEXe') recipientLocalCurrency = 'MEXe';
-        }
-      } else if (recipient.startsWith('usr_')) {
-        recipientUserId = recipient;
-      } else {
-        // Look up registered user by email, name, phone, or id
-        const userMatch = await findUserByQuery(recipient);
-        if (userMatch) {
-          recipientUserId = userMatch.userId;
-        } else if (recLower.includes('bunch') || recLower.includes('dillon') || recLower.includes('.ng') || recLower.includes('ngn') || recLower.includes('nigeria')) {
-          recipientUserId = 'usr_bmoni_dillon_ngn';
-          recipientLocalCurrency = 'CNGN';
-          fxRateToLocal = 1550.0; // 1 USD = 1,550 NGN
-        } else if (recLower.includes('samson') || recLower.includes('jabo') || recLower.includes('.mx') || recLower.includes('mxn') || recLower.includes('mexico')) {
-          recipientUserId = 'usr_bmoni_samson_mxn';
-          recipientLocalCurrency = 'MEXe';
-          fxRateToLocal = 17.5; // 1 USD = 17.5 MEXe
-        } else if (recLower.includes('waffiyyi') || recLower.includes('fashola') || recLower.includes('master')) {
-          recipientUserId = 'usr_flowpay_sandbox_master';
-        } else {
-          // If recipient is a named beneficiary or generic recipient, derive a deterministic user ID
-          const cleanIdentifier = recLower.replace(/[^a-z0-9]/g, '_').replace(/^_+|_+$/g, '');
-          if (cleanIdentifier && cleanIdentifier !== 'another_user') {
-            recipientUserId = `usr_${cleanIdentifier}`;
-          } else {
-            // If recipient is "another user" or generic, pick the alternate user who is NOT the sender
-            if (userId === 'usr_flowpay_sandbox_master') {
-              recipientUserId = (targetCurrency === 'CAD' || (targetCurrency as string) === 'CADC' || targetCurrency === 'MXN' || (targetCurrency as string) === 'MEXe')
-                ? 'usr_bmoni_samson_mxn'
-                : 'usr_bmoni_dillon_ngn';
-            } else {
-              recipientUserId = 'usr_flowpay_sandbox_master';
-            }
-          }
-        }
-      }
-
-      if (recipientUserId) {
-        WalletService.ensureUserWallets(recipientUserId);
-        let creditCurrency: string = targetCurrency;
-        let creditAmt = parseFloat(targetAmount) || 0;
-
-        // Cross-border auto-conversion to local currency if sender sent in USD or if local delivery is targeted
-        const targetCurStr = String(targetCurrency).toUpperCase();
-        const isCrossBorderLocal = recipientLocalCurrency && (
-          targetCurStr === 'USD' ||
-          (recipientLocalCurrency === 'CNGN' && (targetCurStr === 'NGN' || targetCurStr === 'CNGN')) ||
-          (recipientLocalCurrency === 'MEXe' && (targetCurStr === 'MXN' || targetCurStr === 'MEXE'))
-        );
-
-        if (isCrossBorderLocal && recipientLocalCurrency) {
-          creditCurrency = recipientLocalCurrency;
-          if (targetCurStr === 'USD') {
-            creditAmt = Math.round(creditAmt * fxRateToLocal * 100) / 100;
-          }
-        }
-
-        await WalletService.creditWallet(creditCurrency, creditAmt, recipientUserId);
-
-        let senderDisplayName = userId;
-        if (isPostgresDb()) {
-          try {
-            const senderUser = await prisma.user.findUnique({ where: { id: userId } });
-            if (senderUser?.fullName) {
-              senderDisplayName = senderUser.fullName;
-            } else if (senderUser?.email) {
-              senderDisplayName = senderUser.email;
-            }
-          } catch (_) {}
-        }
-
-        const recvDetailsJson = {
-          sender: userId,
-          senderName: senderDisplayName !== userId ? senderDisplayName : undefined,
-          counterparty: senderDisplayName,
-          amount: creditAmt.toFixed(2),
-          amountReceived: creditAmt.toFixed(2),
-          amountSent: targetAmount,
-          currency: creditCurrency,
-          currencyReceived: creditCurrency,
-          currencySent: targetCurrency,
-          fxRate: targetCurrency === 'USD' && recipientLocalCurrency ? fxRateToLocal : 1.0,
-          conversion: targetCurrency === 'USD' && recipientLocalCurrency ? `Cross-Border USD → ${creditCurrency}` : 'Direct',
-          transactionHash: txHash,
-          proposalId,
-          status: 'COMPLETED',
-          isIncoming: true,
-          receivedAt: new Date().toISOString(),
-        };
-
-        const recvActivityId = `act_recv_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-        // Always record into in-memory store for recipient visibility
-        recordInMemoryActivity({
-          id: recvActivityId,
-          category: 'PERSONAL',
-          action: 'TRANSFER_RECEIVED',
-          actor: recipientUserId,
-          detailsJson: recvDetailsJson,
-          createdAt: new Date().toISOString(),
-        });
-
-        // Record incoming transaction for recipient in PostgreSQL audit_activity
-        if (isPostgresDb()) {
-          try {
-            await prisma.auditActivity.create({
-              data: {
-                id: recvActivityId,
-                category: 'PERSONAL',
-                action: 'TRANSFER_RECEIVED',
-                actor: recipientUserId,
-                detailsJson: recvDetailsJson,
-              },
-            });
-          } catch (_) {}
-        }
-      }
-    } catch (_) {}
-
     return {
-      proposalId,
-      status: 'COMPLETED',
-      transactionHash: txHash,
-      timestamp: new Date().toISOString(),
-      auditActivityId: activityId,
-      details: {
-        recipient,
-        targetAmount,
-        targetCurrency,
-        fundingWalletId: proposalPayload?.fundingOption.fundingWalletId || 'sw_default',
-        fundingCurrency,
-        totalDebited,
-        conversionLabel: conversion,
-        exchangeRate,
-        purpose,
-      },
+      proposalId: built.hash,
+      status: 'PENDING_SIGNATURES',
+      hashToSign: built.hash,
+      signPayload: built.xdr,
+      expiresAt: built.expiresAt,
+      fundingOption,
+      intent,
+      recipientAccountId: recipient.accountId,
+      recipientName: recipient.displayName,
+      network: getNetworkConfig().network,
     };
   }
 
-  static getExchangeRates(): Record<string, number> {
-    return EXCHANGE_RATES;
+  /**
+   * Submits the device-signed transaction. Returns COMPLETED only for a successful Horizon
+   * result; PENDING (with hash) when the outcome is unknown; throws on failure.
+   */
+  static async executeTransfer(args: { userId: string; proposalId: string; signedXdr: string }): Promise<TransferExecuteResult & { explorerUrl: string }> {
+    const proposal = pendingProposals.get(args.proposalId);
+    if (!proposal || proposal.userId !== args.userId) {
+      throw new InvalidRequestError('This transfer proposal was not found or has expired. Please review the transfer again.');
+    }
+    if (proposal.expiresAt < Date.now()) {
+      pendingProposals.delete(args.proposalId);
+      throw new InvalidRequestError('This transfer proposal expired. Please review the transfer again.');
+    }
+
+    let signedHash: string;
+    try {
+      const tx = TransactionBuilder.fromXDR(args.signedXdr, getNetworkConfig().passphrase);
+      signedHash = Buffer.from(tx.hash()).toString('hex');
+    } catch {
+      throw new InvalidRequestError('The signed transaction could not be read.');
+    }
+    if (signedHash !== args.proposalId) {
+      throw new InvalidRequestError('The signed transaction does not match the transfer you reviewed.');
+    }
+
+    const { intent, recipient, fundingOption, sourceAccountId } = proposal;
+    const baseDetails = {
+      transferId: args.proposalId,
+      recipient: recipient.displayName,
+      recipientAccountId: recipient.accountId,
+      amount: Money.fromMinor(intent.amountMinor, intent.currency).toMajorString(),
+      currency: intent.currency,
+      fundingCurrency: fundingOption.fundingCurrency,
+      maxDebited: fundingOption.totalDebitFormatted,
+      conversion: fundingOption.conversionLabel,
+      exchangeRate: fundingOption.exchangeRate,
+      purpose: intent.purpose,
+      transactionHash: args.proposalId,
+      explorerUrl: explorerTxUrl(args.proposalId),
+      network: getNetworkConfig().network,
+      sourceAccountId,
+    };
+
+    try {
+      const result = await horizon.submitSignedXdr(args.signedXdr);
+      pendingProposals.delete(args.proposalId);
+      const activityId = newId('act_tx');
+      const executedAt = new Date().toISOString();
+      await recordActivity({
+        id: activityId,
+        action: 'TRANSFER_COMPLETED',
+        actor: args.userId,
+        details: { ...baseDetails, status: 'COMPLETED', ledger: result.ledger, executedAt },
+      });
+
+      const recipientUser = recipient.userId ?? (await userForAccount(recipient.accountId))?.userId;
+      if (recipientUser && recipientUser !== args.userId) {
+        const sender = await userForAccount(sourceAccountId);
+        await recordActivity({
+          id: newId('act_recv'),
+          action: 'TRANSFER_RECEIVED',
+          actor: recipientUser,
+          details: {
+            ...baseDetails,
+            isIncoming: true,
+            sender: args.userId,
+            counterparty: sender?.fullName ?? sourceAccountId,
+            amountReceived: baseDetails.amount,
+            currencyReceived: intent.currency,
+            status: 'COMPLETED',
+            receivedAt: executedAt,
+          },
+        });
+      }
+
+      if (isPostgresDb()) {
+        try {
+          await prisma.transfer.create({
+            data: {
+              id: newId('tx'),
+              proposalId: args.proposalId,
+              userId: args.userId,
+              recipient: recipient.displayName,
+              recipientAddress: recipient.accountId,
+              amountMinor: BigInt(intent.amountMinor),
+              currency: intent.currency,
+              fundingWalletId: fundingOption.fundingWalletId,
+              fundingCurrency: fundingOption.fundingCurrency,
+              totalDebitMinor: BigInt(fundingOption.totalDebitMinor),
+              exchangeRate: fundingOption.exchangeRate?.toString() ?? null,
+              feeMinor: 0n,
+              status: 'COMPLETED',
+              transactionHash: result.hash,
+              purpose: intent.purpose ?? null,
+              executedAt: new Date(executedAt),
+            },
+          });
+        } catch (dbErr: any) {
+          console.warn('[Transfers] transfer row persistence failed:', dbErr.message);
+        }
+      }
+
+      return {
+        proposalId: args.proposalId,
+        status: 'COMPLETED',
+        transactionHash: result.hash,
+        timestamp: executedAt,
+        auditActivityId: activityId,
+        explorerUrl: explorerTxUrl(result.hash),
+        details: {
+          recipient: recipient.displayName,
+          targetAmount: baseDetails.amount,
+          targetCurrency: intent.currency,
+          fundingWalletId: fundingOption.fundingWalletId,
+          fundingCurrency: fundingOption.fundingCurrency,
+          totalDebited: fundingOption.totalDebitFormatted,
+          conversionLabel: fundingOption.conversionLabel,
+          exchangeRate: fundingOption.exchangeRate,
+          purpose: intent.purpose,
+        },
+      };
+    } catch (err) {
+      if (err instanceof StellarSubmitTimeoutError) {
+        await recordActivity({
+          id: newId('act_tx_pending'),
+          action: 'TRANSFER_PENDING',
+          actor: args.userId,
+          details: { ...baseDetails, status: 'PENDING', note: 'Submission timed out; awaiting network confirmation.' },
+        });
+        throw err;
+      }
+      if (err instanceof StellarError) {
+        await recordActivity({
+          id: newId('act_tx_failed'),
+          action: 'TRANSFER_FAILED',
+          actor: args.userId,
+          details: { ...baseDetails, status: 'FAILED', error: err.message, resultCodes: err.resultCodes },
+        });
+      }
+      throw err;
+    }
+  }
+
+  /** Indicative mid rates (units per 1 USD) from live Stellar liquidity. */
+  static async getExchangeRates(): Promise<Record<string, number>> {
+    const rates: Record<string, number> = { USD: 1 };
+    const oneHundredUsd = '100';
+    for (const c of STELLAR_CURRENCIES) {
+      if (c === 'USD') continue;
+      const quotes = await horizon.quoteStrictReceive([assetFor(c)], assetFor('USD'), oneHundredUsd);
+      const best = quotes.reduce<number | null>((min, q) => (min === null || Number(q.sourceAmount) < min ? Number(q.sourceAmount) : min), null);
+      if (best) rates[c] = best / 100;
+    }
+    return rates;
   }
 }

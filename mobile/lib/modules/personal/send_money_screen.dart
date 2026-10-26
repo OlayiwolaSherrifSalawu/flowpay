@@ -630,11 +630,13 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       amountDisplay: '${intent.amount} ${intent.currency.code}',
       recipient: intent.recipient,
       onAuthorize: (pin) async {
-        // Enforce authentic on-device signing via BmoniSdkService
-        return await const StellarWalletSigner().signTransactionHash(
-          proposal!.hashToSign,
-          pin: pin,
-        );
+        const signer = StellarWalletSigner();
+        // Live: sign the exact Stellar transaction the server built (shown in review).
+        // Demo: sign the simulated proposal hash.
+        if (widget.appState.providerMode == ProviderMode.demo) {
+          return signer.signTransactionHash(proposal!.hashToSign, pin: pin);
+        }
+        return signer.signTransactionXdr(proposal!.signPayload, pin: pin);
       },
     );
 
@@ -660,8 +662,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
         proposal: proposal,
       );
 
-      // Note: executeProposal already debits the funding wallet on the backend
-      // (and in DemoTransferRepository). Do NOT call walletRepo.debitWallet here.
+      // Balances come from the network after settlement; nothing is debited locally.
 
       // Record activity in ActivityRepository
       try {
@@ -673,7 +674,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
           currency: intent.currency,
           type: fundingOption.requiresConversion ? ActivityType.conversion : ActivityType.transfer,
           category: fundingOption.requiresConversion ? ActivityCategory.fx : ActivityCategory.transfer,
-          status: FlowPayAppStatus.completed,
+          status: execution.isPending ? FlowPayAppStatus.pending : FlowPayAppStatus.completed,
           timestamp: DateTime.now(),
           reference: execution.transactionHash,
         );

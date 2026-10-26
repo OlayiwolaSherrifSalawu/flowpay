@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import { prisma } from '../../db/index.js';
 import { FinancialSafetyError } from '../../core/errors.js';
-import { WalletService } from '../wallets/service.js';
 import { recordInMemoryActivity } from '../../routes/activity.routes.js';
 import type {
   MissionAllocation,
@@ -606,15 +605,6 @@ export class MoneyMissionService {
       totalDebitAmt = parseFloat(missionAmount);
     }
 
-    // 1. Deduct balance from sender's funding wallet
-    if (totalDebitAmt > 0) {
-      try {
-        const walletTarget = missionCurrency === 'USD' ? 'USDB' : missionCurrency;
-        await WalletService.debitWallet(walletTarget, totalDebitAmt);
-      } catch (debitErr) {
-        console.warn('[MoneyMissionService] Wallet debit notice:', debitErr);
-      }
-    }
 
     // 2. Structured activity details
     const finalAmountStr = totalDebitAmt > 0 ? totalDebitAmt.toFixed(2) : missionAmount;

@@ -1,313 +1,263 @@
-import assert from 'node:assert';
 import test from 'node:test';
-import { TransferInterpreter } from '../ai/transfer_interpreter.js';
-import { TransferService } from './service.js';
-import type { TransferIntent } from './types.js';
-import { TransferValidator } from './validator.js';
-import { bmoniClient } from '../../bmoni/client.js';
+import assert from 'node:assert';
+import { Account, Keypair, Networks, TransactionBuilder } from '@stellar/stellar-sdk';
 
-test('FlowPay Send Money Feature & Balance-Aware Routing Tests', async (t) => {
-  // Test 1: Natural Language Interpretation
-  await t.test('interprets "Send $500 to my designer in Ghana" into structured TransferIntent', async () => {
-    const prompt = 'Send $500 to my designer in Ghana.';
-    const intent = await TransferInterpreter.interpret(prompt);
+const ISSUER = Keypair.random().publicKey();
+process.env.STELLAR_NETWORK = 'testnet';
+process.env.STELLAR_ASSET_ISSUER = ISSUER;
 
-    assert.strictEqual(intent.amount, '500.00');
-    assert.strictEqual(intent.amountMinor, '50000');
-    assert.strictEqual(intent.currency, 'USD');
-    assert.match(intent.recipient.toLowerCase(), /designer/);
-    assert.strictEqual(intent.requiresExplicitApproval, true);
-  });
+const { StellarHorizon } = await import('../../stellar/horizon.js');
+const { TransferService, setTransferHorizonForTests } = await import('./service.js');
+const { linkAccount, resolveRecipient, resetDirectoryForTests } = await import('../../stellar/directory.js');
+const { registeredUsers } = await import('../../routes/auth.routes.js');
+const { listInMemoryActivities } = await import('../../routes/activity.routes.js');
+const { issueOwnershipChallenge, verifyOwnershipChallenge } = await import('../../stellar/challenge.js');
 
-  await t.test('interprets additional representative transfer prompts', async () => {
-    const p1 = 'Send $150 to bunch.dillon@example.ng';
-    const i1 = TransferInterpreter.interpretDeterministic(p1);
-    assert.strictEqual(i1.amount, '150.00');
-    assert.strictEqual(i1.currency, 'USD');
-    assert.strictEqual(i1.recipient, 'bunch.dillon@example.ng');
+const sender = Keypair.random();
+const receiver = Keypair.random();
+const httpError = (status: number | undefined, data?: unknown) =>
+  Object.assign(new Error(`HTTP ${status}`), { response: status === undefined ? undefined : { status, data } });
 
-    const p2 = 'Send ₦50,000 to Samson Jabo';
-    const i2 = TransferInterpreter.interpretDeterministic(p2);
-    assert.strictEqual(i2.amount, '50000.00');
-    assert.strictEqual(i2.amountMinor, '5000000');
-    assert.strictEqual(i2.currency, 'NGN');
-    assert.match(i2.recipient, /Samson/);
+const line = (code: string, balance: string) => ({ asset_type: 'credit_alphanum4', asset_code: code, asset_issuer: ISSUER, balance });
+const ALL_LINES = (overrides: Record<string, string> = {}) =>
+  ['USD', 'CAD', 'MXN', 'GBP', 'NGN'].map((c) => line(c, overrides[c] ?? '0'));
 
-    const p3 = 'Send $1,200 to contractor in Mexico';
-    const i3 = TransferInterpreter.interpretDeterministic(p3);
-    assert.strictEqual(i3.amount, '1200.00');
-    assert.strictEqual(i3.currency, 'USD');
-    assert.match(i3.recipient, /contractor/);
-  });
+interface FakeState {
+  balances: Record<string, any[]>;
+  submit: (tx: any) => Promise<any>;
+  quotes: (src: any[], dest: any, amount: string) => any[];
+  submitted: any[];
+}
 
-  // Test 2: Validation
-  await t.test('validates valid TransferIntent and rejects invalid payloads', () => {
-    const valid: TransferIntent = {
-      intentId: 'tx_test_1',
-      originalPrompt: 'Send $500 to designer',
-      recipient: 'my designer in Ghana',
-      amount: '500.00',
-      amountMinor: '50000',
-      currency: 'USD',
-      purpose: 'Design services',
-      confidenceScore: 0.95,
-      requiresExplicitApproval: true,
-      provider: 'deterministic-fallback',
-    };
-
-    const validated = TransferValidator.validateIntent(valid);
-    assert.strictEqual(validated.recipient, 'my designer in Ghana');
-
-    // Reject non-positive amount
-    assert.throws(() => {
-      TransferValidator.validateIntent({ ...valid, amountMinor: '0' });
-    }, /amount must be greater than zero/);
-
-    // Reject empty recipient
-    assert.throws(() => {
-      TransferValidator.validateIntent({ ...valid, recipient: '' });
-    }, /Recipient is required/);
-
-    // Reject unsupported currency
-    assert.throws(() => {
-      TransferValidator.validateIntent({ ...valid, currency: 'JPY' as any });
-    }, /Invalid/);
-  });
-
-  // Test 3: Balance-Aware Flow (The prompt's primary example)
-  await t.test('Balance-Aware Flow: User wants $500 USD, has $300 USD, sufficient NGN -> produces NGN funded transfer with NGN->USD conversion', () => {
-    const intent: TransferIntent = {
-      intentId: 'tx_balance_aware_01',
-      originalPrompt: 'Send $500 to my designer in Ghana.',
-      recipient: 'my designer in Ghana',
-      amount: '500.00',
-      amountMinor: '50000',
-      currency: 'USD',
-      purpose: 'Payment for design services in Ghana',
-      confidenceScore: 0.95,
-      requiresExplicitApproval: true,
-    };
-
-    const userWallets = [
-      {
-        id: 'sw_usd_wallet',
-        currency: 'USD' as const,
-        balanceMinor: '30000', // $300.00 USD (insufficient for $500)
-        name: 'USD Smart Wallet',
+function setup(overrides: Partial<FakeState> = {}): FakeState {
+  const state: FakeState = {
+    balances: {
+      [sender.publicKey()]: [{ asset_type: 'native', balance: '100' }, ...ALL_LINES({ USD: '250', NGN: '1000000' })],
+      [receiver.publicKey()]: [{ asset_type: 'native', balance: '100' }, ...ALL_LINES()],
+    },
+    submitted: [],
+    submit: async (tx) => ({ successful: true, hash: Buffer.from(tx.hash()).toString('hex'), ledger: 77 }),
+    // 1 USD = 1550 NGN, conversion cost baked in.
+    quotes: (src, dest, amount) =>
+      src[0].getCode() === 'NGN' && dest.getCode() === 'USD'
+        ? [{ sourceAsset: { code: 'NGN', issuer: ISSUER }, sourceAmount: (Number(amount) * 1555).toFixed(7), destinationAmount: amount, path: [] }]
+        : [],
+    ...overrides,
+  };
+  setTransferHorizonForTests(
+    new StellarHorizon({
+      loadAccount: async (id: string) => {
+        if (!state.balances[id]) throw httpError(404);
+        return Object.assign(new Account(id, '1000'), { balances: state.balances[id] }) as any;
       },
-      {
-        id: 'sw_ngn_wallet',
-        currency: 'NGN' as const,
-        balanceMinor: '682000000', // ₦6,820,000.00 NGN (sufficient)
-        name: 'NGN Smart Wallet',
+      submitTransaction: async (tx: any) => {
+        state.submitted.push(tx);
+        return state.submit(tx);
       },
-      {
-        id: 'sw_mxn_wallet',
-        currency: 'MXN' as const,
-        balanceMinor: '4850000', // $48,500.00 MXN
-        name: 'MXN Smart Wallet',
-      },
-    ];
+      getTransaction: async () => { throw httpError(404); },
+      strictReceivePaths: async (src: any, dest: any, amt: string) => state.quotes(src, dest, amt),
+      fetchBaseFee: async () => 100,
+    } as any)
+  );
+  return state;
+}
 
-    const inspection = TransferService.inspectBalances(intent, userWallets);
+resetDirectoryForTests();
+registeredUsers.set('usr_alice', { userId: 'usr_alice', fullName: 'Alice Ade', email: 'alice@flowpay.test', accountType: 'personal', country: 'NG', phone: '+2348000000001', kycStatus: 'verified' });
+registeredUsers.set('usr_bob', { userId: 'usr_bob', fullName: 'Bob Diaz', email: 'bob@flowpay.test', accountType: 'personal', country: 'US', phone: '+14155550002', kycStatus: 'verified' });
+registeredUsers.set('usr_bob2', { userId: 'usr_bob2', fullName: 'Bob Diaz', email: 'bob2@flowpay.test', accountType: 'personal', country: 'US', phone: '+14155550003', kycStatus: 'verified' });
+registeredUsers.set('usr_nowallet', { userId: 'usr_nowallet', fullName: 'No Wallet', email: 'none@flowpay.test', accountType: 'personal', country: 'US', phone: '+14155550009', kycStatus: 'verified' });
+await linkAccount('usr_alice', sender.publicKey());
+await linkAccount('usr_bob', receiver.publicKey());
 
-    assert.strictEqual(inspection.isPossible, true);
-    assert.strictEqual(inspection.isDirectFunded, false, 'USD direct balance is $300, insufficient for $500');
-    assert.ok(inspection.recommendedFundingOption, 'Must recommend a viable funding option');
+const intent = (amount: string, currency = 'USD', recipient = 'bob@flowpay.test') => ({
+  intentId: 'i1',
+  originalPrompt: 'test',
+  recipient,
+  amount,
+  amountMinor: String(Math.round(Number(amount) * 100)),
+  currency,
+  purpose: 'Rent for October flat 3B and utilities',
+  confidenceScore: 1,
+  requiresExplicitApproval: true,
+});
 
-    const funding = inspection.recommendedFundingOption!;
-    assert.strictEqual(funding.fundingCurrency, 'NGN', 'Funding source must be NGN wallet');
-    assert.strictEqual(funding.requiresConversion, true, 'Must require conversion');
-    assert.strictEqual(funding.conversionLabel, 'NGN → USD');
-    assert.strictEqual(funding.exchangeRate, 1550.0);
-    assert.strictEqual(funding.convertedDebitFormatted, '775000.00'); // 500 * 1550 = ₦775,000
-    assert.strictEqual(funding.targetPaymentFormatted, '500.00');
+function signed(xdr: string, kp = sender) {
+  const tx = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+  tx.sign(kp);
+  return tx.toXDR();
+}
+
+// ── recipient resolution (strict) ────────────────────────────────────────────
+
+test('resolveRecipient - exact email / phone / account ID; never fuzzy', async () => {
+  setup();
+  assert.strictEqual((await resolveRecipient('BOB@flowpay.test')).accountId, receiver.publicKey());
+  assert.strictEqual((await resolveRecipient('+1 415 555 0002')).accountId, receiver.publicKey());
+  assert.strictEqual((await resolveRecipient(receiver.publicKey())).userId, 'usr_bob');
+  await assert.rejects(resolveRecipient('Bob'), /No FlowPay user matches/, 'partial names must not match');
+  await assert.rejects(resolveRecipient('Bob Diaz'), /more than one FlowPay user/);
+  await assert.rejects(resolveRecipient('none@flowpay.test'), /has not set up their FlowPay wallet/);
+});
+
+// ── funding quotes ───────────────────────────────────────────────────────────
+
+test('inspectBalances - direct USD funding when balance covers it', async () => {
+  setup();
+  const r = await TransferService.inspectBalances({ userId: 'usr_alice', intent: intent('100.00') });
+  assert.strictEqual(r.isPossible, true);
+  assert.strictEqual(r.isDirectFunded, true);
+  assert.strictEqual(r.recommendedFundingOption?.fundingCurrency, 'USD');
+  assert.strictEqual(r.recommendedFundingOption?.totalDebitMinor, '10000');
+});
+
+test('inspectBalances - falls back to a live NGN→USD path quote when USD is short', async () => {
+  setup();
+  const r = await TransferService.inspectBalances({ userId: 'usr_alice', intent: intent('300.00') });
+  assert.strictEqual(r.isPossible, true);
+  assert.strictEqual(r.isDirectFunded, false);
+  const ngn = r.recommendedFundingOption!;
+  assert.strictEqual(ngn.fundingCurrency, 'NGN');
+  assert.strictEqual(ngn.requiresConversion, true);
+  assert.strictEqual(ngn.convertedDebitMinor, String(300 * 1555 * 100));
+  assert.strictEqual(ngn.totalDebitMinor, String(300 * 1555 * 101), 'sendMax includes 1% slippage cap');
+});
+
+test('inspectBalances - impossible transfers say so (no invented balance)', async () => {
+  setup();
+  const r = await TransferService.inspectBalances({ userId: 'usr_alice', intent: intent('5000.00') });
+  assert.strictEqual(r.isPossible, false);
+  assert.match(r.reason!, /Not enough balance/);
+});
+
+test('inspectBalances - unsupported currency is a 400, not a 500', async () => {
+  setup();
+  await assert.rejects(TransferService.inspectBalances({ userId: 'usr_alice', intent: intent('10.00', 'EUR') }), (e: any) => e.statusCode === 400);
+});
+
+// ── proposals ────────────────────────────────────────────────────────────────
+
+test('createProposal - same-currency payment XDR to the resolved account, unsigned, memo ≤ 28 bytes', async () => {
+  setup();
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('100.00'), fundingOption: { fundingCurrency: 'USD' } });
+  const tx = TransactionBuilder.fromXDR(p.signPayload, Networks.TESTNET) as any;
+  assert.strictEqual(tx.signatures.length, 0);
+  assert.strictEqual(tx.source, sender.publicKey());
+  assert.strictEqual(tx.operations[0].type, 'payment');
+  assert.strictEqual(tx.operations[0].destination, receiver.publicKey());
+  assert.strictEqual(tx.operations[0].amount, '100.0000000');
+  assert.ok(tx.memo.value.length > 0 && tx.memo.value.length <= 28, 'memo is 1..28 bytes');
+  assert.strictEqual(p.proposalId, Buffer.from(tx.hash()).toString('hex'));
+  assert.strictEqual(p.recipientName, 'Bob Diaz');
+});
+
+test('createProposal - conversion builds pathPaymentStrictReceive with a sendMax cap', async () => {
+  setup();
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('300.00'), fundingOption: { fundingCurrency: 'NGN' } });
+  const op = (TransactionBuilder.fromXDR(p.signPayload, Networks.TESTNET) as any).operations[0];
+  assert.strictEqual(op.type, 'pathPaymentStrictReceive');
+  assert.strictEqual(op.sendAsset.getCode(), 'NGN');
+  assert.strictEqual(op.destAsset.getCode(), 'USD');
+  assert.strictEqual(op.destAmount, '300.0000000');
+  assert.strictEqual(op.sendMax, (300 * 1555 * 1.01).toFixed(7));
+});
+
+test('createProposal - refuses when the chosen wallet cannot cover it', async () => {
+  setup();
+  await assert.rejects(
+    TransferService.createProposal({ userId: 'usr_alice', intent: intent('300.00'), fundingOption: { fundingCurrency: 'USD' } }),
+    (e: any) => e.code === 'INSUFFICIENT_FUNDS'
+  );
+});
+
+test('createProposal - recipient without the currency enabled gets a clear error', async () => {
+  const state = setup();
+  state.balances[receiver.publicKey()] = [{ asset_type: 'native', balance: '100' }];
+  await assert.rejects(
+    TransferService.createProposal({ userId: 'usr_alice', intent: intent('10.00'), fundingOption: { fundingCurrency: 'USD' } }),
+    /has not enabled USD/
+  );
+});
+
+// ── execution (money-safety) ────────────────────────────────────────────────
+
+test('executeTransfer - success returns the REAL Horizon hash and logs both sides', async () => {
+  const state = setup();
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('25.00'), fundingOption: { fundingCurrency: 'USD' } });
+  const r = await TransferService.executeTransfer({ userId: 'usr_alice', proposalId: p.proposalId, signedXdr: signed(p.signPayload) });
+  assert.strictEqual(r.status, 'COMPLETED');
+  assert.strictEqual(r.transactionHash, p.proposalId);
+  assert.strictEqual(state.submitted.length, 1);
+  const recent = listInMemoryActivities().slice(0, 2).map((a: any) => `${a.action}:${a.actor}`);
+  assert.deepStrictEqual(recent.sort(), ['TRANSFER_COMPLETED:usr_alice', 'TRANSFER_RECEIVED:usr_bob']);
+  await assert.rejects(
+    TransferService.executeTransfer({ userId: 'usr_alice', proposalId: p.proposalId, signedXdr: signed(p.signPayload) }),
+    /not found or has expired/,
+    'a proposal cannot be executed twice'
+  );
+});
+
+test('executeTransfer - a different transaction cannot be swapped in', async () => {
+  setup();
+  const p1 = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('25.00'), fundingOption: { fundingCurrency: 'USD' } });
+  const p2 = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('99.00'), fundingOption: { fundingCurrency: 'USD' } });
+  await assert.rejects(
+    TransferService.executeTransfer({ userId: 'usr_alice', proposalId: p1.proposalId, signedXdr: signed(p2.signPayload) }),
+    /does not match/
+  );
+});
+
+test('executeTransfer - Horizon rejection propagates as FAILED, recorded, never COMPLETED', async () => {
+  setup({
+    submit: async () => { throw httpError(400, { extras: { result_codes: { transaction: 'tx_failed', operations: ['op_underfunded'] } } }); },
   });
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('25.00'), fundingOption: { fundingCurrency: 'USD' } });
+  await assert.rejects(
+    TransferService.executeTransfer({ userId: 'usr_alice', proposalId: p.proposalId, signedXdr: signed(p.signPayload) }),
+    (e: any) => e.code === 'STELLAR_TX_FAILED'
+  );
+  const last = listInMemoryActivities()[0];
+  assert.strictEqual(last.action, 'TRANSFER_FAILED');
+  assert.strictEqual(last.detailsJson.status, 'FAILED');
+});
 
-  // Test 4: Direct Funding when balance is sufficient
-  await t.test('Balance-Aware Flow: Direct transfer when sufficient balance exists in target currency', () => {
-    const intent: TransferIntent = {
-      intentId: 'tx_direct_01',
-      originalPrompt: 'Send $150 to bunch.dillon@example.ng',
-      recipient: 'bunch.dillon@example.ng',
-      amount: '150.00',
-      amountMinor: '15000',
-      currency: 'USD',
-      confidenceScore: 0.95,
-      requiresExplicitApproval: true,
-    };
+test('executeTransfer - timeout is PENDING with the hash, not success and not failure', async () => {
+  setup({ submit: async () => { throw httpError(504, {}); } });
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('25.00'), fundingOption: { fundingCurrency: 'USD' } });
+  await assert.rejects(
+    TransferService.executeTransfer({ userId: 'usr_alice', proposalId: p.proposalId, signedXdr: signed(p.signPayload) }),
+    (e: any) => e.code === 'STELLAR_SUBMIT_PENDING' && e.hash === p.proposalId
+  );
+  assert.strictEqual(listInMemoryActivities()[0].action, 'TRANSFER_PENDING');
+});
 
-    const userWallets = [
-      {
-        id: 'sw_usd_wallet',
-        currency: 'USD' as const,
-        balanceMinor: '30000', // $300.00 USD (sufficient for $150)
-        name: 'USD Smart Wallet',
-      },
-    ];
+test('executeTransfer - another user cannot execute my proposal', async () => {
+  setup();
+  const p = await TransferService.createProposal({ userId: 'usr_alice', intent: intent('25.00'), fundingOption: { fundingCurrency: 'USD' } });
+  await assert.rejects(
+    TransferService.executeTransfer({ userId: 'usr_bob', proposalId: p.proposalId, signedXdr: signed(p.signPayload) }),
+    /not found/
+  );
+});
 
-    const inspection = TransferService.inspectBalances(intent, userWallets);
+// ── ownership challenge ─────────────────────────────────────────────────────
 
-    assert.strictEqual(inspection.isPossible, true);
-    assert.strictEqual(inspection.isDirectFunded, true);
-    const funding = inspection.recommendedFundingOption!;
-    assert.strictEqual(funding.fundingCurrency, 'USD');
-    assert.strictEqual(funding.requiresConversion, false);
-    assert.strictEqual(funding.conversionLabel, 'Direct USD Transfer');
-    assert.strictEqual(funding.exchangeRate, 1.0);
+test('ownership challenge - valid signature links; tampering, wrong key, reuse and expiry are rejected', () => {
+  const kp = Keypair.random();
+  const c = issueOwnershipChallenge(kp.publicKey(), 'usr_x');
+  const sig = Buffer.from(kp.sign(Buffer.from(c.message, 'utf8'))).toString('hex');
+  assert.deepStrictEqual(verifyOwnershipChallenge({ message: c.message, signatureHex: sig, accountId: kp.publicKey(), userId: 'usr_x' }), {
+    accountId: kp.publicKey(),
+    userId: 'usr_x',
   });
+  assert.throws(() => verifyOwnershipChallenge({ message: c.message, signatureHex: sig, accountId: kp.publicKey(), userId: 'usr_x' }), /already used/);
 
-  // Test 5: Insufficient Funds across all wallets
-  await t.test('Balance-Aware Flow: Rejects with INSUFFICIENT_FUNDS when all wallets lack sufficient balance', () => {
-    const intent: TransferIntent = {
-      intentId: 'tx_insufficient_01',
-      originalPrompt: 'Send $50,000 to contractor',
-      recipient: 'contractor',
-      amount: '50000.00',
-      amountMinor: '5000000',
-      currency: 'USD',
-      confidenceScore: 0.95,
-      requiresExplicitApproval: true,
-    };
+  const c2 = issueOwnershipChallenge(kp.publicKey(), 'usr_x');
+  const wrongSig = Buffer.from(Keypair.random().sign(Buffer.from(c2.message, 'utf8'))).toString('hex');
+  assert.throws(() => verifyOwnershipChallenge({ message: c2.message, signatureHex: wrongSig, accountId: kp.publicKey(), userId: 'usr_x' }), /does not match this Stellar account/);
+  assert.throws(() => verifyOwnershipChallenge({ message: c2.message.replace('usr_x', 'usr_y'), signatureHex: wrongSig, accountId: kp.publicKey(), userId: 'usr_y' }), /not issued by FlowPay/);
 
-    const userWallets = [
-      {
-        id: 'sw_usd_wallet',
-        currency: 'USD' as const,
-        balanceMinor: '30000', // $300.00
-        name: 'USD Smart Wallet',
-      },
-      {
-        id: 'sw_ngn_wallet',
-        currency: 'NGN' as const,
-        balanceMinor: '100000', // ₦1,000.00
-        name: 'NGN Smart Wallet',
-      },
-    ];
-
-    const inspection = TransferService.inspectBalances(intent, userWallets);
-    assert.strictEqual(inspection.isPossible, false);
-    assert.match(inspection.reason!, /Insufficient funds/);
-  });
-
-  // Test 6: BMONI Proposal Creation & On-Device Signing Payload
-  await t.test('creates BMONI transfer proposal and provides canonical 32-byte sha256 hash for B-Key signing', async () => {
-    const intent: TransferIntent = {
-      intentId: 'tx_prop_01',
-      originalPrompt: 'Send $500 to my designer in Ghana.',
-      recipient: 'my designer in Ghana',
-      amount: '500.00',
-      amountMinor: '50000',
-      currency: 'USD',
-      purpose: 'Design payment',
-      confidenceScore: 0.95,
-      requiresExplicitApproval: true,
-    };
-
-    const fundingOption = {
-      fundingWalletId: 'sw_ngn_01',
-      fundingCurrency: 'NGN' as const,
-      fundingWalletName: 'NGN Smart Wallet',
-      availableBalanceMinor: '682000000',
-      availableBalanceFormatted: '6820000.00',
-      requiresConversion: true,
-      conversionLabel: 'NGN → USD',
-      exchangeRate: 1550.0,
-      convertedDebitMinor: '77500000',
-      convertedDebitFormatted: '775000.00',
-      networkFeeMinor: '77500',
-      networkFeeFormatted: '775.00',
-      serviceFeeMinor: '193750',
-      serviceFeeFormatted: '1937.50',
-      fxFeeMinor: '116250',
-      fxFeeFormatted: '1162.50',
-      totalDebitMinor: '77693750',
-      totalDebitFormatted: '776937.50',
-      targetPaymentMinor: '50000',
-      targetPaymentFormatted: '500.00',
-    };
-
-    const proposal = await TransferService.createProposal({
-      userId: 'usr_flowpay_sandbox_master',
-      intent,
-      fundingOption,
-    });
-
-    assert.ok(proposal.proposalId);
-    assert.strictEqual(proposal.status, 'PENDING_SIGNATURES');
-    assert.match(proposal.hashToSign, /^0x[a-f0-9]{64}$/i);
-    assert.strictEqual(proposal.fundingOption.conversionLabel, 'NGN → USD');
-  });
-
-  // Test 7: B-Key Signature Submission - Honest Failure Propagation
-  await t.test('throws an error and never marks COMPLETED when BMONI signProposal fails', async () => {
-    const dummySig = '0x' + 'ab'.repeat(65);
-    const originalSign = bmoniClient.signProposal;
-    bmoniClient.signProposal = async () => {
-      throw new Error('BMONI 500: Secp256k1 signature validation error');
-    };
-
-    try {
-      await assert.rejects(
-        async () => {
-          await TransferService.executeTransfer({
-            userId: 'usr_flowpay_sandbox_master',
-            proposalId: 'prop_tx_test_fail',
-            signature: dummySig,
-          });
-        },
-        /Secp256k1 signature validation error/,
-        'Must propagate real BMONI failure and reject'
-      );
-    } finally {
-      bmoniClient.signProposal = originalSign;
-    }
-  });
-
-  // Test 7b: Genuine B-Key Signature Submission and Activity Persistence
-  await t.test('executes transfer with valid on-device B-Key signature when BMONI succeeds', async () => {
-    const dummySig = '0x' + 'ab'.repeat(65); // 65-byte hex signature
-    const realTxHash = '0x' + '1234567890abcdef'.repeat(4);
-    const originalSign = bmoniClient.signProposal;
-    const originalGet = bmoniClient.getProposal;
-
-    bmoniClient.signProposal = async () => ({
-      success: true,
-      status: 'COMPLETED',
-      transactionHash: realTxHash,
-    });
-    bmoniClient.getProposal = async () => ({
-      id: 'prop_tx_test_123',
-      proposalId: 'prop_tx_test_123',
-      status: 'COMPLETED',
-      transactionHash: realTxHash,
-    } as any);
-
-    try {
-      const result = await TransferService.executeTransfer({
-        userId: 'usr_flowpay_sandbox_master',
-        proposalId: 'prop_tx_test_123',
-        signature: dummySig,
-      });
-
-      assert.strictEqual(result.status, 'COMPLETED');
-      assert.strictEqual(result.transactionHash, realTxHash, 'Must return real BMONI transaction hash');
-      assert.ok(result.auditActivityId);
-    } finally {
-      bmoniClient.signProposal = originalSign;
-      bmoniClient.getProposal = originalGet;
-    }
-  });
-
-  // Test 8: Human-Readable Error Formatting across all 8 failure modes
-  await t.test('formats human-readable error messages for all 8 failure modes', () => {
-    assert.match(TransferValidator.formatError('INSUFFICIENT_FUNDS'), /Insufficient funds/);
-    assert.match(TransferValidator.formatError('UNSUPPORTED_CURRENCY'), /unsupported/);
-    assert.match(TransferValidator.formatError('INVALID_RECIPIENT'), /Invalid recipient/);
-    assert.match(TransferValidator.formatError('CONVERSION_UNAVAILABLE'), /conversion.*unavailable/i);
-    assert.match(TransferValidator.formatError('TRANSFER_FAILURE'), /failed to settle/i);
-    assert.match(TransferValidator.formatError('SIGNATURE_FAILURE'), /PIN verification failed/i);
-    assert.match(TransferValidator.formatError('PROPOSAL_EXPIRATION'), /proposal expired/i);
-    assert.match(TransferValidator.formatError('NETWORK_FAILURE'), /Network connection error/i);
-  });
+  const old = issueOwnershipChallenge(kp.publicKey(), 'usr_x', Date.now() - 10 * 60 * 1000);
+  const oldSig = Buffer.from(kp.sign(Buffer.from(old.message, 'utf8'))).toString('hex');
+  assert.throws(() => verifyOwnershipChallenge({ message: old.message, signatureHex: oldSig, accountId: kp.publicKey(), userId: 'usr_x' }), /expired/);
 });
