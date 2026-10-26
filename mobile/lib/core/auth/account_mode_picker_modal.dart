@@ -98,7 +98,7 @@ class _AccountModePickerModalState extends State<AccountModePickerModal> {
               mode: AccountMode.personal,
               title: 'Personal Account',
               subtitle:
-                  'Multi-currency smart wallets, virtual spend cards, and automated money missions.',
+                  'One wallet for USD, CAD, MXN, GBP and NGN, instant transfers, and money missions.',
               icon: Icons.person_outline,
               badgeText: 'Active',
               isEnabled: widget.capabilities.hasPersonalWallet,

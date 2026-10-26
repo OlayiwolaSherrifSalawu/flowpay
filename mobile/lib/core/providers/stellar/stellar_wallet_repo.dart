@@ -6,7 +6,7 @@ import '../../network/api_client.dart';
 import '../../repositories/wallet_repository.dart';
 import '../../stellar/stellar_api.dart';
 import '../../stellar/stellar_key_vault.dart';
-import '../../wallets_cards/bmoni_embedded_wallets_cards.dart';
+import '../../wallets_cards/wallets_cards.dart';
 
 /// Live wallets = the balances of this device's Stellar account, read from the
 /// network. There is no local ledger and no offline "fallback" balance: when the

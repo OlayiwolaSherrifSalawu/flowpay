@@ -136,8 +136,9 @@ test('MailService - singleton and environment initialization', () => {
   assert.strictEqual(instance1, mailService);
 
   // Assert environment values are correctly mapped
-  assert.strictEqual(env.SMTP_HOST, 'smtp.gmail.com');
-  assert.strictEqual(env.SMTP_PORT, 587);
-  assert.strictEqual(env.SMTP_USER, 'fwaffiyyi@gmail.com');
+  // Values come from the environment; only their types are guaranteed.
+  assert.ok(typeof env.SMTP_HOST === 'string' && env.SMTP_HOST.length > 0);
+  assert.ok(Number.isInteger(env.SMTP_PORT));
+  assert.ok(typeof env.SMTP_USER === 'string');
   assert.ok(typeof env.SMTP_PASS === 'string');
 });

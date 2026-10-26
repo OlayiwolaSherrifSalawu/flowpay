@@ -25,10 +25,10 @@ class CountryOption {
 /// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
 /// - 28dp sheet radius (FlowPayRadii.sheet)
 /// - Theme-adaptive canvas (lightSurface / darkSurface) with pull handle
-/// - BMoniTextFormField.filled for inputs with 16dp pillowed radius
+/// - FlowPayTextFormField.filled for inputs with 16dp pillowed radius
 /// - SelectorBottomSheet<CountryOption> for country & rail selection
 /// - Universal pill buttons for invitation dispatch
-/// - BMoniToastOverlay for rich feedback
+/// - FlowPayToastOverlay for rich feedback
 class AddEmployeeModal extends StatefulWidget {
   final BusinessProvider businessProvider;
 
@@ -82,7 +82,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
 
   Future<void> _pickCountry() async {
     try {
-      final picked = await BMoniBottomSheet.show<CountryOption>(
+      final picked = await FlowPaySheets.show<CountryOption>(
         context: context,
         child: SelectorBottomSheet<CountryOption>(
           items: _countries,
@@ -192,7 +192,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         });
 
         try {
-          BMoniToastOverlay.showSuccess(
+          FlowPayToastOverlay.showSuccess(
             context: context,
             title: 'Invitation Dispatched',
             message: 'Single-use invite link created for $first $last.',
@@ -202,7 +202,7 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
     } catch (e) {
       if (mounted) {
         try {
-          BMoniToastOverlay.showError(
+          FlowPayToastOverlay.showError(
             context: context,
             title: 'Onboarding Failed',
             message: 'Failed to create employee: $e',
@@ -412,10 +412,10 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
           style: FlowPayTypography.captionStyle(color: FlowPayColors.darkTextSecondary),
         ),
         const SizedBox(height: 10),
-        BMoniButton(
+        FlowPayButton(
           text: 'Close',
-          variant: BMoniButtonVariant.secondary,
-          size: BMoniButtonSize.medium,
+          variant: FlowPayButtonVariant.secondary,
+          size: FlowPayButtonSize.medium,
           onPressed: () => Navigator.pop(context),
         ),
       ],
@@ -584,15 +584,15 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Name Row with BMoniTextFormField.filled
+                      // Name Row with FlowPayTextFormField.filled
                       Row(
                         children: [
                           Expanded(
-                            child: BMoniTextFormField.filled(
+                            child: FlowPayTextFormField.filled(
                               label: 'First Name',
                               hintText: 'e.g. Bunch / Samson',
                               controller: _firstCtrl,
-                              size: BMoniTextFieldSize.medium,
+                              size: FlowPayTextFieldSize.medium,
                               prefixIcon: const Icon(
                                   Icons.person_outline_rounded,
                                   size: 18),
@@ -603,11 +603,11 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: BMoniTextFormField.filled(
+                            child: FlowPayTextFormField.filled(
                               label: 'Last Name',
                               hintText: 'e.g. Dillon / Jabo',
                               controller: _lastCtrl,
-                              size: BMoniTextFieldSize.medium,
+                              size: FlowPayTextFieldSize.medium,
                               prefixIcon: const Icon(
                                   Icons.person_outline_rounded,
                                   size: 18),
@@ -620,13 +620,13 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Work Email Field with BMoniTextFormField.filled
-                      BMoniTextFormField.filled(
+                      // Work Email Field with FlowPayTextFormField.filled
+                      FlowPayTextFormField.filled(
                         label: 'Work Email Address',
                         hintText: 'employee@company.com',
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        size: BMoniTextFieldSize.medium,
+                        size: FlowPayTextFieldSize.medium,
                         prefixIcon:
                             const Icon(Icons.mail_outline_rounded, size: 18),
                         validator: (v) {
@@ -644,28 +644,28 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       const SizedBox(height: 16),
 
                       // Phone Number (Optional E.164)
-                      BMoniTextFormField.filled(
+                      FlowPayTextFormField.filled(
                         label: 'Phone Number (E.164 format)',
                         hintText: _selectedCountry.code == 'NG'
                             ? '+2348011112222'
                             : '+525512345678',
                         controller: _phoneCtrl,
                         keyboardType: TextInputType.phone,
-                        size: BMoniTextFieldSize.medium,
+                        size: FlowPayTextFieldSize.medium,
                         prefixIcon:
                             const Icon(Icons.phone_outlined, size: 18),
                       ),
                       const SizedBox(height: 16),
 
                       // Monthly Salary Field
-                      BMoniTextFormField.filled(
+                      FlowPayTextFormField.filled(
                         label:
                             'Monthly Net Salary (${_selectedCountry.currency.code})',
                         hintText: '0.00',
                         controller: _salaryCtrl,
                         keyboardType:
                             const TextInputType.numberWithOptions(decimal: true),
-                        size: BMoniTextFieldSize.medium,
+                        size: FlowPayTextFieldSize.medium,
                         prefixIcon: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
@@ -688,14 +688,14 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Primary Submission Button using BMoniButton
+                      // Primary Submission Button using FlowPayButton
                       SizedBox(
                         width: double.infinity,
-                        child: BMoniButton(
+                        child: FlowPayButton(
                           onPressed: _isSubmitting ? null : _handleSubmit,
                           text: 'Send Employee Invitation',
-                          variant: BMoniButtonVariant.primary,
-                          size: BMoniButtonSize.large,
+                          variant: FlowPayButtonVariant.primary,
+                          size: FlowPayButtonSize.large,
                           isLoading: _isSubmitting,
                           icon: Icons.send_rounded,
                         ),

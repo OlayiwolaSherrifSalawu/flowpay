@@ -15,8 +15,8 @@ enum PayrollExecutionStep {
 /// Multi-Country Global Payroll Screen
 /// FlowPay Business Design System (Dribbble Fintech & Emerald Branding):
 /// Core message: "One Employer. Many Countries. One Bill."
-/// Conforms to design.md & BMONI transfer proposal protocol:
-/// - Recipient destination currency rail validation (CNGN, MEXe)
+/// Conforms to design.md & Stellar transfer proposal protocol:
+/// - Recipient destination currency rail validation (NGN, MXN)
 /// - Review screen with aggregate bill, fees, and 97% savings
 /// - Confirmation modal before execution (employee count, country count, total)
 /// - 4-state execution timeline: Validated → Approved → Processing → Completed

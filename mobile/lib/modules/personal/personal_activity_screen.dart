@@ -1,3 +1,5 @@
+import '../../core/stellar/stellar_key_vault.dart';
+import '../../core/stellar/stellar_api.dart';
 import 'package:flutter/material.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/models/paginated_result.dart';
@@ -12,7 +14,6 @@ enum ActivityFilter {
   conversions,
   missions,
   walletOps,
-  cards,
   pendingApprovals,
   failures,
 }
@@ -30,8 +31,6 @@ extension ActivityFilterX on ActivityFilter {
         return 'Missions';
       case ActivityFilter.walletOps:
         return 'Wallet activity';
-      case ActivityFilter.cards:
-        return 'Cards';
       case ActivityFilter.pendingApprovals:
         return 'Pending Approvals';
       case ActivityFilter.failures:
@@ -51,8 +50,6 @@ extension ActivityFilterX on ActivityFilter {
         return Icons.bolt;
       case ActivityFilter.walletOps:
         return Icons.account_balance_wallet_outlined;
-      case ActivityFilter.cards:
-        return Icons.credit_card;
       case ActivityFilter.pendingApprovals:
         return Icons.pending_actions;
       case ActivityFilter.failures:
@@ -119,14 +116,48 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
     );
   }
 
-  void _onActivityApproved(ActivityModel updated) {
-    widget.appState.activityRepo.recordActivity(updated);
+  /// Resolves an item awaiting action. Demo: simulated approval. Live: a
+  /// pending item is a submitted Stellar transaction — ask the network for its
+  /// real outcome instead of declaring it done.
+  Future<void> _onActivityApproved(ActivityModel item) async {
+    ActivityModel updated;
+    if (widget.appState.isDemo) {
+      updated = item.copyWith(status: FlowPayAppStatus.completed);
+    } else {
+      final hash = item.reference;
+      if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(hash)) {
+        _snack('This item has no Stellar transaction to check.');
+        return;
+      }
+      try {
+        final status = await StellarApi(widget.appState.apiClient).reconcile(hash);
+        updated = item.copyWith(
+          status: switch (status) {
+            'COMPLETED' => FlowPayAppStatus.completed,
+            'FAILED' => FlowPayAppStatus.failed,
+            _ => FlowPayAppStatus.pending,
+          },
+        );
+      } catch (e) {
+        _snack('Could not check the transaction: $e');
+        return;
+      }
+    }
+    await widget.appState.activityRepo.recordActivity(updated);
+    if (!mounted) return;
     setState(() {
       final idx = _activities.indexWhere((a) => a.id == updated.id);
-      if (idx != -1) {
-        _activities[idx] = updated;
-      }
+      if (idx != -1) _activities[idx] = updated;
     });
+    _snack(switch (updated.status) {
+      FlowPayAppStatus.completed => 'Confirmed.',
+      FlowPayAppStatus.failed => 'This transaction failed on the network. No money moved.',
+      _ => 'Still waiting for the network. Try again shortly.',
+    });
+  }
+
+  void _snack(String text) {
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   List<ActivityModel> get _filteredActivities {
@@ -148,9 +179,6 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
           break;
         case ActivityFilter.walletOps:
           matchesFilter = a.type == ActivityType.wallet;
-          break;
-        case ActivityFilter.cards:
-          matchesFilter = a.type == ActivityType.card;
           break;
         case ActivityFilter.pendingApprovals:
           matchesFilter = a.status == FlowPayAppStatus.awaitingApproval ||
@@ -646,16 +674,11 @@ class _PersonalActivityScreenState extends State<PersonalActivityScreen> {
                             subtitle:
                             'Confirm payment of ${a.amount?.formatFormatted() ?? a.reference}',
                         onAuthorize: (pin) async {
-                          final updated =
-                              a.copyWith(status: FlowPayAppStatus.completed);
-                          _onActivityApproved(updated);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Payment approved'),
-                              backgroundColor: FlowPayColors.accent,
-                            ),
-                          );
-                          return '0x_signed_bmoni_proposal';
+                          if (!await StellarKeyVault.instance.verifyPin(pin)) {
+                            throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+                          }
+                          _onActivityApproved(a);
+                          return 'approved';
                         },
                       );
                     },

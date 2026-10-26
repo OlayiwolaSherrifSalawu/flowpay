@@ -589,7 +589,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
     );
   }
 
-  /// Step 4 & 5: BMONI Proposal Creation -> On-Device B-Key Signing -> Submission
+  /// Step 4 & 5: Stellar Proposal Creation -> On-Device wallet key Signing -> Submission
   Future<void> _startOnDeviceSigningFlow(
     TransferIntent intent,
     TransferFundingOption fundingOption,

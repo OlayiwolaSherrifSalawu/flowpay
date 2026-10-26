@@ -3,7 +3,7 @@
 /// Single source of truth for all user-facing strings in the FlowPay app.
 ///
 /// Rules:
-/// - No "B-Key", "BMONI", "secp256k1", "EVM", "rails", "multi-rail"
+/// - No "wallet key", "Stellar", "secp256k1", "EVM", "rails", "multi-rail"
 /// - No "custody", "settlement", "deterministic", "invariant pipeline"
 /// - No "execution provider", "funding route", "smart contract"
 /// - Plain English, action-oriented, consumer-friendly

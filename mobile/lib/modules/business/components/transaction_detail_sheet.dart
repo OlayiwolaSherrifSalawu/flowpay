@@ -160,8 +160,8 @@ class TransactionDetailSheet extends StatelessWidget {
                 _buildRow(context, 'Date & Time', _formatDate(transaction.timestamp)),
                 if (transaction.flowpayReference != null)
                   _buildRowWithCopy(context, 'FlowPay Reference', transaction.flowpayReference!),
-                if (transaction.bmoniReference != null)
-                  _buildRowWithCopy(context, 'Payment Reference', transaction.bmoniReference!),
+                if (transaction.networkReference != null)
+                  _buildRowWithCopy(context, 'Payment Reference', transaction.networkReference!),
                 if (transaction.description.isNotEmpty)
                   _buildRow(context, 'Description', transaction.description),
               ],
@@ -306,7 +306,7 @@ class TransactionDetailSheet extends StatelessWidget {
                 InkWell(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: value));
-                    BMoniToastOverlay.showSuccess(
+                    FlowPayToastOverlay.showSuccess(
                       context: context,
                       title: 'Copied',
                       message: '$label copied to clipboard.',

@@ -327,7 +327,7 @@ void main() {
                   WalletPinAuthSheet.show(
                     context: context,
                     title: 'Authorize Payment',
-                    amountDisplay: '\$100.00 USDB',
+                    amountDisplay: '\$100.00 USD',
                     recipient: 'john@example.com',
                     onAuthorize: (pin) async => '0xSIG',
                   );
@@ -344,7 +344,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Authorize Payment'), findsOneWidget);
-      expect(find.text('\$100.00 USDB'), findsOneWidget);
+      expect(find.text('\$100.00 USD'), findsOneWidget);
       expect(find.text('To: john@example.com'), findsOneWidget);
       expect(
         find.text('Your FlowPay wallet is secured on this device.'),

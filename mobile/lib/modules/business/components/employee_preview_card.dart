@@ -325,7 +325,7 @@ class EmployeePreviewCard extends StatelessWidget {
               ),
             ),
 
-            // Failure banner + Retry — only for employees whose BMONI identity
+            // Failure banner + Retry — only for employees whose Stellar identity
             // creation failed, so the employer can see WHY and fix it without
             // re-entering everything.
             if (_isFailed) ...[
@@ -356,7 +356,7 @@ class EmployeePreviewCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             employee.failureReason ??
-                                (employee.failedStage == 'BMONI_USER_CREATION'
+                                (employee.failedStage == 'Stellar_USER_CREATION'
                                     ? 'Employee account could not be created. Please retry.'
                                     : 'This employee could not be onboarded. Tap retry to try again.'),
                             style: FlowPayTypography.captionStyle(

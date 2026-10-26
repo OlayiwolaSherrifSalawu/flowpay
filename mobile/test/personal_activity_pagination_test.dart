@@ -12,7 +12,7 @@ void main() {
       appState = AppState();
     });
 
-    testWidgets('Renders 50 activities with 10/page and pagination navigation', (tester) async {
+    testWidgets('Renders 37 activities with 10/page and pagination navigation', (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -29,8 +29,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // 1. Pagination bar shows page 1 of 5
-      expect(find.text('Showing 1–10 of 50 activities'), findsOneWidget);
-      expect(find.text('1 / 5'), findsOneWidget);
+      expect(find.text('Showing 1–10 of 37 activities'), findsOneWidget);
+      expect(find.text('1 / 4'), findsOneWidget);
       expect(find.text('Prev'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
 
@@ -41,8 +41,8 @@ void main() {
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Showing 11–20 of 50 activities'), findsOneWidget);
-      expect(find.text('2 / 5'), findsOneWidget);
+      expect(find.text('Showing 11–20 of 37 activities'), findsOneWidget);
+      expect(find.text('2 / 4'), findsOneWidget);
 
       // 3. Search resets to page 1
       final searchField = find.byType(TextField);

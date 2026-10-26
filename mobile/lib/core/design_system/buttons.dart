@@ -225,6 +225,3 @@ class FlowPayIconButton extends StatelessWidget {
 }
 
 // Backward-compatibility aliases
-typedef BMoniButton = FlowPayButton;
-typedef BMoniButtonVariant = FlowPayButtonVariant;
-typedef BMoniButtonSize = FlowPayButtonSize;

@@ -8,7 +8,8 @@ import 'account_capabilities.dart';
 /// Strictly uses flutter_secure_storage (encrypted on-device keychain/keystore),
 /// never SharedPreferences.
 class SecureStorageService {
-  static const String _keyBmoniUserId = 'bmoni_user_id';
+  // Storage key kept from the pre-Stellar app so existing sessions survive.
+  static const String _keyUserId = 'bmoni_user_id';
   static const String _keyCapabilities = 'account_capabilities';
   static const String _keyCapabilitiesTimestamp = 'account_capabilities_ts';
   static const String _keyAccountMode = 'account_mode';
@@ -73,13 +74,13 @@ class SecureStorageService {
 
   /// Check if this device has an established user session
   Future<bool> hasSession() async {
-    final userId = await _safeRead(_keyBmoniUserId);
+    final userId = await _safeRead(_keyUserId);
     return userId != null && userId.isNotEmpty;
   }
 
-  /// Get active bmoniUserId
-  Future<String?> getBmoniUserId() async {
-    return await _safeRead(_keyBmoniUserId);
+  /// Get active flowpayUserId
+  Future<String?> getSessionUserId() async {
+    return await _safeRead(_keyUserId);
   }
 
   /// Get active authentication JWT/session token
@@ -94,7 +95,7 @@ class SecureStorageService {
 
   /// Save session on successful onboarding or login
   Future<void> saveSession(String userId) async {
-    await _safeWrite(_keyBmoniUserId, userId);
+    await _safeWrite(_keyUserId, userId);
     await updateAuthTimestamp();
   }
 
@@ -152,7 +153,7 @@ class SecureStorageService {
   Future<void> resetSession() async {
     await _safeDelete(_keyUserProfile);
     await _safeDelete(_keyKycCompleted);
-    await _safeDelete(_keyBmoniUserId);
+    await _safeDelete(_keyUserId);
     await _safeDelete(_keyCapabilities);
     await _safeDelete(_keyCapabilitiesTimestamp);
     await _safeDelete(_keyAccountMode);

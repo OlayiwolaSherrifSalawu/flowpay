@@ -3,47 +3,9 @@ import { prisma, isPostgresDb } from '../db/index.js';
 
 export const activityRouter = Router();
 
-// In-memory fallback activities for sandbox / offline / when DB is disconnected
-const inMemoryActivities: any[] = [
-  {
-    id: 'act_seed_01',
-    category: 'PERSONAL',
-    action: 'TRANSFER_COMPLETED',
-    actor: 'usr_flowpay_sandbox_master',
-    detailsJson: {
-      transferId: 'prop_mock_01',
-      recipient: 'Bunch Dillon',
-      amount: '250.00',
-      currency: 'USD',
-      status: 'COMPLETED',
-    },
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 'act_seed_02',
-    category: 'SYSTEM',
-    action: 'WALLET_PROVISIONED',
-    actor: 'BMONI_SYSTEM',
-    detailsJson: {
-      walletId: 'sw_usdb_sandbox_01',
-      currency: 'USD',
-      network: 'Base Sepolia',
-    },
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: 'act_seed_03',
-    category: 'BUSINESS',
-    action: 'PAYROLL_PROPOSAL_CREATED',
-    actor: 'usr_flowpay_sandbox_master',
-    detailsJson: {
-      runId: 'payrun_seed_01',
-      employeeCount: 2,
-      totalUsdFormatted: '$4,200.00',
-    },
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-];
+// In-memory activity log (also the fallback when Postgres is not connected). Starts empty:
+// only real events are ever recorded.
+const inMemoryActivities: any[] = [];
 
 /** Read-only view for tests and diagnostics. */
 export function listInMemoryActivities(): readonly any[] {
@@ -114,7 +76,7 @@ activityRouter.get('/', async (req, res, next) => {
         }
 
         // If actor is system, only include if user is explicitly involved
-        if (actor === 'bmoni_system' || actor === 'system') {
+        if (actor === 'system') {
           return (
             recipient === userLower ||
             recipientUserId === userLower ||

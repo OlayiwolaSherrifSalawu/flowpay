@@ -3,7 +3,7 @@ import '../models/either.dart';
 import '../models/embedded_wallet.dart';
 
 /// Network-facing contract for reading embedded wallet state.
-/// Implement this against the BMONI REST API or mock providers.
+/// Implement this against the Stellar REST API or mock providers.
 abstract class EmbeddedWalletReadDataSource {
   /// Fetches all smart wallets belonging to the active user/employee.
   Future<Either<EmbeddedFailure, EmbeddedWalletListResponse>> fetchWallets();

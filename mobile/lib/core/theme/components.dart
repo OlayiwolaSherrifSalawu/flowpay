@@ -54,7 +54,7 @@ class FlowPayBrandBadge extends StatelessWidget {
 }
 
 // Backward-compatible alias for existing callers
-typedef PoweredByBmoniBadge = FlowPayBrandBadge;
+typedef PoweredByStellarBadge = FlowPayBrandBadge;
 
 /// Revolut-style Segmented Role Switch [ Personal | Business ]
 /// Conforms to design.md §2.4 & §4.4: Universal pill container and active segment.
@@ -438,7 +438,7 @@ class VirtualCardObject extends StatelessWidget {
   }
 }
 
-/// BMONI Status Type Enum
+/// Stellar Status Type Enum
 enum StatusType {
   warning,
   success,
@@ -671,7 +671,7 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Official BMoni UI Kit ActivitySectionCard container component
+/// ActivitySectionCard container component
 /// A card-shaped container with a structured SectionHeader, a content area,
 /// and an optional footer. Designed for activity feeds, dashboards, and audit logs.
 class ActivitySectionCard extends StatelessWidget {

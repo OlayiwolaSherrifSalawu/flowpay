@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stellar_flutter_sdk/stellar_flutter_sdk.dart' hide Currency;
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
-import 'package:flowpay_mobile/core/repositories/card_repository.dart';
 import 'package:flowpay_mobile/core/repositories/employee_repository.dart';
 import 'package:flowpay_mobile/core/repositories/payroll_repository.dart';
 import 'package:flowpay_mobile/core/repositories/wallet_repository.dart';
@@ -42,12 +41,6 @@ class FakeWalletRepository implements WalletRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class FakeCardRepository implements CardRepository {
-  @override
-  Future<List<VirtualCardModel>> getCards({String? smartWalletId, String? userId}) async => [];
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
 
 /// An unsigned payment from [source], like the backend's payroll batch.
 String unsignedBatch(String source, int seq) => TransactionBuilder(Account(source, BigInt.from(seq)))
@@ -130,7 +123,6 @@ void main() {
         employeeRepo: FakeEmployeeRepository(),
         payrollRepo: repo,
         walletRepo: FakeWalletRepository(),
-        cardRepo: FakeCardRepository(),
       );
       await provider.loadDashboard();
       final result = await provider.runPayroll(pin: testWalletPin);

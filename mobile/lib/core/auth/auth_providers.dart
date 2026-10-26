@@ -86,11 +86,11 @@ final accountCapabilitiesProvider =
     AccountCapabilities capabilities;
     if (profile.accountType == AccountType.personal) {
       capabilities = AccountCapabilities.personalOnly(
-        bmoniUserId: profile.userId,
+        flowpayUserId: profile.userId,
       );
     } else {
       capabilities = AccountCapabilities.businessOnly(
-        bmoniUserId: profile.userId,
+        flowpayUserId: profile.userId,
         companyName: profile.companyName ?? 'Business Account',
         companyRole: profile.companyRole ?? 'ADMIN',
       );
@@ -100,11 +100,11 @@ final accountCapabilitiesProvider =
   }
 
   // 3. Fetch fresh capabilities from FlowPay backend
-  final bmoniUserId = await storage.getBmoniUserId();
-  if (bmoniUserId != null && bmoniUserId.isNotEmpty) {
+  final flowpayUserId = await storage.getSessionUserId();
+  if (flowpayUserId != null && flowpayUserId.isNotEmpty) {
     try {
       final uri = Uri.parse(
-          '${ApiConfig.baseUrl}/api/auth/capabilities?bmoniUserId=$bmoniUserId');
+          '${ApiConfig.baseUrl}/api/auth/capabilities?flowpayUserId=$flowpayUserId');
 
       final response = await http.get(uri).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
@@ -120,7 +120,7 @@ final accountCapabilitiesProvider =
 
   // 4. Default to personal capability for authenticated user
   final fallback = AccountCapabilities.personalOnly(
-    bmoniUserId: bmoniUserId ?? 'user_unauthenticated',
+    flowpayUserId: flowpayUserId ?? 'user_unauthenticated',
   );
   await storage.saveCapabilities(fallback);
   return fallback;

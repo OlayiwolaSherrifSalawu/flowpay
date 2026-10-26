@@ -218,7 +218,7 @@ class FlowPayStatusBadge extends StatelessWidget {
         color = FlowPayColors.darkTextTertiary;
         resolvedIcon = Icons.block_rounded;
         break;
-      case 'SELF-CUSTODY (B-KEY)':
+      case 'SELF-CUSTODY':
       case 'SECURE':
       case 'HARDWARE SECURED':
         color = FlowPayColors.primaryLight;

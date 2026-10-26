@@ -1,0 +1,10 @@
+-- OPTIONAL, DESTRUCTIVE — not applied automatically.
+-- After the Stellar migration FlowPay no longer reads or writes these BMONI-era
+-- columns/tables. Back up first, then run only if you no longer need the data.
+-- ALTER TABLE public.users DROP COLUMN IF EXISTS bmoni_user_id;
+-- ALTER TABLE public.employees DROP COLUMN IF EXISTS bmoni_user_id;
+-- ALTER TABLE public.businesses DROP COLUMN IF EXISTS bmoni_user_id;
+-- DROP TABLE IF EXISTS public.card_transactions;
+-- DROP TABLE IF EXISTS public.virtual_cards;
+-- DROP TABLE IF EXISTS public.webhook_events;
+-- DROP TABLE IF EXISTS public.webhook_subscriptions;

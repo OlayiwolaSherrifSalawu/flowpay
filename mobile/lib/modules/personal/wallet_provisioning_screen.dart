@@ -7,7 +7,7 @@ import '../../core/design_system/design_system.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../core/wallet/wallet_service.dart';
 
-/// Polished on-device B-Key / BMONI wallet setup and management screen.
+/// Polished on-device wallet key / Stellar wallet setup and management screen.
 ///
 /// Features:
 /// 1. Explains simply: "Your FlowPay wallet is secured on this device."

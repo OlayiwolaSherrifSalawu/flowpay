@@ -20,7 +20,7 @@ import 'components/choose_beneficiary_modal.dart';
 /// FlowPay AI Financial Operator Modal
 /// Embedded intelligent financial operator interface supporting natural language
 /// multi-action requests, entity disambiguation, multi-turn clarification,
-/// structured plan review, and on-device B-Key PIN signing.
+/// structured plan review, and on-device wallet PIN signing.
 class AiOperatorModal extends StatefulWidget {
   final AppState appState;
   final String? initialPrompt;

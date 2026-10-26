@@ -10,7 +10,7 @@ import '../wallet_signer.dart';
 /// Features:
 /// 1. Prominently reassures: "Your FlowPay wallet is secured on this device."
 /// 2. Interactive 6-digit PIN pad with masked dots.
-/// 3. Immediate feedback on incorrect PIN (`BmoniSignerErrorCode.pinMismatch`).
+/// 3. Immediate feedback on incorrect PIN (`StellarVaultErrorCode.pinMismatch`).
 /// 4. Handles user cancellation cleanly without leaving hanging state.
 /// 5. Never logs or persists the entered PIN.
 class WalletPinAuthSheet extends StatefulWidget {

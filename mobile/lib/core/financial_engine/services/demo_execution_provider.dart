@@ -80,7 +80,7 @@ class DemoExecutionProvider implements ExecutionProvider {
       walletName: 'USD Smart Wallet',
       address: '0x8f2d6B48e89405d414a3D65B2Af6d73f1d93E3C1',
       currency: Currency.usd,
-      stablecoinToken: 'USDB',
+      stablecoinToken: 'USD',
       available: usd,
       reserved: Money.zero(Currency.usd),
       pending: Money.zero(Currency.usd),
@@ -95,7 +95,7 @@ class DemoExecutionProvider implements ExecutionProvider {
       walletName: 'EUR Smart Wallet',
       address: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
       currency: Currency.eur,
-      stablecoinToken: 'EURe',
+      stablecoinToken: 'EUR',
       available: eur,
       reserved: Money.zero(Currency.eur),
       pending: Money.zero(Currency.eur),
@@ -108,7 +108,7 @@ class DemoExecutionProvider implements ExecutionProvider {
       walletName: 'NGN Smart Wallet',
       address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
       currency: Currency.ngn,
-      stablecoinToken: 'CNGN',
+      stablecoinToken: 'NGN',
       available: ngn,
       reserved: Money.zero(Currency.ngn),
       pending: Money.zero(Currency.ngn),
@@ -121,7 +121,7 @@ class DemoExecutionProvider implements ExecutionProvider {
       walletName: 'MXN Smart Wallet',
       address: '0x9B10d4818F2312643a60a7F03C12b07C6418B573',
       currency: Currency.mxn,
-      stablecoinToken: 'MEXe',
+      stablecoinToken: 'MXN',
       available: mxn,
       reserved: Money.zero(Currency.mxn),
       pending: Money.zero(Currency.mxn),
@@ -134,7 +134,7 @@ class DemoExecutionProvider implements ExecutionProvider {
       walletName: 'CAD Smart Wallet',
       address: '0x1C44F5a92B7e012354c41893D9B0A361e2A89F90',
       currency: Currency.cad,
-      stablecoinToken: 'CADC',
+      stablecoinToken: 'CAD',
       available: cad,
       reserved: Money.zero(Currency.cad),
       pending: Money.zero(Currency.cad),
@@ -408,7 +408,7 @@ class DemoExecutionProvider implements ExecutionProvider {
     if (pin.trim().length < 4) {
       return ExecutionResult.failed(
         plan.planId,
-        'On-device B-Key PIN signature required for execution.',
+        'On-device wallet PIN signature required for execution.',
       );
     }
 

@@ -115,6 +115,10 @@ removed completely.
   * **KYC made honest**: in-app identity form = `pending` (`markKycSubmitted`), backend `/api/auth/kyc` returns `SUBMITTED` with `verification: 'anchor'` and stores `pending`; login no longer forces `verified`. Real identity verification is done by the anchor.
   * Verified live (`test/live/stellar_anchor_live_test.dart`): wrong PIN never reaches the anchor; SEP-10 JWT issued; trustline idempotent; SEP-24 deposit + withdraw sessions opened; status read back (`incomplete`).
 
+* [x] **M7 — BMONI and cards removed**:
+  * Backend: deleted `src/bmoni/*` (client, webhooks), webhook + webhook-config routes, `modules/cards`, `core/currencies.ts`, BMONI errors/`sanitizeBmoniError`, BMONI env (incl. the hardcoded API key) and the personal SMTP default, dead validator fee/rate code (`getExchangeRate` silently returned 1.0 for unknown pairs). `/api/health` reports the Stellar network; new `/api/health/stellar`. **Startup no longer seeds fake users/employees/missions into the database**; in-memory activity log no longer starts with fake entries. Auth: capabilities return `userId`; signup no longer writes `bmoni_user_id`; business currency covers CA/GB. Legacy `bmoni_*` columns and card/webhook tables are left in place (data-preserving); `prisma/sql/OPTIONAL_drop_bmoni_legacy.sql` drops them if you choose. Backend tests no longer call BMONI over the network. 91/91.
+  * Mobile: deleted `packages/bmoni_embedded_*`, card repositories/sheets/demo data, `BmoniExecutionProvider` (invented fallback balances), `CurrencyMapping`; `ProviderMode.live`; `providers/live/*`; `BMoni*` widgets → `FlowPay*`; `bmoniUserId` → `flowpayUserId`, `bmoniReference` → `networkReference` (JSON still reads legacy keys; storage key kept so sessions survive); currency tokens are ISO codes (legacy tokens still parsed); all BMONI/B-Key copy rewritten. **Activity "Approve" accepted any PIN and marked items completed** — now the PIN is verified and live pending items are reconciled against Stellar by hash. 178/178.
+
 ## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
 
 * **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
@@ -131,7 +135,8 @@ removed completely.
 * Payroll has no pay-period guard: running it twice pays twice (each run needs a fresh PIN approval). Add period/idempotency in M8.
 * ~~Fixed in M4~~: every employer saw every employee; invite lookup by **email or employee id issued a fresh token** (with unverified signup emails → salary hijack); invite landing page had **stored XSS**; invites lived only in memory; employer-assisted onboarding created employee wallets on the employer device; add-employee labelled every non-NG employee "Mexico" and invented a $2,000 USD equivalent; only NG/MX selectable.
 * **HIGH — signup does not verify email ownership** (M8). Invite acceptance relies on email match.
-* `MissionRuntimeEngine.processEvent` is a local simulation only reachable from tests — remove or move under demo (M6).
+* `MissionRuntimeEngine.processEvent` is a local simulation only reachable from tests (not wired into live UI).
+* Backend still seeds an in-memory "sandbox master" user and the mobile API client defaults to it (M8 auth).
 * AI operator beneficiaries ("mom", "dad") come from `DemoBeneficiaryRepository` even in live mode; on Stellar they resolve only if they are exact emails/phones/G-addresses → needs a real beneficiaries store (M7).
 * `backend/.env` points at the **production Supabase DB**; local runs/tests must override `DATABASE_URL` (live tests use an unreachable URL → in-memory).
 * `FlowPayApiClient` defaults userId to `usr_flowpay_sandbox_master` (M7 auth).
@@ -147,7 +152,7 @@ removed completely.
 * [x] **M4 — Employees on Stellar** (see §4).
 * [x] **M5 — Atomic multi-country payroll** (see §4).
 * [x] **M6 — Anchors & KYC** (see §4).
-* [ ] **M7 — Remove BMONI entirely**: client, webhooks, packages, **cards module**, copy; rename `bmoniUserId`/`ProviderMode.bmoniSandbox`; remove `MissionRuntimeEngine` simulation from live paths.
+* [x] **M7 — Remove BMONI entirely** (see §4).
 * [ ] **M8 — End-to-end test & bug sweep**: real API auth (SEP-10-style sessions, email verification), integration tests for every journey, fix all defects.
 * [ ] **M9 — Redesign**: new UI system informed by Stellar's design language (mobile + web).
 * [ ] **M10 — Web deploy & docs**: Vercel/Render deploy, apply SQL migrations, README, skills.

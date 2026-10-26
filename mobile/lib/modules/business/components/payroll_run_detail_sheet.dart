@@ -9,7 +9,7 @@ import '../../../core/state/business_provider.dart';
 /// - 28dp sheet radius (FlowPayRadii.sheet)
 /// - Theme-adaptive canvas with drag handle
 /// - Never surfaces hashToSign, signature, private key material, or webhook secrets.
-/// - Surfaces public/audit references (FlowPay reference, BMONI proposal ID, tx hash).
+/// - Surfaces public/audit references (FlowPay reference, Stellar proposal ID, tx hash).
 /// - Supports granular retry of failed proposal items via on-device PIN authorization.
 class PayrollRunDetailSheet extends StatefulWidget {
   final PayrollRunModel run;
@@ -269,7 +269,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          // Audit Reference Data (FlowPay reference & BMONI reference - ZERO secrets!)
+                          // Audit Reference Data (FlowPay reference & Stellar reference - ZERO secrets!)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [

@@ -36,11 +36,11 @@ class DemoEmployeeRepository implements EmployeeRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final newId = 'emp_demo_${DateTime.now().millisecondsSinceEpoch}';
-    final bmoniId = 'usr_bmoni_${newId.substring(4)}';
+    final demoUserId = 'usr_demo_${newId.substring(4)}';
 
     final emp = EmployeeModel(
       id: newId,
-      bmoniUserId: bmoniId,
+      flowpayUserId: demoUserId,
       firstName: firstName,
       lastName: lastName,
       email: email,
@@ -63,7 +63,7 @@ class DemoEmployeeRepository implements EmployeeRepository {
     _demoInvites[inviteToken] = {
       'inviteToken': inviteToken,
       'employeeId': newId,
-      'bmoniUserId': bmoniId,
+      'userId': demoUserId,
       'firstName': firstName,
       'lastName': lastName,
       'email': email,

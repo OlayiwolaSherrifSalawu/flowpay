@@ -22,13 +22,13 @@ enum TransferErrorCode {
       case TransferErrorCode.conversionUnavailable:
         return 'Currency conversion between the requested pairs is currently unavailable.';
       case TransferErrorCode.transferFailure:
-        return 'Transfer failed to settle on BMONI rails. Please verify recipient details and try again.';
+        return 'Transfer failed to settle on Stellar. Please verify recipient details and try again.';
       case TransferErrorCode.signatureFailure:
-        return 'B-Key PIN verification failed or was cancelled. Transaction was not authorized.';
+        return 'wallet PIN verification failed or was cancelled. Transaction was not authorized.';
       case TransferErrorCode.proposalExpiration:
         return 'Transfer proposal expired (15-minute validity). Exchange rates have been refreshed; please review and confirm again.';
       case TransferErrorCode.networkFailure:
-        return 'Network connection error. Unable to communicate with FlowPay backend or BMONI infrastructure.';
+        return 'Network connection error. Unable to communicate with FlowPay backend or Stellar infrastructure.';
     }
   }
 }

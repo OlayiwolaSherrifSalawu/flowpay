@@ -3,22 +3,19 @@ import '../../money/currency.dart';
 import '../../money/money.dart';
 import '../../repositories/activity_repository.dart';
 import '../../repositories/business_audit_repository.dart';
-import '../../repositories/card_repository.dart';
 import '../../repositories/payroll_repository.dart';
 import '../../repositories/wallet_repository.dart';
 
 /// Demo Implementation of BusinessAuditRepository
-/// Composes DemoPayrollRepository, DemoCardRepository, DemoWalletRepository, and DemoActivityRepository.
-/// Zero direct BMONI calls — strictly aggregates existing repository contracts.
+/// Composes DemoPayrollRepository, DemoWalletRepository, and DemoActivityRepository.
+/// Zero direct Stellar calls — strictly aggregates existing repository contracts.
 class DemoBusinessAuditRepository implements BusinessAuditRepository {
   final PayrollRepository payrollRepo;
-  final CardRepository cardRepo;
   final WalletRepository walletRepo;
   final ActivityRepository activityRepo;
 
   DemoBusinessAuditRepository({
     required this.payrollRepo,
-    required this.cardRepo,
     required this.walletRepo,
     required this.activityRepo,
   });
@@ -57,74 +54,6 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
     return payments;
   }
 
-  @override
-  Future<List<SharedTransactionModel>> getCardTransactions() async {
-    final List<SharedTransactionModel> cardTxs = [];
-    final cards = await cardRepo.getCards();
-
-    for (final card in cards) {
-      final txs = await cardRepo.getCardTransactions(card.id);
-      for (final tx in txs) {
-        cardTxs.add(
-          SharedTransactionModel.fromCardTransaction(
-            tx,
-            cardName: card.cardName,
-            last4: card.last4,
-          ),
-        );
-      }
-    }
-
-    // Include seeded demo corporate card transactions if repository is empty
-    if (cardTxs.isEmpty) {
-      cardTxs.addAll([
-        SharedTransactionModel(
-          id: 'ctx_aws_01',
-          type: TransactionType.cardTransaction,
-          title: 'AWS Cloud Services',
-          description: 'Card •••• 8814 (Bunch Dillon) · Cloud Infrastructure',
-          amount: Money.fromMajorString('245.80', Currency.usd),
-          status: TransactionStatus.completed,
-          timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-          flowpayReference: 'FP-CRD-AWS01',
-          bmoniReference: 'TX-BMONI-CRD-901',
-          counterparty: 'Amazon Web Services EMEA',
-          country: 'US',
-        ),
-        SharedTransactionModel(
-          id: 'ctx_figma_02',
-          type: TransactionType.cardTransaction,
-          title: 'Figma Enterprise',
-          description: 'Card •••• 4289 (Samson Jabo) · Software & SaaS',
-          amount: Money.fromMajorString('45.00', Currency.usd),
-          status: TransactionStatus.completed,
-          timestamp: DateTime.now().subtract(const Duration(days: 2)),
-          flowpayReference: 'FP-CRD-FIG02',
-          bmoniReference: 'TX-BMONI-CRD-902',
-          counterparty: 'Figma Inc',
-          country: 'US',
-        ),
-        SharedTransactionModel(
-          id: 'ctx_uber_03',
-          type: TransactionType.failure,
-          title: 'Uber for Business',
-          description: 'Card •••• 8814 · Local Travel Cap Exceeded',
-          amount: Money.fromMajorString('78.50', Currency.usd),
-          status: TransactionStatus.failed,
-          timestamp: DateTime.now().subtract(const Duration(days: 4)),
-          flowpayReference: 'FP-CRD-UBR03',
-          bmoniReference: 'TX-BMONI-CRD-903',
-          counterparty: 'Uber BV',
-          country: 'NG',
-          errorReason: 'Card monthly spend ceiling enforced (\$500 limit reached)',
-          failedStage: 'CARD_AUTHORIZATION',
-        ),
-      ]);
-    }
-
-    cardTxs.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return cardTxs;
-  }
 
   @override
   Future<List<SharedTransactionModel>> getWalletOperations() async {
@@ -147,28 +76,28 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
         SharedTransactionModel(
           id: 'wop_sweep_01',
           type: TransactionType.walletOperation,
-          title: 'Treasury Auto-Sweep to CNGN',
-          description: 'Automated FX sweep: \$5,000 USDB converted to ₦7,750,000 CNGN @ 1550',
+          title: 'Treasury Auto-Sweep to NGN',
+          description: 'Automated FX sweep: \$5,000 USD converted to ₦7,750,000 NGN @ 1550',
           amount: Money.fromMajorString('5000.00', Currency.usd),
           secondaryAmount: Money.fromMajorString('7750000.00', Currency.ngn),
-          secondaryCurrency: 'CNGN',
+          secondaryCurrency: 'NGN',
           status: TransactionStatus.completed,
           timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
           flowpayReference: 'FP-SWP-7721',
-          bmoniReference: 'SW-TX-9901',
-          counterparty: 'Treasury Wallet (USDB -> CNGN)',
+          networkReference: 'SW-TX-9901',
+          counterparty: 'Treasury Wallet (USD -> NGN)',
           country: 'NG',
         ),
         SharedTransactionModel(
           id: 'wop_fund_02',
           type: TransactionType.walletOperation,
           title: 'Employer Inbound Wire Settlement',
-          description: 'Received \$50,000 USDB corporate treasury top-up via Circle wire',
+          description: 'Received \$50,000 USD corporate treasury top-up via Circle wire',
           amount: Money.fromMajorString('50000.00', Currency.usd),
           status: TransactionStatus.completed,
           timestamp: DateTime.now().subtract(const Duration(days: 5)),
           flowpayReference: 'FP-FND-5501',
-          bmoniReference: 'WIRE-SETTLE-8812',
+          networkReference: 'WIRE-SETTLE-8812',
           counterparty: 'FlowPay Treasury',
           country: 'US',
         ),
@@ -201,10 +130,6 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
       return await getEmployeePayments();
     }
 
-    if (filter == AuditFilterCategory.cardTransactions) {
-      return await getCardTransactions();
-    }
-
     if (filter == AuditFilterCategory.walletOperations) {
       return await getWalletOperations();
     }
@@ -223,9 +148,6 @@ class DemoBusinessAuditRepository implements BusinessAuditRepository {
         );
       }
     }
-
-    final cardTxs = await getCardTransactions();
-    combined.addAll(cardTxs);
 
     final walletOps = await getWalletOperations();
     combined.addAll(walletOps);

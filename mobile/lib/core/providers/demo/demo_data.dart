@@ -1,22 +1,21 @@
 import '../../money/currency.dart';
 import '../../money/money.dart';
-import '../../repositories/card_repository.dart';
 import '../../repositories/employee_repository.dart';
 import '../../repositories/payroll_repository.dart';
 import '../../repositories/wallet_repository.dart';
 
 /// Deterministic Demo Data
-/// Incorporates official BMONI Sandbox personas & multi-country rails:
-/// 1. Bunch Dillon (Nigeria, BVN 99999999999, NGN / CNGN)
-/// 2. Samson Jabo (Mexico, BVN/NIN 22222222222, MXN / MEXe)
-/// 3. Liam Tremblay (Canada, CAD / CADC)
+/// Incorporates official Stellar Sandbox personas & multi-country rails:
+/// 1. Bunch Dillon (Nigeria, BVN 99999999999, NGN / NGN)
+/// 2. Samson Jabo (Mexico, BVN/NIN 22222222222, MXN / MXN)
+/// 3. Liam Tremblay (Canada, CAD / CAD)
 class DemoData {
   static final List<WalletAccount> wallets = [
     WalletAccount(
       id: 'sw_demo_usdb_01',
       address: '0x8f2d6B48e89405d414a3D65B2Af6d73f1d93E3C1',
       currency: Currency.usd,
-      stablecoinToken: 'USDB',
+      stablecoinToken: 'USD',
       balance: Money.fromMajorString('24500.00', Currency.usd),
       status: 'active',
     ),
@@ -24,7 +23,7 @@ class DemoData {
       id: 'sw_demo_cngn_02',
       address: '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242',
       currency: Currency.ngn,
-      stablecoinToken: 'CNGN',
+      stablecoinToken: 'NGN',
       balance: Money.fromMajorString('6820000.00', Currency.ngn),
       status: 'active',
     ),
@@ -32,7 +31,7 @@ class DemoData {
       id: 'sw_demo_mexe_03',
       address: '0x9B10d4818F2312643a60a7F03C12b07C6418B573',
       currency: Currency.mxn,
-      stablecoinToken: 'MEXe',
+      stablecoinToken: 'MXN',
       balance: Money.fromMajorString('48500.00', Currency.mxn),
       status: 'active',
     ),
@@ -40,7 +39,7 @@ class DemoData {
       id: 'sw_demo_cadc_04',
       address: '0x1C44F5a92B7e012354c41893D9B0A361e2A89F90',
       currency: Currency.cad,
-      stablecoinToken: 'CADC',
+      stablecoinToken: 'CAD',
       balance: Money.fromMajorString('8250.00', Currency.cad),
       status: 'active',
     ),
@@ -49,7 +48,7 @@ class DemoData {
   static final List<EmployeeModel> employees = [
     EmployeeModel(
       id: 'emp_bunch_dillon',
-      bmoniUserId: 'usr_bmoni_dillon_ngn',
+      flowpayUserId: 'usr_demo_dillon_ngn',
       firstName: 'Bunch',
       lastName: 'Dillon',
       email: 'bunch.dillon@example.ng',
@@ -69,7 +68,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_samson_jabo',
-      bmoniUserId: 'usr_bmoni_samson_mxn',
+      flowpayUserId: 'usr_demo_samson_mxn',
       firstName: 'Samson',
       lastName: 'Jabo',
       email: 'samson.jabo@example.mx',
@@ -89,7 +88,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_liam_tremblay',
-      bmoniUserId: 'usr_bmoni_liam_cad',
+      flowpayUserId: 'usr_demo_liam_cad',
       firstName: 'Liam',
       lastName: 'Tremblay',
       email: 'liam.tremblay@example.ca',
@@ -109,7 +108,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_chioma_okafor',
-      bmoniUserId: 'usr_bmoni_chioma_ngn',
+      flowpayUserId: 'usr_demo_chioma_ngn',
       firstName: 'Chioma',
       lastName: 'Okafor',
       email: 'chioma.okafor@example.ng',
@@ -129,7 +128,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_mateo_hernandez',
-      bmoniUserId: 'usr_bmoni_mateo_mxn',
+      flowpayUserId: 'usr_demo_mateo_mxn',
       firstName: 'Mateo',
       lastName: 'Hernandez',
       email: 'mateo.hernandez@example.mx',
@@ -149,7 +148,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_babatunde_adeyemi',
-      bmoniUserId: 'usr_bmoni_babatunde_ngn',
+      flowpayUserId: 'usr_demo_babatunde_ngn',
       firstName: 'Babatunde',
       lastName: 'Adeyemi',
       email: 'babatunde.adeyemi@example.ng',
@@ -169,7 +168,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_sofia_rodriguez',
-      bmoniUserId: 'usr_bmoni_sofia_mxn',
+      flowpayUserId: 'usr_demo_sofia_mxn',
       firstName: 'Sofia',
       lastName: 'Rodriguez',
       email: 'sofia.rodriguez@example.mx',
@@ -189,7 +188,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_emma_roy',
-      bmoniUserId: 'usr_bmoni_emma_cad',
+      flowpayUserId: 'usr_demo_emma_cad',
       firstName: 'Emma',
       lastName: 'Roy',
       email: 'emma.roy@example.ca',
@@ -209,7 +208,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_ngozi_eze',
-      bmoniUserId: 'usr_bmoni_ngozi_ngn',
+      flowpayUserId: 'usr_demo_ngozi_ngn',
       firstName: 'Ngozi',
       lastName: 'Eze',
       email: 'ngozi.eze@example.ng',
@@ -229,7 +228,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_carlos_gonzalez',
-      bmoniUserId: 'usr_bmoni_carlos_mxn',
+      flowpayUserId: 'usr_demo_carlos_mxn',
       firstName: 'Carlos',
       lastName: 'Gonzalez',
       email: 'carlos.gonzalez@example.mx',
@@ -249,7 +248,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_olumide_bakare',
-      bmoniUserId: 'usr_bmoni_olumide_ngn',
+      flowpayUserId: 'usr_demo_olumide_ngn',
       firstName: 'Olumide',
       lastName: 'Bakare',
       email: 'olumide.bakare@example.ng',
@@ -269,7 +268,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_valentina_morales',
-      bmoniUserId: 'usr_bmoni_valentina_mxn',
+      flowpayUserId: 'usr_demo_valentina_mxn',
       firstName: 'Valentina',
       lastName: 'Morales',
       email: 'valentina.morales@example.mx',
@@ -289,7 +288,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_noah_bouchard',
-      bmoniUserId: 'usr_bmoni_noah_cad',
+      flowpayUserId: 'usr_demo_noah_cad',
       firstName: 'Noah',
       lastName: 'Bouchard',
       email: 'noah.bouchard@example.ca',
@@ -309,7 +308,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_amina_bello',
-      bmoniUserId: 'usr_bmoni_amina_ngn',
+      flowpayUserId: 'usr_demo_amina_ngn',
       firstName: 'Amina',
       lastName: 'Bello',
       email: 'amina.bello@example.ng',
@@ -329,7 +328,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_diego_perez',
-      bmoniUserId: 'usr_bmoni_diego_mxn',
+      flowpayUserId: 'usr_demo_diego_mxn',
       firstName: 'Diego',
       lastName: 'Perez',
       email: 'diego.perez@example.mx',
@@ -349,7 +348,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_chukwudi_nwosu',
-      bmoniUserId: 'usr_bmoni_chukwudi_ngn',
+      flowpayUserId: 'usr_demo_chukwudi_ngn',
       firstName: 'Chukwudi',
       lastName: 'Nwosu',
       email: 'chukwudi.nwosu@example.ng',
@@ -369,7 +368,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_isabella_sanchez',
-      bmoniUserId: 'usr_bmoni_isabella_mxn',
+      flowpayUserId: 'usr_demo_isabella_mxn',
       firstName: 'Isabella',
       lastName: 'Sanchez',
       email: 'isabella.sanchez@example.mx',
@@ -389,7 +388,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_olivia_gauthier',
-      bmoniUserId: 'usr_bmoni_olivia_cad',
+      flowpayUserId: 'usr_demo_olivia_cad',
       firstName: 'Olivia',
       lastName: 'Gauthier',
       email: 'olivia.gauthier@example.ca',
@@ -409,7 +408,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_yetunde_adeleke',
-      bmoniUserId: 'usr_bmoni_yetunde_ngn',
+      flowpayUserId: 'usr_demo_yetunde_ngn',
       firstName: 'Yetunde',
       lastName: 'Adeleke',
       email: 'yetunde.adeleke@example.ng',
@@ -429,7 +428,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_emiliano_ramirez',
-      bmoniUserId: 'usr_bmoni_emiliano_mxn',
+      flowpayUserId: 'usr_demo_emiliano_mxn',
       firstName: 'Emiliano',
       lastName: 'Ramirez',
       email: 'emiliano.ramirez@example.mx',
@@ -449,7 +448,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_femi_ojo',
-      bmoniUserId: 'usr_bmoni_femi_ngn',
+      flowpayUserId: 'usr_demo_femi_ngn',
       firstName: 'Femi',
       lastName: 'Ojo',
       email: 'femi.ojo@example.ng',
@@ -469,7 +468,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_camila_flores',
-      bmoniUserId: 'usr_bmoni_camila_mxn',
+      flowpayUserId: 'usr_demo_camila_mxn',
       firstName: 'Camila',
       lastName: 'Flores',
       email: 'camila.flores@example.mx',
@@ -489,7 +488,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_lucas_morin',
-      bmoniUserId: 'usr_bmoni_lucas_cad',
+      flowpayUserId: 'usr_demo_lucas_cad',
       firstName: 'Lucas',
       lastName: 'Morin',
       email: 'lucas.morin@example.ca',
@@ -509,7 +508,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_zainab_aliyu',
-      bmoniUserId: 'usr_bmoni_zainab_ngn',
+      flowpayUserId: 'usr_demo_zainab_ngn',
       firstName: 'Zainab',
       lastName: 'Aliyu',
       email: 'zainab.aliyu@example.ng',
@@ -529,7 +528,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_santiago_torres',
-      bmoniUserId: 'usr_bmoni_santiago_mxn',
+      flowpayUserId: 'usr_demo_santiago_mxn',
       firstName: 'Santiago',
       lastName: 'Torres',
       email: 'santiago.torres@example.mx',
@@ -549,7 +548,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_emeka_okonkwo',
-      bmoniUserId: 'usr_bmoni_emeka_ngn',
+      flowpayUserId: 'usr_demo_emeka_ngn',
       firstName: 'Emeka',
       lastName: 'Okonkwo',
       email: 'emeka.okonkwo@example.ng',
@@ -569,7 +568,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_natalia_diaz',
-      bmoniUserId: 'usr_bmoni_natalia_mxn',
+      flowpayUserId: 'usr_demo_natalia_mxn',
       firstName: 'Natalia',
       lastName: 'Diaz',
       email: 'natalia.diaz@example.mx',
@@ -589,7 +588,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_charlotte_tremblay',
-      bmoniUserId: 'usr_bmoni_charlotte_cad',
+      flowpayUserId: 'usr_demo_charlotte_cad',
       firstName: 'Charlotte',
       lastName: 'Tremblay',
       email: 'charlotte.tremblay@example.ca',
@@ -609,7 +608,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_folake_thomas',
-      bmoniUserId: 'usr_bmoni_folake_ngn',
+      flowpayUserId: 'usr_demo_folake_ngn',
       firstName: 'Folake',
       lastName: 'Thomas',
       email: 'folake.thomas@example.ng',
@@ -629,7 +628,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_leonardo_castillo',
-      bmoniUserId: 'usr_bmoni_leonardo_mxn',
+      flowpayUserId: 'usr_demo_leonardo_mxn',
       firstName: 'Leonardo',
       lastName: 'Castillo',
       email: 'leonardo.castillo@example.mx',
@@ -649,7 +648,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_damilola_shittu',
-      bmoniUserId: 'usr_bmoni_damilola_ngn',
+      flowpayUserId: 'usr_demo_damilola_ngn',
       firstName: 'Damilola',
       lastName: 'Shittu',
       email: 'damilola.shittu@example.ng',
@@ -669,7 +668,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_valeria_vasquez',
-      bmoniUserId: 'usr_bmoni_valeria_mxn',
+      flowpayUserId: 'usr_demo_valeria_mxn',
       firstName: 'Valeria',
       lastName: 'Vasquez',
       email: 'valeria.vasquez@example.mx',
@@ -689,7 +688,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_benjamin_fortin',
-      bmoniUserId: 'usr_bmoni_benjamin_cad',
+      flowpayUserId: 'usr_demo_benjamin_cad',
       firstName: 'Benjamin',
       lastName: 'Fortin',
       email: 'benjamin.fortin@example.ca',
@@ -709,7 +708,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_kelechi_ibe',
-      bmoniUserId: 'usr_bmoni_kelechi_ngn',
+      flowpayUserId: 'usr_demo_kelechi_ngn',
       firstName: 'Kelechi',
       lastName: 'Ibe',
       email: 'kelechi.ibe@example.ng',
@@ -729,7 +728,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_sebastian_ortiz',
-      bmoniUserId: 'usr_bmoni_sebastian_mxn',
+      flowpayUserId: 'usr_demo_sebastian_mxn',
       firstName: 'Sebastian',
       lastName: 'Ortiz',
       email: 'sebastian.ortiz@example.mx',
@@ -749,7 +748,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_blessing_danjuma',
-      bmoniUserId: 'usr_bmoni_blessing_ngn',
+      flowpayUserId: 'usr_demo_blessing_ngn',
       firstName: 'Blessing',
       lastName: 'Danjuma',
       email: 'blessing.danjuma@example.ng',
@@ -769,7 +768,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_mariana_silva',
-      bmoniUserId: 'usr_bmoni_mariana_mxn',
+      flowpayUserId: 'usr_demo_mariana_mxn',
       firstName: 'Mariana',
       lastName: 'Silva',
       email: 'mariana.silva@example.mx',
@@ -789,7 +788,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_chloe_gagnon',
-      bmoniUserId: 'usr_bmoni_chloe_cad',
+      flowpayUserId: 'usr_demo_chloe_cad',
       firstName: 'Chloe',
       lastName: 'Gagnon',
       email: 'chloe.gagnon@example.ca',
@@ -809,7 +808,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_tunde_salami',
-      bmoniUserId: 'usr_bmoni_tunde_ngn',
+      flowpayUserId: 'usr_demo_tunde_ngn',
       firstName: 'Tunde',
       lastName: 'Salami',
       email: 'tunde.salami@example.ng',
@@ -829,7 +828,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_gabriel_reyes',
-      bmoniUserId: 'usr_bmoni_gabriel_mxn',
+      flowpayUserId: 'usr_demo_gabriel_mxn',
       firstName: 'Gabriel',
       lastName: 'Reyes',
       email: 'gabriel.reyes@example.mx',
@@ -849,7 +848,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_halima_usman',
-      bmoniUserId: 'usr_bmoni_halima_ngn',
+      flowpayUserId: 'usr_demo_halima_ngn',
       firstName: 'Halima',
       lastName: 'Usman',
       email: 'halima.usman@example.ng',
@@ -869,7 +868,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_jimena_castro',
-      bmoniUserId: 'usr_bmoni_jimena_mxn',
+      flowpayUserId: 'usr_demo_jimena_mxn',
       firstName: 'Jimena',
       lastName: 'Castro',
       email: 'jimena.castro@example.mx',
@@ -889,7 +888,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_william_lavoie',
-      bmoniUserId: 'usr_bmoni_william_cad',
+      flowpayUserId: 'usr_demo_william_cad',
       firstName: 'William',
       lastName: 'Lavoie',
       email: 'william.lavoie@example.ca',
@@ -909,7 +908,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_obinna_nnamdi',
-      bmoniUserId: 'usr_bmoni_obinna_ngn',
+      flowpayUserId: 'usr_demo_obinna_ngn',
       firstName: 'Obinna',
       lastName: 'Nnamdi',
       email: 'obinna.nnamdi@example.ng',
@@ -929,7 +928,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_alejandro_mendoza',
-      bmoniUserId: 'usr_bmoni_alejandro_mxn',
+      flowpayUserId: 'usr_demo_alejandro_mxn',
       firstName: 'Alejandro',
       lastName: 'Mendoza',
       email: 'alejandro.mendoza@example.mx',
@@ -949,7 +948,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_ronke_lawal',
-      bmoniUserId: 'usr_bmoni_ronke_ngn',
+      flowpayUserId: 'usr_demo_ronke_ngn',
       firstName: 'Ronke',
       lastName: 'Lawal',
       email: 'ronke.lawal@example.ng',
@@ -969,7 +968,7 @@ class DemoData {
     ),
     EmployeeModel(
       id: 'emp_segun_balogun',
-      bmoniUserId: 'usr_bmoni_segun_ngn',
+      flowpayUserId: 'usr_demo_segun_ngn',
       firstName: 'Segun',
       lastName: 'Balogun',
       email: 'segun.balogun@example.ng',
@@ -989,91 +988,7 @@ class DemoData {
     ),
   ];
 
-  static final List<VirtualCardModel> cards = [
-    VirtualCardModel(
-      id: 'card_demo_usd_01',
-      cardName: 'FlowPay Executive Card',
-      cardColor: '#6366F1',
-      currency: Currency.usd,
-      status: 'active',
-      last4: '5510',
-      maskedPan: '•••• •••• •••• 5510',
-      expirationDate: '08/29',
-      monthlySpendLimit: Money.fromMajorString('5000.00', Currency.usd),
-    ),
-    VirtualCardModel(
-      id: 'card_demo_ngn_01',
-      cardName: 'Lagos Operations Card',
-      cardColor: '#10B981',
-      currency: Currency.ngn,
-      status: 'active',
-      last4: '8814',
-      maskedPan: '•••• •••• •••• 8814',
-      expirationDate: '11/28',
-      monthlySpendLimit: Money.fromMajorString('1500000.00', Currency.ngn),
-    ),
-    VirtualCardModel(
-      id: 'card_demo_mxn_02',
-      cardName: 'Mexico City Card',
-      cardColor: '#EC4899',
-      currency: Currency.mxn,
-      status: 'active',
-      last4: '4289',
-      maskedPan: '•••• •••• •••• 4289',
-      expirationDate: '05/29',
-      monthlySpendLimit: Money.fromMajorString('30000.00', Currency.mxn),
-    ),
-    VirtualCardModel(
-      id: 'card_demo_cad_03',
-      cardName: 'Toronto Engineering Card',
-      cardColor: '#EF4444',
-      currency: Currency.cad,
-      status: 'active',
-      last4: '9032',
-      maskedPan: '•••• •••• •••• 9032',
-      expirationDate: '02/30',
-      monthlySpendLimit: Money.fromMajorString('4000.00', Currency.cad),
-    ),
-  ];
 
-  static final List<CardTransactionModel> transactions = [
-    CardTransactionModel(
-      id: 'ctx_demo_01',
-      cardId: 'card_demo_usd_01',
-      amount: Money.fromMajorString('24.50', Currency.usd),
-      merchantName: 'AWS Cloud Services',
-      category: 'Software & Cloud',
-      status: 'settled',
-      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-    ),
-    CardTransactionModel(
-      id: 'ctx_demo_02',
-      cardId: 'card_demo_usd_01',
-      amount: Money.fromMajorString('15.00', Currency.usd),
-      merchantName: 'GitHub Copilot Enterprise',
-      category: 'Developer Tools',
-      status: 'settled',
-      timestamp: DateTime.now().subtract(const Duration(hours: 28)),
-    ),
-    CardTransactionModel(
-      id: 'ctx_demo_03',
-      cardId: 'card_demo_ngn_01',
-      amount: Money.fromMajorString('45000.00', Currency.ngn),
-      merchantName: 'Coworking Space Victoria Island',
-      category: 'Office Space',
-      status: 'settled',
-      timestamp: DateTime.now().subtract(const Duration(hours: 50)),
-    ),
-    CardTransactionModel(
-      id: 'ctx_demo_04',
-      cardId: 'card_demo_cad_03',
-      amount: Money.fromMajorString('85.20', Currency.cad),
-      merchantName: 'Shopify Plus Team Subscription',
-      category: 'Software',
-      status: 'settled',
-      timestamp: DateTime.now().subtract(const Duration(hours: 12)),
-    ),
-  ];
 
   static PayrollRunModel getPayrollPreview() {
     final item1 = PayrollItemModel(
@@ -1081,14 +996,14 @@ class DemoData {
       employeeName: 'Bunch Dillon',
       country: 'NG',
       targetCurrency: Currency.ngn,
-      destinationStablecoin: 'CNGN',
+      destinationStablecoin: 'NGN',
       targetAmount:
           Money.fromMajorString('3100000.00', Currency.ngn), // ₦3,100,000
       usdAmount: Money.fromMajorString('2000.00', Currency.usd), // $2,000
       exchangeRate: 1550.0,
       status: 'PENDING',
       isRailActive: true,
-      railValidationMessage: 'CNGN Rail Active & Verified',
+      railValidationMessage: 'NGN Rail Active & Verified',
     );
 
     final item2 = PayrollItemModel(
@@ -1096,14 +1011,14 @@ class DemoData {
       employeeName: 'Samson Jabo',
       country: 'MX',
       targetCurrency: Currency.mxn,
-      destinationStablecoin: 'MEXe',
+      destinationStablecoin: 'MXN',
       targetAmount:
           Money.fromMajorString('35000.00', Currency.mxn), // $35,000 MXN
       usdAmount: Money.fromMajorString('2000.00', Currency.usd), // $2,000
       exchangeRate: 17.5,
       status: 'PENDING',
       isRailActive: true,
-      railValidationMessage: 'MEXe Rail Active & Verified',
+      railValidationMessage: 'MXN Rail Active & Verified',
     );
 
     return PayrollRunModel(

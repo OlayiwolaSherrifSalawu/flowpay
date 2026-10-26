@@ -1,3 +1,4 @@
+import '../../../core/stellar/stellar_key_vault.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/design_system.dart';
@@ -15,7 +16,7 @@ import '../../../core/wallet/components/wallet_pin_auth_sheet.dart';
 /// - Exchange Rate
 /// - Timestamp
 /// - FlowPay Reference
-/// - BMONI Reference
+/// - Stellar Reference
 ///
 /// Strictly guarantees that:
 /// - Private keys are never exposed
@@ -342,15 +343,15 @@ class ActivityDetailModal extends StatelessWidget {
                         onCopy: () => _copyToClipboard(
                             context, activity.reference, 'FlowPay Reference'),
                       ),
-                      if (activity.bmoniReference != null) ...[
+                      if (activity.networkReference != null) ...[
                         const Divider(height: 20),
                         _buildDetailRow(
                           context,
                           label: 'Payment reference',
-                          value: activity.bmoniReference!,
+                          value: activity.networkReference!,
                           isCopyable: true,
                           onCopy: () => _copyToClipboard(context,
-                              activity.bmoniReference!, 'Payment reference'),
+                              activity.networkReference!, 'Payment reference'),
                         ),
                       ],
                     ],
@@ -421,24 +422,20 @@ class ActivityDetailModal extends StatelessWidget {
                     size: FlowPayButtonSize.large,
                     isFullWidth: true,
                     onPressed: () {
+                      final navigator = Navigator.of(context);
                       WalletPinAuthSheet.show(
                         context: context,
                         title: 'Approve ${activity.type.label}',
                         subtitle:
                             'Confirm payment of ${activity.amount?.formatFormatted() ?? activity.reference}',
                         onAuthorize: (pin) async {
-                          final updated = activity.copyWith(
-                              status: FlowPayAppStatus.completed);
-                          onApprove?.call(updated);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Payment approved'),
-                              backgroundColor: FlowPayColors.primary,
-                            ),
-                          );
-                          Navigator.of(context).pop(); // dismiss details modal
-                          return '0x_signed_transfer_proposal';
+                          if (!await StellarKeyVault.instance.verifyPin(pin)) {
+                            throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+                          }
+                          // The parent resolves it: demo approves, live checks Stellar.
+                          onApprove?.call(activity);
+                          navigator.pop(); // dismiss details modal
+                          return 'approved';
                         },
                       );
                     },

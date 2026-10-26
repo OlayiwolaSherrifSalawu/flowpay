@@ -78,10 +78,10 @@ export function wrapBaseTemplate(options: {
           <tr>
             <td style="padding: 24px 36px; background-color: #0b0f19; border-top: 1px solid #1f2937; text-align: center; color: #6b7280; font-size: 12px; line-height: 18px;" class="mobile-padding">
               <p style="margin: 0 0 8px 0; color: #9ca3af; font-weight: 500;">
-                FlowPay Financial Infrastructure &bull; Powered by BMONI Rails
+                FlowPay &bull; Payments settled on the Stellar network
               </p>
               <p style="margin: 0 0 8px 0;">
-                This is an automated notification sent to your registered FlowPay email address. Never share your 6-digit B-Key wallet PIN or one-time codes with anyone.
+                This is an automated notification sent to your registered FlowPay email address. Never share your 6-digit wallet PIN or recovery key with anyone. FlowPay will never ask for them.
               </p>
               <p style="margin: 0; color: #4b5563;">
                 &copy; ${currentYear} FlowPay Technologies Ltd. All rights reserved.
@@ -165,7 +165,7 @@ export function buildWelcomeEmail(params: WelcomeEmailParams): {
       Welcome aboard, ${params.recipientName}! 🚀
     </h2>
     <p style="margin: 0 0 20px 0; font-size: 15px; color: #d1d5db; line-height: 24px;">
-      Your FlowPay <strong>${accountTypeLabel}</strong> is ready. FlowPay bridges multi-currency smart wallets with autonomous AI execution and frictionless cross-border BMONI rails.
+      Your FlowPay <strong>${accountTypeLabel}</strong> is ready. FlowPay gives you one wallet for USD, CAD, MXN, GBP and NGN, with instant cross-border payments on the Stellar network.
     </p>
 
     <div style="background-color: #1f2937; border: 1px solid #374151; border-radius: 12px; padding: 20px; margin-bottom: 28px;">
@@ -173,7 +173,7 @@ export function buildWelcomeEmail(params: WelcomeEmailParams): {
         Key Capabilities Activated:
       </div>
       <ul style="margin: 0; padding-left: 20px; color: #9ca3af; font-size: 14px; line-height: 22px;">
-        <li><strong style="color: #f3f4f6;">Hardware-Protected B-Key Wallets:</strong> Multi-currency smart wallets with zero seed phrase friction.</li>
+        <li><strong style="color: #f3f4f6;">Your keys, your money:</strong> your wallet key is created and encrypted on your own device. FlowPay never holds it.</li>
         <li><strong style="color: #f3f4f6;">Autonomous Money Missions:</strong> Auto-split international income, protect tax reserves, and save in USD stablecoins.</li>
         <li><strong style="color: #f3f4f6;">One-Click Global Payroll:</strong> Pay remote workers across Nigeria &amp; Mexico with one aggregate bill.</li>
         <li><strong style="color: #f3f4f6;">Instant Virtual Cards:</strong> Provision local or international spend cards on demand.</li>
@@ -197,7 +197,7 @@ export function buildWelcomeEmail(params: WelcomeEmailParams): {
     contentHtml,
   });
 
-  const text = `Welcome to FlowPay, ${params.recipientName}!\n\nYour ${accountTypeLabel} is ready.\n\nEnjoy multi-currency smart wallets, Money Missions, and instant global payouts.\n\nOpen your dashboard: ${params.dashboardUrl || 'https://flowpay.finance'}\n\nFlowPay Team`;
+  const text = `Welcome to FlowPay, ${params.recipientName}!\n\nYour ${accountTypeLabel} is ready.\n\nEnjoy one wallet for five currencies, Money Missions, and instant global payouts on Stellar.\n\nOpen your dashboard: ${params.dashboardUrl || 'https://flowpay.finance'}\n\nFlowPay Team`;
 
   return { subject, html, text };
 }
@@ -241,7 +241,7 @@ export function buildEmployeeInviteEmail(params: EmployeeInviteParams): {
     </div>
 
     <p style="margin: 0 0 24px 0; font-size: 14px; color: #9ca3af; line-height: 22px;">
-      Complete your one-time onboarding to generate your personal smart wallet address, activate your local currency payout rail, and receive your corporate virtual card.
+      Sign up with this email, create your wallet on your own phone, then accept the invitation. Your salary is paid straight to a wallet only you control.
     </p>
 
     <div style="text-align: center; margin-bottom: 28px;">
@@ -262,7 +262,7 @@ export function buildEmployeeInviteEmail(params: EmployeeInviteParams): {
     contentHtml,
   });
 
-  const text = `Hi ${params.recipientName},\n\n${employer} has invited you to set up your employee smart wallet and payroll payouts on FlowPay (${params.country}).\n\nAccept your invitation here: ${params.inviteUrl}\n\nFlowPay Team`;
+  const text = `Hi ${params.recipientName},\n\n${employer} has invited you to set up your FlowPay wallet and get paid on FlowPay (${params.country}).\n\nAccept your invitation here: ${params.inviteUrl}\n\nFlowPay Team`;
 
   return { subject, html, text };
 }
@@ -288,7 +288,7 @@ export function buildPayrollReceiptEmail(params: PayrollReceiptParams): {
         ${params.amount} <span style="color: #6366f1;">${params.currency}</span>
       </h2>
       <p style="margin: 0; font-size: 14px; color: #9ca3af;">
-        Disbursed on ${dateStr} via BMONI Rails
+        Paid on ${dateStr} on the Stellar network
       </p>
     </div>
 
@@ -325,7 +325,7 @@ export function buildPayrollReceiptEmail(params: PayrollReceiptParams): {
     </table>
 
     <p style="margin: 0; font-size: 13px; color: #9ca3af; text-align: center; line-height: 20px;">
-      Funds have settled directly to your designated smart wallet or local bank account. View complete details in the FlowPay mobile app.
+      Funds have settled to your FlowPay wallet on the Stellar network. View complete details in the FlowPay mobile app.
     </p>
   `;
 
@@ -434,7 +434,7 @@ export function buildSecurityAlertEmail(params: SecurityAlertParams): {
     </table>
 
     <p style="margin: 0; font-size: 14px; color: #d1d5db; line-height: 22px;">
-      If this was you, you can safely ignore this email. If you did not authorize this action, please immediately lock your smart wallet from your device or contact support@flowpay.finance.
+      If this was you, you can safely ignore this email. If you did not authorize this action, please lock the FlowPay app on your device right away or contact support@flowpay.finance.
     </p>
   `;
 

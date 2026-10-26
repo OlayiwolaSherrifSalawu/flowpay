@@ -35,7 +35,7 @@ import '../../core/navigation/personal_tab_provider.dart';
 /// - Multi-currency wallet summaries (USD, NGN, MXN, CAD) using shared components
 /// - AI Command interaction ("What should your money do?")
 /// - Task-specific financial workflows (Allocation, Send, FX Convert)
-/// - Pending Approvals queue with on-device B-Key PIN signing
+/// - Pending Approvals queue with on-device wallet PIN signing
 /// - Active Money Missions summary with live toggling
 /// - Shared Activity model transaction history
 /// - Architecture powered by PersonalProvider decoupling data from widgets
@@ -321,7 +321,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    BMoniWalletCardBalance(
+                    FlowPayBalanceDisplay(
                       wholePart: wholePart,
                       decimalPart: decimalPart,
                       isHidden: _provider.isBalanceHidden,

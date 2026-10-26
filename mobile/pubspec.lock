@@ -17,13 +17,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
-  bmoni_embedded_wallets_cards:
-    dependency: "direct main"
-    description:
-      path: "packages/bmoni_embedded_wallets_cards"
-      relative: true
-    source: path
-    version: "0.0.1"
   boolean_selector:
     dependency: transitive
     description:

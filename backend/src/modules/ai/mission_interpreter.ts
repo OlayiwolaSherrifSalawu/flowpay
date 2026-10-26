@@ -180,7 +180,7 @@ Output strictly valid JSON conforming to the schema.`,
         targetCurrency: 'NGN',
         sourceAmountMinor: ngnMinor.toString(),
         sourceAmountFormatted: Money.fromMinor(ngnMinor, 'USD').toMajorString(),
-        targetAmountMinor: (ngnMinor * 1550n).toString(), // 1 USD = 1,550 NGN BMONI quote
+        targetAmountMinor: (ngnMinor * 1550n).toString(), // indicative only; real amounts come from Stellar path quotes at execution
         targetAmountFormatted: '$1,000 equivalent',
         destinationWalletTag: 'Main Naira Wallet',
         actionType: 'CONVERT_FX',

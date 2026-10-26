@@ -181,7 +181,7 @@ void main() {
         id: 'sw_low_01',
         address: '0x123',
         currency: Currency.usd,
-        stablecoinToken: 'USDB',
+        stablecoinToken: 'USD',
         balance: Money.fromMajorString('2000.00', Currency.usd),
         status: 'active',
       );
@@ -423,7 +423,7 @@ void main() {
       // User types "approve" in chat
       await op.processInput('approve');
 
-      // Must NOT transition to completed; must stay in readyForReview and prompt for B-Key PIN
+      // Must NOT transition to completed; must stay in readyForReview and prompt for wallet PIN
       expect(op.status, equals(OperatorSessionStatus.readyForReview));
       expect(op.activePlan?.executionState, equals('READY_FOR_REVIEW'));
       expect(

@@ -17,7 +17,7 @@ void main() async {
   runApp(
     ProviderScope(
       child: FlowPayApp(
-        appState: AppState(providerMode: ProviderMode.bmoniSandbox),
+        appState: AppState(providerMode: ProviderMode.live),
       ),
     ),
   );

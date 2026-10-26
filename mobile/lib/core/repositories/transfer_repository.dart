@@ -31,13 +31,13 @@ abstract class TransferRepository {
     required List<WalletAccount> wallets,
   });
 
-  /// Step 3: BMONI Proposal Creation & On-Device Signing Payload
+  /// Step 3: Stellar Proposal Creation & On-Device Signing Payload
   Future<TransferProposal> createProposal({
     required TransferIntent intent,
     required TransferFundingOption fundingOption,
   });
 
-  /// Step 4: Submit On-Device B-Key Signature & Execute
+  /// Step 4: Submit On-Device wallet key Signature & Execute
   Future<TransferExecutionResult> executeProposal({
     required String proposalId,
     required String signature,

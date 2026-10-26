@@ -345,7 +345,7 @@ class DemoTransferRepository implements TransferRepository {
             timestamp: now,
             reference:
                 'FP-TXN-${proposalId.length > 8 ? proposalId.substring(proposalId.length - 6).toUpperCase() : proposalId}',
-            bmoniReference: txHash,
+            networkReference: txHash,
             metadata: {
               'proposalId': proposalId,
               'recipient': proposal.intent.recipient,

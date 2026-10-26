@@ -21,7 +21,7 @@ import 'wallet_provisioning_screen.dart';
 /// - Interactive Card Deck / Carousel (USD, NGN, MXN, CAD) with tactile indicators
 /// - Quick Actions Row (Send, Receive, Convert, Security)
 /// - Spendable Balance vs Active Mission Reservations metric pill split
-/// - On-Device B-Key Hardware Enclave status banner
+/// - On-Device wallet key Hardware Enclave status banner
 /// - Configured Multi-Currency Wallets list with 1-tap address copying and actions
 class WalletsScreen extends StatefulWidget {
   final AppState appState;

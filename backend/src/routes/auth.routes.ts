@@ -15,7 +15,6 @@ export interface RegisteredUser {
   companyRole?: string;
   kycStatus: 'unverified' | 'pending' | 'verified';
   nationalId?: string;
-  bmoniUserId?: string;
   stellarAccountId?: string;
 }
 
@@ -66,7 +65,6 @@ export async function findUserByQuery(query: string): Promise<RegisteredUser | u
         where: {
           OR: [
             { id: query },
-            { bmoniUserId: query },
             { email: { equals: query, mode: 'insensitive' } },
             { fullName: { contains: query, mode: 'insensitive' } },
             { phoneNumber: query },
@@ -95,15 +93,15 @@ export async function findUserByQuery(query: string): Promise<RegisteredUser | u
   return undefined;
 }
 
-async function resolveCapabilities(bmoniUserId: string) {
-  let user = registeredUsers.get(bmoniUserId);
+async function resolveCapabilities(newUserId: string) {
+  let user = registeredUsers.get(newUserId);
 
   // Attempt database query from public.users
   if (isPostgresDb()) {
     try {
       const dbUser = await prisma.user.findFirst({
         where: {
-          OR: [{ id: bmoniUserId }, { bmoniUserId }],
+          OR: [{ id: newUserId }],
         },
       });
       if (dbUser) {
@@ -119,20 +117,20 @@ async function resolveCapabilities(bmoniUserId: string) {
           kycStatus: dbUser.kycStatus as any,
           nationalId: dbUser.nationalId || undefined,
         };
-        registeredUsers.set(bmoniUserId, user);
+        registeredUsers.set(newUserId, user);
       }
     } catch (_) {
       // Non-blocking fallback to in-memory
     }
   }
 
-  const isPersonal = user ? user.accountType === 'personal' : bmoniUserId.includes('personal');
-  const isBusiness = user ? user.accountType === 'business' : bmoniUserId.includes('business');
+  const isPersonal = user ? user.accountType === 'personal' : newUserId.includes('personal');
+  const isBusiness = user ? user.accountType === 'business' : newUserId.includes('business');
   const isMaster = user?.accountType === 'both';
 
   if (isMaster) {
     return {
-      bmoniUserId,
+      userId: newUserId,
       hasPersonalWallet: true,
       hasBusinessAccess: true,
       company: {
@@ -140,31 +138,31 @@ async function resolveCapabilities(bmoniUserId: string) {
         name: user?.companyName || 'FlowPay Technologies Ltd',
         role: user?.companyRole || 'ADMIN',
       },
-      capabilities: ['PERSONAL_WALLET', 'BUSINESS_PAYROLL', 'TEAM_CARDS', 'MULTI_COUNTRY_SETTLEMENT'],
+      capabilities: ['PERSONAL_WALLET', 'BUSINESS_PAYROLL', 'MULTI_COUNTRY_SETTLEMENT'],
       cachedAt: new Date().toISOString(),
     };
   }
 
   if (isPersonal) {
     return {
-      bmoniUserId,
+      userId: newUserId,
       hasPersonalWallet: true,
       hasBusinessAccess: false,
-      capabilities: ['PERSONAL_WALLET', 'MONEY_MISSIONS', 'VIRTUAL_CARDS'],
+      capabilities: ['PERSONAL_WALLET', 'MONEY_MISSIONS'],
       cachedAt: new Date().toISOString(),
     };
   }
 
   return {
-    bmoniUserId,
+    userId: newUserId,
     hasPersonalWallet: false,
     hasBusinessAccess: true,
     company: {
-      companyId: `comp_${bmoniUserId}`,
+      companyId: `comp_${newUserId}`,
       name: user?.companyName || 'FlowPay Business Ltd',
       role: user?.companyRole || 'ADMIN',
     },
-    capabilities: ['BUSINESS_PAYROLL', 'TEAM_CARDS', 'MULTI_COUNTRY_SETTLEMENT'],
+    capabilities: ['BUSINESS_PAYROLL', 'MULTI_COUNTRY_SETTLEMENT'],
     cachedAt: new Date().toISOString(),
   };
 }
@@ -187,7 +185,7 @@ authRouter.get('/session', async (req, res) => {
   if (isPostgresDb() && !user) {
     try {
       const dbUser = await prisma.user.findFirst({
-        where: { OR: [{ id: userId }, { bmoniUserId: userId }] },
+        where: { id: userId },
       });
       if (dbUser) {
         user = {
@@ -255,7 +253,6 @@ authRouter.post('/login', async (req, res) => {
           nationalId: dbUser.nationalId || undefined,
         };
         registeredUsers.set(dbUser.id, user);
-        if (dbUser.bmoniUserId) registeredUsers.set(dbUser.bmoniUserId, user);
       }
     } catch (err: any) {
       console.warn('[AuthRouter] DB user lookup notice:', err.message || err);
@@ -292,15 +289,15 @@ authRouter.post('/login', async (req, res) => {
 /**
  * POST /api/auth/signup
  * Registers a new Personal or Business account with dedicated capabilities.
- * Synchronizes with BMONI POST /v1/users when available and persists in Supabase public.users.
+ * Persists in Postgres public.users when connected.
  */
 authRouter.post('/signup', async (req, res) => {
   const { fullName, email, accountType, country, phone, companyName, companyRole, userId } = req.body;
   // FlowPay owns identity now; the user's money lives in their own Stellar account.
-  const bmoniUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${randomUUID()}`;
+  const newUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${randomUUID()}`;
 
   const user: RegisteredUser = {
-    userId: bmoniUserId,
+    userId: newUserId,
     fullName: fullName || 'FlowPay User',
     email: email || `user_${Date.now()}@flowpay.test`,
     accountType: accountType === 'business' ? 'business' : 'personal',
@@ -311,8 +308,8 @@ authRouter.post('/signup', async (req, res) => {
     kycStatus: 'unverified',
   };
 
-  registeredUsers.set(bmoniUserId, user);
-  if (userId && userId !== bmoniUserId) {
+  registeredUsers.set(newUserId, user);
+  if (userId && userId !== newUserId) {
     registeredUsers.set(userId, user);
   }
 
@@ -320,10 +317,9 @@ authRouter.post('/signup', async (req, res) => {
   if (isPostgresDb()) {
     try {
       await prisma.user.upsert({
-        where: { id: bmoniUserId },
+        where: { id: newUserId },
         create: {
-          id: bmoniUserId,
-          bmoniUserId,
+          id: newUserId,
           email: user.email,
           fullName: user.fullName,
           phoneNumber: user.phone || null,
@@ -345,16 +341,15 @@ authRouter.post('/signup', async (req, res) => {
       });
 
       if (user.accountType === 'business' || user.accountType === 'both') {
-        const businessId = `biz_${bmoniUserId}`;
-        await (prisma as any).business.upsert({
+        const businessId = `biz_${newUserId}`;
+        await prisma.business.upsert({
           where: { id: businessId },
           create: {
             id: businessId,
-            ownerUserId: bmoniUserId,
-            bmoniUserId,
+            ownerUserId: newUserId,
             name: user.companyName || `${user.fullName}'s Business`,
             country: user.country,
-            currency: user.country === 'NG' ? 'NGN' : user.country === 'MX' ? 'MXN' : 'USD',
+            currency: ({ NG: 'NGN', MX: 'MXN', CA: 'CAD', GB: 'GBP' } as Record<string, string>)[user.country] ?? 'USD',
             kybStatus: 'unverified',
           },
           update: {
@@ -368,7 +363,7 @@ authRouter.post('/signup', async (req, res) => {
     }
   }
 
-  const capabilities = await resolveCapabilities(bmoniUserId);
+  const capabilities = await resolveCapabilities(newUserId);
 
   res.status(201).json({
     success: true,
@@ -390,7 +385,7 @@ authRouter.post('/kyc', async (req, res) => {
   if (!existing && isPostgresDb() && userId) {
     try {
       const dbUser = await prisma.user.findFirst({
-        where: { OR: [{ id: userId }, { bmoniUserId: userId }] },
+        where: { id: userId },
       });
       if (dbUser) {
         existing = {
@@ -432,16 +427,16 @@ authRouter.post('/kyc', async (req, res) => {
     try {
       await prisma.user.updateMany({
         where: {
-          OR: [{ id: userId }, { bmoniUserId: userId }],
+          id: userId,
         },
         data: {
           kycStatus: 'pending',
           nationalId: nationalId || undefined,
         },
       });
-      await (prisma as any).business.updateMany({
+      await prisma.business.updateMany({
         where: {
-          OR: [{ ownerUserId: userId }, { bmoniUserId: userId }],
+          ownerUserId: userId,
         },
         data: {
           kybStatus: 'pending',
@@ -469,18 +464,18 @@ authRouter.post('/kyc', async (req, res) => {
 
 /**
  * GET /api/auth/capabilities
- * GET /api/auth/users/:bmoniUserId/capabilities
+ * GET /api/auth/users/:newUserId/capabilities
  *
  * Resolves account capabilities for the authenticated user session.
- * Derives whether this bmoniUserId holds a personal smart wallet and
+ * Derives whether this newUserId holds a personal smart wallet and
  * whether they are linked as employer/admin to any company/business entity.
  */
 authRouter.get('/capabilities', async (req, res) => {
-  const bmoniUserId = (req.query.bmoniUserId as string) || 'usr_flowpay_sandbox_master';
-  res.json(await resolveCapabilities(bmoniUserId));
+  const newUserId = (req.query.newUserId as string) || 'usr_flowpay_sandbox_master';
+  res.json(await resolveCapabilities(newUserId));
 });
 
-authRouter.get('/users/:bmoniUserId/capabilities', async (req, res) => {
-  const { bmoniUserId } = req.params;
-  res.json(await resolveCapabilities(bmoniUserId));
+authRouter.get('/users/:newUserId/capabilities', async (req, res) => {
+  const { newUserId } = req.params;
+  res.json(await resolveCapabilities(newUserId));
 });

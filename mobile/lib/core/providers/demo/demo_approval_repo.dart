@@ -27,7 +27,7 @@ class DemoApprovalRepository implements ApprovalRepository {
       type: ApprovalType.transfer,
       title: 'Transfer Proposal: Samson Jabo',
       description:
-          'Outbound BMONI settlement \$500.00 USD → \$8,750 MXN (Mexico City)',
+          'Outbound Stellar settlement \$500.00 USD → \$8,750 MXN (Mexico City)',
       amount: Money.fromMajorString('500.00', Currency.usd),
       targetCurrency: Currency.mxn,
       targetAmount: Money.fromMajorString('8750.00', Currency.mxn),
@@ -35,7 +35,7 @@ class DemoApprovalRepository implements ApprovalRepository {
       recipient: 'samson.jabo@example.mx',
       createdAt: DateTime.now().subtract(const Duration(hours: 1)),
       status: ApprovalStatus.pending,
-      metadata: {'network': 'BMONI Rail', 'gasFee': '\$0.02 USDB'},
+      metadata: {'network': 'Stellar Rail', 'gasFee': '\$0.02 USD'},
     ),
     PendingApprovalModel(
       id: 'appr_03',
@@ -52,7 +52,7 @@ class DemoApprovalRepository implements ApprovalRepository {
       status: ApprovalStatus.pending,
       metadata: {
         'orderType': 'Limit Order Triggered',
-        'targetVault': 'CNGN Vault'
+        'targetVault': 'NGN Vault'
       },
     ),
   ];

@@ -296,18 +296,18 @@ class FlowPayAmountField extends StatelessWidget {
   }
 }
 
-/// Size variant for FlowPay / BMoni form fields
-enum BMoniTextFieldSize { small, medium, large }
+/// Size variant for FlowPay form fields
+enum FlowPayTextFieldSize { small, medium, large }
 
 /// Backwards compatibility wrapper for form fields styled with FlowPay tokens
-class BMoniTextFormField extends StatelessWidget {
+class FlowPayTextFormField extends StatelessWidget {
   final TextEditingController? controller;
   final String? label;
   final String? labelText;
   final String? hintText;
   final String? helperText;
   final String? errorText;
-  final BMoniTextFieldSize size;
+  final FlowPayTextFieldSize size;
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final String? prefixText;
@@ -325,7 +325,7 @@ class BMoniTextFormField extends StatelessWidget {
   final bool autofocus;
   final FocusNode? focusNode;
 
-  const BMoniTextFormField({
+  const FlowPayTextFormField({
     super.key,
     this.controller,
     this.label,
@@ -333,7 +333,7 @@ class BMoniTextFormField extends StatelessWidget {
     this.hintText,
     this.helperText,
     this.errorText,
-    this.size = BMoniTextFieldSize.medium,
+    this.size = FlowPayTextFieldSize.medium,
     this.prefixIcon,
     this.suffixIcon,
     this.prefixText,
@@ -352,7 +352,7 @@ class BMoniTextFormField extends StatelessWidget {
     this.focusNode,
   });
 
-  const BMoniTextFormField.filled({
+  const FlowPayTextFormField.filled({
     super.key,
     this.controller,
     this.label,
@@ -360,7 +360,7 @@ class BMoniTextFormField extends StatelessWidget {
     this.hintText,
     this.helperText,
     this.errorText,
-    this.size = BMoniTextFieldSize.medium,
+    this.size = FlowPayTextFieldSize.medium,
     this.prefixIcon,
     this.suffixIcon,
     this.prefixText,
@@ -386,13 +386,13 @@ class BMoniTextFormField extends StatelessWidget {
 
     double verticalPadding;
     switch (size) {
-      case BMoniTextFieldSize.small:
+      case FlowPayTextFieldSize.small:
         verticalPadding = 10;
         break;
-      case BMoniTextFieldSize.large:
+      case FlowPayTextFieldSize.large:
         verticalPadding = 18;
         break;
-      case BMoniTextFieldSize.medium:
+      case FlowPayTextFieldSize.medium:
         verticalPadding = 14;
     }
 

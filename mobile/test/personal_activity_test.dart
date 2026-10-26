@@ -6,8 +6,14 @@ import 'package:flowpay_mobile/core/theme/theme.dart';
 import 'package:flowpay_mobile/core/wallet/components/wallet_pin_auth_sheet.dart';
 import 'package:flowpay_mobile/modules/personal/components/activity_detail_modal.dart';
 import 'package:flowpay_mobile/modules/personal/personal_activity_screen.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Approving requires a real (in-memory) wallet unlocked by the PIN.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FlowPay Personal Activity Tests', () {
     late AppState appState;
 
@@ -40,7 +46,7 @@ void main() {
       expect(find.text('Conversions'), findsOneWidget);
       expect(find.text('Missions'), findsOneWidget);
       expect(find.text('Wallet activity'), findsOneWidget);
-      expect(find.text('Cards'), findsOneWidget);
+      expect(find.text('Cards'), findsNothing, reason: 'cards were removed');
       expect(find.text('Pending Approvals'), findsOneWidget);
       expect(find.text('Failures'), findsOneWidget);
 
@@ -60,9 +66,7 @@ void main() {
       expect(find.text('Bunch Dillon (Nigeria)'), findsOneWidget);
       expect(find.text('Ref: FP-TXN-0428'), findsOneWidget);
 
-      expect(find.text('Virtual Card: AWS Cloud Services'), findsOneWidget);
-      expect(find.text('AWS EMEA S.a.r.l.'), findsOneWidget);
-      expect(find.text('Ref: FP-CRD-8812'), findsOneWidget);
+      expect(find.textContaining('Virtual Card'), findsNothing, reason: 'cards were removed');
     });
 
     testWidgets('Filters activity items by category tabs', (tester) async {
@@ -118,7 +122,6 @@ void main() {
       await tester.tap(find.text('Failures'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Contractor Card Cap Exceeded'), findsOneWidget);
       expect(find.text('Transfer to Vendor Failed'), findsOneWidget);
       expect(find.text('Transfer to Bunch Dillon'), findsNothing);
     });
@@ -182,13 +185,13 @@ void main() {
       expect(find.text('Transfer Details'), findsOneWidget);
 
       // Check required DETAIL fields:
-      // amount, currency, source, destination, fee, exchange rate, timestamp, FlowPay reference, BMONI reference
+      // amount, currency, source, destination, fee, exchange rate, timestamp, FlowPay reference, Stellar reference
       expect(find.text('Amount'), findsOneWidget);
       expect(find.text('150'), findsWidgets);
       expect(find.text('Currency'), findsOneWidget);
-      expect(find.textContaining('USDB'), findsWidgets);
+      expect(find.textContaining('USD'), findsWidgets);
       expect(find.text('Source'), findsOneWidget);
-      expect(find.text('Personal Smart Wallet (USDB)'), findsOneWidget);
+      expect(find.text('Personal Smart Wallet (USD)'), findsOneWidget);
       expect(find.text('Destination'), findsOneWidget);
       expect(find.text('Bunch Dillon (0x71C...9a19)'), findsOneWidget);
       expect(find.text('Network Fee'), findsOneWidget);
@@ -253,8 +256,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify success snackbar / completion
-      expect(find.textContaining('Payment approved'),
-          findsOneWidget);
+      expect(find.textContaining('Confirmed.'), findsOneWidget);
     });
   });
 }

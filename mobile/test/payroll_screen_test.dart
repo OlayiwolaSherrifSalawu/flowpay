@@ -48,8 +48,8 @@ void main() {
       expect(find.text('Samson Jabo'), findsOneWidget);
 
       // 4. Destination Rail Verification Badges
-      expect(find.text('CNGN Rail Active & Verified'), findsOneWidget);
-      expect(find.text('MEXe Rail Active & Verified'), findsOneWidget);
+      expect(find.text('NGN Rail Active & Verified'), findsOneWidget);
+      expect(find.text('MXN Rail Active & Verified'), findsOneWidget);
 
       // 5. "Run Payroll" action button
       expect(find.text('Run Payroll'), findsOneWidget);

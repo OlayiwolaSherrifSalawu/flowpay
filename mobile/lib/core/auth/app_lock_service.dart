@@ -46,7 +46,7 @@ class AppLockAuthResult {
 /// CRITICAL ARCHITECTURAL BOUNDARY:
 /// This service gates opening the app and resuming from the background.
 /// It uses `local_auth` and NEVER accesses or passes key material into
-/// `bmoni_embedded_sdk`. BMONI's own on-device signing PIN is an entirely
+/// the wallet key vault. The on-device signing PIN is an entirely
 /// separate cryptographic secret serving a separate purpose.
 class AppLockService {
   final LocalAuthentication _auth;

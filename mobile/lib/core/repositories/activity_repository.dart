@@ -68,7 +68,7 @@ class ActivityModel {
   final String? destination;
   final Money? fee;
   final String? exchangeRate;
-  final String? bmoniReference;
+  final String? networkReference;
   final Map<String, dynamic>? metadata;
   final bool isIncoming;
   final String? userId;
@@ -89,7 +89,7 @@ class ActivityModel {
     this.destination,
     this.fee,
     this.exchangeRate,
-    this.bmoniReference,
+    this.networkReference,
     this.metadata,
     bool? isIncoming,
     this.userId,
@@ -196,7 +196,7 @@ class ActivityModel {
     String? destination,
     Money? fee,
     String? exchangeRate,
-    String? bmoniReference,
+    String? networkReference,
     Map<String, dynamic>? metadata,
     bool? isIncoming,
     String? userId,
@@ -217,7 +217,7 @@ class ActivityModel {
       destination: destination ?? this.destination,
       fee: fee ?? this.fee,
       exchangeRate: exchangeRate ?? this.exchangeRate,
-      bmoniReference: bmoniReference ?? this.bmoniReference,
+      networkReference: networkReference ?? this.networkReference,
       metadata: metadata ?? this.metadata,
       isIncoming: isIncoming ?? this.isIncoming,
       userId: userId ?? this.userId,

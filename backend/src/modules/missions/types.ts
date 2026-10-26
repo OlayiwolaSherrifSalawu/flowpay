@@ -77,7 +77,7 @@ export interface MissionProposalPayload {
   proposalId: string;
   missionId: string;
   ruleTitle: string;
-  hashToSign: string; // 32-byte hex hash to be signed by BMONI B-Key
+  hashToSign: string; // Stellar transaction hash (see BatchPaymentService)
   signingInstructions: string;
   allocations: MissionAllocation[];
   createdAt: string;

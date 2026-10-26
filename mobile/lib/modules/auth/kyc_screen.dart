@@ -255,9 +255,9 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       await storage.saveAccountMode(targetMode);
 
       final capabilities = widget.userProfile.isPersonal
-          ? AccountCapabilities.personalOnly(bmoniUserId: updatedProfile.userId)
+          ? AccountCapabilities.personalOnly(flowpayUserId: updatedProfile.userId)
           : AccountCapabilities.businessOnly(
-              bmoniUserId: updatedProfile.userId,
+              flowpayUserId: updatedProfile.userId,
               companyName: updatedProfile.companyName ?? 'Business Account',
               companyRole: updatedProfile.companyRole ?? 'ADMIN',
             );

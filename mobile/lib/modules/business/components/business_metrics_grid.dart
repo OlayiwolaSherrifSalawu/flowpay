@@ -20,7 +20,6 @@ class BusinessMetricsGrid extends StatelessWidget {
     final employeeCount = businessProvider.employeeCount;
     final onboardedCount = businessProvider.onboardedEmployeeCount;
     final walletsCount = businessProvider.walletsProvisionedCount;
-    final cardsCount = businessProvider.cardsActiveCount;
 
     return Column(
       children: [
@@ -109,7 +108,7 @@ class BusinessMetricsGrid extends StatelessWidget {
                 icon: Icons.credit_card_outlined,
                 iconColor: FlowPayColors.signal,
                 label: 'WALLET / CARD STATUS',
-                value: '$walletsCount Wallets • $cardsCount Cards',
+                value: '$walletsCount of $employeeCount joined',
                 subtitle: 'Hardware-secured & active',
                 badgeText: 'LIVE',
                 badgeBg: FlowPayColors.signal.withValues(alpha: 0.12),

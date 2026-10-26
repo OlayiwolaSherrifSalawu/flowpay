@@ -392,7 +392,7 @@ class ClientMissionInterpreter {
           targetCur.code: targetTag,
         },
         explanation:
-            'Convert \$${amtDouble.toStringAsFixed(2)} ${sourceCurrency.code} to ${targetCur.code} at prevailing BMONI rate.',
+            'Convert \$${amtDouble.toStringAsFixed(2)} ${sourceCurrency.code} to ${targetCur.code} at prevailing Stellar rate.',
         confidenceScore: 0.95,
         requiresExplicitApproval: true,
         provider: 'deterministic-interpreter',

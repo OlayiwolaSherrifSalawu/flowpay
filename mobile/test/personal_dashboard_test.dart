@@ -226,14 +226,14 @@ void main() {
       expect(find.textContaining('\$37,671'), findsOneWidget);
 
       // Tap balance to toggle privacy
-      await tester.tap(find.byType(BMoniWalletCardBalance));
+      await tester.tap(find.byType(FlowPayBalanceDisplay));
       await tester.pumpAndSettle();
 
       // Now hidden with placeholder
       expect(find.text('••••••'), findsOneWidget);
 
       // Tap again to reveal
-      await tester.tap(find.byType(BMoniWalletCardBalance));
+      await tester.tap(find.byType(FlowPayBalanceDisplay));
       await tester.pumpAndSettle();
 
       // Balance visible again

@@ -122,8 +122,7 @@ class Money {
   String get formattedWithSymbol => formatted;
   String toFormattedString() => formatted;
 
-  /// Minor units as string for BMONI endpoints expecting integer minor string (e.g. "1050")
-  String toBmoniMinorString() => amountMinor.toString();
+  /// Minor units as string for Stellar endpoints expecting integer minor string (e.g. "1050")
 
   void _assertMatchingCurrency(Money other) {
     if (currency != other.currency) {

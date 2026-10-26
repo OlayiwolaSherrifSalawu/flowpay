@@ -207,7 +207,7 @@ class FlowPayToast {
 }
 
 /// Backwards compatibility wrapper for toast notifications
-class BMoniToastOverlay {
+class FlowPayToastOverlay {
   static void showSuccess({
     required BuildContext context,
     required String title,

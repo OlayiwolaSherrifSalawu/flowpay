@@ -5,7 +5,7 @@ import '../money/money.dart';
 /// INVITED   — added by the employer; invite link sent, no wallet yet
 /// READY     — accepted with their own proven Stellar wallet; payable
 /// SUSPENDED — excluded from payroll by the employer
-/// (CREATED/WALLET_PENDING/KYC_PENDING/ONBOARDING/FAILED are legacy BMONI stages.)
+/// (CREATED/WALLET_PENDING/KYC_PENDING/ONBOARDING/FAILED are legacy Stellar stages.)
 class EmployeeLifecycleStages {
   static const String invited = 'INVITED';
   static const String suspended = 'SUSPENDED';
@@ -19,7 +19,7 @@ class EmployeeLifecycleStages {
 
 class EmployeeModel {
   final String id;
-  final String? bmoniUserId;
+  final String? flowpayUserId;
   final String firstName;
   final String lastName;
   final String email;
@@ -46,7 +46,7 @@ class EmployeeModel {
 
   const EmployeeModel({
     required this.id,
-    this.bmoniUserId,
+    this.flowpayUserId,
     required this.firstName,
     required this.lastName,
     required this.email,
@@ -201,7 +201,7 @@ class EmployeeModel {
 
     return EmployeeModel(
       id: json['id'] ?? '',
-      bmoniUserId: json['bmoni_user_id'] ?? json['bmoniUserId'],
+      flowpayUserId: json['linkedUserId'] ?? json['bmoni_user_id'] ?? json['flowpayUserId'],
       firstName: json['first_name'] ?? json['firstName'] ?? '',
       lastName: json['last_name'] ?? json['lastName'] ?? '',
       email: json['email'] ?? '',
@@ -229,7 +229,7 @@ class EmployeeModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'bmoniUserId': bmoniUserId,
+      'userId': flowpayUserId,
       'firstName': firstName,
       'lastName': lastName,
       'email': email,

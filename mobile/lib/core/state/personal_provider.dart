@@ -72,11 +72,11 @@ class PersonalProvider extends ChangeNotifier {
   }
 
   /// Aggregate multi-currency portfolio valuation in USD.
-  /// Computed with deterministic minor-unit conversion across BMONI rails:
-  /// - USDB: 1.00
-  /// - CNGN (NGN): 1550 NGN per USD
-  /// - MEXe (MXN): 17.50 MXN per USD
-  /// - CADC (CAD): 1.375 CAD per USD
+  /// Computed with deterministic minor-unit conversion across Stellar:
+  /// - USD: 1.00
+  /// - NGN (NGN): 1550 NGN per USD
+  /// - MXN (MXN): 17.50 MXN per USD
+  /// - CAD (CAD): 1.375 CAD per USD
   Money get totalPortfolioUsd {
     if (_wallets.isEmpty) {
       return Money.zero(Currency.usd);
