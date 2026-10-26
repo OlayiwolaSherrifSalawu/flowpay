@@ -116,6 +116,14 @@ export async function resolveRecipient(query: string): Promise<ResolvedRecipient
   }
 
   if (/^[^*\s]+\*[^*\s]+\.[^*\s]+$/.test(q)) {
+    // Our own payment names resolve locally (no HTTP round-trip to ourselves).
+    const { federationByName, homeDomainFor } = await import('./federation.js');
+    const ownDomain = homeDomainFor();
+    if (ownDomain && q.split('*')[1].toLowerCase() === ownDomain) {
+      const rec = await federationByName(q, ownDomain);
+      const owner = await userForAccount(rec.account_id);
+      return { accountId: rec.account_id, userId: owner?.userId, displayName: owner?.fullName ?? rec.stellar_address, source: 'federation' };
+    }
     try {
       const rec = await Federation.Server.resolve(q);
       const memo = rec.memo ? { type: (rec.memo_type === 'id' ? 'id' : 'text') as 'id' | 'text', value: String(rec.memo) } : undefined;

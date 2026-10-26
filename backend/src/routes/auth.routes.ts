@@ -1,6 +1,7 @@
 import { env } from '../config/env.js';
 import crypto, { randomUUID } from 'node:crypto';
 import { authedUserId, issueSessionToken, requireAuth } from '../auth/session.js';
+import { claimHandle, handleForUser, homeDomainFor } from '../stellar/federation.js';
 import { InvalidRequestError, UnauthorizedError } from '../core/errors.js';
 import { mailService } from '../modules/mail/service.js';
 import { issueOwnershipChallenge, verifyOwnershipChallenge } from '../stellar/challenge.js';
@@ -23,6 +24,8 @@ export interface RegisteredUser {
   nationalId?: string;
   stellarAccountId?: string;
   emailVerified?: boolean;
+  /** Opt-in SEP-2 payment name (name*domain). */
+  stellarHandle?: string;
 }
 
 export const registeredUsers = new Map<string, RegisteredUser>();
@@ -42,6 +45,7 @@ function fromDbUser(dbUser: any): RegisteredUser {
     nationalId: dbUser.nationalId || undefined,
     stellarAccountId: dbUser.stellarAccountId || undefined,
     emailVerified: !!dbUser.emailVerified,
+    stellarHandle: dbUser.stellarHandle || undefined,
   };
 }
 
@@ -477,6 +481,30 @@ authRouter.post('/email/verify', requireAuth, async (req, res, next) => {
     if (mem) mem.emailVerified = true;
     if (isPostgresDb()) await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
     res.json({ success: true, data: { emailVerified: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET  /api/auth/handle            → { handle, stellarAddress, homeDomain }
+ * POST /api/auth/handle { handle } → claims/changes the opt-in SEP-2 payment name.
+ */
+authRouter.get('/handle', requireAuth, async (req, res, next) => {
+  try {
+    const domain = homeDomainFor(req.get('host'));
+    const handle = await handleForUser(authedUserId(req));
+    res.json({ success: true, data: { handle, stellarAddress: handle && domain ? `${handle}*${domain}` : null, homeDomain: domain } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+authRouter.post('/handle', requireAuth, async (req, res, next) => {
+  try {
+    const domain = homeDomainFor(req.get('host'));
+    const handle = await claimHandle(authedUserId(req), String(req.body?.handle ?? ''));
+    res.json({ success: true, data: { handle, stellarAddress: domain ? `${handle}*${domain}` : null, homeDomain: domain } });
   } catch (err) {
     next(err);
   }

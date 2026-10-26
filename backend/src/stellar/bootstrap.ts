@@ -166,6 +166,20 @@ async function main() {
   }
   await submit('seed liquidity pools', distributor, depositOps);
 
+  // 4) Point the issuer at FlowPay's stellar.toml (SEP-1) so explorers and wallets can
+  //    show the assets' names. Only when a public home domain is configured.
+  const homeDomain = env.FLOWPAY_HOME_DOMAIN?.trim().toLowerCase();
+  if (homeDomain) {
+    const issuerInfo = (await fetch(`${cfg.horizonUrl}/accounts/${issuer.publicKey()}`).then((r) => r.json())) as { home_domain?: string };
+    if (issuerInfo.home_domain !== homeDomain) {
+      await submit(`set issuer home_domain = ${homeDomain}`, issuer, [Operation.setOptions({ homeDomain })]);
+    } else {
+      log(`issuer home_domain already ${homeDomain}`);
+    }
+  } else {
+    log('FLOWPAY_HOME_DOMAIN not set: skipping issuer home_domain (stellar.toml link).');
+  }
+
   log('done. Assets:');
   for (const c of STELLAR_CURRENCIES) log(`  ${c}:${issuer.publicKey()}`);
 }
