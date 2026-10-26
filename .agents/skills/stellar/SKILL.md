@@ -182,7 +182,14 @@ removed completely.
   * **Preview harness** `mobile/lib/main_preview.dart` (dev-only, never shipped): renders one screen with demo data —
     `flutter build web -t lib/main_preview.dart -o build/preview`, then `?screen=dashboard|wallets|send|missions|activity|security|bank|business|team|payroll|audit&theme=dark|light`.
   * Tests: 179 pass / 6 opt-in live skipped; analyzer clean.
-* [ ] **M10 — Web deploy & docs**: Vercel/Render deploy, apply SQL migrations, README, skills.
+* [ ] **M10 — Web deploy & docs** (in progress):
+  * [x] README rewritten for the Stellar build (on-chain proof table with verified testnet tx hashes, signing flow,
+        Stellar primitives map, security model + honest limits, setup, env reference); screenshots in `docs/screenshots/`.
+  * [x] Production refuses to start with the public default `FLOWPAY_JWT_SECRET` (or any secret < 32 chars) —
+        **set it on Render before the next deploy or the API will not boot**.
+  * [x] Business hero card: hardcoded "Traditional Wire ~$340" comparison removed.
+  * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
+        to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
 
 ## 🛠️ 6. Runbook & Verification
 
