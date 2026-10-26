@@ -188,6 +188,15 @@ removed completely.
   * [x] Production refuses to start with the public default `FLOWPAY_JWT_SECRET` (or any secret < 32 chars) —
         **set it on Render before the next deploy or the API will not boot**.
   * [x] Business hero card: hardcoded "Traditional Wire ~$340" comparison removed.
+  * [x] **Real payroll recorded through the web UI** (`docs/demo/flowpay-payroll.{gif,mp4}`, tx `08a8bc43…`). Driving it
+        live exposed and fixed: UK employees labelled Canada, 0/N "onboarded" for joined (READY) employees, team-wallet
+        count using the employer's wallets, invented "Saved (97%)" in live mode, 16-dp rates, "$0.00 / no payroll" while
+        the first preview is still being quoted, two overflowing rows. Country name/flag now from
+        `EmployeeModel.nameForCountry` / `flagForCountry`.
+  * Render currently still serves the **pre-migration BMONI build** (`/api/health` reports `bmoniOrigin`;
+        `/api/health/stellar` 404). Deploying needs the owner's Render access: point the service at this branch (or merge),
+        set `FLOWPAY_JWT_SECRET`, `STELLAR_NETWORK`, `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`,
+        `STELLAR_DISTRIBUTOR_SECRET`, and apply the SQL migrations before giving it a reachable `DATABASE_URL`.
   * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
         to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
 
