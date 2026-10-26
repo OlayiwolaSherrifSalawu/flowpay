@@ -1,472 +1,343 @@
-import { bmoniClient } from '../../bmoni/client.js';
-import { getStablecoinForCurrency } from '../../core/currencies.js';
-import { Money, type SupportedCurrency } from '../../core/money.js';
-import { prisma, isPostgresDb } from '../../db/index.js';
+import { randomUUID } from 'node:crypto';
+import { FlowPayError, InsufficientFundsError, InvalidRequestError, NotFoundError, StellarError, StellarSubmitTimeoutError } from '../../core/errors.js';
+import { Money } from '../../core/money.js';
+import { isPostgresDb, prisma } from '../../db/index.js';
+import { StellarAccountService, summarizeAccount } from '../../stellar/accounts.js';
+import { MAX_OPS_PER_TX, type BatchLegInput } from '../../stellar/batch.js';
+import { explorerTxUrl, type StellarCurrency } from '../../stellar/config.js';
+import { accountForUser } from '../../stellar/directory.js';
+import { StellarHorizon } from '../../stellar/horizon.js';
+import { recordActivity } from '../activity/record.js';
+import { EmployeeService, type EmployeeRecord } from '../employees/service.js';
+import { BatchPaymentService } from '../payments/batch_service.js';
 
-export interface PayrollAllocationInput {
-  employeeId: string;
-  usdAmountMinor?: number;
-  targetAmountMinor?: number;
-}
+/**
+ * "One employer, many countries, one bill" on Stellar.
+ *
+ * Preview = the actual transactions: every READY employee becomes a leg paid from the
+ * employer's USD (path payment into their local currency). Up to 100 employees settle
+ * in ONE atomic transaction; bigger teams are split into several, each atomic.
+ * Employees who can't be paid right now are listed with the reason and left out.
+ */
+
+export const PAYROLL_FUNDING_CURRENCY: StellarCurrency = 'USD';
+
+export type PayrollItemStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'SKIPPED';
+export type PayrollRunStatus = 'PREVIEW' | 'PROCESSING' | 'PENDING' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'FAILED';
 
 export interface PayrollRunItem {
   employeeId: string;
   name: string;
   country: string;
   targetCurrency: string;
-  destinationStablecoin: string;
+  destinationAccount: string | null;
+  targetAmountMinor: string;
   targetAmountFormatted: string;
+  /** Quoted USD cost (exact for USD employees). */
+  usdAmountMinor: string;
   usdAmountFormatted: string;
   exchangeRate: number;
   isRailActive: boolean;
-  railValidationMessage?: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  railValidationMessage: string;
+  status: PayrollItemStatus;
   proposalId?: string;
-  proposalStatus?: string;
   transactionHash?: string;
+  explorerUrl?: string;
   error?: string;
 }
 
-export interface PayrollRunPreview {
+export interface PayrollBatch {
+  proposalId: string;
+  signPayload?: string;
+  expiresAt: string;
+  employeeIds: string[];
+  maxUsd: string;
+  status: 'PENDING_SIGNATURE' | 'COMPLETED' | 'PENDING' | 'FAILED';
+  transactionHash?: string;
+  explorerUrl?: string;
+  error?: string;
+}
+
+export interface PayrollRun {
   runId: string;
+  employerUserId: string;
   title: string;
-  totalUsdMinor: number;
+  fundingCurrency: StellarCurrency;
+  totalUsdMinor: string;
   totalUsdFormatted: string;
-  totalFeeUsdMinor: number;
-  totalFeeUsdFormatted: string;
-  totalSavedUsdFormatted: string;
-  savedPercentage: number;
+  /** Worst-case USD spend signed into the transactions (quotes + slippage cap). */
+  maxUsdFormatted: string;
+  /** Stellar network fees, paid in XLM by the employer account. */
+  networkFeeXlm: string;
   employerBalanceUsdFormatted: string;
   isBalanceSufficient: boolean;
   employeeCount: number;
-  countriesCount: number;
+  payableCount: number;
   countries: string[];
   currencies: string[];
   allRailsActive: boolean;
   items: PayrollRunItem[];
-  status: 'PREVIEW' | 'VALIDATED' | 'APPROVED' | 'PROCESSING' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'FAILED';
-  executedAt: string;
+  batches: PayrollBatch[];
+  status: PayrollRunStatus;
+  createdAt: string;
+  executedAt?: string;
+}
+
+const runs = new Map<string, PayrollRun>();
+let horizon = new StellarHorizon();
+
+export function setPayrollHorizonForTests(h: StellarHorizon): void {
+  horizon = h;
+  runs.clear();
+}
+
+function skipReason(e: EmployeeRecord): string | null {
+  if (e.status === 'SUSPENDED') return 'Suspended from payroll';
+  if (e.status !== 'READY' || !e.walletAddress) return 'Has not accepted the invitation yet';
+  return null;
+}
+
+/** Strips signing payloads from runs returned after preview. */
+function publicRun(run: PayrollRun): PayrollRun {
+  return { ...run, batches: run.batches.map(({ signPayload: _x, ...b }) => b) };
 }
 
 export class PayrollOrchestrationService {
-  /**
-   * Default Sandbox Personas:
-   * 1. Bunch Dillon (Nigeria 🇳🇬, NGN -> CNGN, BVN 99999999999) - $2,000 USD -> ₦3,100,000 NGN (1550 NGN/USD)
-   * 2. Samson Jabo (Mexico 🇲🇽, MXN -> MEXe, CURP/RFC) - $2,000 USD -> $35,000 MXN (17.5 MXN/USD)
-   */
-  private static readonly DEFAULT_PERSONAS = [
-    {
-      employeeId: 'emp_bunch_dillon',
-      name: 'Bunch Dillon',
-      country: 'NG',
-      targetCurrency: 'NGN',
-      destinationStablecoin: 'CNGN',
-      usdAmountMinor: 200000, // $2,000.00
-      targetAmountMinor: 310000000, // ₦3,100,000.00
-      exchangeRate: 1550.0,
-      bmoniUserId: 'usr_bmoni_dillon_ngn',
-      isRailActive: true,
-      railValidationMessage: 'CNGN Rail Active & Verified',
-    },
-    {
-      employeeId: 'emp_samson_jabo',
-      name: 'Samson Jabo',
-      country: 'MX',
-      targetCurrency: 'MXN',
-      destinationStablecoin: 'MEXe',
-      usdAmountMinor: 200000, // $2,000.00
-      targetAmountMinor: 3500000, // $35,000.00 MXN
-      exchangeRate: 17.5,
-      bmoniUserId: 'usr_bmoni_samson_mxn',
-      isRailActive: true,
-      railValidationMessage: 'MEXe Rail Active & Verified',
-    },
-  ];
+  static async getPreview(employerUserId: string): Promise<PayrollRun> {
+    const employerAccount = await accountForUser(employerUserId);
+    if (!employerAccount) throw new InvalidRequestError('Set up and activate your business wallet before running payroll.');
+    const accounts = new StellarAccountService(horizon);
+    const employerSummary = await accounts.getSummary(employerAccount);
+    const usdBalance = employerSummary.balances.find((b) => b.currency === PAYROLL_FUNDING_CURRENCY)?.balance ?? Money.zero('USD');
 
-  /**
-   * Get Payroll Preview with Destination Rail Validation and Aggregate Fee Calculations
-   */
-  static async getPreview(customAllocations?: PayrollAllocationInput[]): Promise<PayrollRunPreview> {
-    // 1. Fetch live employees from Prisma or fallback to personas
-    let dbEmployees: any[] = [];
-    if (isPostgresDb()) {
-      try {
-        dbEmployees = await prisma.employee.findMany({
-          where: {
-            country: { in: ['NG', 'MX', 'CA'] },
-          },
-          orderBy: { createdAt: 'asc' },
-        });
-      } catch {
-        dbEmployees = [];
+    const employees = await EmployeeService.listEmployees(employerUserId);
+    const runId = `payroll_${randomUUID()}`;
+    const items: PayrollRunItem[] = [];
+    const payable: Array<{ e: EmployeeRecord; item: PayrollRunItem }> = [];
+
+    for (const e of employees) {
+      const target = Money.fromMinor(e.payrollAmountMinor, e.targetCurrency as StellarCurrency);
+      const item: PayrollRunItem = {
+        employeeId: e.id,
+        name: `${e.firstName} ${e.lastName}`,
+        country: e.country,
+        targetCurrency: e.targetCurrency,
+        destinationAccount: e.walletAddress,
+        targetAmountMinor: target.amountMinor.toString(),
+        targetAmountFormatted: target.toMajorString(),
+        usdAmountMinor: '0',
+        usdAmountFormatted: '0.00',
+        exchangeRate: 0,
+        isRailActive: false,
+        railValidationMessage: '',
+        status: 'SKIPPED',
+      };
+      let reason = skipReason(e);
+      if (!reason) {
+        const acct = await horizon.findAccount(e.walletAddress!);
+        const s = summarizeAccount(e.walletAddress!, acct);
+        if (!s.exists) reason = 'Wallet is not active on Stellar';
+        else if (s.missingTrustlines.includes(e.targetCurrency as StellarCurrency)) reason = `Wallet has not enabled ${e.targetCurrency}`;
       }
+      if (reason) {
+        item.railValidationMessage = reason;
+      } else {
+        item.isRailActive = true;
+        item.railValidationMessage = `Ready — paid in ${e.targetCurrency} on Stellar`;
+        item.status = 'PENDING';
+        payable.push({ e, item });
+      }
+      items.push(item);
     }
 
-    const employeeList = dbEmployees.length > 0 ? dbEmployees : this.DEFAULT_PERSONAS;
-
-    let totalUsdMinor = 0n;
-    const countries = new Set<string>();
-    const currencies = new Set<string>();
-
-    const items: PayrollRunItem[] = employeeList.map((emp) => {
-      const country = emp.country.toUpperCase();
-      const targetCurrency = emp.targetCurrency || (country === 'NG' ? 'NGN' : country === 'MX' ? 'MXN' : 'USD');
-      const destinationStablecoin = getStablecoinForCurrency(targetCurrency);
-
-      countries.add(country);
-      currencies.add(targetCurrency);
-
-      // Resolve custom allocation or defaults
-      const customAlloc = customAllocations?.find((c) => c.employeeId === (emp.id || emp.employeeId));
-      const usdMinor = customAlloc?.usdAmountMinor ?? emp.usdAmountMinor ?? 200000;
-      totalUsdMinor += BigInt(usdMinor);
-
-      const usdMoney = Money.fromMinor(usdMinor, 'USD');
-
-      // Rates: NGN = 1550, MXN = 17.5, CAD = 1.375, USD = 1.0
-      let rate = emp.exchangeRate ?? (country === 'NG' ? 1550.0 : country === 'MX' ? 17.5 : 1.0);
-      let targetMinor = customAlloc?.targetAmountMinor ?? emp.targetAmountMinor;
-      if (!targetMinor) {
-        targetMinor = Math.round((usdMinor / 100) * rate * 100);
-      }
-
-      const targetMoney = Money.fromMinor(targetMinor, targetCurrency as SupportedCurrency);
-
-      // Validate destination rail activation (Prompt 10 & Transfers doc invariant):
-      // Sending CNGN to an employee whose wallet is not active in that token returns 400.
-      const statusUpper = (emp.status || 'LINKED').toUpperCase();
-      const isRailActive =
-        emp.isRailActive !== undefined
-          ? emp.isRailActive
-          : (statusUpper === 'READY' || statusUpper === 'LINKED' || statusUpper === 'ACTIVE') &&
-            Boolean(emp.bmoniUserId);
-
-      const railValidationMessage = isRailActive
-        ? `${destinationStablecoin} Rail Active & Verified`
-        : `Rail Inactive: Complete onboarding to activate ${destinationStablecoin} smart wallet`;
-
-      return {
-        employeeId: emp.id || emp.employeeId,
-        name: `${emp.firstName ?? ''} ${emp.lastName ?? ''}`.trim() || emp.name || 'Employee',
-        country,
-        targetCurrency,
-        destinationStablecoin,
-        targetAmountFormatted: targetMoney.toMajorString(),
-        usdAmountFormatted: usdMoney.toMajorString(),
-        exchangeRate: rate,
-        isRailActive,
-        railValidationMessage,
-        status: 'PENDING',
-      };
-    });
-
-    const totalMoney = Money.fromMinor(totalUsdMinor, 'USD');
-
-    // Fee comparison: Traditional wire ~$170/country vs BMONI aggregate ~$5/country
-    const countryCount = Math.max(1, countries.size);
-    const traditionalWireMinor = countryCount * 17000; // $170/country in cents
-    const bmoniFeeMinor = countryCount * 500; // $5/country in cents
-    const savedMinor = traditionalWireMinor - bmoniFeeMinor;
-    const feeMoney = Money.fromMinor(bmoniFeeMinor, 'USD');
-    const savedMoney = Money.fromMinor(savedMinor > 0 ? savedMinor : 33000, 'USD');
-
-    // Employer balance check (e.g. $24,500.00 USDB in sandbox source smart wallet)
-    const employerBalanceMinor = 2450000; // $24,500.00
-    const employerBalanceMoney = Money.fromMinor(employerBalanceMinor, 'USD');
-    const isBalanceSufficient = employerBalanceMinor >= Number(totalUsdMinor);
-
-    const allRailsActive = items.every((i) => i.isRailActive);
-
-    return {
-      runId: `preview_${Date.now()}`,
-      title: 'Global Team Multi-Country Payroll',
-      totalUsdMinor: Number(totalUsdMinor),
-      totalUsdFormatted: totalMoney.toMajorString(),
-      totalFeeUsdMinor: bmoniFeeMinor,
-      totalFeeUsdFormatted: feeMoney.toMajorString(),
-      totalSavedUsdFormatted: savedMoney.toMajorString(),
-      savedPercentage: 97.0,
-      employerBalanceUsdFormatted: employerBalanceMoney.toMajorString(),
-      isBalanceSufficient,
-      employeeCount: items.length,
-      countriesCount: countries.size,
-      countries: Array.from(countries),
-      currencies: Array.from(currencies),
-      allRailsActive,
+    const run: PayrollRun = {
+      runId,
+      employerUserId,
+      title: `Payroll — ${new Date().toISOString().slice(0, 10)}`,
+      fundingCurrency: PAYROLL_FUNDING_CURRENCY,
+      totalUsdMinor: '0',
+      totalUsdFormatted: '0.00',
+      maxUsdFormatted: '0.00',
+      networkFeeXlm: '0',
+      employerBalanceUsdFormatted: usdBalance.toMajorString(),
+      isBalanceSufficient: true,
+      employeeCount: employees.length,
+      payableCount: payable.length,
+      countries: [...new Set(employees.map((e) => e.country))],
+      currencies: [...new Set(employees.map((e) => e.targetCurrency))],
+      allRailsActive: items.every((i) => i.isRailActive),
       items,
+      batches: [],
       status: 'PREVIEW',
-      executedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
+
+    let totalUsd = Money.zero('USD');
+    let maxUsd = Money.zero('USD');
+    for (let i = 0; i < payable.length; i += MAX_OPS_PER_TX) {
+      const chunk = payable.slice(i, i + MAX_OPS_PER_TX);
+      const legs: BatchLegInput[] = chunk.map(({ e, item }) => ({
+        label: item.name,
+        to: e.walletAddress!,
+        mode: 'exact_receive',
+        amount: { amountMinor: item.targetAmountMinor, currency: e.targetCurrency },
+        fundingCurrency: PAYROLL_FUNDING_CURRENCY,
+      }));
+      let proposal;
+      try {
+        proposal = await BatchPaymentService.propose({ userId: employerUserId, legs, memo: 'FlowPay payroll', context: { purpose: 'PAYROLL', reference: runId } });
+      } catch (err) {
+        if (err instanceof InsufficientFundsError) {
+          run.isBalanceSufficient = false;
+          break;
+        }
+        throw err;
+      }
+      proposal.legs.forEach((leg: any, idx: number) => {
+        const item = chunk[idx].item;
+        item.usdAmountMinor = leg.sourceAmountMinor;
+        item.usdAmountFormatted = leg.sourceAmount;
+        item.exchangeRate = Number(leg.destAmount) / Number(leg.sourceAmount);
+        item.proposalId = proposal.proposalId;
+        totalUsd = totalUsd.add(Money.fromMinor(leg.sourceAmountMinor, 'USD'));
+      });
+      const chunkMax = Money.fromMajor(proposal.maxTotals.USD ?? '0', 'USD');
+      maxUsd = maxUsd.add(chunkMax);
+      run.batches.push({
+        proposalId: proposal.proposalId,
+        signPayload: proposal.signPayload,
+        expiresAt: proposal.expiresAt,
+        employeeIds: chunk.map((c) => c.e.id),
+        maxUsd: chunkMax.toMajorString(),
+        status: 'PENDING_SIGNATURE',
+      });
+    }
+
+    if (maxUsd.isGreaterThan(usdBalance)) run.isBalanceSufficient = false;
+    if (!run.isBalanceSufficient) run.batches = []; // nothing to sign if it can't be covered
+    run.totalUsdMinor = totalUsd.amountMinor.toString();
+    run.totalUsdFormatted = totalUsd.toMajorString();
+    run.maxUsdFormatted = maxUsd.toMajorString();
+    run.networkFeeXlm = ((payable.length * 100) / 1e7).toFixed(7); // 100 stroops per operation
+    runs.set(runId, run);
+    return run;
   }
 
   /**
-   * Execute Multi-Rail Global Payroll Fan-Out
-   *
-   * Real 4-Call Proposal Primitive per https://bkey.mintlify.app/api-reference/transfers.md:
-   * 1. POST /v1/users/{employerUserId}/smart-wallets/{smartWalletId}/proposals
-   * 2. POST /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/approve
-   * 3. GET  /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/sign-payload
-   * 4. POST /v1/users/{employerUserId}/smart-wallets/proposals/{proposalId}/sign
+   * Submits each signed batch. Every batch is atomic; batches are independent. The run
+   * is COMPLETED only if every batch settled.
    */
-  static async executePayroll(
-    employerUserId: string,
-    sourceSmartWalletId: string,
-    customAllocations?: PayrollAllocationInput[],
-    signaturesMap?: Record<string, string>
-  ): Promise<PayrollRunPreview> {
-    const preview = await this.getPreview(customAllocations);
-    const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  static async executePayroll(employerUserId: string, runId: string, signed: Record<string, string>): Promise<PayrollRun> {
+    const run = runs.get(runId);
+    if (!run || run.employerUserId !== employerUserId) throw new NotFoundError('Payroll run not found. Please preview payroll again.');
+    if (run.status !== 'PREVIEW') throw new InvalidRequestError('This payroll run was already submitted.');
+    if (run.batches.length === 0) throw new InvalidRequestError(run.isBalanceSufficient ? 'Nobody is ready to be paid.' : 'Your USD balance does not cover this payroll.');
+    for (const b of run.batches) {
+      if (typeof signed?.[b.proposalId] !== 'string') throw new InvalidRequestError('Every payroll batch must be signed.');
+    }
 
-    // Parallel independent proposal execution across all employees
-    const results: PayrollRunItem[] = await Promise.all(
-      preview.items.map(async (item) => {
-        // Validation check: ensure recipient rail is genuinely active
-        if (!item.isRailActive) {
-          return {
-            ...item,
-            status: 'FAILED',
-            error: `Rail inactive: Recipient does not have an active ${item.destinationStablecoin} smart wallet`,
-          };
+    run.status = 'PROCESSING';
+    const byEmployee = new Map(run.items.map((i) => [i.employeeId, i]));
+    for (const batch of run.batches) {
+      try {
+        const res = await BatchPaymentService.execute({ userId: employerUserId, proposalId: batch.proposalId, signedXdr: signed[batch.proposalId] });
+        batch.status = 'COMPLETED';
+        batch.transactionHash = res.transactionHash;
+        batch.explorerUrl = res.explorerUrl;
+        for (const id of batch.employeeIds) Object.assign(byEmployee.get(id)!, { status: 'SUCCESS', transactionHash: res.transactionHash, explorerUrl: res.explorerUrl });
+      } catch (err) {
+        const pending = err instanceof StellarSubmitTimeoutError;
+        batch.status = pending ? 'PENDING' : 'FAILED';
+        batch.error = (err as Error).message;
+        if (pending) batch.transactionHash = (err as StellarSubmitTimeoutError).hash;
+        for (const id of batch.employeeIds) {
+          Object.assign(byEmployee.get(id)!, {
+            status: pending ? 'PENDING' : 'FAILED',
+            transactionHash: pending ? batch.transactionHash : undefined,
+            explorerUrl: pending ? explorerTxUrl(batch.transactionHash!) : undefined,
+            error: pending ? 'Waiting for network confirmation' : (err as Error).message,
+          });
         }
+        if (!(err instanceof StellarError) && !(err instanceof FlowPayError)) console.error('[Payroll] unexpected batch error:', err);
+      }
+      delete batch.signPayload;
+    }
 
-        try {
-          // Resolve employee's bmoniUserId
-          let recipientUserId = 'usr_flowpay_sandbox_employee';
-          if (isPostgresDb()) {
-            try {
-              const empRecord = await prisma.employee.findUnique({
-                where: { id: item.employeeId },
-                select: { bmoniUserId: true },
-              });
-              if (empRecord?.bmoniUserId) {
-                recipientUserId = empRecord.bmoniUserId;
-              }
-            } catch {
-              recipientUserId = `usr_bmoni_${item.employeeId}`;
-            }
-          } else {
-            recipientUserId = `usr_bmoni_${item.employeeId}`;
-          }
-
-          let proposalId: string | undefined;
-          let txHash: string | undefined;
-
-          // 1. Call 1: Create TRANSFER proposal on BMONI rails
-          const proposalRes = await bmoniClient.createTransferProposal({
-            userId: employerUserId,
-            smartWalletId: sourceSmartWalletId,
-            toUserId: recipientUserId,
-            amount: item.targetAmountFormatted,
-            currency: item.destinationStablecoin,
-            description: `Payroll — ${preview.title}`,
-          });
-          proposalId = proposalRes.id || proposalRes.proposalId;
-          if (!proposalId) {
-            throw new Error('BMONI did not return a valid proposal ID');
-          }
-
-          // 2. Call 2: Approve proposal
-          await bmoniClient.approveProposal({
-            userId: employerUserId,
-            proposalId,
-          });
-
-          // 3. Call 3: Fetch sign payload (poll for PENDING_SIGNATURES)
-          await bmoniClient.pollProposalSignPayload({
-            userId: employerUserId,
-            proposalId,
-            maxAttempts: 3,
-            delayMs: 300,
-          });
-
-          // 4. Call 4: Submit client on-device signature
-          const signature = signaturesMap?.[item.employeeId];
-          if (!signature) {
-            throw new Error(`Missing on-device signature for employee ${item.name} (${item.employeeId})`);
-          }
-
-          const signRes = await bmoniClient.submitProposalSignature({
-            userId: employerUserId,
-            proposalId,
-            signature,
-          });
-
-          if (!signRes?.transactionHash) {
-            throw new Error(`BMONI did not return a transaction hash for proposal ${proposalId}`);
-          }
-          txHash = signRes.transactionHash;
-
-          return {
-            ...item,
-            status: 'SUCCESS',
-            proposalId,
-            proposalStatus: 'COMPLETED',
-            transactionHash: txHash,
-          };
-        } catch (err: any) {
-          console.error(`[Payroll] Failed payout for ${item.name}:`, err.message || err);
-          return {
-            ...item,
-            status: 'FAILED',
-            error: err.message || 'Disbursement proposal failed',
-          };
-        }
-      })
-    );
-
-    // Compute overall run status:
-    // Independent proposals: one employee's failure does not block the others.
-    const completedCount = results.filter((r) => r.status === 'SUCCESS').length;
-    const failedCount = results.filter((r) => r.status === 'FAILED').length;
-    const runStatus =
-      failedCount === 0
-        ? 'COMPLETED'
-        : completedCount > 0
+    const statuses = run.batches.map((b) => b.status);
+    run.status = statuses.every((s) => s === 'COMPLETED')
+      ? 'COMPLETED'
+      : statuses.some((s) => s === 'PENDING')
+        ? 'PENDING'
+        : statuses.some((s) => s === 'COMPLETED')
           ? 'PARTIALLY_COMPLETED'
           : 'FAILED';
+    run.executedAt = new Date().toISOString();
 
-    // Persist Payroll Run via Prisma
-    if (isPostgresDb()) {
-      try {
-        await prisma.payrollRun.create({
-          data: {
-            id: runId,
-            title: preview.title,
-            totalUsdMinor: preview.totalUsdMinor,
-            feeUsdMinor: preview.totalFeeUsdMinor,
-            employeeCount: results.length,
-            status: runStatus,
-          },
-        });
-
-        // Persist individual payroll items
-        await prisma.payrollItem.createMany({
-          data: results.map((r) => {
-          const originalAlloc = preview.items.find((i) => i.employeeId === r.employeeId);
-          return {
-            id: `item_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            payrollRunId: runId,
-            employeeId: r.employeeId,
-            employeeName: r.name,
-            country: r.country,
-            targetCurrency: r.targetCurrency,
-            targetAmountMinor: originalAlloc
-              ? Math.round(parseFloat(originalAlloc.targetAmountFormatted) * 100)
-              : 0,
-            usdAmountMinor: originalAlloc
-              ? Math.round(parseFloat(originalAlloc.usdAmountFormatted) * 100)
-              : 0,
-            exchangeRate: r.exchangeRate,
-            status: r.status,
-            proposalId: r.proposalId ?? null,
-          };
-        }),
-      });
-
-      // Record Audit Activity
-      await prisma.auditActivity.create({
-        data: {
-          id: `aud_${Date.now()}`,
-          category: 'BUSINESS',
-          action: 'PAYROLL_RUN_EXECUTED',
-          actor: employerUserId,
-          detailsJson: {
-            runId,
-            status: runStatus,
-            totalUsdFormatted: preview.totalUsdFormatted,
-            employeeCount: results.length,
-            completedCount,
-            failedCount,
-            countries: preview.countries,
-          },
-        },
-      });
-    } catch (dbErr) {
-      console.warn('[Payroll] Persistence note:', dbErr);
-    }
+    await this.persist(run);
+    await recordActivity({
+      category: 'BUSINESS',
+      action: run.status === 'FAILED' ? 'PAYROLL_FAILED' : 'PAYROLL_EXECUTED',
+      actor: employerUserId,
+      details: {
+        runId,
+        status: run.status,
+        totalUsd: run.totalUsdFormatted,
+        paid: run.items.filter((i) => i.status === 'SUCCESS').length,
+        transactionHashes: run.batches.map((b) => b.transactionHash).filter(Boolean),
+      },
+    });
+    return publicRun(run);
   }
 
-    return {
-      ...preview,
-      runId,
-      items: results,
-      status: runStatus,
-      executedAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * Retry a single failed proposal
-   * Per BMONI docs: "A FAILED proposal can be retried by calling approve again, which restarts the workflow."
-   */
-  static async retryProposal(
-    employerUserId: string,
-    proposalId: string,
-    employeeId?: string,
-    signature?: string
-  ): Promise<{ success: boolean; item?: PayrollRunItem; message: string }> {
+  private static async persist(run: PayrollRun): Promise<void> {
+    if (!isPostgresDb()) return;
     try {
-      // 1. Call approve to restart workflow (per BMONI docs)
-      await bmoniClient.retryFailedProposal({
-        userId: employerUserId,
-        proposalId,
-      });
-
-      // 2. Poll sign-payload & submit signature if provided
-      await bmoniClient.pollProposalSignPayload({
-        userId: employerUserId,
-        proposalId,
-        maxAttempts: 3,
-        delayMs: 300,
-      });
-
-      if (!signature) {
-        throw new Error(`Missing on-device signature for retrying proposal ${proposalId}`);
-      }
-
-      const signRes = await bmoniClient.submitProposalSignature({
-        userId: employerUserId,
-        proposalId,
-        signature,
-      });
-
-      if (!signRes?.transactionHash) {
-        throw new Error(`BMONI did not return a transaction hash for retried proposal ${proposalId}`);
-      }
-      const txHash = signRes.transactionHash;
-
-      // 3. Update status in database
-      try {
-        await prisma.payrollItem.updateMany({
-          where: { proposalId },
-          data: { status: 'SUCCESS' },
-        });
-      } catch {}
-
-      return {
-        success: true,
-        message: `Proposal ${proposalId} restarted, approved, signed, and completed.`,
-        item: {
-          employeeId: employeeId || 'emp_retried',
-          name: 'Retried Employee',
-          country: 'NG',
-          targetCurrency: 'NGN',
-          destinationStablecoin: 'CNGN',
-          targetAmountFormatted: '3100000.00',
-          usdAmountFormatted: '2000.00',
-          exchangeRate: 1550.0,
-          isRailActive: true,
-          status: 'SUCCESS',
-          proposalId,
-          proposalStatus: 'COMPLETED',
-          transactionHash: txHash,
+      await prisma.payrollRun.create({
+        data: {
+          id: run.runId,
+          employerUserId: run.employerUserId,
+          title: run.title,
+          totalUsdMinor: Number(run.totalUsdMinor),
+          feeUsdMinor: 0,
+          employeeCount: run.payableCount,
+          status: run.status,
+          reference: run.batches[0]?.transactionHash ?? null,
+          executedAt: new Date(run.executedAt!),
+          items: {
+            create: run.items
+              .filter((i) => i.status !== 'SKIPPED')
+              .map((i) => ({
+                id: `pi_${randomUUID()}`,
+                employeeId: i.employeeId,
+                employeeName: i.name,
+                country: i.country,
+                targetCurrency: i.targetCurrency,
+                targetAmountMinor: Number(i.targetAmountMinor),
+                usdAmountMinor: Number(i.usdAmountMinor),
+                exchangeRate: i.exchangeRate,
+                status: i.status,
+                proposalId: i.proposalId ?? null,
+                transactionHash: i.transactionHash ?? null,
+                errorReason: i.error ?? null,
+              })),
+          },
         },
-      };
+      });
     } catch (err: any) {
-      return {
-        success: false,
-        message: `Retry failed for proposal ${proposalId}: ${err.message || err}`,
-      };
+      console.warn('[Payroll] run persistence failed:', err.message);
     }
+  }
+
+  static async listRuns(employerUserId: string): Promise<PayrollRun[]> {
+    return [...runs.values()]
+      .filter((r) => r.employerUserId === employerUserId && r.status !== 'PREVIEW')
+      .sort((a, b) => (b.executedAt ?? '').localeCompare(a.executedAt ?? ''))
+      .map(publicRun);
+  }
+
+  static async getRun(employerUserId: string, runId: string): Promise<PayrollRun> {
+    const run = runs.get(runId);
+    if (!run || run.employerUserId !== employerUserId) throw new NotFoundError('Payroll run not found.');
+    return publicRun(run);
   }
 }

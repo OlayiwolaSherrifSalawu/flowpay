@@ -160,7 +160,7 @@ class DemoPayrollRepository implements PayrollRepository {
   @override
   Future<PayrollRunModel> executePayrollRun({
     required String runId,
-    required String signature,
+    required Map<String, String> signedBatches,
   }) async {
     // Deterministic simulation matching demo-mode spec:
     // Fast, reliable, no external sandbox dependency
@@ -179,9 +179,9 @@ class DemoPayrollRepository implements PayrollRepository {
         exchangeRate: i.exchangeRate,
         status: 'COMPLETED',
         isRailActive: true,
-        railValidationMessage: '${i.destinationStablecoin} Settled on BMONI Rails',
+        railValidationMessage: 'Demo simulation — no real money moved',
         proposalId: 'prop_demo_${i.country.toLowerCase()}_${DateTime.now().millisecondsSinceEpoch}',
-        transactionHash: '0x7e81...demo_${i.destinationStablecoin.toLowerCase()}_fanout_receipt',
+        transactionHash: 'demo_tx_${i.employeeId}',
       );
     }).toList();
 
@@ -205,41 +205,6 @@ class DemoPayrollRepository implements PayrollRepository {
 
     _runs.insert(0, completedRun);
     return completedRun;
-  }
-
-  @override
-  Future<PayrollItemModel> retryFailedProposal({
-    required String proposalId,
-    required String employeeId,
-    required String pin,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 400));
-    // Per BMONI docs: Calling approve again restarts the workflow for this single proposal
-    return PayrollItemModel(
-      employeeId: employeeId,
-      employeeName: 'Retried Employee',
-      country: 'NG',
-      targetCurrency: demoCurrencyForId(employeeId),
-      destinationStablecoin: demoStablecoinForId(employeeId),
-      targetAmount: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).targetAmount,
-      usdAmount: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).usdAmount,
-      exchangeRate: DemoData.getPayrollPreview().items.firstWhere((i) => i.employeeId == employeeId).exchangeRate,
-      status: 'COMPLETED',
-      isRailActive: true,
-      railValidationMessage: 'Successfully Retried & Settled on BMONI Rails',
-      proposalId: proposalId,
-      transactionHash: '0x7e81...retry_${DateTime.now().millisecondsSinceEpoch}',
-    );
-  }
-
-  dynamic demoCurrencyForId(String employeeId) {
-    final match = DemoData.getPayrollPreview().items.where((i) => i.employeeId == employeeId);
-    return match.isNotEmpty ? match.first.targetCurrency : DemoData.getPayrollPreview().items.first.targetCurrency;
-  }
-
-  String demoStablecoinForId(String employeeId) {
-    final match = DemoData.getPayrollPreview().items.where((i) => i.employeeId == employeeId);
-    return match.isNotEmpty ? match.first.destinationStablecoin : 'CNGN';
   }
 
   @override

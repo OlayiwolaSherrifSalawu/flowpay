@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import '../wallet/wallet_signer.dart';
 import '../money/currency.dart';
@@ -119,30 +117,18 @@ class BusinessProvider extends ChangeNotifier {
   }
 
   /// Saved cross-border fees compared to traditional SWIFT/wire rails
-  /// Traditional wire: ~$170 per destination country
-  /// BMONI aggregate bill: ~$5 per country (96% savings)
-  Money get savedFeeUsd {
-    final countryCount =
-        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
-    final traditionalWireTotal =
-        countryCount * 17000; // $170 in cents per country
-    final bmoniRailTotal =
-        _pendingPayroll?.totalFeeUsd.minorUnits ?? (countryCount * 500);
-    final savedMinor = traditionalWireTotal - bmoniRailTotal;
-    return Money.fromMinor(savedMinor > 0 ? savedMinor : 32800, Currency.usd);
-  }
+  /// Savings vs. a reference wire fee — only demo runs report one. Live runs
+  /// report their real cost instead ([PayrollRunModel.networkFeeXlm]).
+  Money get savedFeeUsd => _pendingPayroll?.totalSavedFeeUsd ?? Money.zero(Currency.usd);
 
-  double get savedPercentage {
-    final countryCount =
-        uniqueCountryCodes.isEmpty ? 2 : uniqueCountryCodes.length;
-    final traditionalWireTotal = countryCount * 170.0;
-    final bmoniRailTotal =
-        (_pendingPayroll?.totalFeeUsd.majorUnits ?? (countryCount * 5.0))
-            .toDouble();
-    if (traditionalWireTotal <= 0) return 96.0;
-    final pct =
-        ((traditionalWireTotal - bmoniRailTotal) / traditionalWireTotal) * 100;
-    return pct.clamp(80.0, 98.0);
+  double get savedPercentage => _pendingPayroll?.savedPercentage ?? 0;
+
+  /// Human-readable cost line for the current payroll preview.
+  String get payrollCostLabel {
+    final run = _pendingPayroll;
+    if (run == null) return 'No payroll to run yet';
+    if (run.networkFeeXlm != null) return 'Stellar network fee: ${run.networkFeeXlm} XLM';
+    return 'Transfer fee: ${run.totalFeeUsd.formatFormatted()}';
   }
 
   /// Initial load of all business data
@@ -260,22 +246,26 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
-  /// Compute canonical 32-byte hash for a payroll proposal item
-  static String computeProposalHash({
-    required String runId,
-    required PayrollItemModel item,
-  }) {
-    final canonicalPayload = jsonEncode({
-      'amount': item.targetAmount.amountMinor.toString(),
-      'country': item.country,
-      'currency': item.destinationStablecoin,
-      'employeeId': item.employeeId,
-      'runId': runId,
-    });
-    return '0x${sha256.convert(utf8.encode(canonicalPayload))}';
+  /// Signs every atomic batch of a previewed run exactly as shown (live), or
+  /// verifies the PIN against a simulated payload (demo). Returns
+  /// `{proposalId: signedPayload}`.
+  static Future<Map<String, String>> signPayrollBatches(PayrollRunModel run, String pin) async {
+    const signer = StellarWalletSigner();
+    final signed = <String, String>{};
+    if (run.isDemo) {
+      await signer.signMessage('demo-payroll:${run.runId}', pin: pin);
+      return signed;
+    }
+    if (!run.isBalanceSufficient) throw StateError('Your USD balance does not cover this payroll.');
+    if (run.batches.isEmpty) throw StateError('Nobody is ready to be paid yet.');
+    for (final batch in run.batches) {
+      final payload = batch.signPayload;
+      if (payload == null) throw StateError('Payroll preview is missing a transaction. Refresh and try again.');
+      signed[batch.proposalId] = await signer.signTransactionXdr(payload, pin: pin);
+    }
+    return signed;
   }
 
-  /// Primary Action: Run Global Payroll with on-device B-Key signing
   Future<PayrollRunModel> runPayroll({required String pin}) async {
     if (_pendingPayroll == null) {
       throw Exception('No pending payroll run available to execute.');
@@ -288,39 +278,9 @@ class BusinessProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Generate distinct cryptographic 32-byte hash and sign each proposal independently
-      final signatures = <String, String>{};
-      final seenHashes = <String>{};
-
-      for (final item in _pendingPayroll!.items) {
-        final hash32 = computeProposalHash(
-          runId: _pendingPayroll!.runId,
-          item: item,
-        );
-
-        // Safeguard: Disallow identical signing payloads in the same batch
-        if (seenHashes.contains(hash32)) {
-          throw StateError(
-            'Fintech signing violation: Duplicate proposal hash detected in batch for employee '
-            '${item.employeeId} (${item.employeeName}). Proposals within a batch must have unique hash inputs.',
-          );
-        }
-        seenHashes.add(hash32);
-
-        final sig = await const StellarWalletSigner().signTransactionHash(
-          hash32,
-          pin: pin,
-        );
-        signatures[item.employeeId] = sig;
-      }
-
-      // 2. Execute aggregate fan-out via repository
-      final primarySig = signatures.values.first;
-      final completed = await payrollRepo.executePayrollRun(
-        runId: _pendingPayroll!.runId,
-        signature: primarySig,
-      );
-
+      final run = _pendingPayroll!;
+      final signed = await signPayrollBatches(run, pin);
+      final completed = await payrollRepo.executePayrollRun(runId: run.runId, signedBatches: signed);
       _lastExecutedPayroll = completed;
       return completed;
     } catch (e) {
@@ -332,47 +292,4 @@ class BusinessProvider extends ChangeNotifier {
     }
   }
 
-  /// Retry a single failed payroll proposal
-  /// Per BMONI docs: "A FAILED proposal can be retried by calling approve again, restarting the workflow."
-  Future<PayrollItemModel> retryPayrollProposal({
-    required String proposalId,
-    required String employeeId,
-    required String pin,
-  }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final updatedItem = await payrollRepo.retryFailedProposal(
-        proposalId: proposalId,
-        employeeId: employeeId,
-        pin: pin,
-      );
-
-      // Update item in lastExecutedPayroll if present
-      if (_lastExecutedPayroll != null) {
-        final updatedItems = _lastExecutedPayroll!.items.map((item) {
-          if (item.proposalId == proposalId || item.employeeId == employeeId) {
-            return updatedItem;
-          }
-          return item;
-        }).toList();
-
-        final allSucceeded = updatedItems.every((i) => i.status == 'SUCCESS' || i.status == 'COMPLETED');
-
-        _lastExecutedPayroll = _lastExecutedPayroll!.copyWith(
-          status: allSucceeded ? 'COMPLETED' : 'PARTIALLY_COMPLETED',
-          items: updatedItems,
-        );
-      }
-
-      return updatedItem;
-    } catch (e) {
-      _errorMessage = 'Proposal retry failed: $e';
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 }

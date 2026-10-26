@@ -26,7 +26,6 @@ class HeroBillCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final pending = businessProvider.pendingPayroll;
     final totalUsd = businessProvider.totalPayrollUsd;
     final savedUsd = businessProvider.savedFeeUsd;
     final savedPct = businessProvider.savedPercentage.toStringAsFixed(0);
@@ -226,7 +225,7 @@ class HeroBillCard extends StatelessWidget {
                         color: FlowPayColors.signal, size: 14),
                     const SizedBox(width: 4),
                     Text(
-                      'Saved ${savedUsd.formatFormatted()} ($savedPct%)',
+                      savedUsd.minorUnits > 0 ? 'Saved ${savedUsd.formatFormatted()} ($savedPct%)' : 'Settles on Stellar',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -244,7 +243,7 @@ class HeroBillCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Transfer Fee: ${pending?.totalFeeUsd.formatFormatted() ?? "\$10.00"}',
+                businessProvider.payrollCostLabel,
                 style: FlowPayTypography.captionStyle(
                   color: textSecondaryColor,
                 ).copyWith(fontSize: 12),

@@ -1,77 +1,45 @@
-import { Router } from 'express';
-import { prisma, isPostgresDb } from '../db/index.js';
+import { Router, type Request } from 'express';
+import { InvalidRequestError } from '../core/errors.js';
+import { paginateArray, parsePaginationParams } from '../core/pagination.js';
 import { PayrollOrchestrationService } from '../modules/payroll/service.js';
 
 export const payrollRouter = Router();
 
-// GET /api/payroll/preview
+// TODO(M8): replace header-based identity with authenticated sessions.
+function requestUserId(req: Request): string {
+  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string) || (req.body?.employerUserId as string) || (req.body?.userId as string);
+  if (!userId) throw new InvalidRequestError('userId is required.');
+  return userId;
+}
+
+// GET /api/payroll/preview — live quotes + the unsigned transactions to approve.
 payrollRouter.get('/preview', async (req, res, next) => {
   try {
-    const preview = await PayrollOrchestrationService.getPreview();
-    res.json({ success: true, data: preview });
+    res.json({ success: true, data: await PayrollOrchestrationService.getPreview(requestUserId(req)) });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/payroll/execute
+// POST /api/payroll/execute { runId, signed: { [proposalId]: signedXdr } }
 payrollRouter.post('/execute', async (req, res, next) => {
   try {
-    const employerUserId = req.body.employerUserId || 'usr_flowpay_sandbox_master';
-    const sourceSmartWalletId = req.body.sourceSmartWalletId || 'sw_usdb_sandbox_01';
-    const summary = await PayrollOrchestrationService.executePayroll(
-      employerUserId,
-      sourceSmartWalletId,
-      req.body.allocations,
-      req.body.signatures
-    );
-    res.json({ success: true, data: summary });
+    const { runId, signed } = req.body ?? {};
+    if (typeof runId !== 'string' || !signed || typeof signed !== 'object') throw new InvalidRequestError('runId and signed are required');
+    res.json({ success: true, data: await PayrollOrchestrationService.executePayroll(requestUserId(req), runId, signed) });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/payroll/proposals/:proposalId/retry
-payrollRouter.post('/proposals/:proposalId/retry', async (req, res, next) => {
-  try {
-    const employerUserId = req.body.employerUserId || 'usr_flowpay_sandbox_master';
-    const { proposalId } = req.params;
-    const { employeeId } = req.body;
-    const result = await PayrollOrchestrationService.retryProposal(
-      employerUserId,
-      proposalId,
-      employeeId
-    );
-    res.json({ success: result.success, data: result.item, message: result.message });
-  } catch (err) {
-    next(err);
-  }
-});
-
-import { parsePaginationParams, paginateArray } from '../core/pagination.js';
-
-// GET /api/payroll/runs?page=1&limit=10
+// GET /api/payroll/runs
 payrollRouter.get('/runs', async (req, res, next) => {
   try {
-    let runs: any[] = [];
-    if (isPostgresDb()) {
-      try {
-        runs = await prisma.payrollRun.findMany({
-          include: { items: true },
-          orderBy: { createdAt: 'desc' },
-          take: 100,
-        });
-      } catch (dbErr) {
-        console.warn('[Payroll] DB read runs failed, using empty list fallback:', dbErr);
-      }
-    }
-
+    const runs = await PayrollOrchestrationService.listRuns(requestUserId(req));
     if (req.query.page !== undefined || req.query.limit !== undefined) {
       const { page, limit } = parsePaginationParams(req.query, 10);
-      const paginated = paginateArray(runs, page, limit);
-      return res.json({ success: true, data: paginated });
+      return res.json({ success: true, data: paginateArray(runs, page, limit) });
     }
-
     res.json({ success: true, data: runs });
   } catch (err) {
     next(err);
@@ -81,21 +49,7 @@ payrollRouter.get('/runs', async (req, res, next) => {
 // GET /api/payroll/runs/:id
 payrollRouter.get('/runs/:id', async (req, res, next) => {
   try {
-    if (isPostgresDb()) {
-      try {
-        const run = await prisma.payrollRun.findUnique({
-          where: { id: req.params.id },
-          include: { items: true },
-        });
-        if (!run) {
-          return res.status(404).json({ success: false, message: 'Payroll run not found' });
-        }
-        return res.json({ success: true, data: run });
-      } catch (dbErr) {
-        console.warn('[Payroll] DB read run by id failed:', dbErr);
-      }
-    }
-    res.status(404).json({ success: false, message: 'Payroll run not found' });
+    res.json({ success: true, data: await PayrollOrchestrationService.getRun(requestUserId(req), req.params.id) });
   } catch (err) {
     next(err);
   }
