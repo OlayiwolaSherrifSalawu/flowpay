@@ -150,3 +150,39 @@ export function sanitizeBmoniError(err: unknown): FlowPayError {
   }
   return new FlowPayError('An unexpected internal error occurred.');
 }
+
+/**
+ * A Stellar operation failed. `resultCodes` carries Horizon's `extras.result_codes`
+ * (e.g. { transaction: 'tx_failed', operations: ['op_underfunded'] }) so callers and the
+ * UI can explain *why* — never swallow this into a success.
+ */
+export class StellarError extends FlowPayError {
+  constructor(
+    message: string,
+    statusCode: number = 502,
+    code: string = 'STELLAR_ERROR',
+    public readonly resultCodes?: { transaction?: string; operations?: string[] },
+    details?: unknown
+  ) {
+    super(message, statusCode, code, { resultCodes, ...(details as object | undefined) });
+    this.name = 'StellarError';
+  }
+}
+
+export class StellarAccountNotFoundError extends StellarError {
+  constructor(public readonly accountId: string) {
+    super(`Stellar account ${accountId} does not exist on the network yet (it must be funded first).`, 404, 'STELLAR_ACCOUNT_NOT_FOUND');
+    this.name = 'StellarAccountNotFoundError';
+  }
+}
+
+/**
+ * Submission outcome is UNKNOWN (Horizon timeout / network drop). The transaction may still
+ * land. Record it as PENDING and reconcile by `hash` — never report it as failed or completed.
+ */
+export class StellarSubmitTimeoutError extends StellarError {
+  constructor(public readonly hash: string, details?: unknown) {
+    super(`Stellar submission for ${hash} timed out; outcome pending reconciliation.`, 504, 'STELLAR_SUBMIT_PENDING', undefined, details);
+    this.name = 'StellarSubmitTimeoutError';
+  }
+}

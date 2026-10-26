@@ -69,9 +69,21 @@ removed completely.
 
 * [x] **M0 — Plan & foundation**: branch `feat/stellar-migration`, decisions recorded, AGENTS.md rules rewritten for Stellar, this skill created. Baseline before migration: backend 122/122 tests, Flutter 198/198 tests, analyzer clean.
 
+* [x] **M1 — Stellar backend core**:
+  * `backend/src/stellar/config.ts` (network + asset registry, `assetFor`, explorer URLs), `amount.ts` (Money ↔ 7-dp strings; quotes round UP), `horizon.ts` (`StellarHorizon` + injectable `HorizonGateway`; `mapHorizonError` → `STELLAR_TX_FAILED` with human messages from result codes, `StellarSubmitTimeoutError` = PENDING; `reconcile(hash)`), `accounts.ts` (summary, Friendbot, unsigned trustline XDR), `bootstrap.ts`.
+  * Routes `backend/src/routes/stellar.routes.ts` mounted at `/api/stellar`: `GET /config`, `GET /accounts/:id`, `POST /accounts/:id/fund`, `POST /accounts/:id/trustlines`, `POST /transactions {signedXdr}` (200 COMPLETED / 202 PENDING / 4xx FAILED), `GET /transactions/:hash`.
+  * **Live testnet treasury** created by `npm run stellar:bootstrap` (idempotent): issuer `GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433`, distributor `GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56`; USD/CAD, USD/MXN, USD/GBP, USD/NGN pools seeded with $1M per side. Verified path quote: 500,000 NGN ← 446.51 CAD via USD.
+  * 17 new unit tests (`src/stellar/stellar.test.ts`); backend total 139/139.
+
+## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
+
+* **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
+* Hardcoded, inconsistent FX (`1550` NGN, `17` vs `17.5` MXN) in transfers/payroll/missions — replaced by Horizon path quotes in M3/M4.
+* `config/env.ts` ships a real BMONI API key and a personal SMTP address as defaults — removed in M6.
+
 ## 🎯 5. Milestone Plan (each milestone = one pushed commit set, tests green)
 
-* [ ] **M1 — Stellar backend core**: config, Horizon wrapper, accounts/balances/trustlines, bootstrap script (issuer, assets, liquidity pools), unit tests.
+* [x] **M1 — Stellar backend core** (see §4).
 * [ ] **M2 — On-device keys & signing**: `stellar_flutter_sdk`, PIN-encrypted keypair vault, `WalletSigner` signs Stellar XDR, BMONI SDK removed from the signing path.
 * [ ] **M3 — Wallets & transfers**: balances, receive (account ID + QR), same-currency payments, cross-currency path payments, activity from Horizon operations.
 * [ ] **M4 — Atomic multi-country payroll**: batched path payments, preview with live path quotes, real hashes + explorer links.
