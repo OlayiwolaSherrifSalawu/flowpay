@@ -198,7 +198,7 @@ class HeroBillCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      totalUsd.formatFormatted(),
+                      businessProvider.payrollAmountText(totalUsd),
                       style: FlowPayTypography.display(color: inkColor).copyWith(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
@@ -240,7 +240,9 @@ class HeroBillCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Sub-metrics (real network cost + atomicity)
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
             children: [
               Text(
                 businessProvider.payrollCostLabel,
@@ -248,7 +250,6 @@ class HeroBillCard extends StatelessWidget {
                   color: textSecondaryColor,
                 ).copyWith(fontSize: 12),
               ),
-              const Spacer(),
               Text(
                 'All-or-nothing · one transaction',
                 style: FlowPayTypography.captionStyle(

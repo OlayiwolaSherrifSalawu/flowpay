@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/models/paginated_result.dart';
+import '../../../core/repositories/employee_repository.dart';
 import '../../../core/repositories/payroll_repository.dart';
 import '../../../core/state/business_provider.dart';
 
@@ -551,9 +552,7 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
 
   Widget _buildEmployeePaymentRow(PayrollItemModel item, bool isDark) {
     final isFailed = item.status == 'FAILED';
-    final flag = item.country == 'NG'
-        ? '🇳🇬'
-        : (item.country == 'MX' ? '🇲🇽' : '🇨🇦');
+    final flag = EmployeeModel.flagForCountry(item.country);
     final isRetrying = _retryingEmployeeIds.contains(item.employeeId);
     final inkColor =
         isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;

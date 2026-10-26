@@ -109,9 +109,14 @@ class EmployeeModel {
     return null;
   }
 
-  String get resolvedCountryName {
-    if (countryName.isNotEmpty) return countryName;
-    switch (country.toUpperCase()) {
+  String get resolvedCountryName =>
+      countryName.isNotEmpty ? countryName : nameForCountry(country);
+
+  String get flagEmoji => flagForCountry(country);
+
+  /// Display name for an ISO country code used by FlowPay corridors.
+  static String nameForCountry(String? code) {
+    switch ((code ?? '').toUpperCase()) {
       case 'NG':
         return 'Nigeria';
       case 'MX':
@@ -123,12 +128,12 @@ class EmployeeModel {
       case 'GB':
         return 'United Kingdom';
       default:
-        return country;
+        return code ?? '';
     }
   }
 
-  String get flagEmoji {
-    switch (country.toUpperCase()) {
+  static String flagForCountry(String? code) {
+    switch ((code ?? '').toUpperCase()) {
       case 'NG':
         return '🇳🇬';
       case 'MX':

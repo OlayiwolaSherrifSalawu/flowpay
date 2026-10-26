@@ -2,6 +2,7 @@ import '../../core/state/business_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import '../../core/models/paginated_result.dart';
+import '../../core/repositories/employee_repository.dart';
 import '../../core/repositories/payroll_repository.dart';
 import '../../core/state/app_state.dart';
 
@@ -199,14 +200,18 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 12),
                 Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: surfaceAltColor,
                     borderRadius: FlowPayRadii.card,
                     border: Border.all(color: borderColor),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +263,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Once approved, payroll will be sent to all employees simultaneously.',
+                  'Once approved, everyone is paid in one Stellar transaction — all of them, or none of them.',
                   style: FlowPayTypography.captionStyle(
                       color: textSecondaryColor).copyWith(height: 1.4),
                 ),
@@ -1027,13 +1032,24 @@ class _PayrollScreenState extends State<PayrollScreen> {
                   ),
                 ],
               ),
-              Text(
-                'Saved: $savedFormatted (97%)',
-                style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
-                    .copyWith(
-                  fontWeight: FontWeight.w700,
+              // Savings are only shown when the run actually reports them
+              // (demo); live runs report the real network fee above.
+              if (run != null && run.hasSavings)
+                Text(
+                  'Saved: $savedFormatted (${run.savedPercentage.toStringAsFixed(0)}%)',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
+                      .copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                )
+              else
+                Text(
+                  'One atomic transaction',
+                  style: FlowPayTypography.captionStyle(color: FlowPayColors.signal)
+                      .copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -1043,16 +1059,11 @@ class _PayrollScreenState extends State<PayrollScreen> {
 
   /// Per-Employee Payroll Card with Destination Rail & Outcome
   Widget _buildEmployeePayrollCard(PayrollItemModel item, bool isDark) {
-    final flag = item.country == 'NG'
-        ? '🇳🇬'
-        : item.country == 'MX'
-            ? '🇲🇽'
-            : '🇨🇦';
-    final countryName = item.country == 'NG'
-        ? 'Nigeria'
-        : item.country == 'MX'
-            ? 'Mexico'
-            : 'Canada';
+    final flag = EmployeeModel.flagForCountry(item.country);
+    final countryName = EmployeeModel.nameForCountry(item.country);
+    final rate = item.exchangeRate >= 100
+        ? item.exchangeRate.toStringAsFixed(2)
+        : item.exchangeRate.toStringAsFixed(4);
 
     final isFailed = item.status == 'FAILED';
     final isRetrying = _retryingEmployeeIds.contains(item.employeeId);
@@ -1104,7 +1115,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
                         ),
                       ),
                       Text(
-                        '$countryName • Rate: ${item.exchangeRate} / USD',
+                        '$countryName • $rate ${item.targetCurrency.code} / USD',
                         style: FlowPayTypography.captionStyle(
                             color: textSecondaryColor),
                       ),

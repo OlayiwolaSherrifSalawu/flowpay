@@ -63,9 +63,12 @@ class BusinessProvider extends ChangeNotifier {
   // Computed Core Dashboard Metrics
   int get employeeCount => _employees.length;
 
+  /// Employees who have joined (live: lifecycle READY; demo: ONBOARDED/ACTIVE).
   int get onboardedEmployeeCount => _employees
       .where((e) =>
-          e.onboardingStatus == 'ONBOARDED' || e.onboardingStatus == 'ACTIVE')
+          e.status.toUpperCase() == EmployeeLifecycleStages.ready ||
+          const {'ONBOARDED', 'ACTIVE', 'READY'}
+              .contains(e.onboardingStatus.toUpperCase()))
       .length;
 
   List<String> get uniqueCountryCodes =>
@@ -97,13 +100,14 @@ class BusinessProvider extends ChangeNotifier {
   }
 
   /// Total number of provisioned smart wallets
-  int get walletsProvisionedCount {
-    if (_wallets.isNotEmpty) return _wallets.length;
-    return _employees
-        .where((e) =>
-            e.walletStatus == 'PROVISIONED' || e.walletStatus == 'ACTIVE')
-        .length;
-  }
+  /// Employees with their own wallet linked. (Not the employer's wallets —
+  /// those are [wallets].)
+  int get walletsProvisionedCount => _employees
+      .where((e) =>
+          (e.walletAddress?.isNotEmpty ?? false) ||
+          e.walletStatus == 'PROVISIONED' ||
+          e.walletStatus == 'ACTIVE')
+      .length;
 
   /// Saved cross-border fees compared to traditional SWIFT/wire rails
   /// Savings vs. a reference wire fee — only demo runs report one. Live runs
@@ -112,10 +116,20 @@ class BusinessProvider extends ChangeNotifier {
 
   double get savedPercentage => _pendingPayroll?.savedPercentage ?? 0;
 
+  /// True while the first payroll preview is still being built — totals are
+  /// unknown then, not zero.
+  bool get isPayrollCalculating => _isLoading && _pendingPayroll == null;
+
+  /// Display text for a payroll total: '—' while it is still being calculated.
+  String payrollAmountText(Money amount) =>
+      isPayrollCalculating ? '—' : amount.formatFormatted();
+
   /// Human-readable cost line for the current payroll preview.
   String get payrollCostLabel {
     final run = _pendingPayroll;
-    if (run == null) return 'No payroll to run yet';
+    if (run == null) {
+      return isPayrollCalculating ? 'Quoting live rates on Stellar…' : 'No payroll to run yet';
+    }
     if (run.networkFeeXlm != null) return 'Stellar network fee: ${run.networkFeeXlm} XLM';
     return 'Transfer fee: ${run.totalFeeUsd.formatFormatted()}';
   }

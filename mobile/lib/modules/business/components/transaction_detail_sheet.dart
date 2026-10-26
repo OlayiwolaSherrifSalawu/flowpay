@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/repositories/employee_repository.dart';
 import 'package:flutter/services.dart';
 import '../../../core/design_system/amount_display.dart';
 import '../../../core/design_system/dialogs.dart';
@@ -43,11 +44,7 @@ class TransactionDetailSheet extends StatelessWidget {
     final textSecondaryColor =
         isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
 
-    final flag = transaction.country == 'NG'
-        ? '🇳🇬'
-        : (transaction.country == 'MX'
-            ? '🇲🇽'
-            : (transaction.country == 'CA' ? '🇨🇦' : '🌐'));
+    final flag = EmployeeModel.flagForCountry(transaction.country);
 
     return Container(
       decoration: BoxDecoration(
