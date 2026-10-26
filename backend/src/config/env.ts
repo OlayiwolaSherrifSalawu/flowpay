@@ -3,11 +3,14 @@ import { z } from 'zod';
 
 dotenv.config();
 
+// Public, so only acceptable outside production (see the check below).
+const DEV_JWT_SECRET = 'flowpay_development_secret_change_in_production_min32chars';
+
 const envSchema = z.object({
   PORT: z.string().default('4000').transform((val) => parseInt(val, 10)),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().default('postgresql://postgres:flowpay@localhost:5432/flowpay'),
-  FLOWPAY_JWT_SECRET: z.string().default('flowpay_development_secret_change_in_production_min32chars'),
+  FLOWPAY_JWT_SECRET: z.string().default(DEV_JWT_SECRET),
   APP_URL: z.string().default('https://app.flowpay.finance'),
   // Stellar network configuration (see .agents/skills/stellar/SKILL.md)
   STELLAR_NETWORK: z.enum(['testnet', 'public']).default('testnet'),
@@ -47,3 +50,10 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+
+// Session tokens are only as strong as this secret: the default is in the public
+// repo, so a production server running with it (or anything short) would let
+// anyone forge a login. Refuse to start instead.
+if (env.NODE_ENV === 'production' && (env.FLOWPAY_JWT_SECRET === DEV_JWT_SECRET || env.FLOWPAY_JWT_SECRET.length < 32)) {
+  throw new Error('FLOWPAY_JWT_SECRET must be set to a random value of at least 32 characters in production.');
+}
