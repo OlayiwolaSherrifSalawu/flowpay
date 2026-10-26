@@ -109,6 +109,12 @@ removed completely.
   * Mobile: `PayrollBatchModel`, `PayrollRunModel.fromJson` (missing → UNKNOWN/0, never COMPLETED/$24,500), `StellarPayrollRepository`, `BusinessProvider.signPayrollBatches` (signs every batch XDR; demo verifies PIN only), payroll screen submits signed batches; per-employee retry replaced by "run payroll again" (batches are atomic); invented "Saved $330 (97%) vs SWIFT" replaced by the real Stellar network fee.
   * Verified live (`test/live/stellar_payroll_live_test.dart`): ₦150,000 + Mex$1,750 + £78 to three employees in ONE tx (`64fcedbc…`) for $297.82; on-chain balances asserted exact. Backend 114/114, Flutter 178/178 (+5 opt-in live).
 
+* [x] **M6 — Anchors & KYC**:
+  * `mobile/lib/core/stellar/anchors/anchor_service.dart` — client-side anchor flows (backend never sees anchor JWTs, keys or bank details): `AnchorConfig.forNetwork` (testnet: Circle testnet USDC via `testanchor.stellar.org`; mainnet: empty until licensed partners are configured), SEP-10 (`getChallenge` → `validateChallenge` with 60s clock-skew grace → vault-signed → JWT), USDC trustline on demand, SEP-24 interactive deposit/withdraw, status polling, and the exact withdrawal payment (anchor account + memo + amount) signed on device.
+  * `CashInOutScreen` ("Bank" quick action on Wallets): PIN → anchor login → anchor's own page (KYC + bank details) via `url_launcher` 6.3.2 → live status → "Send X USDC" for withdrawals. Wallets "Convert" now opens the converter (it used to just switch tabs).
+  * **KYC made honest**: in-app identity form = `pending` (`markKycSubmitted`), backend `/api/auth/kyc` returns `SUBMITTED` with `verification: 'anchor'` and stores `pending`; login no longer forces `verified`. Real identity verification is done by the anchor.
+  * Verified live (`test/live/stellar_anchor_live_test.dart`): wrong PIN never reaches the anchor; SEP-10 JWT issued; trustline idempotent; SEP-24 deposit + withdraw sessions opened; status read back (`incomplete`).
+
 ## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
 
 * **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
@@ -119,7 +125,7 @@ removed completely.
 * Employer-assisted onboarding (`EmployeeOnboardingScreen` stage 2) now refuses until the employee has created their own wallet — redesign in M5.
 * New-device login: user has no local wallet → needs "restore from recovery key" UX (M7/M8).
 * ~~Fixed in M3a~~: backend `executeTransfer` fabricated tx hashes + COMPLETED for any non-BMONI proposal, credited an in-memory ledger, and **invented recipients** (name contains "bunch" → hardcoded Nigerian user; unknown names → `usr_<name>`); mobile live wallet repo showed invented balances ($24,500 etc.) on any error, signed with `'0x_signed_challenge_placeholder'`, debit/credit always `true`; mobile transfer repo returned `'EXECUTED'`/`'0x_bmoni_onchain_settled'`, fixed proposal hash fallback, hardcoded fees, prompt parser defaulted to **$500**; `TransferExecutionResult.fromJson` defaulted status to COMPLETED; fuzzy recipient match (`fullName.includes`); unauthenticated `/api/wallets/register` could redirect anyone's incoming funds; "Receive" sheet credited arbitrary amounts from nowhere; wallets screen spinner hung forever on error, invented a 15% "reserved" split, and showed "Waffiyyi Fashola" on every user's card; `validateIntent` errors were 500s; EUR accepted/GBP rejected; no HTTP timeouts; signup/KYC sent PII to BMONI with fabricated defaults (DOB 1992-04-18, "14 Admiralty Way").
-* **HIGH — KYC is self-certified**: `/api/auth/kyc` always returns VERIFIED and the app marks the profile verified client-side regardless. Replace with anchor SEP-12 verification (M5).
+* ~~Fixed in M6~~: KYC was self-certified (always VERIFIED with $10k–$1M limits); Wallets "Convert" didn't open the converter.
 * ~~Fixed in M3b~~: mission execution moved no money (recorded COMPLETED, invented a transfer to "Mary Fashola (Mom)" with ref `rail_tx_active`, manual trigger signed a hardcoded hash); missions not user-scoped and every user saw seeded demo missions; mission toggle returned a fabricated "active" mission on failure; AI-operator non-send actions used the demo provider in live mode with fake tx hashes and PIN fallback `'000000'`; FX conversion moved no money (fixed 1550 rate, $1,000 default); approvals signed a constant hash and live approve returned `true`; **mobile serialized mission enums as `CONVERTFX`/`SWEEPVAULT`/`SPLITINCOMING` so every live mission proposal was rejected** (masked by the old fallback).
 * ~~Fixed in M5~~: payroll preview showed hardcoded personas, every employer saw every employee, balance hardcoded $24,500, fees/97% savings invented, hardcoded FX, US/GB employees dropped; mobile signed one hash per employee then sent only the first signature (and the screen signed a constant hash); per-employee retry passed the signature as the PIN so it never ran; item status defaulted to COMPLETED.
 * Payroll has no pay-period guard: running it twice pays twice (each run needs a fresh PIN approval). Add period/idempotency in M8.
@@ -140,7 +146,7 @@ removed completely.
 * [x] **M3b — Missions, AI operator & FX convert on Stellar** (see §4).
 * [x] **M4 — Employees on Stellar** (see §4).
 * [x] **M5 — Atomic multi-country payroll** (see §4).
-* [ ] **M6 — Anchors & KYC**: SEP-10/12/24 cash-out on testanchor; replace self-certified KYC.
+* [x] **M6 — Anchors & KYC** (see §4).
 * [ ] **M7 — Remove BMONI entirely**: client, webhooks, packages, **cards module**, copy; rename `bmoniUserId`/`ProviderMode.bmoniSandbox`; remove `MissionRuntimeEngine` simulation from live paths.
 * [ ] **M8 — End-to-end test & bug sweep**: real API auth (SEP-10-style sessions, email verification), integration tests for every journey, fix all defects.
 * [ ] **M9 — Redesign**: new UI system informed by Stellar's design language (mobile + web).

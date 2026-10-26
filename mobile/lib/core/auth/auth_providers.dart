@@ -43,9 +43,12 @@ class UserProfileNotifier extends StateNotifier<UserProfile?> {
     _ref.invalidate(accountCapabilitiesProvider);
   }
 
-  Future<void> setKycVerified() async {
+  /// The user finished the in-app identity form. That is NOT a verification:
+  /// identity is verified by the licensed anchor when they move money to or
+  /// from a bank. Status stays `pending` until an anchor confirms it.
+  Future<void> markKycSubmitted() async {
     if (state != null) {
-      final updated = state!.copyWith(kycStatus: KycStatus.verified);
+      final updated = state!.copyWith(kycStatus: KycStatus.pending);
       await _storage.saveUserProfile(updated);
       await _storage.setKycCompleted(true);
       state = updated;
@@ -365,7 +368,6 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
         : AccountMode.business;
     await setAccountMode(mode);
     await _ref.read(currentUserProfileProvider.notifier).saveProfile(profile);
-    await _ref.read(currentUserProfileProvider.notifier).setKycVerified();
 
     // Register active wallet address with backend
     try {

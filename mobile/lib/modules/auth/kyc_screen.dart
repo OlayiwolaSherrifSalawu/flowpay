@@ -212,7 +212,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
     try {
       final updatedProfile = widget.userProfile.copyWith(
-        kycStatus: KycStatus.verified,
+        kycStatus: KycStatus.pending,
         nationalId: _nationalIdController.text.trim(),
         nationalIdType: _idLabel,
       );
@@ -236,7 +236,6 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                   'livenessVerified': _faceScanCompleted,
                   if (_capturedFacePath != null)
                     'faceProofPath': _capturedFacePath,
-                  'status': 'VERIFIED',
                 }),
               )
               .timeout(const Duration(seconds: 10));
@@ -269,7 +268,7 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       await ref
           .read(currentUserProfileProvider.notifier)
           .saveProfile(updatedProfile);
-      await ref.read(currentUserProfileProvider.notifier).setKycVerified();
+      await ref.read(currentUserProfileProvider.notifier).markKycSubmitted();
 
       // 4. Navigate to Step 3: Set Security PIN
       if (mounted) {

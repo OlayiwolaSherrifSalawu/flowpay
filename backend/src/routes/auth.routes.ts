@@ -418,7 +418,7 @@ authRouter.post('/kyc', async (req, res) => {
       accountType: (accountType as any) || 'personal',
       country: country || 'NG',
       phone: '',
-      kycStatus: 'verified',
+      kycStatus: 'pending',
       nationalId: nationalId || undefined,
     };
     registeredUsers.set(userId, existing);
@@ -435,7 +435,7 @@ authRouter.post('/kyc', async (req, res) => {
           OR: [{ id: userId }, { bmoniUserId: userId }],
         },
         data: {
-          kycStatus: 'verified',
+          kycStatus: 'pending',
           nationalId: nationalId || undefined,
         },
       });
@@ -444,7 +444,7 @@ authRouter.post('/kyc', async (req, res) => {
           OR: [{ ownerUserId: userId }, { bmoniUserId: userId }],
         },
         data: {
-          kybStatus: 'verified',
+          kybStatus: 'pending',
           updatedAt: new Date(),
         },
       });
@@ -458,10 +458,11 @@ authRouter.post('/kyc', async (req, res) => {
 
   res.json({
     success: true,
-    status: 'VERIFIED',
-    tier: (existing?.accountType || accountType) === 'business' ? 'CORPORATE_GLOBAL_PAYROLL' : 'TIER_1_SMART_WALLET',
-    monthlyLimitUsd: (existing?.accountType || accountType) === 'business' ? 1000000 : 10000,
-    railsActivated: ['NGN_NUBAN', 'MXN_SPEI', 'USD_TREASURY'],
+    // Self-submitted details are not a verification. Identity is verified by the
+    // licensed anchor (SEP-12 / SEP-24) when money moves to or from a bank.
+    status: 'SUBMITTED',
+    kycStatus: 'pending',
+    verification: 'anchor',
     verifiedAt: new Date().toISOString(),
   });
 });

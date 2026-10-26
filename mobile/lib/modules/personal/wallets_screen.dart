@@ -1,3 +1,5 @@
+import 'components/ai_fx_conversion_modal.dart';
+import 'cash_in_out_screen.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../core/stellar/stellar_activation.dart';
 import '../../core/auth/auth_providers.dart';
@@ -158,7 +160,17 @@ class _WalletsScreenState extends State<WalletsScreen> {
   }
 
   void _handleConvert(WalletAccount wallet) {
-    widget.appState.setPersonalTabIndex(0); // Switch to dashboard FX
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AiFxConversionModal(
+        personalProvider: widget.appState.personalProvider,
+        initialAmount: Money.fromMajorString(wallet.currency == Currency.ngn ? '10000.00' : '100.00', wallet.currency),
+        initialTarget: wallet.currency == Currency.usd ? Currency.ngn : Currency.usd,
+        apiClient: widget.appState.isDemo ? null : widget.appState.apiClient,
+      ),
+    );
   }
 
   LinearGradient _getWalletGradient(Currency currency) {
@@ -309,12 +321,12 @@ class _WalletsScreenState extends State<WalletsScreen> {
                     onTap: () => _handleConvert(activeWallet),
                   ),
                   QuickActionItem(
-                    label: 'Security',
-                    icon: Icons.shield_outlined,
+                    label: 'Bank',
+                    icon: Icons.account_balance_outlined,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => const WalletProvisioningScreen(),
+                          builder: (_) => CashInOutScreen(appState: widget.appState),
                         ),
                       );
                     },
