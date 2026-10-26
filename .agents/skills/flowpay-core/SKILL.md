@@ -8,7 +8,14 @@ description: >-
 
 # FlowPay — Project Memory & Master Runbook
 
-FlowPay is an intelligent financial operating layer built on top of BMONI infrastructure for the BMONI hackathon.
+FlowPay is an intelligent cross-border payments and payroll layer built on the **Stellar network** (migrating from BMONI as of 2026-10-26).
+
+> ### 🚀 Active initiative: BMONI → Stellar migration (branch `feat/stellar-migration`)
+> The whole product (backend, mobile app, web) is being rebuilt on Stellar testnet: on-device keys,
+> FlowPay-issued USD/CAD/MXN/GBP/NGN test assets, path payments for FX, atomic batched payroll, SEP anchors for KYC
+> and cash-out. Virtual cards are being **removed**. Milestones M0–M9, decisions and money-safety rules live in
+> [stellar/SKILL.md](file:///.agents/skills/stellar/SKILL.md) — read it first. Sections below that describe BMONI
+> describe the pre-migration system and are being replaced milestone by milestone.
 **Tagline**: *"Your money. Your rules. AI executes."*
 
 ---
@@ -34,7 +41,7 @@ FlowPay is an intelligent financial operating layer built on top of BMONI infras
 | **Frontend (Mobile)** | Flutter (Dart), FlowPay Design System (Zero `bkey_uikit`), `bmoni_embedded_sdk: ^0.0.2` (strictly unstyled on-device crypto driver), Riverpod | Complete independent UI revamp in `mobile/` |
 | **Backend / API** | Node.js (v20+), Express, TypeScript (ESM) | Complete modular backend in `backend/` — Live Deployed at `https://flowpay-k2wn.onrender.com` |
 | **Database** | Supabase PostgreSQL (`mxjbzexlnenooclmaawe`) via Prisma ORM (`@prisma/client`) & Supabase MCP | Tables, indexes, and RLS deployed to live Supabase project |
-| **Infrastructure** | BMONI Embedded REST Sandbox (`https://embedded-dev.bmoni.com`), Origin-only base URL | Integrated with client & raw HMAC webhooks |
+| **Infrastructure** | **Stellar testnet** (Horizon `https://horizon-testnet.stellar.org`, `@stellar/stellar-sdk`, `stellar_flutter_sdk`, SEP-10/12/24/38 anchors) | Migration in progress — see `stellar` skill. (Legacy: BMONI Embedded sandbox, being removed in M6) |
 | **BMONI Docs & Specs** | [bkey.mintlify.app](https://bkey.mintlify.app/) (LLM Index: [/llms.txt](https://bkey.mintlify.app/llms.txt)) | Official docs & API specs; prompt user for any required keys |
 | **Provider Layer** | `DemoProvider` & `BMONIProvider` conforming to shared interfaces | Active with instant sandbox test personas |
 
