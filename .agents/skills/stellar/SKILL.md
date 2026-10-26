@@ -99,6 +99,11 @@ removed completely.
   * Mobile: `MissionRun` contract; `StellarMissionRepository`; missions screen signs the real run XDR (activation + "Run this rule now"); `StellarFinancialExecutionProvider` (`settlesAtomically`) → AI operator plans settle as one tx; `StellarBatchApi`; FX modal rewritten (live quote = proposal, any pair of USD/CAD/MXN/GBP/NGN, "at least" amount); approvals require the real PIN; live approval repo refuses instead of returning `true`.
   * Verified live (`test/live/stellar_missions_live_test.dart`): FX $100→MXN (`2ee6a07b…`); mission convert + locked savings in one tx (`c7eb118d…`), claimable balance asserted on Horizon. Backend 147/147, Flutter 180/180 (+3 opt-in live).
 
+* [x] **M4 — Employees on Stellar**:
+  * Backend `modules/employees/service.ts` rewritten (no BMONI): **employer-scoped** via `biz_<employerUserId>`; countries US/CA/MX/GB/NG; status INVITED → READY → SUSPENDED (constrained transitions); invite = 48-hex token, only its **SHA-256 hash stored** (`employees.invite_token_hash`, `invite_expires_at`, `linked_user_id` — apply `prisma/sql/2026-10-26_employee_invites.sql`); lookup **by token only**; accept requires same email as invite AND a proven Stellar account (wallet registration), single use; resend rotates the token. `onboarding.service.ts` (BMONI KYC/rails) deleted. Routes: `GET/POST /api/employees`, `GET /invite/:token` (JSON or **HTML-escaped** landing page), `POST /invite/:token/accept`, `POST /link-wallet` (alias), `POST /:id/resend-invite`, `PATCH /:id`.
+  * Mobile: slimmed `EmployeeRepository` (list/get/create/resendInvite/getInviteDetails/acceptInvite/setEmployeeStatus); `StellarEmployeeRepository`; `EmployeeDetailScreen` rewritten (invite link copy/rotate, Stellar account + explorer, suspend/resume); `EmployeeOnboardingScreen` (employer-assisted BMONI KYC on the employer's phone) deleted; add-employee modal offers all 5 countries, no fake USD equivalent, no "test onboarding as employee" on the employer device; `InviteLink` parser; web `/invite/<token>` opens prefilled signup (signed out) or `AcceptInviteSheet` (signed in); "Join your employer's payroll" on Security screen; set-PIN accepts the invite after activation.
+  * Verified live (`test/live/stellar_employees_live_test.dart`): invite by token only (email → 404), impostor with another email → 403, real employee joins with their own activated wallet. Backend 121/121, Flutter 179/179 (+4 opt-in live).
+
 ## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
 
 * **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
@@ -111,6 +116,8 @@ removed completely.
 * ~~Fixed in M3a~~: backend `executeTransfer` fabricated tx hashes + COMPLETED for any non-BMONI proposal, credited an in-memory ledger, and **invented recipients** (name contains "bunch" → hardcoded Nigerian user; unknown names → `usr_<name>`); mobile live wallet repo showed invented balances ($24,500 etc.) on any error, signed with `'0x_signed_challenge_placeholder'`, debit/credit always `true`; mobile transfer repo returned `'EXECUTED'`/`'0x_bmoni_onchain_settled'`, fixed proposal hash fallback, hardcoded fees, prompt parser defaulted to **$500**; `TransferExecutionResult.fromJson` defaulted status to COMPLETED; fuzzy recipient match (`fullName.includes`); unauthenticated `/api/wallets/register` could redirect anyone's incoming funds; "Receive" sheet credited arbitrary amounts from nowhere; wallets screen spinner hung forever on error, invented a 15% "reserved" split, and showed "Waffiyyi Fashola" on every user's card; `validateIntent` errors were 500s; EUR accepted/GBP rejected; no HTTP timeouts; signup/KYC sent PII to BMONI with fabricated defaults (DOB 1992-04-18, "14 Admiralty Way").
 * **HIGH — KYC is self-certified**: `/api/auth/kyc` always returns VERIFIED and the app marks the profile verified client-side regardless. Replace with anchor SEP-12 verification (M5).
 * ~~Fixed in M3b~~: mission execution moved no money (recorded COMPLETED, invented a transfer to "Mary Fashola (Mom)" with ref `rail_tx_active`, manual trigger signed a hardcoded hash); missions not user-scoped and every user saw seeded demo missions; mission toggle returned a fabricated "active" mission on failure; AI-operator non-send actions used the demo provider in live mode with fake tx hashes and PIN fallback `'000000'`; FX conversion moved no money (fixed 1550 rate, $1,000 default); approvals signed a constant hash and live approve returned `true`; **mobile serialized mission enums as `CONVERTFX`/`SWEEPVAULT`/`SPLITINCOMING` so every live mission proposal was rejected** (masked by the old fallback).
+* ~~Fixed in M4~~: every employer saw every employee; invite lookup by **email or employee id issued a fresh token** (with unverified signup emails → salary hijack); invite landing page had **stored XSS**; invites lived only in memory; employer-assisted onboarding created employee wallets on the employer device; add-employee labelled every non-NG employee "Mexico" and invented a $2,000 USD equivalent; only NG/MX selectable.
+* **HIGH — signup does not verify email ownership** (M8). Invite acceptance relies on email match.
 * `MissionRuntimeEngine.processEvent` is a local simulation only reachable from tests — remove or move under demo (M6).
 * AI operator beneficiaries ("mom", "dad") come from `DemoBeneficiaryRepository` even in live mode; on Stellar they resolve only if they are exact emails/phones/G-addresses → needs a real beneficiaries store (M7).
 * `backend/.env` points at the **production Supabase DB**; local runs/tests must override `DATABASE_URL` (live tests use an unreachable URL → in-memory).
@@ -124,12 +131,13 @@ removed completely.
 * [x] **M2 — On-device keys & signing** (see §4).
 * [x] **M3a — Wallets & transfers** (see §4).
 * [x] **M3b — Missions, AI operator & FX convert on Stellar** (see §4).
-* [ ] **M4 — Atomic multi-country payroll**: batched path payments, preview with live path quotes, real hashes + explorer links.
-* [ ] **M5 — Employees, KYC & anchors**: invite → employee creates wallet on device → account linked; SEP-10/12/24 cash-out on testanchor.
-* [ ] **M6 — Remove BMONI entirely**: client, webhooks, packages, cards module, copy; DB `bmoniUserId` → `stellarAccountId`.
-* [ ] **M7 — End-to-end test & bug sweep**: integration tests for every user journey; fix all defects found.
-* [ ] **M8 — Redesign**: new UI system informed by Stellar's design language (mobile + web).
-* [ ] **M9 — Web deploy & docs**: Vercel/Render deploy, README, skills.
+* [x] **M4 — Employees on Stellar** (see §4).
+* [ ] **M5 — Atomic multi-country payroll**: employer-scoped preview from READY employees (live path quotes, real employer balance), one batch tx (≤100 ops/tx, split above), real hashes + explorer links, payroll runs linked to the employer.
+* [ ] **M6 — Anchors & KYC**: SEP-10/12/24 cash-out on testanchor; replace self-certified KYC.
+* [ ] **M7 — Remove BMONI entirely**: client, webhooks, packages, **cards module**, copy; rename `bmoniUserId`/`ProviderMode.bmoniSandbox`; remove `MissionRuntimeEngine` simulation from live paths.
+* [ ] **M8 — End-to-end test & bug sweep**: real API auth (SEP-10-style sessions, email verification), integration tests for every journey, fix all defects.
+* [ ] **M9 — Redesign**: new UI system informed by Stellar's design language (mobile + web).
+* [ ] **M10 — Web deploy & docs**: Vercel/Render deploy, apply SQL migrations, README, skills.
 
 ## 🛠️ 6. Runbook & Verification
 

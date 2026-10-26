@@ -50,19 +50,12 @@ void main() {
       expect(empInitial.status, EmployeeLifecycleStages.invited);
       expect(empInitial.walletAddress, isNull);
 
-      // 3. Employee self-onboards on own device, generates hardware keypair
-      const employeeDeviceWallet = '0x1234567890abcdef1234567890abcdef12345678';
-      const employeeBmoniUserId = 'usr_bmoni_zainab_device';
-
-      final linkResult = await repo.linkEmployeeWallet(
-        employeeId: employeeId,
-        inviteToken: token,
-        bmoniUserId: employeeBmoniUserId,
-        walletAddress: employeeDeviceWallet,
-      );
-
-      expect(linkResult['status'], 'READY');
-      expect(linkResult['walletAddress'], employeeDeviceWallet);
+      // 3. Employee accepts on their own device with their own proven wallet.
+      final accepted = await repo.acceptInvite(token);
+      expect(accepted.status, EmployeeLifecycleStages.ready);
+      final employeeDeviceWallet = accepted.walletAddress;
+      expect(employeeDeviceWallet, isNotNull);
+      await expectLater(repo.acceptInvite(token), throwsA(isA<StateError>()), reason: 'single use');
 
       // 4. Employee record in roster is now READY and ready for payroll!
       final empUpdated = await repo.getEmployeeById(employeeId);

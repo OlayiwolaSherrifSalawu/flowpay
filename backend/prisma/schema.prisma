@@ -73,6 +73,11 @@ model Employee {
   cardId             String?       @map("card_id")
   status             String        @default("INVITED") // 'INVITED', 'LINKED', 'ACTIVE', 'SUSPENDED'
   failedStage        String?       @map("failed_stage")
+  // SHA-256 of the single-use invite token (the token itself is never stored).
+  inviteTokenHash    String?       @unique @map("invite_token_hash")
+  inviteExpiresAt    DateTime?     @map("invite_expires_at") @db.Timestamptz
+  // FlowPay user who accepted the invite (their proven Stellar account is walletAddress).
+  linkedUserId       String?       @map("linked_user_id")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

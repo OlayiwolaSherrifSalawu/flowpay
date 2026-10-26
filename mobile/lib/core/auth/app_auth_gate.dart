@@ -1,3 +1,5 @@
+import '../../modules/personal/components/accept_invite_sheet.dart';
+import '../navigation/invite_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../design_system/design_system.dart';
@@ -95,6 +97,9 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
 
     // 1. User has no active authenticated session -> Show Landing Screen
     if (!lockState.hasSession) {
+      // Opened from an invite link: start signup pre-filled from the invite.
+      final inviteToken = InviteLink.takePending();
+      if (inviteToken != null) return SignupScreen(employeeInviteToken: inviteToken);
       return widget.unauthenticatedChild ?? const LandingScreen();
     }
 
@@ -107,6 +112,15 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
     final profile = ref.watch(currentUserProfileProvider);
     if (profile != null) {
       widget.appState?.setUserId(profile.userId);
+    }
+
+    // Signed in and opened from an invite link: offer to accept it.
+    final appState = widget.appState;
+    if (appState != null && InviteLink.pendingToken != null) {
+      final token = InviteLink.takePending();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) AcceptInviteSheet.show(context, repo: appState.employeeRepo, token: token);
+      });
     }
 
     final capabilitiesAsync = ref.watch(accountCapabilitiesProvider);

@@ -14,7 +14,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/employees/onboarding.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/cards/cards.test.js dist/modules/payroll/payroll.test.js dist/modules/payroll/audit.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js dist/stellar/stellar.test.js dist/modules/payments/batch.test.js",
+    "test": "node --test dist/core/money.test.js dist/bmoni/webhooks.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/cards/cards.test.js dist/modules/payroll/payroll.test.js dist/modules/payroll/audit.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js dist/stellar/stellar.test.js dist/modules/payments/batch.test.js",
     "stellar:bootstrap": "tsx src/stellar/bootstrap.ts"
   },
   "dependencies": {

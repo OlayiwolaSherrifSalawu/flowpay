@@ -1,15 +1,13 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/network/api_client.dart';
+import '../../core/providers/stellar/stellar_employee_repo.dart';
 import '../../core/stellar/stellar_activation.dart';
 import '../../core/stellar/stellar_api.dart';
 import '../../core/wallet/wallet_service.dart';
-import '../../core/config/api_config.dart';
 import '../../core/design_system/design_system.dart';
 
 /// Dedicated 6-Digit PIN Setup Screen.
@@ -105,7 +103,6 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       // 1. Create the Stellar keypair on this device, encrypted under the PIN.
       //    If this device already holds a wallet, the PIN must unlock it.
       final walletService = ref.read(walletServiceProvider);
-      final String walletAddr;
       if (await walletService.hasWallet()) {
         if (!await walletService.matchPin(_initialPin)) {
           setState(() {
@@ -118,13 +115,10 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           });
           return;
         }
-        walletAddr = (await walletService.getWalletAddress())!;
       } else {
-        walletAddr = await walletService.createWallet(pin: _initialPin);
+        await walletService.createWallet(pin: _initialPin);
       }
       await ref.read(walletStateProvider.notifier).loadWalletState();
-
-      final storage = ref.read(secureStorageServiceProvider);
 
       // 2. Activate on Stellar: prove ownership + link to this user, create the
       //    account (testnet: Friendbot), enable currencies, claim test USD.
@@ -146,24 +140,11 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
           widget.employeeInviteToken!.trim().isNotEmpty) {
         employeeLinked = false;
         try {
-          final sessionToken = await storage.getAuthToken();
-          if (!SecureStorageService.isTestEnv) {
-            final res = await http.post(
-              Uri.parse('${ApiConfig.baseUrl}/api/employees/link-wallet'),
-              headers: {
-                'Content-Type': 'application/json',
-                if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
-                'x-user-id': widget.userProfile.userId,
-              },
-              body: jsonEncode({
-                'employeeId': widget.employeeId,
-                'inviteToken': widget.employeeInviteToken,
-                'bmoniUserId': widget.userProfile.userId,
-                'walletAddress': walletAddr,
-                'requestingUserId': widget.userProfile.userId,
-              }),
-            ).timeout(const Duration(seconds: 8));
-            employeeLinked = res.statusCode >= 200 && res.statusCode < 300;
+          // Accept with the wallet just proven during activation (only if it activated).
+          if (!SecureStorageService.isTestEnv && activation != null && activation.isActive) {
+            await StellarEmployeeRepository(apiClient: FlowPayApiClient(userId: widget.userProfile.userId))
+                .acceptInvite(widget.employeeInviteToken!.trim());
+            employeeLinked = true;
           }
         } catch (linkErr) {
           debugPrint('[SetPinScreen] link-wallet failed: $linkErr');

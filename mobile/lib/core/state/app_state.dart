@@ -4,7 +4,7 @@ import '../providers/bmoni/bmoni_activity_repo.dart';
 import '../providers/bmoni/bmoni_approval_repo.dart';
 import '../providers/bmoni/bmoni_business_audit_repo.dart';
 import '../providers/bmoni/bmoni_card_repo.dart';
-import '../providers/bmoni/bmoni_employee_repo.dart';
+import '../providers/stellar/stellar_employee_repo.dart';
 import '../providers/stellar/stellar_mission_repo.dart';
 import '../providers/bmoni/bmoni_payroll_repo.dart';
 import '../providers/stellar/stellar_transfer_repo.dart';
@@ -75,8 +75,8 @@ class AppState extends ChangeNotifier {
       StellarTransferRepository(apiClient: _apiClient);
   late final BmoniCardRepository _bmoniCard =
       BmoniCardRepository(apiClient: _apiClient);
-  late final BmoniEmployeeRepository _bmoniEmployee =
-      BmoniEmployeeRepository(apiClient: _apiClient);
+  late final StellarEmployeeRepository _bmoniEmployee =
+      StellarEmployeeRepository(apiClient: _apiClient);
   late final BmoniPayrollRepository _bmoniPayroll =
       BmoniPayrollRepository(apiClient: _apiClient);
   late final BmoniActivityRepository _bmoniActivity =

@@ -1,3 +1,4 @@
+import 'components/accept_invite_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/stellar/stellar_key_vault.dart';
@@ -73,12 +74,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     WalletPinAuthSheet.show(
       context: context,
       title: 'Test your PIN',
-      subtitle:
-          'Confirm it\'s you with your PIN',
+      subtitle: 'Confirm it\'s you with your PIN',
       onAuthorize: (pin) async {
         try {
-          final sig = await const StellarWalletSigner().signMessage('FlowPay Security Test',
-              pin: pin);
+          final sig = await const StellarWalletSigner()
+              .signMessage('FlowPay Security Test', pin: pin);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -110,8 +110,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     final canPop = Navigator.canPop(context);
 
     Widget content = _isLoading
-        ? const FlowPayLoadingState(
-            message: 'Loading security settings...')
+        ? const FlowPayLoadingState(message: 'Loading security settings...')
         : RefreshIndicator(
             onRefresh: _checkSecurityState,
             child: ListView(
@@ -135,6 +134,27 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 // Section 3: Approval Rules
                 _buildApprovalRulesCard(isDark),
 
+                const SizedBox(height: 20),
+
+                // Employees join their employer's payroll with this wallet.
+                if (widget.appState != null)
+                  FlowPayButton(
+                    key: const Key('security_join_employer'),
+                    text: 'Join your employer\'s payroll',
+                    variant: FlowPayButtonVariant.secondary,
+                    onPressed: () async {
+                      final joined = await AcceptInviteSheet.show(context,
+                          repo: widget.appState!.employeeRepo);
+                      if (joined != null && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'You\'re on the payroll. Salary will arrive in this wallet.')),
+                        );
+                      }
+                    },
+                  ),
+
                 const SizedBox(height: 28),
               ],
             ),
@@ -142,7 +162,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
     if (canPop) {
       return Scaffold(
-        backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
+        backgroundColor:
+            isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
         appBar: AppBar(
           title: const Text('Personal Security'),
           scrolledUnderElevation: 0,
@@ -152,7 +173,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
+      backgroundColor:
+          isDark ? FlowPayColors.darkBackground : FlowPayColors.paper,
       body: content,
     );
   }
@@ -297,7 +319,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             color: isDark ? FlowPayColors.darkSurface : Colors.white,
             borderRadius: FlowPayRadii.card,
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
             boxShadow: [
               BoxShadow(
@@ -314,9 +337,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Wallet Status',
-                subtitle: _hasWallet
-                    ? 'Set up and ready'
-                    : 'Not set up yet',
+                subtitle: _hasWallet ? 'Set up and ready' : 'Not set up yet',
                 statusText: _hasWallet ? 'READY' : 'NOT SET UP',
                 isSuccess: _hasWallet,
                 icon: Icons.account_balance_wallet_outlined,
@@ -463,7 +484,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             color: isDark ? FlowPayColors.darkSurface : Colors.white,
             borderRadius: FlowPayRadii.card,
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
             boxShadow: [
               BoxShadow(
@@ -508,8 +530,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Face ID & Fingerprint',
-                subtitle:
-                    'Locks your app when you close it',
+                subtitle: 'Locks your app when you close it',
                 statusText: 'ENABLED',
                 isSuccess: true,
                 icon: Icons.lock_outline,
@@ -590,7 +611,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             color: isDark ? FlowPayColors.darkSurface : Colors.white,
             borderRadius: FlowPayRadii.card,
             border: Border.all(
-              color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+              color:
+                  isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
             ),
             boxShadow: [
               BoxShadow(
@@ -708,14 +730,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              _buildPolicyRow('Sending money',
-                  'Requires your PIN', isDark),
+              _buildPolicyRow('Sending money', 'Requires your PIN', isDark),
               _buildPolicyRow(
                   'Currency exchanges', 'Requires your PIN', isDark),
-              _buildPolicyRow(
-                  'Automatic rules', 'Requires your PIN', isDark),
-              _buildPolicyRow('Card actions',
-                  'Requires your PIN', isDark),
+              _buildPolicyRow('Automatic rules', 'Requires your PIN', isDark),
+              _buildPolicyRow('Card actions', 'Requires your PIN', isDark),
 
               const SizedBox(height: 14),
 
@@ -728,7 +747,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                       : FlowPayColors.lightSurfaceElevated,
                   borderRadius: FlowPayRadii.cardSmall,
                   border: Border.all(
-                    color: isDark ? FlowPayColors.darkBorder : FlowPayColors.lightBorder,
+                    color: isDark
+                        ? FlowPayColors.darkBorder
+                        : FlowPayColors.lightBorder,
                   ),
                 ),
                 child: Row(
@@ -794,8 +815,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 style: FlowPayTypography.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
                   color: isDark
-                    ? FlowPayColors.darkTextPrimary
-                    : FlowPayColors.lightTextPrimary,
+                      ? FlowPayColors.darkTextPrimary
+                      : FlowPayColors.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: 2),

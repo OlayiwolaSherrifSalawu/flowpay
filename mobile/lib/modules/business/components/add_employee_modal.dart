@@ -4,7 +4,6 @@ import '../../../core/design_system/design_system.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
 import '../../../core/state/business_provider.dart';
-import '../../auth/signup_screen.dart';
 
 class CountryOption {
   final String code;
@@ -54,28 +53,18 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
   final _lastCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
-  final _salaryCtrl = TextEditingController(text: '3100000.00');
+  final _salaryCtrl = TextEditingController(text: '5000.00');
 
   String? _createdInviteUrl;
-  String? _createdInviteToken;
   String? _createdEmployeeName;
   String? _createdEmployeeEmail;
 
   static const List<CountryOption> _countries = [
-    CountryOption(
-      code: 'NG',
-      name: 'Nigeria (NGN / CNGN)',
-      flag: '🇳🇬',
-      currency: Currency.ngn,
-      defaultSalary: '3100000.00',
-    ),
-    CountryOption(
-      code: 'MX',
-      name: 'Mexico (MXN / MEXe)',
-      flag: '🇲🇽',
-      currency: Currency.mxn,
-      defaultSalary: '35000.00',
-    ),
+    CountryOption(code: 'US', name: 'United States (USD)', flag: '🇺🇸', currency: Currency.usd, defaultSalary: '5000.00'),
+    CountryOption(code: 'CA', name: 'Canada (CAD)', flag: '🇨🇦', currency: Currency.cad, defaultSalary: '6500.00'),
+    CountryOption(code: 'MX', name: 'Mexico (MXN)', flag: '🇲🇽', currency: Currency.mxn, defaultSalary: '35000.00'),
+    CountryOption(code: 'GB', name: 'United Kingdom (GBP)', flag: '🇬🇧', currency: Currency.gbp, defaultSalary: '4000.00'),
+    CountryOption(code: 'NG', name: 'Nigeria (NGN)', flag: '🇳🇬', currency: Currency.ngn, defaultSalary: '3100000.00'),
   ];
 
   CountryOption _selectedCountry = _countries.first;
@@ -182,7 +171,6 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
     try {
       final salaryMoney =
           Money.fromMajorString(salaryStr, _selectedCountry.currency);
-      final usdSalary = Money.fromMajorString('2000.00', Currency.usd);
 
       final inviteUrl = await widget.businessProvider.addEmployee(
         firstName: first,
@@ -190,18 +178,15 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         email: email,
         phoneNumber: phone.isNotEmpty ? phone : null,
         country: _selectedCountry.code,
-        countryName: _selectedCountry.code == 'NG' ? 'Nigeria' : 'Mexico',
+        countryName: _selectedCountry.name.split(' (').first,
         targetCurrency: _selectedCountry.currency,
         payrollAmount: salaryMoney,
-        usdPayrollAmount: usdSalary,
       );
 
-      final token = inviteUrl.split('/').last.replaceAll('flowpay_', '');
 
       if (mounted) {
         setState(() {
           _createdInviteUrl = inviteUrl;
-          _createdInviteToken = token;
           _createdEmployeeName = '$first $last';
           _createdEmployeeEmail = email;
         });
@@ -421,23 +406,10 @@ class _AddEmployeeModalState extends State<AddEmployeeModal> {
         ),
         const SizedBox(height: 20),
 
-        // Test Onboarding as Employee button
-        BMoniButton(
-          text: 'Test Onboarding as Employee',
-          variant: BMoniButtonVariant.primary,
-          size: BMoniButtonSize.large,
-          icon: Icons.smartphone_rounded,
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => SignupScreen(
-                  employeeInviteToken: _createdInviteToken,
-                ),
-              ),
-            );
-          },
+        Text(
+          'Send this link to the employee. They sign up with this email, create their own wallet, then accept. '
+          'The link works once and expires in 72 hours.',
+          style: FlowPayTypography.captionStyle(color: FlowPayColors.darkTextSecondary),
         ),
         const SizedBox(height: 10),
         BMoniButton(
