@@ -15,7 +15,7 @@ One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, �
 [![Tests](https://img.shields.io/badge/Tests-274%20passing-12A150?style=for-the-badge)](#-tests)
 [![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
 
-[**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
+[**Watch it run**](#-watch-a-real-payroll-run) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
 
 <br/>
 
@@ -27,6 +27,16 @@ One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, �
 <sub>Screens from the app's labelled demo mode. Live mode shows the same UI over your real testnet balances.</sub>
 
 </div>
+
+---
+
+## ▶ Watch a real payroll run
+
+<div align="center">
+<img src="docs/demo/flowpay-payroll.gif" width="300" alt="FlowPay running a real payroll on Stellar testnet" />
+</div>
+
+**Unedited, 67 seconds, real testnet.** An employer unlocks FlowPay with their PIN and reviews a team in 🇬🇧 the UK, 🇲🇽 Mexico and 🇳🇬 Nigeria. They approve one bill (quoted at most **$298.10**) and sign it on the device. Each person then receives their exact salary in their own currency in **one atomic Stellar transaction**: [`08a8bc43…`](https://stellar.expert/explorer/testnet/tx/08a8bc432282b0eb2671783844c67f259fbe0c2d33c9b7d0fbf396d138fdafee) (actual cost $298.07, fee 0.00003 XLM). The video ends on that transaction in StellarExpert. [Full-quality MP4](docs/demo/flowpay-payroll.mp4)
 
 ---
 
@@ -44,10 +54,11 @@ The same rails power a personal wallet for USD, CAD, MXN, GBP and NGN, with tran
 
 ## 🔎 Don't trust us, check the ledger
 
-Every row below is a real, successful transaction on **Stellar testnet**. FlowPay's backend built it, a user's device signed it, and it was then submitted to Horizon. Our opt-in live test suites (`mobile/test/live/`) produced them, and those suites assert the resulting on-chain balances.
+Every row below is a real, successful transaction on **Stellar testnet**. FlowPay's backend built it, a user's device signed it, and it was then submitted to Horizon. The first row comes from the recording above. The rest come from our opt-in live test suites (`mobile/test/live/`), which assert the resulting on-chain balances.
 
 | What happened | Stellar operations | Transaction |
 | :--- | :--- | :--- |
+| **The payroll in the video above.** The employer paid $298.07 USD from the web app; employees received **£78**, **Mex$1,750** and **₦150,000** | 3 × `path_payment_strict_receive`, atomic | [`08a8bc43…`](https://stellar.expert/explorer/testnet/tx/08a8bc432282b0eb2671783844c67f259fbe0c2d33c9b7d0fbf396d138fdafee) |
 | **Payroll to 3 countries in one transaction.** The employer paid $297.80 USD. Employees received exactly **₦150,000**, **Mex$1,750** and **£78**. Fee: 300 stroops (0.00003 XLM). | 3 × `path_payment_strict_receive`, atomic | [`64fcedbc…`](https://stellar.expert/explorer/testnet/tx/64fcedbcd650f5394092d89b41e50a3a44eb32bb82d888c2553f7fbcea59d72a) |
 | **A second payroll run**, same team, same guarantees | 3 × `path_payment_strict_receive` | [`7da85d6a…`](https://stellar.expert/explorer/testnet/tx/7da85d6a7f44647dd3498b986c493c8cf134c3f2eb69b4f4e46eabf5e4869bab) |
 | **Money mission.** "Split $200: half to naira, half locked in savings for 30 days." Converts $100 → ₦154,517 **and** locks $100 that only the owner can claim, and only after the unlock date | `path_payment_strict_send` + `create_claimable_balance` (`not(before(t))` predicate) | [`c7eb118d…`](https://stellar.expert/explorer/testnet/tx/c7eb118da2f876bfbc9bba077bb94f149ec1de219bac14a785edb929c1eb1e22) |
