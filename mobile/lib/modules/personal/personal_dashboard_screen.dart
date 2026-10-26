@@ -1,4 +1,3 @@
-import '../../core/auth/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,7 +27,7 @@ import '../../core/navigation/personal_tab_provider.dart';
 /// FLOWPAY — PERSONAL DASHBOARD
 ///
 /// Route/Screen: Personal Dashboard
-/// Tagline: "Your money. Your rules. AI executes."
+/// Tagline: "Your money. Your rules. Your approval."
 ///
 /// Features:
 /// - Total portfolio value & available balances (no fake precision, sandbox identified)
@@ -229,7 +228,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                         ),
                         const SizedBox(height: 3),
                         const Text(
-                          'Your money. Your rules. AI executes.',
+                          'Your money. Your rules. Your approval.',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -299,8 +298,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               Consumer(builder: (context, ref, _) => FlowPayScallopedCard(
                 title: 'Total balance',
                 balance: totalFormatted,
-                holderName: ref.watch(currentUserProfileProvider)?.fullName ?? '',
-                expiryDate: '',
+                holderName: '',
                 actionLabel: 'Details',
                 onActionTap: () {
                   _navigateToTab(
@@ -317,7 +315,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFD8F0E4),
+                        color: Color(0xFFFFF6CC),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -338,7 +336,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFFD8F0E4),
+                            color: Color(0xFFFFF6CC),
                           ),
                         ),
                         Text(
@@ -472,7 +470,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                             ),
                             SizedBox(height: 3),
                             Text(
-                              '"Your money. Your rules. AI executes."',
+                              '"Your money. Your rules. Your approval."',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,

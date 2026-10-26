@@ -42,7 +42,7 @@ void main() {
       expect(find.text('Your funds are protected on this device'),
           findsOneWidget);
       expect(find.text('SECURE'), findsOneWidget);
-      expect(find.text('BANK-GRADE ENCRYPTION'), findsOneWidget);
+      expect(find.text('AES-256 · PIN-ENCRYPTED KEY'), findsOneWidget);
 
       // 2. Section 1: Wallet Security
       expect(find.text('Secure wallet'), findsOneWidget);

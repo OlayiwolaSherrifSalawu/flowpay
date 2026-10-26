@@ -226,7 +226,7 @@ class DemoMissionRepository implements MissionRepository {
   MissionRun _demoRun(String missionId) => MissionRun(
         missionId: missionId,
         proposalId: 'demo_prop_${DateTime.now().millisecondsSinceEpoch}',
-        hashToSign: '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
+        hashToSign: '7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
       );
 
   MoneyMissionModel _missionFromIntent(MissionIntent intent) {
@@ -412,7 +412,7 @@ class DemoMissionRepository implements MissionRepository {
               fee: Money.fromMinor(10, amt.currency),
               exchangeRate: '1 USD = 1,550.00 NGN',
               networkReference:
-                  '0x88fbc921...${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+                  '88fbc921${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
               metadata: {
                 'missionId': id,
                 'rule': updated.title,

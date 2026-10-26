@@ -19,7 +19,7 @@ class FlowPayBrandBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF16241D) : FlowPayColors.mint100,
+        color: isDark ? const Color(0xFF191919) : FlowPayColors.mint100,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark

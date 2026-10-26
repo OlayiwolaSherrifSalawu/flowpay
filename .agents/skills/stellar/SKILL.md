@@ -159,7 +159,29 @@ removed completely.
 * [x] **M6 — Anchors & KYC** (see §4).
 * [x] **M7 — Remove BMONI entirely** (see §4).
 * [x] **M8 — Auth, end-to-end tests & bug sweep** (see §4).
-* [ ] **M9 — Redesign**: new UI system informed by Stellar's design language (mobile + web).
+* [x] **M9 — Redesign & visual bug sweep** (Stellar design language, verified by screenshots of every screen in dark + light):
+  * **Tokens** (`mobile/lib/core/theme/`): off-black `#0F0F0F` / paper `#F9F9F9` neutrals, **gold `#FDDA24`** primary actions
+    (`onGold` text), teal `#00818B`/`#00A7B5` accents, lilac `#B7ACE8` for AI. Low-radius geometry (cards 12, hero 16,
+    inputs 10, sheets 20), pill buttons. Lora serif for display (`headline`, `heroSerif`), uppercase `eyebrow`.
+    Context helpers `selectedOf` / `onSelectedOf` / `accentTextOf` — use them instead of light-only tokens on surfaces
+    that also render in dark mode.
+  * **Screens**: new landing (grid + gold glow, "BUILT ON STELLAR"), theme-aware signup cards/country picker, web splash +
+    manifest. Balance hero card is teal→black; card-era "Holder"/"Exp Date" rows hidden.
+  * **Honesty fixes found during visual QA**:
+    * Business audit screen rendered a **hardcoded fake list** (Polygon, "Virtual Mastercard", $38.5k payroll) for every
+      account — now reads `BusinessProvider.auditActivities` (demo repo in demo mode, Stellar-backed live), with loading,
+      error (+retry) and empty states. `LiveBusinessAuditRepository` no longer swallows activity-load errors.
+    * `TransactionStatusX.fromString` mapped unknown statuses (incl. camelCase `awaitingApproval`) to **COMPLETED** — now
+      parses camelCase and defaults unknown/null to `processing`; `cancelled` is never completed.
+    * Security screen claimed "Your account is secured · BANK-GRADE ENCRYPTION" with no wallet/PIN; biometric row was
+      hardcoded ENABLED. Now driven by the vault + `AppLockService.canAuthenticate()`.
+    * Card remnants removed from business UI (metrics tile, employee "Card:" chips, "virtual cards" copy); business
+      country metric computed from employees.
+    * Recipient parsing recognises Stellar account IDs (`G[A-Z2-7]{55}`) instead of EVM `0x…`; pasted addresses resolve
+      as **unverified** `stellar_account` beneficiaries. Demo data uses checksum-valid G-addresses and 64-hex hashes.
+  * **Preview harness** `mobile/lib/main_preview.dart` (dev-only, never shipped): renders one screen with demo data —
+    `flutter build web -t lib/main_preview.dart -o build/preview`, then `?screen=dashboard|wallets|send|missions|activity|security|bank|business|team|payroll|audit&theme=dark|light`.
+  * Tests: 179 pass / 6 opt-in live skipped; analyzer clean.
 * [ ] **M10 — Web deploy & docs**: Vercel/Render deploy, apply SQL migrations, README, skills.
 
 ## 🛠️ 6. Runbook & Verification

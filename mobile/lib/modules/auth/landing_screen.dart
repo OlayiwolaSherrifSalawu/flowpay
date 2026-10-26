@@ -4,210 +4,148 @@ import '../../core/design_system/design_system.dart';
 import 'login_screen.dart';
 import 'signup_screen.dart';
 
-/// Flagship FlowPay Landing Screen.
-/// Follows the 3D metallic currency hero visual design, adapted to
-/// FlowPay's Deep Obsidian and Emerald palette with static hero visual and solid buttons.
+/// FlowPay landing screen — Stellar-inspired: off-black canvas, hairline grid,
+/// serif statement headline, honest network facts, gold primary action.
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
 
   void _onGetStarted(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const SignupScreen()),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SignupScreen()));
   }
 
   void _onSignIn(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.of(context).padding.top;
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-
     return Scaffold(
       backgroundColor: FlowPayColors.darkBackground,
       body: Stack(
         children: [
-          // ── Background 3D Floating Coins Image (Static, No Pulsing) ──
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/flowpay_landing_hero.jpg',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              errorBuilder: (context, error, stackTrace) {
-                // Resilient fallback if asset rendering in specific test environments
-                return Container(
-                  decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment(0, -0.4),
-                      radius: 0.8,
-                      colors: [
-                        Color(0xFF0F2B20),
-                        FlowPayColors.darkBackground,
-                      ],
-                    ),
-                  ),
-                  child: const Center(
-                    child: FlowPayLogo(size: 96),
-                  ),
-                );
-              },
+          const Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          Positioned(
+            top: -160,
+            right: -120,
+            child: Container(
+              width: 420,
+              height: 420,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [FlowPayColors.gold.withValues(alpha: 0.22), Colors.transparent]),
+              ),
             ),
           ),
-
-          // ── Smooth Vignette Gradient for Crystal-Clear Text Legibility ──
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: const [0.0, 0.42, 0.62, 1.0],
-                  colors: [
-                    Colors.transparent,
-                    Colors.transparent,
-                    FlowPayColors.darkBackground.withValues(alpha: 0.82),
-                    FlowPayColors.darkBackground,
-                  ],
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const FlowPayLogo.horizontal(size: 24),
+                      const Spacer(),
+                      Text('BUILT ON STELLAR', style: FlowPayTypography.eyebrow(color: FlowPayColors.gold)),
+                      const SizedBox(height: 14),
+                      Text(AppCopy.landingHeadline, style: FlowPayTypography.heroSerif(color: FlowPayColors.darkTextPrimary)),
+                      const SizedBox(height: 14),
+                      Text(
+                        AppCopy.landingSubtitle,
+                        style: FlowPayTypography.body(color: FlowPayColors.darkTextSecondary),
+                      ),
+                      const SizedBox(height: 24),
+                      const _Facts(),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FlowPayButton(
+                          key: const Key('landing_get_started_button'),
+                          text: AppCopy.getStarted,
+                          size: FlowPayButtonSize.large,
+                          onPressed: () => _onGetStarted(context),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          key: const Key('landing_sign_in_button'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: FlowPayColors.darkTextPrimary,
+                            side: BorderSide(color: Colors.white.withValues(alpha: 0.28)),
+                            shape: const StadiumBorder(),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          onPressed: () => _onSignIn(context),
+                          child: const Text(AppCopy.signIn, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
 
-          // ── Top Bar Brand Indicator ──
-          Positioned(
-            top: topPadding + 14,
-            left: 28,
-            child: const FlowPayLogo.horizontal(size: 24),
-          ),
+/// Three honest facts about settling on Stellar.
+class _Facts extends StatelessWidget {
+  const _Facts();
 
-          // ── Bottom Content: Headline, Subtitle & Pill CTAs ──
-          Positioned(
-            left: 28,
-            right: 28,
-            bottom: bottomPadding + 32,
+  @override
+  Widget build(BuildContext context) {
+    Widget fact(String value, String label) => Expanded(
+          child: Container(
+            padding: const EdgeInsets.only(left: 12),
+            decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.12)))),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
-                // Headline (3-Line Command Rhythm)
-                const Text(
-                  AppCopy.landingHeadline,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 1.15,
-                    letterSpacing: -0.8,
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                // Subtitle
-                Text(
-                  AppCopy.landingSubtitle,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.75),
-                    height: 1.45,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-                const SizedBox(height: 36),
-
-                // ── Action Buttons Row (Side-by-side Pill Buttons) ──
-                Row(
-                  children: [
-                    // Primary: Get Started (Solid FlowPay Emerald Pill)
-                    Expanded(
-                      child: _buildGetStartedButton(context),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Secondary: Sign In (Solid Dark Surface Pill)
-                    Expanded(
-                      child: _buildSignInButton(context),
-                    ),
-                  ],
-                ),
+                Text(value, style: FlowPayTypography.title(color: FlowPayColors.darkTextPrimary)),
+                const SizedBox(height: 2),
+                Text(label, style: FlowPayTypography.captionStyle(color: FlowPayColors.darkTextTertiary)),
               ],
             ),
           ),
-        ],
-      ),
-    );
+        );
+    return Row(children: [
+      fact('~5s', 'to settle'),
+      fact('<\$0.01', 'network fee'),
+      fact('5', 'currencies'),
+    ]);
+  }
+}
+
+/// Fine hairline grid, fading toward the bottom.
+class _GridPainter extends CustomPainter {
+  const _GridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const step = 36.0;
+    final paint = Paint()..strokeWidth = 0.5;
+    for (double y = 0; y < size.height; y += step) {
+      final fade = (1 - y / size.height).clamp(0.0, 1.0);
+      paint.color = Colors.white.withValues(alpha: 0.05 * fade);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+    for (double x = 0; x < size.width; x += step) {
+      paint.shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.white.withValues(alpha: 0.05), Colors.transparent],
+      ).createShader(Rect.fromLTWH(x, 0, 1, size.height));
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      paint.shader = null;
+    }
   }
 
-  Widget _buildGetStartedButton(BuildContext context) {
-    return Container(
-      height: 54,
-      decoration: BoxDecoration(
-        color: FlowPayColors.primary,
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: [
-          BoxShadow(
-            color: FlowPayColors.primary.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: const Key('landing_get_started_button'),
-          borderRadius: BorderRadius.circular(999),
-          onTap: () => _onGetStarted(context),
-          child: const Center(
-            child: Text(
-              AppCopy.getStarted,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                letterSpacing: -0.1,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSignInButton(BuildContext context) {
-    return Container(
-      height: 54,
-      decoration: BoxDecoration(
-        color: FlowPayColors.darkSurfaceElevated,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: FlowPayColors.darkBorderLight,
-          width: 1.2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          key: const Key('landing_sign_in_button'),
-          borderRadius: BorderRadius.circular(999),
-          onTap: () => _onSignIn(context),
-          child: const Center(
-            child: Text(
-              AppCopy.signIn,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-                letterSpacing: -0.1,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

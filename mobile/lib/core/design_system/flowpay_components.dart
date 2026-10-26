@@ -374,7 +374,7 @@ class FlowPayHeroCard extends StatelessWidget {
                   colors: [
                     Color(0xFF181B26),
                     Color(0xFF12141C),
-                    Color(0xFF090A0F),
+                    Color(0xFF0F0F0F),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,

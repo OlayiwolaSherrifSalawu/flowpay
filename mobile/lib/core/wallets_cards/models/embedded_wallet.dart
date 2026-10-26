@@ -22,7 +22,7 @@ class EmbeddedWallet {
   final String? stablecoinToken; // e.g. 'USD', 'NGN', 'MXN', 'CAD'
   final double balance;
   final String? colorSuffix; // '01'-'06' or null for default background art
-  final String? address; // EVM smart wallet address (debug/support detail)
+  final String? address; // Stellar account ID (G...)
   final String status; // 'active', 'pending', 'frozen', etc.
   final DateTime? createdAt;
   final Map<String, dynamic>? metadata;

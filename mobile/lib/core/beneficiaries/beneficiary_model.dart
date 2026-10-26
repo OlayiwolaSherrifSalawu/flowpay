@@ -10,10 +10,10 @@ class Beneficiary {
   final String relationship; // e.g. "Mother", "Contractor", "Family", "Employee"
   final String destinationCountry; // e.g. "Nigeria", "Mexico", "Ghana", "Canada"
   final String countryFlag; // e.g. "🇳🇬", "🇲🇽", "🇬🇭", "🇺🇸", "🇨🇦"
-  final String destinationType; // e.g. "bank_account", "mobile_money", "evm_wallet"
+  final String destinationType; // e.g. "bank_account", "mobile_money", "stellar_account"
   final Currency currency; // Destination currency the recipient ultimately receives
   final Currency? preferredFundingCurrency; // e.g. USD
-  final String accountOrAddress; // e.g. "0x3A9a...F242" or "0123456789 (Access Bank)"
+  final String accountOrAddress; // e.g. "GBX4…7KQA" or "0123456789 (Access Bank)"
   final bool isVerified;
   final int paymentCount;
   final DateTime? lastPaymentDate;

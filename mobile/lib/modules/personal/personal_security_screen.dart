@@ -1,6 +1,7 @@
 import 'components/accept_invite_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/auth/app_lock_service.dart';
 import '../../core/stellar/stellar_key_vault.dart';
 import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
@@ -33,7 +34,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
   String? _walletAddress;
   bool _hasWallet = false;
   bool _hasPin = false;
-  bool _isSigningAvailable = true;
+  bool _isSigningAvailable = false;
+  bool _hasDeviceLock = false;
   bool _isLoading = true;
 
   @override
@@ -46,14 +48,17 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     setState(() => _isLoading = true);
     final hasWallet = await StellarKeyVault.instance.hasWallet();
     final address = await StellarKeyVault.instance.publicKey();
-    final hasPin = await StellarKeyVault.instance.hasWallet();
+    // The PIN encrypts the wallet key, so a wallet on this device implies a PIN.
+    final hasPin = hasWallet;
+    final hasDeviceLock = await AppLockService().canAuthenticate();
 
     if (mounted) {
       setState(() {
         _hasWallet = hasWallet || (address != null && address.isNotEmpty);
         _walletAddress = address;
         _hasPin = hasPin;
-        _isSigningAvailable = true;
+        _isSigningAvailable = _hasWallet;
+        _hasDeviceLock = hasDeviceLock;
         _isLoading = false;
       });
     }
@@ -225,7 +230,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Your account is secured',
+                      _hasWallet
+                          ? 'Your account is secured'
+                          : 'Set up your secure wallet',
                       style: FlowPayTypography.headingSm.copyWith(
                         fontWeight: FontWeight.bold,
                         color: isDark
@@ -234,12 +241,16 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                       ),
                     ),
                     const SizedBox(height: 3),
-                    const Text(
-                      'Your funds are protected on this device',
+                    Text(
+                      _hasWallet
+                          ? 'Your funds are protected on this device'
+                          : 'No wallet on this device yet',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: FlowPayColors.primary,
+                        color: _hasWallet
+                            ? FlowPayColors.accentTextOf(context)
+                            : FlowPayColors.warning,
                       ),
                     ),
                   ],
@@ -259,16 +270,19 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Wrap(
+          Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              FlowPayStatusBadge(
-                status: 'SECURE',
+              FlowPayBadge(
+                label: _hasWallet ? 'SECURE' : 'NOT SET UP',
+                color: _hasWallet
+                    ? FlowPayColors.primary
+                    : FlowPayColors.warning,
                 showDot: true,
               ),
-              FlowPayBadge(
-                label: 'Bank-grade encryption',
+              const FlowPayBadge(
+                label: 'AES-256 · PIN-encrypted key',
                 color: FlowPayColors.primary,
                 showDot: false,
               ),
@@ -460,10 +474,10 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               ),
             ),
             FlowPayBadge(
-              label: _isSigningAvailable ? 'AVAILABLE & ACTIVE' : 'UNAVAILABLE',
+              label: _isSigningAvailable ? 'ACTIVE' : 'NOT SET UP',
               color: _isSigningAvailable
                   ? FlowPayColors.primary
-                  : FlowPayColors.error,
+                  : FlowPayColors.warning,
               showDot: true,
             ),
           ],
@@ -504,8 +518,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 title: 'Payment confirmation',
                 subtitle: _isSigningAvailable
                     ? 'Ready'
-                    : 'Not available on this device',
-                statusText: _isSigningAvailable ? 'READY' : 'UNAVAILABLE',
+                    : 'Set up your wallet to confirm payments',
+                statusText: _isSigningAvailable ? 'READY' : 'NOT SET UP',
                 isSuccess: _isSigningAvailable,
                 icon: Icons.fingerprint,
               ),
@@ -530,9 +544,11 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Face ID & Fingerprint',
-                subtitle: 'Locks your app when you close it',
-                statusText: 'ENABLED',
-                isSuccess: true,
+                subtitle: _hasDeviceLock
+                    ? 'Locks your app when you close it'
+                    : 'Not available on this device',
+                statusText: _hasDeviceLock ? 'AVAILABLE' : 'UNAVAILABLE',
+                isSuccess: _hasDeviceLock,
                 icon: Icons.lock_outline,
               ),
 

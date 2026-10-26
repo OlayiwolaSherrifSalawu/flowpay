@@ -174,22 +174,24 @@ void main() {
       );
 
       expect(execution.status, 'COMPLETED');
-      expect(execution.transactionHash, startsWith('0x'));
+      expect(execution.transactionHash, matches(RegExp(r'^[0-9a-f]{64}$')));
 
       // Verify that activity was persisted into ActivityRepository
       final recent = await activityRepo.getRecentActivities();
       expect(recent.any((a) => a.category == ActivityCategory.transfer), true);
     });
 
-    test('BeneficiaryRepository: resolves 0x EVM smart wallet address as unique beneficiary without error', () async {
+    test('BeneficiaryRepository: resolves a pasted Stellar G-address as an unverified unique beneficiary', () async {
       final repo = DemoBeneficiaryRepository();
-      const testAddr = '0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242';
+      const testAddr = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
       final res = await repo.resolveAlias(testAddr);
       expect(res.isUnique, isTrue);
       expect(res.match, isNotNull);
       expect(res.match!.accountOrAddress, testAddr);
-      expect(res.match!.isVerified, isTrue);
-      expect(res.match!.nickname, '0x3A9a...F242');
+      expect(res.match!.isVerified, isFalse);
+      expect(res.match!.destinationType, 'stellar_account');
+      expect(res.match!.nickname, 'GBRP…OX2H');
+      expect((await repo.resolveAlias('0x3A9a92C1897d2eB6C6a76C2Ef331908C5b38F242')).isUnique, isFalse);
     });
   });
 

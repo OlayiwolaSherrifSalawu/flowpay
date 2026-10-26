@@ -66,7 +66,7 @@ void main() {
 
       // 1. Header & Purpose
       expect(find.text('Personal Account'), findsWidgets);
-      expect(find.text('Your money. Your rules. AI executes.'), findsWidgets);
+      expect(find.text('Your money. Your rules. Your approval.'), findsWidgets);
       expect(find.text('Sandbox Demo'), findsOneWidget);
       expect(find.text('Secure wallet'), findsOneWidget);
 

@@ -297,7 +297,7 @@ class DemoTransferRepository implements TransferRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final txHash =
-        '0x${sha256.convert(utf8.encode('${proposalId}_$signature')).toString()}';
+        sha256.convert(utf8.encode('${proposalId}_$signature')).toString();
     final now = DateTime.now();
 
     // 1. Debit funding wallet if walletRepo is provided
@@ -399,7 +399,7 @@ class DemoTransferRepository implements TransferRepository {
     return TransferResult(
       proposalId: 'prop_demo_${DateTime.now().millisecondsSinceEpoch}',
       status: 'EXECUTED',
-      transactionHash: '0x3a92b...demo_tx_hash_deterministic',
+      transactionHash: '425d798f5c59176e294b337243301a4a25a6564e52e1fbdef5c7cc445f6dfe3c',
       isDemo: true,
       timestamp: DateTime.now(),
     );

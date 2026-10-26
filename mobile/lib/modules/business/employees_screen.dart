@@ -138,7 +138,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> {
                   icon: Icons.groups_outlined,
                   title: 'No employees yet',
                   description:
-                      'Add remote team members across Nigeria and Mexico to run payroll and issue virtual cards.',
+                      'Add remote team members across Nigeria and Mexico to run payroll on Stellar.',
                   actionText: 'Add Employee',
                   onAction: _showAddEmployeeDialog,
                 )
@@ -690,17 +690,6 @@ class _EmployeeRowCard extends StatelessWidget {
                           employee.walletStatus.toUpperCase() == 'ACTIVE' ||
                               employee.walletStatus.toUpperCase() ==
                                   'PROVISIONED',
-                      isDark: isDark,
-                    ),
-                    const SizedBox(width: 6),
-
-                    // Card Status Badge
-                    _MiniBadge(
-                      icon: Icons.credit_card_rounded,
-                      label: 'Card: ${employee.cardStatus}',
-                      isActive:
-                          employee.cardStatus.toUpperCase() == 'ACTIVE' ||
-                              employee.cardStatus.toUpperCase() == 'ISSUED',
                       isDark: isDark,
                     ),
                   ],

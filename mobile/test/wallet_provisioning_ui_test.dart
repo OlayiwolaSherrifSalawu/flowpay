@@ -91,7 +91,7 @@ Future<void> scrollToVisible(WidgetTester tester, Finder finder) async {
   final scrollables = find.byType(Scrollable);
   // Use the first Scrollable (the ListView body) since there should only be
   // one in the WalletProvisioningScreen's body at any time.
-  final primaryScrollable = scrollables.first;
+  final primaryScrollable = scrollables.hitTestable().first;
   await tester.scrollUntilVisible(finder, 200, scrollable: primaryScrollable);
   await tester.drag(primaryScrollable, const Offset(0, -150));
   await pumpSettled(tester);
@@ -120,6 +120,7 @@ void main() {
 
       expect(find.text('Protected by Device Hardware'), findsOneWidget);
       expect(find.text('Multi-Currency Support'), findsOneWidget);
+      await scrollToVisible(tester, find.text('6-Digit Transaction PIN'));
       expect(find.text('6-Digit Transaction PIN'), findsOneWidget);
     });
 

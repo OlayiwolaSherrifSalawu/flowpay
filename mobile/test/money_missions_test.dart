@@ -210,7 +210,7 @@ void main() {
       // 6. Verify Mission appears in Active Missions list
       expect(find.text('Incoming 3-Way Split: USD, NGN Expenses & Tax'),
           findsOneWidget);
-      expect(find.textContaining('⚡ Run Now'), findsWidgets);
+      expect(find.textContaining('Run now'), findsWidgets);
     });
 
     testWidgets(
@@ -231,8 +231,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find first "⚡ Run Now" button
-      final runNowBtn = find.text('⚡ Run Now').first;
+      // Find first "Run now" button
+      final runNowBtn = find.text('Run now').first;
       await tester.tap(runNowBtn);
       await tester.pumpAndSettle();
 

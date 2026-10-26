@@ -701,7 +701,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Your money. Your rules. AI executes.',
+                              'Your money. Your rules. Your approval.',
                               textAlign: TextAlign.end,
                               style: TextStyle(
                                 fontSize: 10,

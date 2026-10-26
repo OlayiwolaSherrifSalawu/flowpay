@@ -96,7 +96,7 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       destinationType: 'bank_account',
       currency: Currency.mxn,
       preferredFundingCurrency: Currency.usd,
-      accountOrAddress: '0x7e81C44F35dB56E522432d6771F52994B6b021ad (CLABE SPEI)',
+      accountOrAddress: 'GBYR6LMRNXWEBZVLKAVO6R3BMSMLN6NUH76AJKQLJ342HY6DLYZE57ZV (CLABE SPEI)',
       isVerified: true,
       paymentCount: 4,
       lastPaymentDate: DateTime.now().subtract(const Duration(days: 18)),
@@ -109,7 +109,7 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
       relationship: 'Sister',
       destinationCountry: 'United States',
       countryFlag: '🇺🇸',
-      destinationType: 'evm_wallet',
+      destinationType: 'stellar_account',
       currency: Currency.usd,
       preferredFundingCurrency: Currency.usd,
       accountOrAddress: 'sarah.j@flowpay.me',
@@ -161,23 +161,25 @@ class DemoBeneficiaryRepository implements BeneficiaryRepository {
   Future<BeneficiaryResolutionResult> resolveAlias(String query) async {
     await Future.delayed(const Duration(milliseconds: 80));
     final trimmed = query.trim();
-    if (RegExp(r'^0x[a-fA-F0-9]{40}$').hasMatch(trimmed)) {
+    if (RegExp(r'^G[A-Z2-7]{55}$').hasMatch(trimmed)) {
       final shortAddr =
-          '${trimmed.substring(0, 6)}...${trimmed.substring(trimmed.length - 4)}';
+          '${trimmed.substring(0, 4)}…${trimmed.substring(trimmed.length - 4)}';
       return BeneficiaryResolutionResult.unique(
         Beneficiary(
-          id: 'ben_evm_${trimmed.toLowerCase()}',
+          id: 'ben_stellar_$trimmed',
           nickname: shortAddr,
-          legalName: 'EVM Account ($shortAddr)',
-          aliases: [trimmed, trimmed.toLowerCase(), shortAddr],
-          relationship: 'Smart Wallet Recipient',
+          legalName: 'Stellar account ($shortAddr)',
+          aliases: [trimmed, shortAddr],
+          relationship: 'Stellar account',
           destinationCountry: 'Global',
           countryFlag: '🌐',
-          destinationType: 'evm_wallet',
+          destinationType: 'stellar_account',
           currency: Currency.usd,
           preferredFundingCurrency: Currency.usd,
           accountOrAddress: trimmed,
-          isVerified: true,
+          // A pasted address is not a verified contact; the backend checks the
+          // account exists and trusts the asset before anything is signed.
+          isVerified: false,
         ),
         query,
       );

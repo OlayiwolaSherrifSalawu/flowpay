@@ -43,14 +43,22 @@ extension TransactionStatusX on TransactionStatus {
     }
   }
 
+  /// Unknown or missing statuses map to [TransactionStatus.processing] — never
+  /// to completed. A record only reads as done when its source says so.
   static TransactionStatus fromString(String? value) {
-    if (value == null) return TransactionStatus.completed;
-    final norm =
-        value.trim().toUpperCase().replaceAll(' ', '_').replaceAll('-', '_');
+    if (value == null) return TransactionStatus.processing;
+    final norm = value
+        .trim()
+        // camelCase enum names (e.g. awaitingApproval) → AWAITING_APPROVAL
+        .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]}_${m[2]}')
+        .toUpperCase()
+        .replaceAll(' ', '_')
+        .replaceAll('-', '_');
     switch (norm) {
       case 'DRAFT':
         return TransactionStatus.draft;
       case 'PENDING':
+      case 'SUBMITTED':
       case 'PENDING_APPROVAL':
       case 'AWAITING_APPROVAL':
       case 'VALIDATED':
@@ -71,9 +79,10 @@ extension TransactionStatusX on TransactionStatus {
       case 'ERROR':
       case 'DECLINED':
       case 'REJECTED':
+      case 'CANCELLED':
         return TransactionStatus.failed;
       default:
-        return TransactionStatus.completed;
+        return TransactionStatus.processing;
     }
   }
 }

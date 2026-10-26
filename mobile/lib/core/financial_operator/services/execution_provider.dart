@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../../design_system/states.dart';
 import '../../money/money.dart';
 import '../../repositories/activity_repository.dart';
@@ -107,8 +111,9 @@ class DemoFinancialExecutionProvider implements FinancialExecutionProvider {
       }
 
       // 2. Log activity ledger
-      final txHash =
-          '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}${plan.planId.hashCode.abs().toRadixString(16)}';
+      final txHash = sha256
+          .convert(utf8.encode('demo_${plan.planId}_${DateTime.now().microsecondsSinceEpoch}'))
+          .toString();
 
       if (activityRepo != null) {
         for (final act in plan.actions) {

@@ -98,7 +98,7 @@ class HeroBillCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Send international payroll to Nigeria & Mexico with instant virtual cards — paid in one simple USD bill.',
+                      'Pay your team in the US, Canada, Mexico, the UK and Nigeria in one Stellar transaction — paid in one simple USD bill.',
                       style: FlowPayTypography.captionStyle(
                         color: textSecondaryColor,
                       ).copyWith(

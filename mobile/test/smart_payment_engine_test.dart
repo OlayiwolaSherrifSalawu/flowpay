@@ -235,7 +235,7 @@ void main() {
       expect(operator.status, equals(OperatorSessionStatus.completed));
       expect(operator.activePlan?.executionState, equals('COMPLETED'));
       expect(operator.activePlan?.txHash, isNotNull);
-      expect(operator.activePlan?.txHash!.startsWith('0x'), isTrue);
+      expect(operator.activePlan?.txHash, matches(RegExp(r'^[0-9a-f]{64}$')));
     });
 
     // -------------------------------------------------------------------------

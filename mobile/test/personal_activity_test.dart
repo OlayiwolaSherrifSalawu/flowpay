@@ -193,7 +193,7 @@ void main() {
       expect(find.text('Source'), findsOneWidget);
       expect(find.text('Personal Smart Wallet (USD)'), findsOneWidget);
       expect(find.text('Destination'), findsOneWidget);
-      expect(find.text('Bunch Dillon (0x71C...9a19)'), findsOneWidget);
+      expect(find.text('Bunch Dillon (GDDG…AL5D)'), findsOneWidget);
       expect(find.text('Network Fee'), findsOneWidget);
       expect(find.text('Exchange Rate'), findsOneWidget);
       expect(find.text('N/A (Direct Currency)'), findsOneWidget);
@@ -201,7 +201,7 @@ void main() {
       expect(find.text('FlowPay Reference'), findsOneWidget);
       expect(find.text('FP-TXN-0428'), findsWidgets);
       expect(find.text('Payment reference'), findsOneWidget);
-      expect(find.text('0x3a92b77...deterministic'), findsOneWidget);
+      expect(find.text('73a8338fdef8130cc5d2238df111fdddad1dadb7d9ee05f19c0028bc1a4a0252'), findsOneWidget);
 
       // Verify privacy & non-exposure reassurance:
       expect(find.text('Secured on this device'), findsOneWidget);

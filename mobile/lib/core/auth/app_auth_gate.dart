@@ -183,7 +183,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
                     center: Alignment(0, -0.6),
                     radius: 0.95,
                     colors: [
-                      Color(0xFF0F3224),
+                      Color(0xFF2A2510),
                       Colors.transparent,
                     ],
                   ),

@@ -20,6 +20,11 @@ class BusinessMetricsGrid extends StatelessWidget {
     final employeeCount = businessProvider.employeeCount;
     final onboardedCount = businessProvider.onboardedEmployeeCount;
     final walletsCount = businessProvider.walletsProvisionedCount;
+    final countries = businessProvider.employees
+        .map((e) => e.country.toUpperCase())
+        .toSet()
+        .toList()
+      ..sort();
 
     return Column(
       children: [
@@ -77,7 +82,7 @@ class BusinessMetricsGrid extends StatelessWidget {
                 iconColor: FlowPayColors.signal,
                 label: 'EMPLOYEE STATUS',
                 value: '$onboardedCount / $employeeCount Onboarded',
-                subtitle: '100% KYC verified',
+                subtitle: 'Joined with their own wallet',
                 badgeText: 'ACTIVE',
                 badgeBg: FlowPayColors.signal.withValues(alpha: 0.12),
                 badgeFg: FlowPayColors.signal,
@@ -87,30 +92,30 @@ class BusinessMetricsGrid extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // Metric Row 3: Countries & Wallet/Card Status
+        // Metric Row 3: Countries & Team Wallets
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: _MetricCard(
                 icon: Icons.public_rounded,
                 iconColor: FlowPayColors.accent,
                 label: 'COUNTRIES',
-                value: '3 Active',
-                subtitle: '🇳🇬 NG • 🇲🇽 MX • 🇨🇦 CA',
+                value: '${countries.length} Active',
+                subtitle: countries.isEmpty ? 'No employees yet' : countries.join(' • '),
                 badgeText: 'GLOBAL',
-                badgeBg: Color(0x1F6366F1),
-                badgeFg: Color(0xFF4F46E5),
+                badgeBg: FlowPayColors.purple.withValues(alpha: 0.18),
+                badgeFg: const Color(0xFF5B4BB7),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _MetricCard(
-                icon: Icons.credit_card_outlined,
+                icon: Icons.account_balance_wallet_outlined,
                 iconColor: FlowPayColors.signal,
-                label: 'WALLET / CARD STATUS',
+                label: 'TEAM WALLETS',
                 value: '$walletsCount of $employeeCount joined',
-                subtitle: 'Hardware-secured & active',
-                badgeText: 'LIVE',
+                subtitle: 'Self-custody Stellar wallets',
+                badgeText: 'STELLAR',
                 badgeBg: FlowPayColors.signal.withValues(alpha: 0.12),
                 badgeFg: FlowPayColors.signal,
               ),

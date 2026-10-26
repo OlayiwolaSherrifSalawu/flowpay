@@ -56,18 +56,16 @@ class LiveBusinessAuditRepository implements BusinessAuditRepository {
   @override
   Future<List<SharedTransactionModel>> getWalletOperations() async {
     final List<SharedTransactionModel> ops = [];
-    try {
-      final activities = await activityRepo.getRecentActivities(limit: 50);
-      for (final act in activities) {
-        if (act.category == ActivityCategory.transfer ||
-            act.category == ActivityCategory.fx ||
-            act.category == ActivityCategory.mission ||
-            act.category == ActivityCategory.system) {
-          ops.add(SharedTransactionModel.fromActivity(act));
-        }
+    // A failed read propagates: an empty audit trail must mean "no activity",
+    // never "we couldn't load it".
+    final activities = await activityRepo.getRecentActivities(limit: 50);
+    for (final act in activities) {
+      if (act.category == ActivityCategory.transfer ||
+          act.category == ActivityCategory.fx ||
+          act.category == ActivityCategory.mission ||
+          act.category == ActivityCategory.system) {
+        ops.add(SharedTransactionModel.fromActivity(act));
       }
-    } catch (_) {
-      // Graceful fallback
     }
     ops.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return ops;

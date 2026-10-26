@@ -24,7 +24,7 @@ class DemoActivityRepository implements ActivityRepository {
       timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
       reference: 'FP-TXN-884210',
       source: 'Personal Smart Wallet (USD)',
-      destination: 'Kofi Mensah (0x4A8...3b12)',
+      destination: 'Kofi Mensah (GDMY…QVOK)',
       fee: Money.fromMajorString('0.50', Currency.usd),
       exchangeRate: 'N/A (Direct Currency)',
       networkReference: 'prop_demo_0428',
@@ -71,7 +71,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Savings Vault (cNGN)',
       fee: Money.fromMajorString('0.00', Currency.usd),
       exchangeRate: '1 USD = 1,550.00 NGN',
-      networkReference: '0x9923...auto_sweep',
+      networkReference: '4d945c52e2108151ace0d1f12b6c19fb51dbc1fc51bce2551f92ecab566dbbd1',
       metadata: {'rule': 'Emergency Fund 10% Allocation'},
     ),
 
@@ -89,10 +89,10 @@ class DemoActivityRepository implements ActivityRepository {
       timestamp: DateTime.now().subtract(const Duration(hours: 4)),
       reference: 'FP-TXN-0428',
       source: 'Personal Smart Wallet (USD)',
-      destination: 'Bunch Dillon (0x71C...9a19)',
+      destination: 'Bunch Dillon (GDDG…AL5D)',
       fee: Money.fromMajorString('0.50', Currency.usd),
       exchangeRate: 'N/A (Direct Currency)',
-      networkReference: '0x3a92b77...deterministic',
+      networkReference: '73a8338fdef8130cc5d2238df111fdddad1dadb7d9ee05f19c0028bc1a4a0252',
       metadata: {'recipient': 'bunch.dillon@example.ng', 'rail': 'USD'},
     ),
     ActivityModel(
@@ -151,7 +151,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Personal NGN Wallet',
       fee: Money.fromMajorString('0.05', Currency.usd),
       exchangeRate: '1 USD = 1,550.00 NGN',
-      networkReference: '0x49ca...9102',
+      networkReference: '991262add02760ee93134fd624dd25c575b3868901f1954c83ae3202b71670ba',
       metadata: {'source': 'USD', 'target': 'NGN', 'rate': '1550.00'},
     ),
 
@@ -177,7 +177,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Stellar Testnet Account Abstraction',
       fee: Money.fromMajorString('0.00', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
+      networkReference: 'GDOINXYP3VBRSRELQKLXEETIWHZBBCD5SDEZNIZ2N46ZDARPBLMYFUWW',
       metadata: {'enclave': 'Hardware Keystore / Secure Enclave'},
     ),
 
@@ -224,7 +224,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Tunde Bakare Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x2fd4b50fd0000000',
+      networkReference: 'e8b29365272ea2532f5e603c71684c8d3902131b16143ed5a5c18a4d3a67773e',
       metadata: {'counterparty': 'Tunde Bakare'},
     ),
     ActivityModel(
@@ -243,7 +243,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Stellar Liquidity Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x33829b9ae0000000',
+      networkReference: '34b83870edb4e84b27751de22f82d81e6fb69a255be33edb6bc34c5a1b5caf85',
       metadata: {'counterparty': 'Stellar Liquidity'},
     ),
 
@@ -263,7 +263,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Tax Escrow Vault Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x3ade68b100000000',
+      networkReference: '066401e7958aa6dbff0ca110b955041a1bec7a4d60c78cda0e04abce2189c2a0',
       metadata: {'counterparty': 'Tax Escrow Vault'},
     ),
     ActivityModel(
@@ -282,7 +282,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Stellar Paymaster Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x3e8c4f3c10000000',
+      networkReference: '05fe020e0c3451916341d4acc8106add4f6466c97886b9df3af771ac54373444',
       metadata: {'counterparty': 'Stellar Paymaster'},
     ),
     ActivityModel(
@@ -301,7 +301,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Adeyemi Alabi Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x423a35c720000000',
+      networkReference: '061ff2fe8019a23d66f8ecfb9e79490890488022e12e55b96ae4c4caf61074f1',
       metadata: {'counterparty': 'Adeyemi Alabi'},
     ),
     ActivityModel(
@@ -320,7 +320,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Curve Pool Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x45e81c5230000000',
+      networkReference: '3118e74f9c3a730fe09995b55b2a95cc7b302e5c26301ad773a4788e0a9593ad',
       metadata: {'counterparty': 'Curve Pool'},
     ),
 
@@ -340,7 +340,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Yield Protocol Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x4d43e96850000000',
+      networkReference: '7699b3b50a15fb6220062e7f33004a56e75167f168ec8b3fe6657f59d5585e86',
       metadata: {'counterparty': 'Yield Protocol'},
     ),
     ActivityModel(
@@ -359,7 +359,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Maria Gomez Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x50f1cff360000000',
+      networkReference: '6aec39295ff809566aff2d4ec4d89d19441dd97ee04c33cabb74d8ec72d93e36',
       metadata: {'counterparty': 'Maria Gomez'},
     ),
 
@@ -379,7 +379,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Chidi Nwachukwu Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x584d9d0980000000',
+      networkReference: '73016df63858a9c4e7a88c45bc5c24f35c6c50fd10ea90a51da2f7e777be1bee',
       metadata: {'counterparty': 'Chidi Nwachukwu'},
     ),
     ActivityModel(
@@ -398,7 +398,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Circle FX Engine Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x5bfb839490000000',
+      networkReference: 'e6e867c9a7bc5980f70d4c50ce1babf7fa56265a88107f58c1dcdfeb80a587ac',
       metadata: {'counterparty': 'Circle FX Engine'},
     ),
 
@@ -418,7 +418,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Carlos Morales Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x635750aab0000000',
+      networkReference: 'f2f587478a35a0ebbf29ce00ada4353211a640662eb0a85c3878f3d9e1c564aa',
       metadata: {'counterparty': 'Carlos Morales'},
     ),
     ActivityModel(
@@ -437,7 +437,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Femi Balogun Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x67053735c0000000',
+      networkReference: '63f699c04686606f2e2ada9acc5bbc06ff2e85520395600726e12416b4d4b3c3',
       metadata: {'counterparty': 'Femi Balogun'},
     ),
 
@@ -457,7 +457,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Treasury Vault Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x6e61044be0000000',
+      networkReference: '221b846892ef826fa3bfbb66cd465328e4bdc246aed78ed7aeea15028a037376',
       metadata: {'counterparty': 'Treasury Vault'},
     ),
     ActivityModel(
@@ -476,7 +476,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Fatima Sanusi Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x720eead6f0000000',
+      networkReference: '397b6027c568a965a08e010de114d257d87fa16c95b8302fecacdc6c06df8023',
       metadata: {'counterparty': 'Fatima Sanusi'},
     ),
     ActivityModel(
@@ -495,7 +495,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Tunde Bakare Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x75bcd16200000000',
+      networkReference: '773b22bd208610c81efba3e19582cce339fe2ce0add7e5990780641d3a7882d5',
       metadata: {'counterparty': 'Tunde Bakare'},
     ),
     ActivityModel(
@@ -514,7 +514,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Stellar Liquidity Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x796ab7ed10000000',
+      networkReference: '31a4e6bf280df2d958013e194b31cdd55cc3692b60313c1529ee40ef3fd1697b',
       metadata: {'counterparty': 'Stellar Liquidity'},
     ),
 
@@ -534,7 +534,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Tax Escrow Vault Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x80c6850330000000',
+      networkReference: '205f1673ec47b68e363bfd68387e4a5f4d6a02d077554382440c3b79e78eea84',
       metadata: {'counterparty': 'Tax Escrow Vault'},
     ),
     ActivityModel(
@@ -553,7 +553,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Stellar Paymaster Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x84746b8e40000000',
+      networkReference: '2bf9fcf4bffa6fd90d1f837f6e7b7827a0132d19e1524d8169e9c62e368cf3ac',
       metadata: {'counterparty': 'Stellar Paymaster'},
     ),
     ActivityModel(
@@ -572,7 +572,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Adeyemi Alabi Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x8822521950000000',
+      networkReference: '9a946b29c5bd27ff6947c7015012488a5e95721a0ca9836e7175e8b652570b52',
       metadata: {'counterparty': 'Adeyemi Alabi'},
     ),
     ActivityModel(
@@ -591,7 +591,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Curve Pool Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x8bd038a460000000',
+      networkReference: '253dbb0c639efabb0a7dd0d714dd5b35691693c958bc4efdd41ac15e32245839',
       metadata: {'counterparty': 'Curve Pool'},
     ),
 
@@ -611,7 +611,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Yield Protocol Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x932c05ba80000000',
+      networkReference: 'b41f946a66348a3b452fb35559a2fd9b98de6f92f5ce6f6f35b3d028c50a6a4b',
       metadata: {'counterparty': 'Yield Protocol'},
     ),
     ActivityModel(
@@ -630,7 +630,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Maria Gomez Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x96d9ec4590000000',
+      networkReference: '282637ae5963f2a2f092ed27f4d76938ae9a94b6cd46a76c09c01d606a1c814c',
       metadata: {'counterparty': 'Maria Gomez'},
     ),
 
@@ -650,7 +650,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Chidi Nwachukwu Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0x9e35b95bb0000000',
+      networkReference: '0110b803da1dcbbb3da3ed2fc31fa9e2373a9d7a5e93d70f425cb98418b62d4c',
       metadata: {'counterparty': 'Chidi Nwachukwu'},
     ),
     ActivityModel(
@@ -669,7 +669,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Circle FX Engine Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0xa1e39fe6c0000000',
+      networkReference: '41a2d399a99f910b779cfa508d8cdce10a9e39bcb9267ed9216e2feea770b865',
       metadata: {'counterparty': 'Circle FX Engine'},
     ),
 
@@ -689,7 +689,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Carlos Morales Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0xa93f6cfce0000000',
+      networkReference: '92a3e1d6391a407c6a9188a779e869ed18a6e0852a5e4440b9ed588d45a2e1c9',
       metadata: {'counterparty': 'Carlos Morales'},
     ),
     ActivityModel(
@@ -708,7 +708,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Femi Balogun Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0xaced5387f0000000',
+      networkReference: '5c6f107cb5f367629b4932e5a43d485213c3759fcdcb319e43000de2366ec7c9',
       metadata: {'counterparty': 'Femi Balogun'},
     ),
 
@@ -728,7 +728,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Treasury Vault Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0xb449209e10000000',
+      networkReference: '433ac27234e7733b3a22033168c2ef2bf14739edfa08a3cead6273314b569e6a',
       metadata: {'counterparty': 'Treasury Vault'},
     ),
     ActivityModel(
@@ -747,7 +747,7 @@ class DemoActivityRepository implements ActivityRepository {
       destination: 'Fatima Sanusi Account',
       fee: Money.fromMajorString('0.10', Currency.usd),
       exchangeRate: 'N/A',
-      networkReference: '0xb7f7072920000000',
+      networkReference: 'f21bea2909f655c8be1cff835a37aa74691f6700eda424b13c8a2212d8b00280',
       metadata: {'counterparty': 'Fatima Sanusi'},
     ),
   ];

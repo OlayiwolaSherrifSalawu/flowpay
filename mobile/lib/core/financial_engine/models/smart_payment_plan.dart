@@ -37,7 +37,7 @@ class SmartPaymentItem {
   final Money displayAmount; // User thought amount (e.g. $500.00 USD)
   final Money destinationAmount; // What recipient receives (e.g. ₦775,000.00 NGN)
   final Currency destinationCurrency;
-  final String destinationType; // bank_account, mobile_money, evm_wallet
+  final String destinationType; // bank_account, mobile_money, stellar_account
   final String destinationRail; // e.g. "Nigerian Bank Account", "Ghana Mobile Money"
   final PaymentQuote? quote;
   final Money fee;

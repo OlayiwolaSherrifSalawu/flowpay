@@ -8,7 +8,7 @@ enum FlowPayButtonVariant { primary, secondary, outline, ghost, danger }
 enum FlowPayButtonSize { small, medium, large }
 
 /// Dribbble-inspired FlowPay Pill Button
-/// Features full pill geometry (9999dp), confident Emerald 600 primary action styling,
+/// Features full pill geometry (9999dp), gold primary actions with off-black labels (Stellar-inspired),
 /// tactile padding, and built-in loading indicator.
 class FlowPayButton extends StatelessWidget {
   final String text;
@@ -48,13 +48,13 @@ class FlowPayButton extends StatelessWidget {
 
     switch (variant) {
       case FlowPayButtonVariant.primary:
-        bg = FlowPayColors.emerald600;
-        fg = Colors.white;
+        bg = FlowPayColors.gold;
+        fg = FlowPayColors.onGold;
         break;
       case FlowPayButtonVariant.secondary:
         bg = isDark
             ? FlowPayColors.darkSurfaceElevated
-            : FlowPayColors.mint100.withAlpha(120);
+            : FlowPayColors.surfaceAlt;
         fg = isDark
             ? FlowPayColors.darkTextPrimary
             : FlowPayColors.ink;

@@ -50,10 +50,10 @@ class FlowPayTheme {
             .copyWith(color: FlowPayColors.darkTextMuted),
       ),
       colorScheme: const ColorScheme.dark(
-        primary: FlowPayColors.primary,
-        onPrimary: Color(0xFF0C1210),
-        secondary: FlowPayColors.darkAccent,
-        onSecondary: Color(0xFF0C1210),
+        primary: FlowPayColors.gold,
+        onPrimary: FlowPayColors.onGold,
+        secondary: FlowPayColors.emerald400,
+        onSecondary: Color(0xFF0F0F0F),
         surface: FlowPayColors.darkSurface,
         onSurface: FlowPayColors.darkTextPrimary,
         error: FlowPayColors.error,
@@ -66,7 +66,12 @@ class FlowPayTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: FlowPayTypography.headingSm,
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+          color: FlowPayColors.darkTextPrimary,
+        ),
       ),
       cardTheme: const CardThemeData(
         color: FlowPayColors.darkSurface,
@@ -98,7 +103,7 @@ class FlowPayTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: FlowPayColors.darkSurface,
-        indicatorColor: FlowPayColors.emerald700.withAlpha(80),
+        indicatorColor: FlowPayColors.gold.withAlpha(56),
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {

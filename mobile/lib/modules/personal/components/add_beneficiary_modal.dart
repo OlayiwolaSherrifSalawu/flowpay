@@ -401,7 +401,7 @@ class _AddBeneficiaryModalState extends State<AddBeneficiaryModal> {
                       : FlowPayColors.lightTextPrimary,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'e.g. 0123456789 (GTBank) or 0x3A...F242',
+                  hintText: 'e.g. 0123456789 (GTBank) or a Stellar G… address',
                   hintStyle: const TextStyle(color: FlowPayColors.darkTextSecondary),
                   filled: true,
                   fillColor: isDark

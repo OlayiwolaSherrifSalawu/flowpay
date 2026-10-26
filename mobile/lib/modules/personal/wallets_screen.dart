@@ -2,7 +2,6 @@ import 'components/ai_fx_conversion_modal.dart';
 import 'cash_in_out_screen.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../core/stellar/stellar_activation.dart';
-import '../../core/auth/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/stellar/stellar_api.dart';
 import 'components/receive_sheet.dart';
@@ -177,9 +176,9 @@ class _WalletsScreenState extends State<WalletsScreen> {
     if (currency == Currency.usd) {
       return const LinearGradient(
         colors: [
-          Color(0xFF0B6E4F),
-          Color(0xFF128A63),
-          Color(0xFF0F1712),
+          Color(0xFF262626),
+          Color(0xFF1C1C1C),
+          Color(0xFF0F0F0F),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -189,7 +188,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
         colors: [
           Color(0xFF181B26),
           Color(0xFF12141C),
-          Color(0xFF0B6E4F),
+          Color(0xFF262626),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -199,7 +198,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
         colors: [
           Color(0xFF0F3B2E),
           Color(0xFF149E72),
-          Color(0xFF0F1712),
+          Color(0xFF0F0F0F),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -208,8 +207,8 @@ class _WalletsScreenState extends State<WalletsScreen> {
       return const LinearGradient(
         colors: [
           Color(0xFF141E28),
-          Color(0xFF0F1712),
-          Color(0xFF128A63),
+          Color(0xFF0F0F0F),
+          Color(0xFF1C1C1C),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -265,8 +264,7 @@ class _WalletsScreenState extends State<WalletsScreen> {
                     child: Consumer(builder: (context, ref, _) => FlowPayScallopedCard(
                       title: '${w.currency.name} Portfolio',
                       balance: w.balance.formatFormatted(includeSymbol: true),
-                      holderName: ref.watch(currentUserProfileProvider)?.fullName ?? '',
-                      expiryDate: w.currency.code,
+                      holderName: '',
                       gradient: gradient,
                       actionLabel: 'Receive',
                       onActionTap: () => _handleReceive(w),

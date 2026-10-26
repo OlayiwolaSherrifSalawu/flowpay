@@ -13,10 +13,10 @@ FlowPay is an intelligent cross-border payments and payroll layer built on the *
 > ### 🚀 Active initiative: BMONI → Stellar migration (branch `feat/stellar-migration`)
 > The whole product (backend, mobile app, web) is being rebuilt on Stellar testnet: on-device keys,
 > FlowPay-issued USD/CAD/MXN/GBP/NGN test assets, path payments for FX, atomic batched payroll, SEP anchors for KYC
-> and cash-out. Virtual cards are being **removed**. Milestones M0–M9, decisions and money-safety rules live in
+> and cash-out. Virtual cards are **removed**. M1–M9 are done (M9 = Stellar-style redesign, see stellar skill); M10 (deploy/docs) is next. Milestones, decisions and money-safety rules live in
 > [stellar/SKILL.md](file:///.agents/skills/stellar/SKILL.md) — read it first. Sections below that describe BMONI
 > describe the pre-migration system and are being replaced milestone by milestone.
-**Tagline**: *"Your money. Your rules. AI executes."*
+**Tagline**: *"Your money. Your rules. Your approval."*
 
 ---
 

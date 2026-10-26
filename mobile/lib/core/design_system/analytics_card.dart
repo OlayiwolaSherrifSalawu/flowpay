@@ -58,7 +58,7 @@ class _FlowPayAnalyticsCardState extends State<FlowPayAnalyticsCard> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0C1210), // Dark ink container
+        color: const Color(0xFF0F0F0F), // Dark ink container
         borderRadius: FlowPayRadii.cardLarge,
         border: Border.all(
           color: const Color(0xFF1E3328),
@@ -110,7 +110,7 @@ class _FlowPayAnalyticsCardState extends State<FlowPayAnalyticsCard> {
               PopupMenuButton<String>(
                 initialValue: widget.selectedPeriod,
                 onSelected: widget.onPeriodChanged,
-                color: const Color(0xFF16241D),
+                color: const Color(0xFF191919),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: const BorderSide(color: Color(0xFF243A2E)),
@@ -128,7 +128,7 @@ class _FlowPayAnalyticsCardState extends State<FlowPayAnalyticsCard> {
                       Text(
                         widget.selectedPeriod,
                         style: const TextStyle(
-                          color: Color(0xFF0C1210),
+                          color: Color(0xFF0F0F0F),
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -137,7 +137,7 @@ class _FlowPayAnalyticsCardState extends State<FlowPayAnalyticsCard> {
                       const Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 16,
-                        color: Color(0xFF0C1210),
+                        color: Color(0xFF0F0F0F),
                       ),
                     ],
                   ),
