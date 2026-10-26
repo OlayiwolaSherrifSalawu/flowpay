@@ -239,7 +239,7 @@ class HeroBillCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Sub-metrics (Rail fee vs Wire)
+          // Sub-metrics (real network cost + atomicity)
           Row(
             children: [
               Text(
@@ -250,13 +250,10 @@ class HeroBillCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'Traditional Wire: ~\$340.00',
+                'All-or-nothing · one transaction',
                 style: FlowPayTypography.captionStyle(
                   color: textTertiaryColor,
-                ).copyWith(
-                  decoration: TextDecoration.lineThrough,
-                  fontSize: 12,
-                ),
+                ).copyWith(fontSize: 12),
               ),
             ],
           ),
