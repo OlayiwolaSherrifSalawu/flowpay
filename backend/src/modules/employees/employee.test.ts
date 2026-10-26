@@ -76,7 +76,9 @@ test('invites - accept requires matching email AND a proven wallet; then single 
   await linkAccount('usr_imposter', Keypair.random().publicKey());
   await assert.rejects(EmployeeService.acceptInvite({ token: inviteToken, requestingUserId: 'usr_imposter' }), (e: any) => e.statusCode === 403);
 
-  registeredUsers.set('usr_ada', { userId: 'usr_ada', fullName: 'Ada Obi', email: 'ADA@example.com', accountType: 'personal', country: 'NG', phone: '', kycStatus: 'verified' });
+  registeredUsers.set('usr_ada', { userId: 'usr_ada', fullName: 'Ada Obi', email: 'ADA@example.com', accountType: 'personal', country: 'NG', phone: '', kycStatus: 'verified', emailVerified: false });
+  await assert.rejects(EmployeeService.acceptInvite({ token: inviteToken, requestingUserId: 'usr_ada' }), (e: any) => e.code === 'EMAIL_NOT_VERIFIED');
+  registeredUsers.get('usr_ada')!.emailVerified = true;
   await assert.rejects(EmployeeService.acceptInvite({ token: inviteToken, requestingUserId: 'usr_ada' }), /activate your wallet first/);
 
   await linkAccount('usr_ada', wallet);

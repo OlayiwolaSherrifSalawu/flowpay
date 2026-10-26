@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router } from 'express';
 import { prisma, isPostgresDb } from '../db/index.js';
 
@@ -26,68 +27,29 @@ activityRouter.get('/', async (req, res, next) => {
   try {
     const category = req.query.category as string | undefined;
     const search = req.query.search as string | undefined;
-    const userId = (req.query.userId as string | undefined) || (req.headers['x-user-id'] as string | undefined);
+    const userId = authedUserId(req);
 
+    // Every event is recorded once per involved user (sender, recipient, employer…)
+    // with that user as `actor`, so a user's feed is exactly their own rows.
+    const categoryFilter = category ? { category: category.toUpperCase() } : {};
     let rows: any[] = [];
+    let fromDb = false;
     if (isPostgresDb()) {
       try {
         rows = await prisma.auditActivity.findMany({
-          where: category ? { category: category.toUpperCase() } : undefined,
+          where: { actor: userId, ...categoryFilter },
           orderBy: { createdAt: 'desc' },
-          take: 100,
+          take: 500,
         });
+        fromDb = true;
       } catch (dbErr) {
         console.warn('[Activity] DB read failed, using in-memory store fallback:', dbErr);
       }
     }
-
-    if (rows.length === 0) {
-      let list = inMemoryActivities;
-      if (category) {
-        list = list.filter((a) => a.category?.toUpperCase() === category.toUpperCase());
-      }
-      rows = list;
-    }
-
-    if (userId) {
-      const userLower = userId.toLowerCase().trim();
-      rows = rows.filter((a) => {
-        const actor = (a.actor || '').toLowerCase().trim();
-        const details = a.detailsJson ?? {};
-        const recipient = (details.recipient || '').toLowerCase().trim();
-        const recipientUserId = (details.recipientUserId || '').toLowerCase().trim();
-        const sender = (details.sender || '').toLowerCase().trim();
-        const counterparty = (details.counterparty || '').toLowerCase().trim();
-        const targetUserId = (details.userId || '').toLowerCase().trim();
-
-        const action = (a.action || '').toUpperCase();
-
-        if (action === 'TRANSFER_RECEIVED') {
-          return actor === userLower || recipient === userLower || recipientUserId === userLower;
-        }
-
-        if (action === 'TRANSFER_COMPLETED' || action === 'TRANSFER_SENT') {
-          return actor === userLower || sender === userLower;
-        }
-
-        // Direct ownership or participation
-        if (actor === userLower || targetUserId === userLower) {
-          return true;
-        }
-
-        // If actor is system, only include if user is explicitly involved
-        if (actor === 'system') {
-          return (
-            recipient === userLower ||
-            recipientUserId === userLower ||
-            sender === userLower ||
-            counterparty === userLower ||
-            targetUserId === userLower
-          );
-        }
-
-        return false;
-      });
+    if (!fromDb) {
+      rows = inMemoryActivities.filter(
+        (a) => a.actor === userId && (!category || a.category?.toUpperCase() === category.toUpperCase())
+      );
     }
 
     if (search) {

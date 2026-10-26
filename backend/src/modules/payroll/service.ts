@@ -21,6 +21,8 @@ import { BatchPaymentService } from '../payments/batch_service.js';
  */
 
 export const PAYROLL_FUNDING_CURRENCY: StellarCurrency = 'USD';
+/** Employees paid within this window are skipped unless the employer opts in. */
+export const PAY_PERIOD_GUARD_DAYS = 25;
 
 export type PayrollItemStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'SKIPPED';
 export type PayrollRunStatus = 'PREVIEW' | 'PROCESSING' | 'PENDING' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'FAILED';
@@ -103,7 +105,31 @@ function publicRun(run: PayrollRun): PayrollRun {
 }
 
 export class PayrollOrchestrationService {
-  static async getPreview(employerUserId: string): Promise<PayrollRun> {
+  /** employeeId → when they were last paid (successful runs only) by this employer. */
+  private static async lastPaidAt(employerUserId: string): Promise<Map<string, string>> {
+    const paid = new Map<string, string>();
+    const note = (id: string, at: string) => {
+      if (!paid.has(id) || paid.get(id)! < at) paid.set(id, at);
+    };
+    for (const r of runs.values()) {
+      if (r.employerUserId !== employerUserId || !r.executedAt) continue;
+      for (const i of r.items) if (i.status === 'SUCCESS') note(i.employeeId, r.executedAt);
+    }
+    if (isPostgresDb()) {
+      try {
+        const rows = await prisma.payrollItem.findMany({
+          where: { status: 'SUCCESS', payrollRun: { employerUserId } },
+          select: { employeeId: true, payrollRun: { select: { executedAt: true } } },
+        });
+        for (const r of rows) note(r.employeeId, r.payrollRun.executedAt.toISOString());
+      } catch (err: any) {
+        console.warn('[Payroll] could not read payment history:', err.message);
+      }
+    }
+    return paid;
+  }
+
+  static async getPreview(employerUserId: string, opts: { includeRecentlyPaid?: boolean } = {}): Promise<PayrollRun> {
     const employerAccount = await accountForUser(employerUserId);
     if (!employerAccount) throw new InvalidRequestError('Set up and activate your business wallet before running payroll.');
     const accounts = new StellarAccountService(horizon);
@@ -111,6 +137,8 @@ export class PayrollOrchestrationService {
     const usdBalance = employerSummary.balances.find((b) => b.currency === PAYROLL_FUNDING_CURRENCY)?.balance ?? Money.zero('USD');
 
     const employees = await EmployeeService.listEmployees(employerUserId);
+    const lastPaid = opts.includeRecentlyPaid ? new Map<string, string>() : await this.lastPaidAt(employerUserId);
+    const guardSince = new Date(Date.now() - PAY_PERIOD_GUARD_DAYS * 86_400_000).toISOString();
     const runId = `payroll_${randomUUID()}`;
     const items: PayrollRunItem[] = [];
     const payable: Array<{ e: EmployeeRecord; item: PayrollRunItem }> = [];
@@ -133,6 +161,8 @@ export class PayrollOrchestrationService {
         status: 'SKIPPED',
       };
       let reason = skipReason(e);
+      const paidAt = lastPaid.get(e.id);
+      if (!reason && paidAt && paidAt > guardSince) reason = `Already paid on ${paidAt.slice(0, 10)} (this pay period)`;
       if (!reason) {
         const acct = await horizon.findAccount(e.walletAddress!);
         const s = summarizeAccount(e.walletAddress!, acct);

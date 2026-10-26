@@ -2,16 +2,15 @@
 //
 //   cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none PORT=4099 node dist/server.js &
 //   cd mobile && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test/live/stellar_anchor_live_test.dart
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:flowpay_mobile/core/network/api_client.dart';
 import 'package:flowpay_mobile/core/stellar/anchors/anchor_service.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_activation.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_api.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
+import 'live_helpers.dart';
 
 void main() {
   final enabled = Platform.environment['LIVE_STELLAR'] == '1';
@@ -19,12 +18,7 @@ void main() {
   final stamp = DateTime.now().millisecondsSinceEpoch;
 
   test('device authenticates to the anchor (SEP-10) and opens deposit + withdraw (SEP-24)', () async {
-    final res = await http.post(Uri.parse('$api/api/auth/signup'),
-        headers: {'content-type': 'application/json'},
-        body: jsonEncode({'fullName': 'Anchor $stamp', 'email': 'anchor.$stamp@flowpay.test', 'accountType': 'personal', 'country': 'US'}));
-    final body = jsonDecode(res.body) as Map;
-    final userId = ((body['user'] ?? body['data']?['user'] ?? body['data']) as Map)['userId'] as String;
-
+    final userId = (await liveSignup(api, 'Anchor $stamp', 'anchor.$stamp@flowpay.test')).userId;
     StellarKeyVault.instance = StellarKeyVault(store: InMemoryVaultStore(), kdfIterations: 1000);
     await StellarKeyVault.instance.createWallet(pin: '123456');
     final stellarApi = StellarApi(FlowPayApiClient(baseUrl: api, userId: userId));

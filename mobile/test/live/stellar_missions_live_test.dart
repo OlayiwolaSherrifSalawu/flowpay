@@ -18,6 +18,7 @@ import 'package:flowpay_mobile/core/stellar/stellar_batch_api.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_network.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_signer.dart';
+import 'live_helpers.dart';
 
 void main() {
   final enabled = Platform.environment['LIVE_STELLAR'] == '1';
@@ -25,12 +26,7 @@ void main() {
   final stamp = DateTime.now().millisecondsSinceEpoch;
 
   test('FX convert to self, then a mission that converts + locks savings in one transaction', () async {
-    final signupRes = await http.post(Uri.parse('$api/api/auth/signup'),
-        headers: {'content-type': 'application/json'},
-        body: jsonEncode({'fullName': 'Mira Live $stamp', 'email': 'mira.$stamp@flowpay.test', 'accountType': 'personal', 'country': 'US'}));
-    final body = jsonDecode(signupRes.body) as Map;
-    final userId = ((body['user'] ?? body['data']?['user'] ?? body['data']) as Map)['userId'] as String;
-
+    final userId = (await liveSignup(api, 'Mira Live $stamp', 'mira.$stamp@flowpay.test')).userId;
     StellarKeyVault.instance = StellarKeyVault(store: InMemoryVaultStore(), kdfIterations: 1000);
     final accountId = await StellarKeyVault.instance.createWallet(pin: '123456');
     final client = FlowPayApiClient(baseUrl: api, userId: userId);

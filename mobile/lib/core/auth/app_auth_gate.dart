@@ -119,7 +119,7 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
     if (appState != null && InviteLink.pendingToken != null) {
       final token = InviteLink.takePending();
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) AcceptInviteSheet.show(context, repo: appState.employeeRepo, token: token);
+        if (mounted) AcceptInviteSheet.show(context, repo: appState.employeeRepo, token: token, apiClient: appState.apiClient);
       });
     }
 

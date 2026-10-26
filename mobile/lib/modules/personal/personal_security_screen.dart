@@ -144,7 +144,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     variant: FlowPayButtonVariant.secondary,
                     onPressed: () async {
                       final joined = await AcceptInviteSheet.show(context,
-                          repo: widget.appState!.employeeRepo);
+                          repo: widget.appState!.employeeRepo, apiClient: widget.appState!.apiClient);
                       if (joined != null && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

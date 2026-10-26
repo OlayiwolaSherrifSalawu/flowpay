@@ -1,3 +1,5 @@
+import '../../core/auth/auth_providers.dart';
+import '../../core/network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -160,9 +162,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final localUserId =
-        'usr_${_accountType.name}_${DateTime.now().millisecondsSinceEpoch}';
-    var effectiveUserId = localUserId;
+    // Test runs have no backend; real signups must succeed server-side first.
+    var effectiveUserId = 'usr_${_accountType.name}_test';
 
     if (!SecureStorageService.isTestEnv) {
       try {
@@ -170,7 +171,6 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           Uri.parse('${ApiConfig.baseUrl}/api/auth/signup'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'userId': localUserId,
             'fullName': _fullNameController.text.trim(),
             'email': _emailController.text.trim(),
             'accountType': _accountType.name,
@@ -187,13 +187,22 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
           }),
         ).timeout(const Duration(seconds: 10));
 
-        if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          if (data['user'] != null && data['user']['userId'] != null) {
-            effectiveUserId = data['user']['userId'];
-          }
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (res.statusCode != 200 && res.statusCode != 201) {
+          throw StateError(data['message']?.toString() ?? 'Sign up failed (${res.statusCode}).');
         }
-      } catch (_) {}
+        effectiveUserId = data['user']['userId'] as String;
+        final token = data['token'] as String;
+        FlowPayApiClient.sessionToken = token;
+        await ref.read(secureStorageServiceProvider).saveAuthToken(token);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(backgroundColor: FlowPayColors.error, content: Text('$e')),
+          );
+        }
+        return;
+      }
     }
 
     final profile = UserProfile(

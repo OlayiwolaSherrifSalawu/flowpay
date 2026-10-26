@@ -1,12 +1,10 @@
 // Opt-in: one employer pays employees in NG, MX and GB in ONE Stellar transaction.
 //
-//   cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none SMTP_HOST=127.0.0.1 SMTP_PORT=1 PORT=4099 node dist/server.js &
+//   cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none SMTP_HOST=127.0.0.1 SMTP_PORT=1 DEV_ECHO_EMAIL_CODES=true PORT=4099 node dist/server.js &
 //   cd mobile && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test/live/stellar_payroll_live_test.dart
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/navigation/invite_link.dart';
@@ -17,33 +15,27 @@ import 'package:flowpay_mobile/core/state/business_provider.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_activation.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_api.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
+import 'live_helpers.dart';
 
 void main() {
   final enabled = Platform.environment['LIVE_STELLAR'] == '1';
   final api = Platform.environment['FLOWPAY_API'] ?? 'http://localhost:4099';
   final stamp = DateTime.now().millisecondsSinceEpoch;
 
-  Future<String> signup(String name, String email, String type) async {
-    final res = await http.post(Uri.parse('$api/api/auth/signup'),
-        headers: {'content-type': 'application/json'},
-        body: jsonEncode({'fullName': name, 'email': email, 'accountType': type, 'country': 'US', 'companyName': 'Payroll Co $stamp'}));
-    final body = jsonDecode(res.body) as Map;
-    return ((body['user'] ?? body['data']?['user'] ?? body['data']) as Map)['userId'] as String;
-  }
-
-  Future<({StellarKeyVault vault, String account})> activate(String userId, {bool testFunds = false}) async {
+  Future<({StellarKeyVault vault, String account})> activate(LiveUser user, {bool testFunds = false}) async {
+    user.actAs();
     final vault = StellarKeyVault(store: InMemoryVaultStore(), kdfIterations: 1000);
     StellarKeyVault.instance = vault;
     final account = await vault.createWallet(pin: '123456');
-    final r = await StellarActivation(api: StellarApi(FlowPayApiClient(baseUrl: api, userId: userId))).activate(pin: '123456', claimTestFunds: testFunds);
+    final r = await StellarActivation(api: StellarApi(FlowPayApiClient(baseUrl: api))).activate(pin: '123456', claimTestFunds: testFunds);
     expect(r.isActive, isTrue, reason: r.failures.map((f) => f.error).join('\n'));
     return (vault: vault, account: account);
   }
 
   test('employer pays NG, MX and GB employees in one atomic transaction', () async {
-    final bossId = await signup('Boss $stamp', 'boss.$stamp@flowpay.test', 'business');
-    final boss = await activate(bossId, testFunds: true); // $1,000 test USD
-    final bossClient = FlowPayApiClient(baseUrl: api, userId: bossId);
+    final bossUser = await liveSignup(api, 'Boss $stamp', 'boss.$stamp@flowpay.test', type: 'business', company: 'Payroll Co');
+    final boss = await activate(bossUser, testFunds: true); // $1,000 test USD
+    final bossClient = FlowPayApiClient(baseUrl: api);
     final employees = StellarEmployeeRepository(apiClient: bossClient);
 
     final team = {
@@ -54,6 +46,7 @@ void main() {
     final accounts = <String, String>{};
     for (final entry in team.entries) {
       final email = '${entry.key.toLowerCase()}.$stamp@flowpay.test';
+      bossUser.actAs();
       final url = await employees.createEmployee(
         firstName: 'Emp${entry.key}',
         lastName: 'Live',
@@ -62,14 +55,16 @@ void main() {
         targetCurrency: entry.value.$1,
         payrollAmount: Money.fromMajorString(entry.value.$2, entry.value.$1),
       );
-      final empId = await signup('Emp${entry.key} Live', email, 'personal');
-      final w = await activate(empId);
+      final emp = await liveSignup(api, 'Emp${entry.key} Live', email);
+      final w = await activate(emp);
       accounts[entry.key] = w.account;
-      await StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api, userId: empId)).acceptInvite(InviteLink.parse(url)!);
+      await liveVerifyEmail(api, emp);
+      await StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api)).acceptInvite(InviteLink.parse(url)!);
     }
 
     // The employer previews, signs once (one batch), and submits.
     StellarKeyVault.instance = boss.vault;
+    bossUser.actAs();
     final payroll = StellarPayrollRepository(apiClient: bossClient);
     final preview = await payroll.getPayrollPreview();
     expect(preview.items.where((i) => i.status == 'PENDING').length, 3);

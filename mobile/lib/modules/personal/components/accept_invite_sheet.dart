@@ -1,3 +1,4 @@
+import '../../../core/network/api_client.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/design_system/design_system.dart';
@@ -13,14 +14,17 @@ class AcceptInviteSheet extends StatefulWidget {
   final EmployeeRepository repo;
   final String? initialToken;
 
-  const AcceptInviteSheet({super.key, required this.repo, this.initialToken});
+  /// Used to verify the user's email when the server asks for it.
+  final FlowPayApiClient? apiClient;
 
-  static Future<EmployeeModel?> show(BuildContext context, {required EmployeeRepository repo, String? token}) {
+  const AcceptInviteSheet({super.key, required this.repo, this.initialToken, this.apiClient});
+
+  static Future<EmployeeModel?> show(BuildContext context, {required EmployeeRepository repo, String? token, FlowPayApiClient? apiClient}) {
     return showModalBottomSheet<EmployeeModel>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: FlowPayRadii.sheet),
-      builder: (_) => AcceptInviteSheet(repo: repo, initialToken: token),
+      builder: (_) => AcceptInviteSheet(repo: repo, initialToken: token, apiClient: apiClient),
     );
   }
 
@@ -33,6 +37,8 @@ class _AcceptInviteSheetState extends State<AcceptInviteSheet> {
   Map<String, dynamic>? _invite;
   String? _error;
   bool _busy = false;
+  bool _needsEmailCode = false;
+  final _code = TextEditingController();
 
   @override
   void initState() {
@@ -43,6 +49,7 @@ class _AcceptInviteSheetState extends State<AcceptInviteSheet> {
   @override
   void dispose() {
     _link.dispose();
+    _code.dispose();
     super.dispose();
   }
 
@@ -68,6 +75,22 @@ class _AcceptInviteSheetState extends State<AcceptInviteSheet> {
       });
 
   Future<void> _accept() => _guard(() async {
+        try {
+          final employee = await widget.repo.acceptInvite(InviteLink.parse(_link.text)!);
+          if (mounted) Navigator.of(context).pop(employee);
+        } on ApiException catch (e) {
+          if (e.code == 'EMAIL_NOT_VERIFIED' && widget.apiClient != null) {
+            await widget.apiClient!.post('/api/auth/email/send');
+            setState(() => _needsEmailCode = true);
+            return;
+          }
+          rethrow;
+        }
+      });
+
+  Future<void> _verifyAndAccept() => _guard(() async {
+        await widget.apiClient!.post('/api/auth/email/verify', body: {'code': _code.text.trim()});
+        setState(() => _needsEmailCode = false);
         final employee = await widget.repo.acceptInvite(InviteLink.parse(_link.text)!);
         if (mounted) Navigator.of(context).pop(employee);
       });
@@ -105,7 +128,19 @@ class _AcceptInviteSheetState extends State<AcceptInviteSheet> {
             const SizedBox(height: 4),
             Text('Salary: $salary', style: FlowPayTypography.bodyMedium),
             const SizedBox(height: 14),
-            FlowPayButton(key: const Key('accept_invite_accept'), text: 'Accept invitation', isLoading: _busy, onPressed: _busy ? null : _accept),
+            if (_needsEmailCode) ...[
+              Text('We emailed a 6-digit code to ${invite['email']}. Enter it to confirm the address is yours.', style: FlowPayTypography.bodySmall),
+              TextField(
+                key: const Key('accept_invite_email_code'),
+                controller: _code,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                decoration: const InputDecoration(labelText: 'Email code', counterText: ''),
+              ),
+              const SizedBox(height: 10),
+              FlowPayButton(key: const Key('accept_invite_verify'), text: 'Verify and accept', isLoading: _busy, onPressed: _busy ? null : _verifyAndAccept),
+            ] else
+              FlowPayButton(key: const Key('accept_invite_accept'), text: 'Accept invitation', isLoading: _busy, onPressed: _busy ? null : _accept),
           ],
           if (_error != null) ...[
             const SizedBox(height: 10),

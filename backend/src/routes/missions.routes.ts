@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { InvalidRequestError, StellarSubmitTimeoutError } from '../core/errors.js';
 import { MoneyMissionService } from '../modules/missions/service.js';
@@ -5,12 +6,8 @@ import { explorerTxUrl } from '../stellar/config.js';
 
 export const missionsRouter = Router();
 
-// TODO(M7): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.query.userId as string) || (req.body?.userId as string) || (req.headers['x-user-id'] as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 // GET /api/missions — this user's missions only.
 missionsRouter.get('/', async (req, res, next) => {

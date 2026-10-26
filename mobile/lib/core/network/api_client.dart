@@ -31,18 +31,22 @@ class FlowPayApiClient {
     String? userId,
   })  : baseUrl = baseUrl ?? ApiConfig.baseUrl,
         _client = client ?? http.Client(),
-        _userId = userId ?? 'usr_flowpay_sandbox_master';
+        _userId = userId;
 
-  String get userId => _userId ?? 'usr_flowpay_sandbox_master';
+  /// Session token for every request (set after signup / wallet login).
+  /// The server takes identity ONLY from this token.
+  static String? sessionToken;
+
+  String get userId => _userId ?? '';
 
   void setUserId(String? userId) {
-    _userId = userId ?? 'usr_flowpay_sandbox_master';
+    _userId = userId;
   }
 
   Map<String, String> _buildHeaders([Map<String, String>? extra]) {
     final headers = <String, String>{
       'Accept': 'application/json',
-      if (_userId != null && _userId!.isNotEmpty) 'x-user-id': _userId!,
+      if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
     };
     if (extra != null) headers.addAll(extra);
     return headers;

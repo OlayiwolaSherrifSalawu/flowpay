@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { InvalidRequestError, StellarSubmitTimeoutError } from '../core/errors.js';
 import { BatchPaymentService } from '../modules/payments/batch_service.js';
@@ -6,12 +7,8 @@ import { explorerTxUrl } from '../stellar/config.js';
 /** Atomic multi-payment transactions (AI plans, FX conversion, locked savings). */
 export const paymentsRouter = Router();
 
-// TODO(M7): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.body?.userId as string) || (req.headers['x-user-id'] as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 // POST /api/payments/batch/propose { legs, memo?, purpose?, reference?, accountId? }
 paymentsRouter.post('/batch/propose', async (req, res, next) => {

@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import { env } from './config/env.js';
 import { FlowPayError } from './core/errors.js';
+import { requireAuth } from './auth/session.js';
 import { initDatabase, isPostgresDb, prisma } from './db/index.js';
 import { activityRouter } from './routes/activity.routes.js';
 import { aiRouter } from './routes/ai.routes.js';
@@ -11,7 +12,6 @@ import { missionsRouter } from './routes/missions.routes.js';
 import { payrollRouter } from './routes/payroll.routes.js';
 import { transfersRouter } from './routes/transfers.routes.js';
 import { walletsRouter } from './routes/wallets.routes.js';
-import { mailRouter } from './routes/mail.routes.js';
 import { mailService } from './modules/mail/service.js';
 import { banksRouter } from './routes/banks.routes.js';
 import { stellarRouter } from './routes/stellar.routes.js';
@@ -79,17 +79,16 @@ app.get('/api/health/db', async (req: Request, res: Response) => {
 
 // 5. Register API routes
 app.use('/api/auth', authRouter);
-app.use('/api/wallets', walletsRouter);
-app.use('/api/transfers', transfersRouter);
+app.use('/api/wallets', requireAuth, walletsRouter);
+app.use('/api/transfers', requireAuth, transfersRouter);
 app.use('/api/employees', employeesRouter);
-app.use('/api/payroll', payrollRouter);
-app.use('/api/missions', missionsRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/activity', activityRouter);
-app.use('/api/mail', mailRouter);
-app.use('/api/banks', banksRouter);
+app.use('/api/payroll', requireAuth, payrollRouter);
+app.use('/api/missions', requireAuth, missionsRouter);
+app.use('/api/ai', requireAuth, aiRouter);
+app.use('/api/activity', requireAuth, activityRouter);
+app.use('/api/banks', requireAuth, banksRouter);
 app.use('/api/stellar', stellarRouter);
-app.use('/api/payments', paymentsRouter);
+app.use('/api/payments', requireAuth, paymentsRouter);
 
 // Top-level invite link route (for web previews and deep links)
 app.use('/invite', (req: Request, res: Response) => {

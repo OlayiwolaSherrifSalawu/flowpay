@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { env } from '../../config/env.js';
 import { InvalidRequestError, NotFoundError, UnauthorizedError, FlowPayError, ValidationError } from '../../core/errors.js';
 import { isPostgresDb, prisma } from '../../db/index.js';
-import { registeredUsers } from '../../routes/auth.routes.js';
+import { isEmailVerified, registeredUsers } from '../../routes/auth.routes.js';
 import { accountForUser } from '../../stellar/directory.js';
 import { recordActivity } from '../activity/record.js';
 import { mailService } from '../mail/service.js';
@@ -293,6 +293,9 @@ export class EmployeeService {
     if (!user) throw new UnauthorizedError('Sign in to accept this invitation.');
     if (user.email.toLowerCase() !== e.email) {
       throw new FlowPayError('This invitation was sent to a different email address.', 403, 'FORBIDDEN');
+    }
+    if (!(await isEmailVerified(args.requestingUserId))) {
+      throw new FlowPayError('Verify your email address first — we\'ll send you a code.', 403, 'EMAIL_NOT_VERIFIED');
     }
     const accountId = await accountForUser(args.requestingUserId);
     if (!accountId) throw new InvalidRequestError('Set up and activate your wallet first, then accept the invitation.');

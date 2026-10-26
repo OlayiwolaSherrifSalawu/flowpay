@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { InvalidRequestError } from '../core/errors.js';
 import { StellarAccountService } from '../stellar/accounts.js';
@@ -12,12 +13,8 @@ import { fetchPaymentHistory } from '../stellar/history.js';
 export const walletsRouter = Router();
 const accounts = new StellarAccountService();
 
-// TODO(M7): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.query.userId as string) || (req.body?.userId as string) || (req.headers['x-user-id'] as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 async function walletsFor(userId: string) {
   const accountId = await accountForUser(userId);

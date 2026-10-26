@@ -1,4 +1,10 @@
-import { randomUUID } from 'node:crypto';
+import { env } from '../config/env.js';
+import crypto, { randomUUID } from 'node:crypto';
+import { authedUserId, issueSessionToken, requireAuth } from '../auth/session.js';
+import { InvalidRequestError, UnauthorizedError } from '../core/errors.js';
+import { mailService } from '../modules/mail/service.js';
+import { issueOwnershipChallenge, verifyOwnershipChallenge } from '../stellar/challenge.js';
+import { userForAccount } from '../stellar/directory.js';
 import { Router } from 'express';
 import { prisma, isPostgresDb } from '../db/index.js';
 
@@ -16,80 +22,56 @@ export interface RegisteredUser {
   kycStatus: 'unverified' | 'pending' | 'verified';
   nationalId?: string;
   stellarAccountId?: string;
+  emailVerified?: boolean;
 }
 
 export const registeredUsers = new Map<string, RegisteredUser>();
 
-// Seed default sandbox master user
-registeredUsers.set('usr_flowpay_sandbox_master', {
-  userId: 'usr_flowpay_sandbox_master',
-  fullName: 'Waffiyyi Fashola',
-  email: 'waffiyyi@flowpay.finance',
-  accountType: 'both',
-  country: 'US',
-  phone: '+14155552671',
-  companyName: 'FlowPay Technologies Ltd',
-  companyRole: 'ADMIN',
-  kycStatus: 'verified',
-});
 
-/**
- * Look up a registered user across in-memory registry and PostgreSQL database.
- */
-export async function findUserByQuery(query: string): Promise<RegisteredUser | undefined> {
-  const clean = query.trim().toLowerCase();
-  if (!clean) return undefined;
+function fromDbUser(dbUser: any): RegisteredUser {
+  return {
+    userId: dbUser.id,
+    fullName: dbUser.fullName,
+    email: dbUser.email,
+    accountType: dbUser.accountType,
+    country: dbUser.country,
+    phone: dbUser.phoneNumber || '',
+    companyName: dbUser.companyName || undefined,
+    companyRole: dbUser.companyRole || undefined,
+    kycStatus: dbUser.kycStatus,
+    nationalId: dbUser.nationalId || undefined,
+    stellarAccountId: dbUser.stellarAccountId || undefined,
+    emailVerified: !!dbUser.emailVerified,
+  };
+}
 
-  // 1. Direct ID lookup
-  if (registeredUsers.has(query)) {
-    return registeredUsers.get(query);
-  }
-
-  // 2. Search in-memory registry by email, phone, fullName, or userId
-  for (const u of registeredUsers.values()) {
-    if (
-      u.userId.toLowerCase() === clean ||
-      u.email.toLowerCase() === clean ||
-      (u.phone && u.phone.replace(/[^0-9+]/g, '') === clean.replace(/[^0-9+]/g, '')) ||
-      u.fullName.toLowerCase() === clean ||
-      u.fullName.toLowerCase().includes(clean)
-    ) {
-      return u;
+/** Exact lookup by user ID (memory first, then Postgres). */
+export async function loadUser(userId: string): Promise<RegisteredUser | undefined> {
+  const mem = registeredUsers.get(userId);
+  if (mem) return mem;
+  if (isPostgresDb()) {
+    const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+    if (dbUser) {
+      const user = fromDbUser(dbUser);
+      registeredUsers.set(user.userId, user);
+      return user;
     }
   }
+  return undefined;
+}
 
-  // 3. Search database if Postgres is connected
+/** Exact, case-insensitive lookup by email. */
+export async function findUserByEmail(email: string): Promise<RegisteredUser | undefined> {
+  const clean = email.trim().toLowerCase();
+  for (const u of registeredUsers.values()) if (u.email.toLowerCase() === clean) return u;
   if (isPostgresDb()) {
-    try {
-      const dbUser = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { id: query },
-            { email: { equals: query, mode: 'insensitive' } },
-            { fullName: { contains: query, mode: 'insensitive' } },
-            { phoneNumber: query },
-          ],
-        },
-      });
-      if (dbUser) {
-        const user: RegisteredUser = {
-          userId: dbUser.id,
-          fullName: dbUser.fullName,
-          email: dbUser.email,
-          accountType: dbUser.accountType as any,
-          country: dbUser.country,
-          phone: dbUser.phoneNumber || '',
-          companyName: dbUser.companyName || undefined,
-          companyRole: dbUser.companyRole || undefined,
-          kycStatus: dbUser.kycStatus as any,
-          nationalId: dbUser.nationalId || undefined,
-        };
-        registeredUsers.set(user.userId, user);
-        return user;
-      }
-    } catch (_) {}
+    const dbUser = await prisma.user.findFirst({ where: { email: { equals: clean, mode: 'insensitive' } } });
+    if (dbUser) {
+      const user = fromDbUser(dbUser);
+      registeredUsers.set(user.userId, user);
+      return user;
+    }
   }
-
   return undefined;
 }
 
@@ -171,14 +153,8 @@ async function resolveCapabilities(newUserId: string) {
  * GET /api/auth/session
  * Returns active session context for the authenticated mobile client.
  */
-authRouter.get('/session', async (req, res) => {
-  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string);
-  if (!userId) {
-    return res.status(401).json({
-      authenticated: false,
-      message: 'No active session. Please log in.',
-    });
-  }
+authRouter.get('/session', requireAuth, async (req, res) => {
+  const userId = authedUserId(req);
 
   let user: RegisteredUser | undefined = registeredUsers.get(userId);
 
@@ -222,68 +198,35 @@ authRouter.get('/session', async (req, res) => {
 });
 
 /**
- * POST /api/auth/login
- * Authenticates user by email and retrieves profile & capabilities from Supabase.
+ * POST /api/auth/challenge { accountId } → message the device signs with its Stellar key.
+ * POST /api/auth/login { accountId, message, signature } → session token.
+ *
+ * Login proves control of the wallet key (SEP-10 style). The PIN never leaves the
+ * device; there is no password to steal or brute-force on the server.
  */
-authRouter.post('/login', async (req, res) => {
-  const { email } = req.body;
-  if (!email || typeof email !== 'string') {
-    return res.status(400).json({ success: false, message: 'Email is required' });
+authRouter.post('/challenge', (req, res, next) => {
+  try {
+    res.json({ success: true, data: issueOwnershipChallenge(String(req.body?.accountId ?? ''), 'login') });
+  } catch (err) {
+    next(err);
   }
+});
 
-  const normalizedEmail = email.trim().toLowerCase();
-  let user: RegisteredUser | undefined;
-
-  if (isPostgresDb()) {
-    try {
-      const dbUser = await prisma.user.findFirst({
-        where: { email: normalizedEmail },
-      });
-      if (dbUser) {
-        user = {
-          userId: dbUser.id,
-          fullName: dbUser.fullName,
-          email: dbUser.email,
-          accountType: dbUser.accountType as any,
-          country: dbUser.country,
-          phone: dbUser.phoneNumber || '',
-          companyName: dbUser.companyName || undefined,
-          companyRole: dbUser.companyRole || undefined,
-          kycStatus: dbUser.kycStatus as any,
-          nationalId: dbUser.nationalId || undefined,
-        };
-        registeredUsers.set(dbUser.id, user);
-      }
-    } catch (err: any) {
-      console.warn('[AuthRouter] DB user lookup notice:', err.message || err);
+authRouter.post('/login', async (req, res, next) => {
+  try {
+    const { accountId, message, signature } = req.body ?? {};
+    if (typeof accountId !== 'string' || typeof message !== 'string' || typeof signature !== 'string') {
+      throw new InvalidRequestError('accountId, message and signature are required. Sign in with your wallet.');
     }
+    verifyOwnershipChallenge({ message, signatureHex: signature, accountId, userId: 'login' });
+    const owner = await userForAccount(accountId);
+    if (!owner) throw new UnauthorizedError('No FlowPay account is linked to this wallet.');
+    const user = await loadUser(owner.userId);
+    if (!user) throw new UnauthorizedError('No FlowPay account is linked to this wallet.');
+    res.json({ success: true, user, capabilities: await resolveCapabilities(user.userId), token: issueSessionToken(user.userId) });
+  } catch (err) {
+    next(err);
   }
-
-  // Check in-memory fallback
-  if (!user) {
-    for (const u of registeredUsers.values()) {
-      if (u.email.toLowerCase() === normalizedEmail) {
-        user = u;
-        break;
-      }
-    }
-  }
-
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: `No account found with email "${email}". Please sign up first.`,
-    });
-  }
-
-  const capabilities = await resolveCapabilities(user.userId);
-
-  return res.json({
-    success: true,
-    user,
-    capabilities,
-    token: `flowpay_jwt_${user.userId}_${Date.now()}`,
-  });
 });
 
 /**
@@ -292,14 +235,20 @@ authRouter.post('/login', async (req, res) => {
  * Persists in Postgres public.users when connected.
  */
 authRouter.post('/signup', async (req, res) => {
-  const { fullName, email, accountType, country, phone, companyName, companyRole, userId } = req.body;
-  // FlowPay owns identity now; the user's money lives in their own Stellar account.
-  const newUserId = userId || `usr_${accountType === 'business' ? 'business' : 'personal'}_${randomUUID()}`;
+  const { fullName, email, accountType, country, phone, companyName, companyRole } = req.body;
+  if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ success: false, message: 'A valid email is required.' });
+  }
+  if (await findUserByEmail(email)) {
+    return res.status(409).json({ success: false, code: 'EMAIL_IN_USE', message: 'An account with this email already exists. Sign in with your wallet instead.' });
+  }
+  // IDs are always generated here — never chosen by the client.
+  const newUserId = `usr_${accountType === 'business' ? 'business' : 'personal'}_${randomUUID()}`;
 
   const user: RegisteredUser = {
     userId: newUserId,
     fullName: fullName || 'FlowPay User',
-    email: email || `user_${Date.now()}@flowpay.test`,
+    email: email.trim().toLowerCase(),
     accountType: accountType === 'business' ? 'business' : 'personal',
     country: country || 'NG',
     phone: phone || '',
@@ -309,9 +258,6 @@ authRouter.post('/signup', async (req, res) => {
   };
 
   registeredUsers.set(newUserId, user);
-  if (userId && userId !== newUserId) {
-    registeredUsers.set(userId, user);
-  }
 
   // Persist into Supabase public.users and public.businesses
   if (isPostgresDb()) {
@@ -369,6 +315,7 @@ authRouter.post('/signup', async (req, res) => {
     success: true,
     user,
     capabilities,
+    token: issueSessionToken(newUserId),
   });
 });
 
@@ -378,8 +325,9 @@ authRouter.post('/signup', async (req, res) => {
  * Dispatches to BMONI PATCH /v1/users/{userId}/kyc and POST /kyc/activate,
  * and updates public.users.
  */
-authRouter.post('/kyc', async (req, res) => {
-  const { userId, nationalId, country, accountType, dateOfBirth, address } = req.body;
+authRouter.post('/kyc', requireAuth, async (req, res) => {
+  const userId = authedUserId(req);
+  const { nationalId, country, accountType, dateOfBirth, address } = req.body;
   let existing = registeredUsers.get(userId);
 
   if (!existing && isPostgresDb() && userId) {
@@ -470,12 +418,73 @@ authRouter.post('/kyc', async (req, res) => {
  * Derives whether this newUserId holds a personal smart wallet and
  * whether they are linked as employer/admin to any company/business entity.
  */
-authRouter.get('/capabilities', async (req, res) => {
-  const newUserId = (req.query.newUserId as string) || 'usr_flowpay_sandbox_master';
-  res.json(await resolveCapabilities(newUserId));
+authRouter.get('/capabilities', requireAuth, async (req, res) => {
+  res.json(await resolveCapabilities(authedUserId(req)));
 });
 
-authRouter.get('/users/:newUserId/capabilities', async (req, res) => {
-  const { newUserId } = req.params;
-  res.json(await resolveCapabilities(newUserId));
+authRouter.get('/users/:id/capabilities', requireAuth, async (req, res, next) => {
+  if (req.params.id !== authedUserId(req)) return next(new UnauthorizedError('You can only read your own capabilities.'));
+  res.json(await resolveCapabilities(req.params.id));
 });
+
+// ── Email verification (required before accepting an employee invite) ──────────
+
+const EMAIL_CODE_TTL_MS = 10 * 60 * 1000;
+const emailCodes = new Map<string, { hash: string; expiresAt: number; attempts: number }>();
+const hashCode = (userId: string, code: string) => crypto.createHmac('sha256', userId).update(code).digest('hex');
+
+export async function isEmailVerified(userId: string): Promise<boolean> {
+  if (registeredUsers.get(userId)?.emailVerified) return true;
+  if (isPostgresDb()) {
+    const u = await prisma.user.findUnique({ where: { id: userId } });
+    return !!u?.emailVerified;
+  }
+  return false;
+}
+
+/** POST /api/auth/email/send — emails a 6-digit code to the signed-in user's address. */
+authRouter.post('/email/send', requireAuth, async (req, res, next) => {
+  try {
+    const userId = authedUserId(req);
+    const user = await loadUser(userId);
+    if (!user) throw new UnauthorizedError('Account not found.');
+    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+    emailCodes.set(userId, { hash: hashCode(userId, code), expiresAt: Date.now() + EMAIL_CODE_TTL_MS, attempts: 0 });
+    if (env.DEV_ECHO_EMAIL_CODES) {
+      if (env.NODE_ENV === 'production') throw new InvalidRequestError('DEV_ECHO_EMAIL_CODES is not allowed in production.');
+      return res.json({ success: true, data: { sentTo: user.email, devCode: code } });
+    }
+    const sent = await mailService.sendOtp({ to: user.email, recipientName: user.fullName, code, expiryMinutes: 10, actionDescription: 'verify your email address' });
+    if (!sent.success) throw new InvalidRequestError(`We couldn't send the code: ${sent.error ?? 'mail unavailable'}`);
+    res.json({ success: true, data: { sentTo: user.email } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** POST /api/auth/email/verify { code } */
+authRouter.post('/email/verify', requireAuth, async (req, res, next) => {
+  try {
+    const userId = authedUserId(req);
+    const entry = emailCodes.get(userId);
+    if (!entry || entry.expiresAt < Date.now()) throw new InvalidRequestError('This code expired. Request a new one.');
+    if (entry.attempts >= 5) throw new InvalidRequestError('Too many attempts. Request a new code.');
+    entry.attempts += 1;
+    const ok = crypto.timingSafeEqual(Buffer.from(entry.hash), Buffer.from(hashCode(userId, String(req.body?.code ?? ''))));
+    if (!ok) throw new InvalidRequestError('That code is not correct.');
+    emailCodes.delete(userId);
+    const mem = registeredUsers.get(userId);
+    if (mem) mem.emailVerified = true;
+    if (isPostgresDb()) await prisma.user.update({ where: { id: userId }, data: { emailVerified: true } });
+    res.json({ success: true, data: { emailVerified: true } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Testing hook: the code isn't retrievable otherwise. */
+export function issueEmailCodeForTests(userId: string): string {
+  const code = '123456';
+  emailCodes.set(userId, { hash: hashCode(userId, code), expiresAt: Date.now() + EMAIL_CODE_TTL_MS, attempts: 0 });
+  return code;
+}

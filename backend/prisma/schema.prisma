@@ -16,6 +16,7 @@ model User {
   // Public Stellar account (G...) proven to belong to this user via a signed challenge.
   stellarAccountId String? @unique @map("stellar_account_id")
   email          String   @unique
+  emailVerified  Boolean  @default(false) @map("email_verified")
   fullName       String   @map("full_name")
   phoneNumber    String?  @map("phone_number")
   accountType    String   @default("personal") @map("account_type") // 'personal', 'business', 'both'

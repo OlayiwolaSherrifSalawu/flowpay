@@ -157,6 +157,7 @@ class SecureStorageService {
     await _safeDelete(_keyCapabilities);
     await _safeDelete(_keyCapabilitiesTimestamp);
     await _safeDelete(_keyAccountMode);
+    await _safeDelete(_keyAuthToken);
   }
 
   /// Read cached AccountCapabilities if within TTL

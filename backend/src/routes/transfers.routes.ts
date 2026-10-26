@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { InvalidRequestError, StellarSubmitTimeoutError } from '../core/errors.js';
 import { TransferService } from '../modules/transfers/service.js';
@@ -6,12 +7,8 @@ import { resolveRecipient } from '../stellar/directory.js';
 
 export const transfersRouter = Router();
 
-// TODO(M7): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.body?.userId as string) || (req.headers['x-user-id'] as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 // POST /api/transfers/interpret — natural language → structured intent (nothing moves).
 transfersRouter.post('/interpret', async (req, res, next) => {

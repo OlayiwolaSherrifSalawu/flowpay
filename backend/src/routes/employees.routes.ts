@@ -1,3 +1,4 @@
+import { authedUserId, requireAuth } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { FlowPayError, InvalidRequestError } from '../core/errors.js';
 import { paginateArray, parsePaginationParams } from '../core/pagination.js';
@@ -5,12 +6,11 @@ import { EmployeeService, publicEmployee } from '../modules/employees/service.js
 
 export const employeesRouter = Router();
 
-// TODO(M8): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string) || (req.body?.userId as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Everything requires a signed-in user except the public invite landing page.
+employeesRouter.use((req, res, next) => (req.method === 'GET' && req.path.startsWith('/invite/') ? next() : requireAuth(req, res, next)));
+
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);

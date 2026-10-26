@@ -1,9 +1,12 @@
+import 'wallet_login.dart';
+import '../stellar/stellar_key_vault.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import '../network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import '../stellar/stellar_key_vault.dart';
 import 'account_capabilities.dart';
 import 'app_lock_service.dart';
 import 'secure_storage_service.dart';
@@ -58,6 +61,7 @@ class UserProfileNotifier extends StateNotifier<UserProfile?> {
 
   Future<void> clearProfile() async {
     await _storage.resetSession();
+    FlowPayApiClient.sessionToken = null;
     state = null;
     _ref.invalidate(accountCapabilitiesProvider);
   }
@@ -103,10 +107,11 @@ final accountCapabilitiesProvider =
   final flowpayUserId = await storage.getSessionUserId();
   if (flowpayUserId != null && flowpayUserId.isNotEmpty) {
     try {
-      final uri = Uri.parse(
-          '${ApiConfig.baseUrl}/api/auth/capabilities?flowpayUserId=$flowpayUserId');
-
-      final response = await http.get(uri).timeout(const Duration(seconds: 4));
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/auth/capabilities');
+      final token = FlowPayApiClient.sessionToken;
+      final response = await http
+          .get(uri, headers: {if (token != null) 'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final capabilities = AccountCapabilities.fromJson(data);
@@ -313,6 +318,16 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     final isValid = await _storage.verifyFallbackPin(pin);
     if (isValid) {
       await _storage.updateAuthTimestamp();
+      // The PIN just unlocked the wallet key: use it to renew the server session.
+      // Offline is fine — the app unlocks locally and API calls will ask again.
+      if (!SecureStorageService.isTestEnv && await StellarKeyVault.instance.hasWallet()) {
+        try {
+          final result = await WalletLogin.signIn(pin: pin);
+          await _storage.saveAuthToken(result.token);
+        } catch (e) {
+          debugPrint('[AppLock] session refresh skipped: $e');
+        }
+      }
       state = state.copyWith(
         isLocked: false,
         isAuthExpired: false,
@@ -369,23 +384,8 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     await setAccountMode(mode);
     await _ref.read(currentUserProfileProvider.notifier).saveProfile(profile);
 
-    // Register active wallet address with backend
-    try {
-      final addr = await StellarKeyVault.instance.publicKey();
-      if (addr != null && addr.isNotEmpty && !SecureStorageService.isTestEnv) {
-        await http.post(
-          Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-id': profile.userId,
-          },
-          body: jsonEncode({
-            'userId': profile.userId,
-            'address': addr,
-          }),
-        ).timeout(const Duration(seconds: 3));
-      }
-    } catch (_) {}
+    // Wallet registration happens only via the signed ownership challenge
+    // during activation (see StellarActivation).
 
     state = state.copyWith(isLocked: false, hasSession: true, activeMode: mode);
   }

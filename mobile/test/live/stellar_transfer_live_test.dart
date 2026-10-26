@@ -2,11 +2,9 @@
 //
 //   cd backend && npm run build && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none PORT=4099 node dist/server.js &
 //   cd mobile && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test/live/stellar_transfer_live_test.dart
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/network/api_client.dart';
 import 'package:flowpay_mobile/core/providers/stellar/stellar_transfer_repo.dart';
@@ -16,30 +14,23 @@ import 'package:flowpay_mobile/core/stellar/stellar_api.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
 import 'package:flowpay_mobile/core/transfers/transfer_intent.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_signer.dart';
+import 'live_helpers.dart';
 
 void main() {
   final enabled = Platform.environment['LIVE_STELLAR'] == '1';
   final api = Platform.environment['FLOWPAY_API'] ?? 'http://localhost:4099';
   final stamp = DateTime.now().millisecondsSinceEpoch;
 
-  Future<String> signup(String name, String email) async {
-    final res = await http.post(Uri.parse('$api/api/auth/signup'),
-        headers: {'content-type': 'application/json'},
-        body: jsonEncode({'fullName': name, 'email': email, 'accountType': 'personal', 'country': 'US'}));
-    expect(res.statusCode, anyOf(200, 201), reason: res.body);
-    final body = jsonDecode(res.body) as Map;
-    return ((body['user'] ?? body['data']?['user'] ?? body['data']) as Map)['userId'] as String;
-  }
-
   /// Each user = their own device vault; swap the global vault to "switch phones".
-  Future<({String userId, String accountId, StellarKeyVault vault})> onboard(String name, String email) async {
-    final userId = await signup(name, email);
+  Future<({LiveUser user, String userId, String accountId, StellarKeyVault vault})> onboard(String name, String email) async {
+    final user = await liveSignup(api, name, email);
+    final userId = user.userId;
     final vault = StellarKeyVault(store: InMemoryVaultStore(), kdfIterations: 1000);
     StellarKeyVault.instance = vault;
     final accountId = await vault.createWallet(pin: '123456');
     final report = await StellarActivation(api: StellarApi(FlowPayApiClient(baseUrl: api, userId: userId))).activate(pin: '123456');
     expect(report.isActive, isTrue, reason: report.failures.map((f) => '${f.step}: ${f.error}').join('\n'));
-    return (userId: userId, accountId: accountId, vault: vault);
+    return (user: user, userId: userId, accountId: accountId, vault: vault);
   }
 
   test('two users: activate, send USD by email, send NGN funded from USD via path payment', () async {
@@ -48,6 +39,7 @@ void main() {
 
     // Act as Alice.
     StellarKeyVault.instance = alice.vault;
+    alice.user.actAs();
     final client = FlowPayApiClient(baseUrl: api, userId: alice.userId);
     final transfers = StellarTransferRepository(apiClient: client);
     final wallets = StellarWalletRepository(apiClient: client);
@@ -85,6 +77,7 @@ void main() {
 
     // Bob's balances, read from the network as Bob.
     StellarKeyVault.instance = bob.vault;
+    bob.user.actAs();
     final bobWallets = await StellarWalletRepository(apiClient: FlowPayApiClient(baseUrl: api, userId: bob.userId)).getWallets();
     final bobUsd = bobWallets.firstWhere((w) => w.currency == Currency.usd).balance.minorUnits;
     final bobNgn = bobWallets.firstWhere((w) => w.currency == Currency.ngn).balance.minorUnits;
@@ -93,6 +86,7 @@ void main() {
 
     // Alice paid 25 USD + ~6.47 USD for ₦10,000 (≈ 10000/1550 plus pool fee), never more than the sendMax.
     StellarKeyVault.instance = alice.vault;
+    alice.user.actAs();
     final usdAfter = (await wallets.getWallets()).firstWhere((w) => w.currency == Currency.usd).balance.minorUnits;
     final spent = 100000 - usdAfter;
     expect(spent, inInclusiveRange(2500 + 640, 2500 + 660));

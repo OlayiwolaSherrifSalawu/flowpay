@@ -4,7 +4,7 @@ import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
 import '../../core/network/api_client.dart';
-import '../../core/providers/stellar/stellar_employee_repo.dart';
+import '../../core/navigation/invite_link.dart';
 import '../../core/stellar/stellar_activation.dart';
 import '../../core/stellar/stellar_api.dart';
 import '../../core/wallet/wallet_service.dart';
@@ -134,21 +134,10 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
         }
       }
 
-      // 3. Link employee's self-custody wallet to payroll roster if invite flow.
-      bool? employeeLinked;
-      if (widget.employeeInviteToken != null &&
-          widget.employeeInviteToken!.trim().isNotEmpty) {
-        employeeLinked = false;
-        try {
-          // Accept with the wallet just proven during activation (only if it activated).
-          if (!SecureStorageService.isTestEnv && activation != null && activation.isActive) {
-            await StellarEmployeeRepository(apiClient: FlowPayApiClient(userId: widget.userProfile.userId))
-                .acceptInvite(widget.employeeInviteToken!.trim());
-            employeeLinked = true;
-          }
-        } catch (linkErr) {
-          debugPrint('[SetPinScreen] link-wallet failed: $linkErr');
-        }
+      // 3. Employee invite: once signed in, the app opens the accept sheet, which
+      //    verifies the user's email and links this wallet to the payroll.
+      if (widget.employeeInviteToken != null && widget.employeeInviteToken!.trim().isNotEmpty) {
+        InviteLink.pendingToken = widget.employeeInviteToken!.trim();
       }
 
       if (!mounted) return;
@@ -165,20 +154,6 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
             content: Text(
               'Your wallet was created but isn\'t fully activated yet. Open Wallets to finish activation.',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
-      }
-      if (employeeLinked != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: employeeLinked ? FlowPayColors.success : FlowPayColors.warning,
-            content: Text(
-              employeeLinked
-                  ? 'Your wallet is linked to your employer\'s payroll. You keep full custody of your earnings.'
-                  : 'Your wallet was created, but we couldn\'t link it to your employer yet. Ask them to resend the invite.',
-              style:
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         );

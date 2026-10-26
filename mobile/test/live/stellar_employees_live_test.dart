@@ -1,8 +1,7 @@
-// Opt-in: employer invites → employee creates own wallet on testnet → accepts.
+// Opt-in: employer invites → employee creates own wallet on testnet → verifies email → accepts.
 //
-//   cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none SMTP_HOST=127.0.0.1 SMTP_PORT=1 PORT=4099 node dist/server.js &
+//   cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none SMTP_HOST=127.0.0.1 SMTP_PORT=1 DEV_ECHO_EMAIL_CODES=true PORT=4099 node dist/server.js &
 //   cd mobile && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test/live/stellar_employees_live_test.dart
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -16,32 +15,28 @@ import 'package:flowpay_mobile/core/repositories/employee_repository.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_activation.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_api.dart';
 import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
+import 'live_helpers.dart';
 
 void main() {
   final enabled = Platform.environment['LIVE_STELLAR'] == '1';
   final api = Platform.environment['FLOWPAY_API'] ?? 'http://localhost:4099';
   final stamp = DateTime.now().millisecondsSinceEpoch;
 
-  Future<String> signup(String name, String email, String type) async {
-    final res = await http.post(Uri.parse('$api/api/auth/signup'),
-        headers: {'content-type': 'application/json'},
-        body: jsonEncode({'fullName': name, 'email': email, 'accountType': type, 'country': 'US', 'companyName': 'Live Corp $stamp'}));
-    final body = jsonDecode(res.body) as Map;
-    return ((body['user'] ?? body['data']?['user'] ?? body['data']) as Map)['userId'] as String;
-  }
-
-  Future<String> activateWallet(String userId) async {
+  Future<String> activateWallet(LiveUser user) async {
+    user.actAs();
     StellarKeyVault.instance = StellarKeyVault(store: InMemoryVaultStore(), kdfIterations: 1000);
     final account = await StellarKeyVault.instance.createWallet(pin: '123456');
-    final report = await StellarActivation(api: StellarApi(FlowPayApiClient(baseUrl: api, userId: userId)))
-        .activate(pin: '123456', claimTestFunds: false);
+    final report = await StellarActivation(api: StellarApi(FlowPayApiClient(baseUrl: api))).activate(pin: '123456', claimTestFunds: false);
     expect(report.isActive, isTrue, reason: report.failures.map((f) => f.error).join('\n'));
     return account;
   }
 
-  test('employer invites; impostor is refused; employee joins with their own wallet', () async {
-    final employerId = await signup('Boss $stamp', 'boss.$stamp@flowpay.test', 'business');
-    final employer = StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api, userId: employerId));
+  test('employer invites; impostor refused; employee verifies email and joins with own wallet', () async {
+    // Unauthenticated calls are refused outright.
+    expect((await http.get(Uri.parse('$api/api/employees'), headers: {'x-user-id': 'usr_anyone'})).statusCode, 401);
+
+    final boss = await liveSignup(api, 'Boss $stamp', 'boss.$stamp@flowpay.test', type: 'business', company: 'Live Corp');
+    final employer = StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api));
     final inviteUrl = await employer.createEmployee(
       firstName: 'Ngozi',
       lastName: 'Live',
@@ -51,31 +46,31 @@ void main() {
       payrollAmount: Money.fromMajorString('750000.00', Currency.ngn),
     );
     final token = InviteLink.parse(inviteUrl)!;
-    final roster = await employer.getEmployees();
-    expect(roster.single.status, EmployeeLifecycleStages.invited);
+    expect((await employer.getEmployees()).single.status, EmployeeLifecycleStages.invited);
+    expect((await http.get(Uri.parse('$api/api/employees/invite/ngozi.$stamp@flowpay.test'))).statusCode, 404);
 
-    // Invites resolve by token only.
-    final byEmail = await http.get(Uri.parse('$api/api/employees/invite/ngozi.$stamp@flowpay.test'));
-    expect(byEmail.statusCode, 404);
-
-    // Someone else with a proven wallet can't take it.
-    final imposterId = await signup('Imposter $stamp', 'x.$stamp@flowpay.test', 'personal');
-    await activateWallet(imposterId);
+    final imposter = await liveSignup(api, 'Imposter $stamp', 'x.$stamp@flowpay.test');
+    await activateWallet(imposter);
+    await liveVerifyEmail(api, imposter);
     await expectLater(
-      StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api, userId: imposterId)).acceptInvite(token),
+      StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api)).acceptInvite(token),
       throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 403)),
     );
 
-    // The real employee: own device, own wallet, same email.
-    final employeeId = await signup('Ngozi Live', 'ngozi.$stamp@flowpay.test', 'personal');
-    final employeeAccount = await activateWallet(employeeId);
-    final joined = await StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api, userId: employeeId)).acceptInvite(token);
+    final ngozi = await liveSignup(api, 'Ngozi Live', 'ngozi.$stamp@flowpay.test');
+    final account = await activateWallet(ngozi);
+    await expectLater(
+      StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api)).acceptInvite(token),
+      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'EMAIL_NOT_VERIFIED')),
+    );
+    await liveVerifyEmail(api, ngozi);
+    final joined = await StellarEmployeeRepository(apiClient: FlowPayApiClient(baseUrl: api)).acceptInvite(token);
     expect(joined.status, EmployeeLifecycleStages.ready);
-    expect(joined.walletAddress, employeeAccount);
+    expect(joined.walletAddress, account);
 
-    final after = (await employer.getEmployees()).single;
-    expect(after.walletAddress, employeeAccount);
+    boss.actAs();
+    expect((await employer.getEmployees()).single.walletAddress, account);
     // ignore: avoid_print
-    print('LIVE employee $employeeAccount joined ${roster.single.id}');
+    print('LIVE employee $account joined');
   }, skip: enabled ? false : 'set LIVE_STELLAR=1 to run against testnet', timeout: const Timeout(Duration(minutes: 3)));
 }

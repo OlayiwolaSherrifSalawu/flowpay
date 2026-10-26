@@ -1,3 +1,4 @@
+import { authedUserId } from '../auth/session.js';
 import { Router, type Request } from 'express';
 import { InvalidRequestError } from '../core/errors.js';
 import { paginateArray, parsePaginationParams } from '../core/pagination.js';
@@ -5,17 +6,13 @@ import { PayrollOrchestrationService } from '../modules/payroll/service.js';
 
 export const payrollRouter = Router();
 
-// TODO(M8): replace header-based identity with authenticated sessions.
-function requestUserId(req: Request): string {
-  const userId = (req.headers['x-user-id'] as string) || (req.query.userId as string) || (req.body?.employerUserId as string) || (req.body?.userId as string);
-  if (!userId) throw new InvalidRequestError('userId is required.');
-  return userId;
-}
+// Identity comes only from the verified session token (see auth/session.ts).
+const requestUserId = (req: Request) => authedUserId(req);
 
 // GET /api/payroll/preview — live quotes + the unsigned transactions to approve.
 payrollRouter.get('/preview', async (req, res, next) => {
   try {
-    res.json({ success: true, data: await PayrollOrchestrationService.getPreview(requestUserId(req)) });
+    res.json({ success: true, data: await PayrollOrchestrationService.getPreview(requestUserId(req), { includeRecentlyPaid: req.query.includeRecentlyPaid === 'true' }) });
   } catch (err) {
     next(err);
   }

@@ -1,3 +1,4 @@
+import '../../core/network/api_client.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -224,9 +225,11 @@ class _KycScreenState extends ConsumerState<KycScreen> {
           await http
               .post(
                 uri,
-                headers: {'Content-Type': 'application/json'},
+                headers: {
+                  'Content-Type': 'application/json',
+                  if (FlowPayApiClient.sessionToken != null) 'Authorization': 'Bearer ${FlowPayApiClient.sessionToken}',
+                },
                 body: jsonEncode({
-                  'userId': updatedProfile.userId,
                   'accountType': updatedProfile.accountType.name,
                   'nationalId': updatedProfile.nationalId,
                   'nationalIdType': _idLabel,

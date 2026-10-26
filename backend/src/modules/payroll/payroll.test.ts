@@ -54,7 +54,7 @@ async function team(n = 0) {
     if (wallet === 'none') return;
     const kp = Keypair.random();
     balances[kp.publicKey()] = wallet === 'full' ? [{ asset_type: 'native', balance: '5' }, ...all()] : [{ asset_type: 'native', balance: '5' }];
-    registeredUsers.set(`usr_${first}`, { userId: `usr_${first}`, fullName: first, email, accountType: 'personal', country, phone: '', kycStatus: 'verified' });
+    registeredUsers.set(`usr_${first}`, { userId: `usr_${first}`, fullName: first, email, accountType: 'personal', country, phone: '', kycStatus: 'verified', emailVerified: true });
     await linkAccount(`usr_${first}`, kp.publicKey());
     await EmployeeService.acceptInvite({ token: inviteToken, requestingUserId: `usr_${first}` });
   };
@@ -112,6 +112,13 @@ test('payroll execute - settles atomically, real hash per paid employee, single 
   assert.ok(done.batches.every((x) => !('signPayload' in x)), 'signed payloads are not echoed back');
   await assert.rejects(PayrollOrchestrationService.executePayroll('usr_boss', run.runId, {}), /already submitted/);
   assert.strictEqual((await PayrollOrchestrationService.listRuns('usr_boss')).length, 1);
+
+  // Same pay period: Ngozi is not paid twice unless explicitly requested.
+  const again = await PayrollOrchestrationService.getPreview('usr_boss');
+  assert.match(again.items.find((i) => i.name.startsWith('Ngozi'))!.railValidationMessage, /Already paid on/);
+  assert.strictEqual(again.batches.length, 0);
+  const forced = await PayrollOrchestrationService.getPreview('usr_boss', { includeRecentlyPaid: true });
+  assert.strictEqual(forced.payableCount, 1);
 });
 
 test('payroll execute - a rejected batch pays nobody in it and says why', async () => {
