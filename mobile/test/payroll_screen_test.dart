@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/state/app_state.dart';
 import 'package:flowpay_mobile/modules/business/payroll_screen.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FlowPay Global Payroll Screen Widget Tests', () {
     testWidgets(
         'Renders global payroll header, core message, and aggregate bill',

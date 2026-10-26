@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../../core/stellar/stellar_key_vault.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
@@ -59,7 +59,7 @@ class _AiFxConversionModalState extends State<AiFxConversionModal> {
     setState(() => _isConverting = true);
 
     try {
-      final pinOk = await BmoniSdkService.matchPin(pin);
+      final pinOk = await StellarKeyVault.instance.verifyPin(pin);
       if (!pinOk) {
         throw Exception('Invalid 6-digit Security PIN');
       }

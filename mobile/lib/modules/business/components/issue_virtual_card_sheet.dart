@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../../core/wallet/wallet_signer.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/repositories/card_repository.dart';
@@ -149,7 +149,7 @@ class _IssueVirtualCardSheetState extends State<IssueVirtualCardSheet> {
         recipient: cardName,
         onAuthorize: (pin) async {
           // CRITICAL: Must use signTransactionHash(), NOT signMessage()
-          return await BmoniSdkService.signTransactionHash(hashToSign!,
+          return await const StellarWalletSigner().signTransactionHash(hashToSign!,
               pin: pin);
         },
       );

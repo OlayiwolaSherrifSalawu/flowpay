@@ -11,8 +11,14 @@ import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_activity_repo.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_wallet_repo.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FlowPay Financial Intelligence Engine — Conversations 1 to 7 Acceptance Tests', () {
     late DemoWalletRepository walletRepo;
     late DemoBeneficiaryRepository beneficiaryRepo;
@@ -73,7 +79,7 @@ void main() {
 
       // Invariant 3: Hardware Enclave / PIN Approval Boundary
       // Execute plan with PIN
-      await operator.approveAndExecute(pin: '1234');
+      await operator.approveAndExecute(pin: testWalletPin);
       expect(operator.status, equals(OperatorSessionStatus.completed));
     });
 

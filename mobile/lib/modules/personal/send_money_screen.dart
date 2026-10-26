@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/beneficiaries/beneficiary_model.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
@@ -631,7 +631,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
       recipient: intent.recipient,
       onAuthorize: (pin) async {
         // Enforce authentic on-device signing via BmoniSdkService
-        return await BmoniSdkService.signTransactionHash(
+        return await const StellarWalletSigner().signTransactionHash(
           proposal!.hashToSign,
           pin: pin,
         );

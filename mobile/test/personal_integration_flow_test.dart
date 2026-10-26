@@ -9,12 +9,13 @@ import 'package:flowpay_mobile/modules/personal/personal_shell.dart';
 
 import 'package:flowpay_mobile/core/auth/account_capabilities.dart';
 import 'package:flowpay_mobile/core/auth/secure_storage_service.dart';
+import 'helpers/test_wallet.dart';
 
 Future<void> _unlockApp(WidgetTester tester) async {
   if (find.text('FlowPay is Locked').evaluate().isNotEmpty) {
     final pinField = find.byType(TextField);
     if (pinField.evaluate().isNotEmpty) {
-      await tester.enterText(pinField, '112233');
+      await tester.enterText(pinField, testWalletPin); // wallet PIN also unlocks the app
       await tester.pumpAndSettle();
     }
   }
@@ -45,6 +46,11 @@ Future<void> _enterPin(WidgetTester tester) async {
 }
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   setUp(() async {
     SecureStorageService.resetMemoryCacheForTesting();
     final storage = SecureStorageService();
@@ -63,7 +69,6 @@ void main() {
     await storage.saveCapabilities(
       AccountCapabilities.demo(),
     );
-    await storage.setFallbackPin('112233');
     await storage.setAppLockEnabled(true);
   });
 

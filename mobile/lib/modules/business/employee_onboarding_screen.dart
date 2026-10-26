@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/repositories/employee_repository.dart';
 import '../../core/state/app_state.dart';
@@ -183,13 +183,14 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
     setState(() => _isProcessingAction = true);
 
     try {
-      // 1. Generate or load on-device owner key via BMONI SDK
-      final hasWallet = await BmoniSdkService.hasWallet();
-      String ownerAddress;
-      if (hasWallet) {
-        ownerAddress = (await BmoniSdkService.walletAddress())!;
-      } else {
-        ownerAddress = await BmoniSdkService.initWallet();
+      // 1. The employee's wallet must be created on the EMPLOYEE's own device
+      //    (via their invite link). Creating it here would put their key on the
+      //    employer's phone, i.e. the employer would hold the employee's funds.
+      final ownerAddress = _emp.walletAddress;
+      if (ownerAddress == null || ownerAddress.isEmpty) {
+        throw StateError(
+          'This employee has not created their wallet yet. Share their invite link so they can set it up on their own phone.',
+        );
       }
 
       // 2. Request owner challenge from proxy with stablecoin code (CNGN or MEXe)
@@ -210,7 +211,7 @@ class _EmployeeOnboardingScreenState extends State<EmployeeOnboardingScreen> {
         subtitle:
             'Enter your PIN to set up payment account on this device.',
         onAuthorize: (pin) async {
-          return await BmoniSdkService.signMessage(messageToSign, pin: pin);
+          return await const StellarWalletSigner().signMessage(messageToSign, pin: pin);
         },
       );
 

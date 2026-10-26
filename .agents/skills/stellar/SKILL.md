@@ -75,16 +75,29 @@ removed completely.
   * **Live testnet treasury** created by `npm run stellar:bootstrap` (idempotent): issuer `GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433`, distributor `GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56`; USD/CAD, USD/MXN, USD/GBP, USD/NGN pools seeded with $1M per side. Verified path quote: 500,000 NGN ← 446.51 CAD via USD.
   * 17 new unit tests (`src/stellar/stellar.test.ts`); backend total 139/139.
 
+* [x] **M2 — On-device keys & signing**:
+  * `mobile/lib/core/stellar/stellar_key_vault.dart` — `StellarKeyVault`: ed25519 keypair generated on device (`stellar_flutter_sdk` 3.8.0); seed encrypted with AES-256-GCM under PBKDF2-HMAC-SHA256(PIN, 24-byte salt, 100k iters) (`cryptography` 2.9.0); blob in `flutter_secure_storage` (iOS `first_unlock_this_device`). Wrong PIN = GCM auth failure (no PIN hash exists). Lockout after 5 failures, 30s doubling. Recovery-key export/import. Storage errors PROPAGATE (`StellarVaultException.storageFailure`).
+  * `stellar_network.dart` — testnet/public selection via `--dart-define=STELLAR_NETWORK`.
+  * `WalletService` → `StellarWalletService` (`createWallet({pin})`, `importWallet`, `exportRecoveryKey`, PIN-gated `deleteWallet`); `WalletSigner` → `StellarWalletSigner` (`signTransactionXdr`, ed25519 `signMessage`/`signTransactionHash`, PIN always required).
+  * `BmoniSdkService` and the `bmoni_embedded_sdk` dependency removed; all 14 call sites rewired. New `CreatePinSheet`.
+  * Tests: `test/flutter_test_config.dart` gives every test a fresh in-memory vault; `test/helpers/test_wallet.dart`; `test/wallet_service_test.dart` rewritten around real crypto (signatures verified with the SDK). Opt-in live test `test/live/stellar_live_test.dart` (`LIVE_STELLAR=1`) — verified device-signed trustline tx accepted on testnet (`e1b1277a…`). Flutter 179/179, analyzer clean, `flutter build web` OK.
+  * **Security note (honest limits)**: a 6-digit PIN has 10^6 combinations, so the KDF alone cannot stop an offline brute force if the encrypted blob is exfiltrated; protection relies on OS keychain/keystore + lockout. On **web**, secure storage is browser storage — weaker. Planned: optional longer passphrase on web, and recovery-key backup prompt in onboarding (M7/M8).
+
 ## 🐞 Bug inventory (found during migration, fix in M7 unless noted)
 
 * **CRITICAL — no API authentication**: routes take the acting user from `?userId=` / `x-user-id` and default to `usr_flowpay_sandbox_master`. Anyone can read or act as any user. Fix: signed session tokens + middleware (Stellar SEP-10 style challenge for wallet-linked users).
 * Hardcoded, inconsistent FX (`1550` NGN, `17` vs `17.5` MXN) in transfers/payroll/missions — replaced by Horizon path quotes in M3/M4.
+* ~~Fixed in M2~~: BMONI signer used a hardcoded PIN `'123456'` when none was passed; web/native "wallets" fell back to one shared fake address `0x71C8…` and synthesized signatures; PIN set/change/remove errors swallowed; app-lock PIN stored in plaintext (now salted PBKDF2, or vault-verified); **logout deleted the wallet** (would destroy funds); set-PIN screen fabricated an auth token `flowpay_jwt_<id>` and showed "wallet linked to payroll" even when linking failed; employer-assisted onboarding created the employee's wallet on the employer's device; security/provisioning screens displayed & copied a fake address when no wallet existed; tests approved payments with a 4-digit PIN.
+* **HIGH — login sends the wallet PIN to the backend as the account password** (`/api/auth/login`). Replace with SEP-10-style challenge signed by the device key (M7, together with the API-auth fix).
+* `personal_provider.approveAction` signs a hardcoded constant hash and discards the signature (signing theatre) — replace with real Stellar tx in M3.
+* Employer-assisted onboarding (`EmployeeOnboardingScreen` stage 2) now refuses until the employee has created their own wallet — redesign in M5.
+* New-device login: user has no local wallet → needs "restore from recovery key" UX (M7/M8).
 * `config/env.ts` ships a real BMONI API key and a personal SMTP address as defaults — removed in M6.
 
 ## 🎯 5. Milestone Plan (each milestone = one pushed commit set, tests green)
 
 * [x] **M1 — Stellar backend core** (see §4).
-* [ ] **M2 — On-device keys & signing**: `stellar_flutter_sdk`, PIN-encrypted keypair vault, `WalletSigner` signs Stellar XDR, BMONI SDK removed from the signing path.
+* [x] **M2 — On-device keys & signing** (see §4).
 * [ ] **M3 — Wallets & transfers**: balances, receive (account ID + QR), same-currency payments, cross-currency path payments, activity from Horizon operations.
 * [ ] **M4 — Atomic multi-country payroll**: batched path payments, preview with live path quotes, real hashes + explorer links.
 * [ ] **M5 — Employees, KYC & anchors**: invite → employee creates wallet on device → account linked; SEP-10/12/24 cash-out on testanchor.

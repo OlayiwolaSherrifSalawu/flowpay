@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import '../../core/models/paginated_result.dart';
 import '../../core/repositories/payroll_repository.dart';
@@ -385,7 +385,7 @@ class _PayrollScreenState extends State<PayrollScreen> {
       });
 
       // Step 3: Processing (On-device secp256k1 raw-hash signing + submission)
-      final sig = await BmoniSdkService.signTransactionHash(
+      final sig = await const StellarWalletSigner().signTransactionHash(
         '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
         pin: pin,
       );

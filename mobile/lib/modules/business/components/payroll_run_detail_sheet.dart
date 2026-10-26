@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../../core/stellar/stellar_key_vault.dart';
+import '../../../core/wallet/wallet_signer.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/models/paginated_result.dart';
 import '../../../core/repositories/payroll_repository.dart';
@@ -65,13 +66,13 @@ class _PayrollRunDetailSheetState extends State<PayrollRunDetailSheet> {
       title: 'Authorize Payout Retry',
       subtitle:
           'Enter your 6-digit PIN to retry payment to ${item.employeeName}',
-      onAuthorize: (pin) => BmoniSdkService.signMessage(
+      onAuthorize: (pin) => const StellarWalletSigner().signMessage(
         'Retry payroll proposal ${item.proposalId ?? item.employeeId}',
         pin: pin,
       ),
     );
 
-    if (pin == null || pin.length != BmoniSdkService.pinLength) return;
+    if (pin == null || pin.length != StellarKeyVault.pinLength) return;
 
     setState(() => _retryingEmployeeIds.add(item.employeeId));
 

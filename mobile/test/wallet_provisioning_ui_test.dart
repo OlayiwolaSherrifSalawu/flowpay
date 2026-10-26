@@ -12,15 +12,13 @@ class _MockWalletService implements WalletService {
   String? _pin;
 
   @override
-  Future<void> initialize({int pinLength = 6, bool requirePin = true}) async {}
-
-  @override
   Future<bool> hasWallet() async => _hasWallet;
 
   @override
-  Future<String> createWallet() async {
-    _address = '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19';
+  Future<String> createWallet({required String pin}) async {
+    _address = 'GBMOCKWALLETADDRESSFORUITESTS0000000000000000000000000000';
     _hasWallet = true;
+    _pin = pin;
     return _address!;
   }
 
@@ -28,16 +26,19 @@ class _MockWalletService implements WalletService {
   Future<String?> getWalletAddress() async => _address;
 
   @override
-  Future<void> deleteWallet({String? pin}) async {
+  Future<String> importWallet({required String recoveryKey, required String pin}) => createWallet(pin: pin);
+
+  @override
+  Future<String> exportRecoveryKey({required String pin}) async => 'SMOCK';
+
+  @override
+  Future<void> deleteWallet({required String pin}) async {
     _address = null;
     _hasWallet = false;
   }
 
   @override
   Future<bool> hasPin() async => _pin != null;
-
-  @override
-  Future<void> setPin(String pin) async => _pin = pin;
 
   @override
   Future<bool> matchPin(String pin) async => _pin == pin;
@@ -48,8 +49,6 @@ class _MockWalletService implements WalletService {
     _pin = newPin;
   }
 
-  @override
-  Future<void> removePin(String currentPin) async => _pin = null;
 }
 
 /// Builds a test harness with overridden WalletService.
@@ -59,6 +58,23 @@ Widget _buildTestApp({_MockWalletService? mockService}) {
     overrides: [walletServiceProvider.overrideWithValue(service)],
     child: const MaterialApp(home: WalletProvisioningScreen()),
   );
+}
+
+/// Fills the create-PIN sheet with [pin] twice and submits.
+Future<void> enterNewPin(WidgetTester tester, [String pin = '123456']) async {
+  await tester.enterText(find.byKey(const Key('create_pin_field')), pin);
+  await tester.enterText(find.byKey(const Key('create_pin_confirm_field')), pin);
+  await tester.tap(find.byKey(const Key('create_pin_submit')));
+  await pumpSettled(tester);
+}
+
+/// Types [pin] on the WalletPinAuthSheet keypad.
+Future<void> enterSheetPin(WidgetTester tester, [String pin = '123456']) async {
+  for (final d in pin.split('')) {
+    await tester.tap(find.byKey(Key('pin_key_$d')));
+    await tester.pump();
+  }
+  await pumpSettled(tester);
 }
 
 /// Pumps enough frames to settle synchronous + fast async state without hanging.
@@ -127,6 +143,7 @@ void main() {
       await scrollToVisible(tester, find.text('Create My Secure Wallet'));
       await tester.tap(find.text('Create My Secure Wallet'));
       await pumpSettled(tester);
+      await enterNewPin(tester);
 
       expect(find.text('FlowPay Wallet Active'), findsOneWidget);
       expect(find.text('READY'), findsOneWidget);
@@ -139,7 +156,7 @@ void main() {
   group('WalletProvisioningScreen — Ready State', () {
     testWidgets('Displays status banner and READY badge', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
@@ -150,44 +167,44 @@ void main() {
 
     testWidgets('Displays wallet address', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
 
       expect(find.text('On-Device Wallet Address'), findsOneWidget);
       expect(
-        find.text('0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19'),
+        find.text('GBMOCKWALLETADDRESSFORUITESTS0000000000000000000000000000'),
         findsOneWidget,
       );
     });
 
     testWidgets('Displays hardware security specs', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
 
       await scrollToVisible(tester, find.text('Security Specs'));
       expect(find.text('Security Specs'), findsOneWidget);
-      expect(find.text('Bank-Grade Encryption'), findsOneWidget);
+      expect(find.text('AES-256-GCM + PBKDF2'), findsOneWidget);
       expect(find.text('Protected on Device'), findsOneWidget);
     });
 
     testWidgets('Displays supported tokens', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
 
-      expect(find.text('USD • NGN • EUR • MXN • CAD'), findsOneWidget);
+      expect(find.text('USD • CAD • MXN • GBP • NGN'), findsOneWidget);
     });
 
     testWidgets('Copy address button shows snackbar', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
@@ -200,7 +217,7 @@ void main() {
 
     testWidgets('Refresh button appears and triggers reload', (tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
@@ -220,7 +237,7 @@ void main() {
     /// Helper: get to the delete confirmation dialog.
     Future<void> openDeleteDialog(WidgetTester tester) async {
       final mockService = _MockWalletService();
-      await mockService.createWallet();
+      await mockService.createWallet(pin: '123456');
 
       await tester.pumpWidget(_buildTestApp(mockService: mockService));
       await pumpSettled(tester);
@@ -244,8 +261,9 @@ void main() {
       await tester.tap(find.text('Cancel'));
       await pumpSettled(tester);
 
-      // Still in ready state.
-      expect(find.text('FlowPay Wallet Active'), findsOneWidget);
+      // Still in ready state (the delete action only exists there).
+      expect(find.text('Delete Wallet From Device'), findsOneWidget);
+      expect(find.text('Set Up Your Secure FlowPay Wallet'), findsNothing);
     });
 
     testWidgets('Confirming delete transitions to noWallet', (tester) async {
@@ -253,6 +271,7 @@ void main() {
 
       await tester.tap(find.text('Delete Permanently'));
       await pumpSettled(tester);
+      await enterSheetPin(tester);
 
       expect(find.text('Set Up Your Secure FlowPay Wallet'), findsOneWidget);
     });
@@ -273,6 +292,7 @@ void main() {
       await scrollToVisible(tester, find.text('Create My Secure Wallet'));
       await tester.tap(find.text('Create My Secure Wallet'));
       await pumpSettled(tester);
+      await enterNewPin(tester);
 
       // 3. Verify ready.
       expect(find.text('FlowPay Wallet Active'), findsOneWidget);
@@ -285,6 +305,7 @@ void main() {
       // 5. Confirm delete.
       await tester.tap(find.text('Delete Permanently'));
       await pumpSettled(tester);
+      await enterSheetPin(tester);
 
       // 6. Back to setup.
       expect(find.text('Set Up Your Secure FlowPay Wallet'), findsOneWidget);

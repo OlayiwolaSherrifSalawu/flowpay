@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/buttons.dart';
 import '../../core/design_system/flowpay_pagination_bar.dart';
 import '../../core/design_system/states.dart';
@@ -173,7 +173,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
         recipient: '',
         onAuthorize: (pin) async {
           // Hardware enclave signing via BMONI Embedded SDK
-          return await BmoniSdkService.signTransactionHash(hashToSign,
+          return await const StellarWalletSigner().signTransactionHash(hashToSign,
               pin: pin);
         },
       );
@@ -558,7 +558,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
       amountDisplay: mission.thresholdAmount?.formatFormatted() ?? '\$2,000.00',
       recipient: '',
       onAuthorize: (pin) async {
-        return await BmoniSdkService.signTransactionHash(
+        return await const StellarWalletSigner().signTransactionHash(
           '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
           pin: pin,
         );

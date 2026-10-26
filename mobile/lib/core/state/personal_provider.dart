@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../design_system/states.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../wallet/wallet_signer.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../repositories/activity_repository.dart';
@@ -185,7 +185,7 @@ class PersonalProvider extends ChangeNotifier {
       final approval = _pendingApprovals.firstWhere((a) => a.id == approvalId);
 
       // Sign authorization payload on-device via BMONI B-Key SDK
-      await BmoniSdkService.signTransactionHash(
+      await const StellarWalletSigner().signTransactionHash(
         '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
         pin: pin,
       );

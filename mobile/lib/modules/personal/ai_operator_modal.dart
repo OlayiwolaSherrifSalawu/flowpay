@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/financial_operator/financial_operator.dart';
 import '../../core/financial_operator/models/financial_plan_models.dart';
@@ -189,7 +189,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         recipient: plan.summary,
         onAuthorize: (pin) async {
           // Perform authentic on-device signing via BmoniSdkService
-          return await BmoniSdkService.signTransactionHash(
+          return await const StellarWalletSigner().signTransactionHash(
             hashToSign,
             pin: pin,
           );

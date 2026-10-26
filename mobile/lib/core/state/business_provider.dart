@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../wallet/wallet_signer.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../models/shared_transaction.dart';
@@ -325,7 +325,7 @@ class BusinessProvider extends ChangeNotifier {
         }
         seenHashes.add(hash32);
 
-        final sig = await BmoniSdkService.signTransactionHash(
+        final sig = await const StellarWalletSigner().signTransactionHash(
           hash32,
           pin: pin,
         );

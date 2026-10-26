@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import '../beneficiaries/beneficiary_model.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../wallet/wallet_signer.dart';
 import '../design_system/states.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
@@ -1120,7 +1120,7 @@ class FinancialOperator extends ChangeNotifier {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
       try {
-        resolvedSignature = await BmoniSdkService.signTransactionHash(
+        resolvedSignature = await const StellarWalletSigner().signTransactionHash(
           hashToSign,
           pin: pin,
         );

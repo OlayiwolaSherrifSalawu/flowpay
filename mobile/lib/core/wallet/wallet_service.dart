@@ -1,16 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../stellar/stellar_key_vault.dart';
 
-/// Provisioning lifecycle status of the on-device B-Key wallet.
+/// Provisioning lifecycle status of the on-device Stellar wallet.
 enum WalletProvisioningStatus {
-  /// No hardware keypair currently provisioned on device.
+  /// No keypair currently provisioned on device.
   noWallet,
 
-  /// In-flight key generation & enclave enrollment.
+  /// In-flight key generation & encryption.
   creating,
 
-  /// Hardware keypair provisioned, verified, and ready.
+  /// Keypair provisioned, encrypted under the PIN, and ready.
   ready,
 
   /// An error occurred during provisioning or querying.
@@ -20,6 +20,8 @@ enum WalletProvisioningStatus {
 /// Immutable state describing on-device wallet readiness.
 class WalletState {
   final WalletProvisioningStatus status;
+
+  /// Stellar account ID (G...).
   final String? address;
   final bool hasPin;
   final String? errorMessage;
@@ -43,7 +45,7 @@ class WalletState {
         hasPin = false,
         errorMessage = null;
 
-  const WalletState.ready({required String this.address, this.hasPin = false})
+  const WalletState.ready({required String this.address, this.hasPin = true})
       : status = WalletProvisioningStatus.ready,
         errorMessage = null;
 
@@ -72,94 +74,76 @@ class WalletState {
   }
 }
 
-/// Abstract contract for FlowPay's on-device B-Key wallet service.
+/// Abstract contract for FlowPay's on-device wallet.
+///
+/// The wallet's secret key is encrypted under the PIN, so "has a wallet" and
+/// "has a PIN" are the same thing: a wallet cannot exist without one.
 abstract class WalletService {
-  /// Initialize the BMONI Embedded SDK and establish the security PIN policy.
-  Future<void> initialize({int pinLength = 6, bool requirePin = true});
-
   /// Check whether an on-device wallet keypair has been provisioned.
   Future<bool> hasWallet();
 
-  /// Provision a new on-device Ethereum wallet keypair.
-  Future<String> createWallet();
+  /// Provision a new on-device Stellar keypair protected by [pin]. Returns the account ID.
+  Future<String> createWallet({required String pin});
 
-  /// Retrieve the EIP-55 checksummed public Ethereum address of the wallet.
+  /// Restore a wallet from its recovery key (S... secret seed).
+  Future<String> importWallet({required String recoveryKey, required String pin});
+
+  /// The Stellar account ID (G...) of the wallet, or null.
   Future<String?> getWalletAddress();
 
-  /// Securely delete the on-device wallet keypair from hardware storage.
-  Future<void> deleteWallet({String? pin});
+  /// Securely delete the on-device wallet. Requires the PIN.
+  Future<void> deleteWallet({required String pin});
 
-  /// Check whether a security PIN is currently configured.
+  /// Whether a PIN is configured (true exactly when a wallet exists).
   Future<bool> hasPin();
 
-  /// Persist a new security PIN as a salted PBKDF2 digest.
-  Future<void> setPin(String pin);
-
-  /// Verify whether the provided PIN matches the stored digest without throwing.
+  /// Verify the PIN without throwing on mismatch. Throws [StellarVaultException]
+  /// for lockouts and storage failures.
   Future<bool> matchPin(String pin);
 
-  /// Change the user's security PIN after verifying the current PIN.
+  /// Re-encrypt the wallet under a new PIN.
   Future<void> changePin({required String currentPin, required String newPin});
 
-  /// Remove the stored PIN digest after verifying the current PIN.
-  Future<void> removePin(String currentPin);
+  /// Reveal the recovery key for backup. Requires the PIN.
+  Future<String> exportRecoveryKey({required String pin});
 }
 
-/// Production implementation of [WalletService] backed by `BmoniSdkService` and `bmoni_embedded_sdk`.
-class BmoniWalletService implements WalletService {
-  const BmoniWalletService();
+/// Production implementation backed by [StellarKeyVault].
+class StellarWalletService implements WalletService {
+  final StellarKeyVault? _vaultOverride;
+
+  const StellarWalletService([this._vaultOverride]);
+
+  StellarKeyVault get _vault => _vaultOverride ?? StellarKeyVault.instance;
 
   @override
-  Future<void> initialize({int pinLength = 6, bool requirePin = true}) async {
-    await BmoniSdkService.initialize(
-        pinLength: pinLength, requirePin: requirePin);
-  }
+  Future<bool> hasWallet() => _vault.hasWallet();
 
   @override
-  Future<bool> hasWallet() async {
-    return await BmoniSdkService.hasWallet();
-  }
+  Future<String> createWallet({required String pin}) => _vault.createWallet(pin: pin);
 
   @override
-  Future<String> createWallet() async {
-    return await BmoniSdkService.initWallet();
-  }
+  Future<String> importWallet({required String recoveryKey, required String pin}) =>
+      _vault.importWallet(secretSeed: recoveryKey, pin: pin);
 
   @override
-  Future<String?> getWalletAddress() async {
-    return await BmoniSdkService.walletAddress();
-  }
+  Future<String?> getWalletAddress() => _vault.publicKey();
 
   @override
-  Future<void> deleteWallet({String? pin}) async {
-    await BmoniSdkService.deleteWallet(pin: pin);
-  }
+  Future<void> deleteWallet({required String pin}) => _vault.deleteWallet(pin: pin);
 
   @override
-  Future<bool> hasPin() async {
-    return await BmoniSdkService.hasPin();
-  }
+  Future<bool> hasPin() => _vault.hasWallet();
 
   @override
-  Future<void> setPin(String pin) async {
-    await BmoniSdkService.setPin(pin);
-  }
+  Future<bool> matchPin(String pin) => _vault.verifyPin(pin);
 
   @override
-  Future<bool> matchPin(String pin) async {
-    return await BmoniSdkService.matchPin(pin);
-  }
+  Future<void> changePin({required String currentPin, required String newPin}) =>
+      _vault.changePin(currentPin: currentPin, newPin: newPin);
 
   @override
-  Future<void> changePin(
-      {required String currentPin, required String newPin}) async {
-    await BmoniSdkService.changePin(currentPin: currentPin, newPin: newPin);
-  }
-
-  @override
-  Future<void> removePin(String currentPin) async {
-    await BmoniSdkService.removePin(currentPin);
-  }
+  Future<String> exportRecoveryKey({required String pin}) => _vault.exportRecoveryKey(pin: pin);
 }
 
 /// StateNotifier coordinating on-device wallet lifecycle and UI states.
@@ -171,49 +155,32 @@ class WalletStateNotifier extends StateNotifier<WalletState> {
     loadWalletState();
   }
 
-  /// Refreshes and inspects device hardware state.
+  /// Refreshes and inspects device state.
   Future<void> loadWalletState() async {
     try {
-      final exists = await _walletService.hasWallet();
-      if (!exists) {
-        state = const WalletState.noWallet();
-        return;
-      }
-
       final address = await _walletService.getWalletAddress();
-      final hasPin = await _walletService.hasPin();
-
-      if (address != null) {
-        state = WalletState.ready(address: address, hasPin: hasPin);
-      } else {
-        state = const WalletState.noWallet();
-      }
+      state = address == null ? const WalletState.noWallet() : WalletState.ready(address: address);
     } catch (e) {
       state = WalletState.error(e.toString());
     }
   }
 
-  /// Provisions a new on-device wallet and optionally sets PIN.
-  Future<String?> createWallet({String? pin}) async {
+  /// Provisions a new on-device wallet protected by [pin].
+  Future<String?> createWallet({required String pin}) async {
     state = const WalletState.creating();
     try {
-      final address = await _walletService.createWallet();
-      if (pin != null && !await _walletService.hasPin()) {
-        await _walletService.setPin(pin);
-      }
-      final hasPin = await _walletService.hasPin();
-      state = WalletState.ready(address: address, hasPin: hasPin);
+      final address = await _walletService.createWallet(pin: pin);
+      state = WalletState.ready(address: address);
       return address;
-    } on BmoniSignerException catch (e) {
-      if (e.errorCode == BmoniSignerErrorCode.walletAlreadyExists) {
-        final existingAddress = await _walletService.getWalletAddress();
-        if (existingAddress != null) {
-          final hasPin = await _walletService.hasPin();
-          state = WalletState.ready(address: existingAddress, hasPin: hasPin);
-          return existingAddress;
+    } on StellarVaultException catch (e) {
+      if (e.code == StellarVaultErrorCode.walletAlreadyExists) {
+        final existing = await _walletService.getWalletAddress();
+        if (existing != null) {
+          state = WalletState.ready(address: existing);
+          return existing;
         }
       }
-      state = WalletState.error('Provisioning failed: ${e.message}');
+      state = WalletState.error('Wallet setup failed: ${e.message}');
       return null;
     } catch (e) {
       state = WalletState.error('Failed to create wallet: $e');
@@ -222,12 +189,12 @@ class WalletStateNotifier extends StateNotifier<WalletState> {
   }
 
   /// Deletes the wallet from device storage and resets state.
-  Future<bool> deleteWallet({String? pin}) async {
+  Future<bool> deleteWallet({required String pin}) async {
     try {
       await _walletService.deleteWallet(pin: pin);
       state = const WalletState.noWallet();
       return true;
-    } on BmoniSignerException catch (e) {
+    } on StellarVaultException catch (e) {
       state = state.copyWith(errorMessage: e.message);
       return false;
     } catch (e) {
@@ -239,7 +206,7 @@ class WalletStateNotifier extends StateNotifier<WalletState> {
 
 /// Riverpod provider for the active [WalletService].
 final walletServiceProvider = Provider<WalletService>((ref) {
-  return const BmoniWalletService();
+  return const StellarWalletService();
 });
 
 /// Riverpod provider for reactive [WalletState].

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flowpay_mobile/core/auth/secure_storage_service.dart';
-import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/repositories/employee_repository.dart';
@@ -12,10 +11,6 @@ import 'package:flowpay_mobile/modules/business/employee_onboarding_screen.dart'
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  setUpAll(() async {
-    await BmoniSdkService.initialize();
-  });
 
   setUp(() {
     SecureStorageService.resetMemoryCacheForTesting();

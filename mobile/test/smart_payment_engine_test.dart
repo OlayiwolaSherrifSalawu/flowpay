@@ -12,8 +12,14 @@ import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_activity_repo.dart';
 import 'package:flowpay_mobile/core/providers/demo/demo_wallet_repo.dart';
 import 'package:flowpay_mobile/core/repositories/wallet_repository.dart';
+import 'helpers/test_wallet.dart';
 
 void main() {
+  // Signing needs a real (in-memory) wallet protected by testWalletPin.
+  setUp(() async {
+    await provisionTestWallet();
+  });
+
   group('FLOWPAY — SMART PAYMENT ENGINE & OPERATOR SUITE', () {
     late DemoWalletRepository walletRepo;
     late DemoBeneficiaryRepository beneficiaryRepo;

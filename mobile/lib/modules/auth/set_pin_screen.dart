@@ -5,16 +5,15 @@ import 'package:http/http.dart' as http;
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/auth/secure_storage_service.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/wallet/wallet_service.dart';
 import '../../core/config/api_config.dart';
 import '../../core/design_system/design_system.dart';
 
 /// Dedicated 6-Digit PIN Setup Screen.
 /// Step 3 of the Onboarding Flow: Signup -> KYC -> Set PIN.
-/// Conforms to official BMONI Embedded SDK guidelines:
 /// 1. Asks user to enter and confirm 6-digit PIN.
-/// 2. Provisions on-device wallet keypair via `BmoniSdkService.initWallet()`.
-/// 3. Stores salted PBKDF2 digest in secure hardware storage via `BmoniSdkService.setPin()`.
+/// 2. Creates the user's Stellar keypair on this device, encrypted under that PIN
+///    (see `StellarKeyVault`). The PIN itself is never stored.
 class SetPinScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
   final String? employeeInviteToken;
@@ -99,20 +98,32 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
     setState(() => _isSettingUp = true);
 
     try {
-      // 1. Provision hardware keypair on device via BMONI Embedded SDK
-      final generatedAddress = await BmoniSdkService.initWallet();
+      // 1. Create the Stellar keypair on this device, encrypted under the PIN.
+      //    If this device already holds a wallet, the PIN must unlock it.
+      final walletService = ref.read(walletServiceProvider);
+      final String walletAddr;
+      if (await walletService.hasWallet()) {
+        if (!await walletService.matchPin(_initialPin)) {
+          setState(() {
+            _isSettingUp = false;
+            _errorMessage =
+                'This device already has a FlowPay wallet. Enter that wallet\'s PIN, or remove it from Security settings first.';
+            _initialPin = '';
+            _confirmPin = '';
+            _isConfirming = false;
+          });
+          return;
+        }
+        walletAddr = (await walletService.getWalletAddress())!;
+      } else {
+        walletAddr = await walletService.createWallet(pin: _initialPin);
+      }
+      await ref.read(walletStateProvider.notifier).loadWalletState();
 
-      // 2. Set 6-digit PIN in BMONI SDK (salted PBKDF2 digest in Secure Storage)
-      await BmoniSdkService.setPin(_initialPin);
-
-      // 3. Store fallback PIN and establish active user session
       final storage = ref.read(secureStorageServiceProvider);
-      await storage.setFallbackPin(_initialPin);
 
-      // 4. Register on-device wallet keypair with FlowPay backend
+      // 2. Register the wallet's public account ID with the FlowPay backend.
       try {
-        final walletAddr =
-            await BmoniSdkService.walletAddress() ?? generatedAddress;
         if (!SecureStorageService.isTestEnv) {
           await http.post(
             Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
@@ -130,21 +141,19 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
         debugPrint('[SetPinScreen] register wallet notice: $regErr');
       }
 
-      // 5. Link employee's self-custody wallet to payroll roster if invite flow
+      // 3. Link employee's self-custody wallet to payroll roster if invite flow.
+      bool? employeeLinked;
       if (widget.employeeInviteToken != null &&
           widget.employeeInviteToken!.trim().isNotEmpty) {
+        employeeLinked = false;
         try {
-          final walletAddr =
-              await BmoniSdkService.walletAddress() ?? generatedAddress;
-          final sessionToken = await storage.getAuthToken() ??
-              'flowpay_jwt_${widget.userProfile.userId}';
-
+          final sessionToken = await storage.getAuthToken();
           if (!SecureStorageService.isTestEnv) {
-            await http.post(
+            final res = await http.post(
               Uri.parse('${ApiConfig.baseUrl}/api/employees/link-wallet'),
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer $sessionToken',
+                if (sessionToken != null) 'Authorization': 'Bearer $sessionToken',
                 'x-user-id': widget.userProfile.userId,
               },
               body: jsonEncode({
@@ -154,10 +163,11 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
                 'walletAddress': walletAddr,
                 'requestingUserId': widget.userProfile.userId,
               }),
-            ).timeout(const Duration(seconds: 4));
+            ).timeout(const Duration(seconds: 8));
+            employeeLinked = res.statusCode >= 200 && res.statusCode < 300;
           }
         } catch (linkErr) {
-          debugPrint('[SetPinScreen] link-wallet notice: $linkErr');
+          debugPrint('[SetPinScreen] link-wallet failed: $linkErr');
         }
       }
 
@@ -165,17 +175,19 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       // Log in user and unlock into corresponding shell
       await ref
           .read(appLockStateProvider.notifier)
-          .loginAsPersona(widget.userProfile, pin: _initialPin);
+          .loginAsPersona(widget.userProfile);
 
       if (!mounted) return;
-      if (widget.employeeInviteToken != null) {
+      if (employeeLinked != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            backgroundColor: FlowPayColors.success,
+          SnackBar(
+            backgroundColor: employeeLinked ? FlowPayColors.success : FlowPayColors.warning,
             content: Text(
-              'Hardware wallet linked to corporate payroll! You have full custody of your earnings.',
+              employeeLinked
+                  ? 'Your wallet is linked to your employer\'s payroll. You keep full custody of your earnings.'
+                  : 'Your wallet was created, but we couldn\'t link it to your employer yet. Ask them to resend the invite.',
               style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         );

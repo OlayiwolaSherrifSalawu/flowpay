@@ -1,548 +1,292 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
+import 'package:stellar_flutter_sdk/stellar_flutter_sdk.dart';
+import 'package:flowpay_mobile/core/stellar/stellar_key_vault.dart';
+import 'package:flowpay_mobile/core/stellar/stellar_network.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_service.dart';
 import 'package:flowpay_mobile/core/wallet/wallet_signer.dart';
 import 'package:flowpay_mobile/core/safety/signing_coordinator.dart';
 
-/// In-memory mock wallet service for deterministic unit testing.
+/// In-memory mock wallet service for deterministic notifier tests.
 class MockWalletService implements WalletService {
-  bool _hasWallet = false;
   String? _address;
   String? _pin;
 
   @override
-  Future<void> initialize({int pinLength = 6, bool requirePin = true}) async {}
+  Future<bool> hasWallet() async => _address != null;
 
   @override
-  Future<bool> hasWallet() async => _hasWallet;
-
-  @override
-  Future<String> createWallet() async {
-    if (_hasWallet) {
-      throw const BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.walletAlreadyExists,
-        message: 'Wallet already exists',
-      );
+  Future<String> createWallet({required String pin}) async {
+    if (_address != null) {
+      throw const StellarVaultException(StellarVaultErrorCode.walletAlreadyExists, 'Wallet already exists');
     }
-    _address = '0xMOCK_WALLET_ADDRESS_0001';
-    _hasWallet = true;
+    _address = 'GMOCKWALLETADDRESS0001';
+    _pin = pin;
     return _address!;
   }
+
+  @override
+  Future<String> importWallet({required String recoveryKey, required String pin}) => createWallet(pin: pin);
 
   @override
   Future<String?> getWalletAddress() async => _address;
 
   @override
-  Future<void> deleteWallet({String? pin}) async {
+  Future<void> deleteWallet({required String pin}) async {
+    if (pin != _pin) throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
     _address = null;
-    _hasWallet = false;
+    _pin = null;
   }
 
   @override
   Future<bool> hasPin() async => _pin != null;
 
   @override
-  Future<void> setPin(String pin) async {
-    _pin = pin;
-  }
-
-  @override
   Future<bool> matchPin(String pin) async => _pin == pin;
 
   @override
-  Future<void> changePin(
-      {required String currentPin, required String newPin}) async {
-    if (_pin != currentPin) {
-      throw const BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.pinMismatch,
-        message: 'PIN does not match',
-      );
-    }
+  Future<void> changePin({required String currentPin, required String newPin}) async {
+    if (currentPin != _pin) throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
     _pin = newPin;
   }
 
   @override
-  Future<void> removePin(String currentPin) async {
-    if (_pin != currentPin) {
-      throw const BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.pinMismatch,
-        message: 'PIN does not match',
-      );
-    }
-    _pin = null;
-  }
+  Future<String> exportRecoveryKey({required String pin}) async => 'SMOCK';
+}
+
+class _FailingStore implements VaultStore {
+  @override
+  Future<String?> read(String key) async => null;
+  @override
+  Future<void> write(String key, String value) async => throw Exception('keychain locked');
+  @override
+  Future<void> delete(String key) async {}
+}
+
+StellarKeyVault _vault({DateTime Function()? clock, VaultStore? store}) =>
+    StellarKeyVault(store: store ?? InMemoryVaultStore(), kdfIterations: 1000, clock: clock);
+
+Matcher _vaultError(StellarVaultErrorCode code) =>
+    isA<StellarVaultException>().having((e) => e.code, 'code', code);
+
+String _unsignedPaymentXdr(String sourceAccountId) {
+  final tx = TransactionBuilder(Account(sourceAccountId, BigInt.from(100)))
+      .addOperation(PaymentOperationBuilder(KeyPair.random().accountId, Asset.NATIVE, '1').build())
+      .build();
+  return tx.toEnvelopeXdrBase64();
 }
 
 void main() {
   // ---------------------------------------------------------------------------
-  // WALLET STATE MODEL TESTS
-  // ---------------------------------------------------------------------------
-  group('WalletState — immutable model and named constructors', () {
-    test('.noWallet() has correct defaults', () {
-      const state = WalletState.noWallet();
-
-      expect(state.status, WalletProvisioningStatus.noWallet);
-      expect(state.address, isNull);
-      expect(state.hasPin, isFalse);
-      expect(state.errorMessage, isNull);
-      expect(state.isNoWallet, isTrue);
-      expect(state.isReady, isFalse);
-      expect(state.hasError, isFalse);
+  group('WalletState — immutable model', () {
+    test('.noWallet(), .creating(), .ready(), .error() flags', () {
+      expect(const WalletState.noWallet().isNoWallet, isTrue);
+      expect(const WalletState.creating().isCreating, isTrue);
+      const ready = WalletState.ready(address: 'GABC');
+      expect(ready.isReady, isTrue);
+      expect(ready.hasPin, isTrue, reason: 'a wallet cannot exist without a PIN');
+      expect(const WalletState.error('x').errorMessage, 'x');
     });
 
-    test('.creating() has correct defaults', () {
-      const state = WalletState.creating();
-
-      expect(state.status, WalletProvisioningStatus.creating);
-      expect(state.isCreating, isTrue);
-      expect(state.address, isNull);
-    });
-
-    test('.ready() stores address and optional hasPin', () {
-      const state = WalletState.ready(address: '0xABC', hasPin: true);
-
-      expect(state.status, WalletProvisioningStatus.ready);
-      expect(state.isReady, isTrue);
-      expect(state.address, '0xABC');
-      expect(state.hasPin, isTrue);
-      expect(state.errorMessage, isNull);
-    });
-
-    test('.error() stores errorMessage', () {
-      const state = WalletState.error('Something went wrong');
-
-      expect(state.status, WalletProvisioningStatus.error);
-      expect(state.hasError, isTrue);
-      expect(state.errorMessage, 'Something went wrong');
-      expect(state.address, isNull);
-    });
-
-    test('copyWith() preserves unchanged fields', () {
-      const original = WalletState.ready(address: '0xABC', hasPin: true);
-      final copy = original.copyWith(hasPin: false);
-
-      expect(copy.status, WalletProvisioningStatus.ready);
-      expect(copy.address, '0xABC');
-      expect(copy.hasPin, isFalse);
-    });
-
-    test('copyWith() can override errorMessage', () {
-      const original = WalletState.ready(address: '0xABC');
-      final copy = original.copyWith(errorMessage: 'Device locked');
-
-      expect(copy.errorMessage, 'Device locked');
-      expect(copy.address, '0xABC');
+    test('copyWith() preserves and overrides fields', () {
+      const s = WalletState.ready(address: 'GABC');
+      expect(s.copyWith(errorMessage: 'e').address, 'GABC');
+      expect(s.copyWith(errorMessage: 'e').errorMessage, 'e');
     });
   });
 
   // ---------------------------------------------------------------------------
-  // WALLET STATE NOTIFIER — LIFECYCLE TESTS
-  // ---------------------------------------------------------------------------
-  group('WalletStateNotifier — wallet provisioning lifecycle', () {
-    late MockWalletService mockService;
+  group('WalletStateNotifier — provisioning lifecycle', () {
+    late MockWalletService mock;
     late WalletStateNotifier notifier;
 
     setUp(() {
-      mockService = MockWalletService();
-      notifier = WalletStateNotifier(mockService);
+      mock = MockWalletService();
+      notifier = WalletStateNotifier(mock);
     });
+    tearDown(() => notifier.dispose());
 
-    tearDown(() {
-      notifier.dispose();
-    });
-
-    test('initial state is noWallet when no wallet exists', () async {
-      // WalletStateNotifier calls loadWalletState() in constructor.
-      // Give it a microtask to complete.
+    test('starts as noWallet', () async {
       await Future<void>.delayed(Duration.zero);
       expect(notifier.state.isNoWallet, isTrue);
     });
 
-    test('createWallet() transitions noWallet → creating → ready', () async {
-      await Future<void>.delayed(Duration.zero);
-      expect(notifier.state.isNoWallet, isTrue);
-
-      final address = await notifier.createWallet();
-
-      expect(address, isNotNull);
-      expect(address, '0xMOCK_WALLET_ADDRESS_0001');
-      expect(notifier.state.isReady, isTrue);
-      expect(notifier.state.address, '0xMOCK_WALLET_ADDRESS_0001');
-    });
-
-    test('createWallet() with PIN sets PIN alongside provisioning', () async {
-      await Future<void>.delayed(Duration.zero);
-
+    test('createWallet(pin) → ready', () async {
       final address = await notifier.createWallet(pin: '123456');
-
-      expect(address, isNotNull);
-      expect(notifier.state.isReady, isTrue);
-      expect(notifier.state.hasPin, isTrue);
-    });
-
-    test('createWallet() on existing wallet recovers gracefully', () async {
-      await Future<void>.delayed(Duration.zero);
-
-      // First creation
-      await notifier.createWallet();
-      expect(notifier.state.isReady, isTrue);
-
-      // Second creation: hits walletAlreadyExists and recovers
-      final address = await notifier.createWallet();
-      expect(address, '0xMOCK_WALLET_ADDRESS_0001');
+      expect(address, 'GMOCKWALLETADDRESS0001');
       expect(notifier.state.isReady, isTrue);
     });
 
-    test('deleteWallet() transitions ready → noWallet', () async {
-      await Future<void>.delayed(Duration.zero);
-
-      await notifier.createWallet();
+    test('createWallet() on an existing wallet recovers to ready', () async {
+      await notifier.createWallet(pin: '123456');
+      expect(await notifier.createWallet(pin: '123456'), 'GMOCKWALLETADDRESS0001');
       expect(notifier.state.isReady, isTrue);
+    });
 
-      final success = await notifier.deleteWallet();
-      expect(success, isTrue);
+    test('deleteWallet() needs the right PIN', () async {
+      await notifier.createWallet(pin: '123456');
+      expect(await notifier.deleteWallet(pin: '000000'), isFalse);
+      expect(notifier.state.isReady, isTrue);
+      expect(await notifier.deleteWallet(pin: '123456'), isTrue);
       expect(notifier.state.isNoWallet, isTrue);
-      expect(notifier.state.address, isNull);
-    });
-
-    test('loadWalletState() reflects current device state', () async {
-      await Future<void>.delayed(Duration.zero);
-      expect(notifier.state.isNoWallet, isTrue);
-
-      // Manually provision via the mock
-      await mockService.createWallet();
-      await mockService.setPin('999999');
-
-      // Reload
-      await notifier.loadWalletState();
-
-      expect(notifier.state.isReady, isTrue);
-      expect(notifier.state.address, '0xMOCK_WALLET_ADDRESS_0001');
-      expect(notifier.state.hasPin, isTrue);
     });
   });
 
   // ---------------------------------------------------------------------------
-  // PIN MANAGEMENT — VIA MOCK SERVICE
-  // ---------------------------------------------------------------------------
-  group('WalletService PIN management', () {
-    late MockWalletService service;
+  group('StellarKeyVault — real keys, real encryption', () {
+    test('creates a valid Stellar account ID and persists only ciphertext', () async {
+      final store = InMemoryVaultStore();
+      final vault = _vault(store: store);
+      final accountId = await vault.createWallet(pin: '123456');
 
-    setUp(() {
-      service = MockWalletService();
+      expect(StrKey.isValidStellarAccountId(accountId), isTrue);
+      expect(await vault.publicKey(), accountId);
+      final persisted = store.values.values.join();
+      final seed = await vault.exportRecoveryKey(pin: '123456');
+      expect(persisted.contains(seed), isFalse, reason: 'secret seed must never be stored in plaintext');
+      expect(persisted.contains('123456'), isFalse, reason: 'PIN must never be stored');
     });
 
-    test('hasPin() returns false before any PIN is set', () async {
-      expect(await service.hasPin(), isFalse);
+    test('wrong PIN is rejected; correct PIN verifies', () async {
+      final vault = _vault();
+      await vault.createWallet(pin: '123456');
+      expect(await vault.verifyPin('654321'), isFalse);
+      expect(await vault.verifyPin('123456'), isTrue);
     });
 
-    test('setPin() + hasPin() returns true after setting', () async {
-      await service.setPin('123456');
-      expect(await service.hasPin(), isTrue);
+    test('rejects malformed PINs before touching the key', () async {
+      final vault = _vault();
+      await expectLater(() => vault.createWallet(pin: '12345'), throwsA(_vaultError(StellarVaultErrorCode.pinInvalid)));
+      await expectLater(() => vault.createWallet(pin: 'abcdef'), throwsA(_vaultError(StellarVaultErrorCode.pinInvalid)));
     });
 
-    test('matchPin() validates correct PIN', () async {
-      await service.setPin('654321');
-      expect(await service.matchPin('654321'), isTrue);
-      expect(await service.matchPin('000000'), isFalse);
+    test('refuses to overwrite an existing wallet', () async {
+      final vault = _vault();
+      await vault.createWallet(pin: '123456');
+      await expectLater(() => vault.createWallet(pin: '123456'), throwsA(_vaultError(StellarVaultErrorCode.walletAlreadyExists)));
     });
 
-    test('changePin() requires correct current PIN', () async {
-      await service.setPin('111111');
-
-      // Wrong current PIN throws
-      expect(
-        () => service.changePin(currentPin: '999999', newPin: '222222'),
-        throwsA(isA<BmoniSignerException>()),
-      );
-
-      // Correct current PIN succeeds
-      await service.changePin(currentPin: '111111', newPin: '222222');
-      expect(await service.matchPin('222222'), isTrue);
-      expect(await service.matchPin('111111'), isFalse);
+    test('operations without a wallet fail honestly', () async {
+      await expectLater(() => _vault().verifyPin('123456'), throwsA(_vaultError(StellarVaultErrorCode.noWallet)));
     });
 
-    test('removePin() requires correct PIN and clears state', () async {
-      await service.setPin('123456');
-      expect(await service.hasPin(), isTrue);
+    test('locks out after 5 wrong PINs, escalating, and unlocks after the wait', () async {
+      var now = DateTime(2026, 10, 26, 12);
+      final vault = _vault(clock: () => now);
+      await vault.createWallet(pin: '123456');
 
-      // Wrong PIN throws
-      expect(
-        () => service.removePin('000000'),
-        throwsA(isA<BmoniSignerException>()),
-      );
+      for (var i = 0; i < StellarKeyVault.freeAttempts; i++) {
+        expect(await vault.verifyPin('000000'), isFalse);
+      }
+      // Even the correct PIN is refused during lockout.
+      await expectLater(() => vault.verifyPin('123456'), throwsA(_vaultError(StellarVaultErrorCode.lockedOut)));
 
-      // Correct PIN removes
-      await service.removePin('123456');
-      expect(await service.hasPin(), isFalse);
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // BMONI SDK SERVICE — PRODUCTION WRAPPER (test-env fallback)
-  // ---------------------------------------------------------------------------
-  group('BmoniSdkService — test environment integration', () {
-    setUp(() async {
-      // Reset static state between tests
-      await BmoniSdkService.deleteWallet();
-      try {
-        await BmoniSdkService.removePin('000000');
-      } catch (_) {}
+      now = now.add(const Duration(seconds: 31));
+      expect(await vault.verifyPin('123456'), isTrue, reason: 'lockout expires after 30s');
+      // Success resets the counter.
+      expect(await vault.verifyPin('000000'), isFalse);
+      expect(await vault.verifyPin('123456'), isTrue);
     });
 
-    test('initialize() sets pinLength and requirePin', () {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-      expect(BmoniSdkService.pinLength, 6);
-      expect(BmoniSdkService.requirePin, isTrue);
+    test('changePin re-encrypts: old PIN stops working, same account', () async {
+      final vault = _vault();
+      final id = await vault.createWallet(pin: '123456');
+      await vault.changePin(currentPin: '123456', newPin: '999999');
+      expect(await vault.verifyPin('123456'), isFalse);
+      expect(await vault.verifyPin('999999'), isTrue);
+      expect(await vault.publicKey(), id);
     });
 
-    test('hasWallet() returns false before provisioning', () async {
-      expect(await BmoniSdkService.hasWallet(), isFalse);
+    test('deleteWallet requires the PIN', () async {
+      final vault = _vault();
+      await vault.createWallet(pin: '123456');
+      await expectLater(() => vault.deleteWallet(pin: '000000'), throwsA(_vaultError(StellarVaultErrorCode.pinMismatch)));
+      await vault.deleteWallet(pin: '123456');
+      expect(await vault.hasWallet(), isFalse);
+      expect(await vault.publicKey(), isNull);
     });
 
-    test('initWallet() returns EIP-55 checksummed address', () async {
-      final address = await BmoniSdkService.initWallet();
-      expect(address, startsWith('0x'));
-      expect(address.length, 42); // Standard Ethereum address length
+    test('recovery key export → import restores the same account', () async {
+      final a = _vault();
+      final id = await a.createWallet(pin: '123456');
+      final seed = await a.exportRecoveryKey(pin: '123456');
+
+      final b = _vault();
+      expect(await b.importWallet(secretSeed: seed, pin: '222222'), id);
+      await expectLater(() => _vault().importWallet(secretSeed: 'not-a-seed', pin: '222222'), throwsA(isA<StellarVaultException>()));
     });
 
-    test('walletAddress() returns provisioned address', () async {
-      final provisioned = await BmoniSdkService.initWallet();
-      final queried = await BmoniSdkService.walletAddress();
-      expect(queried, provisioned);
-    });
-
-    test('hasWallet() returns true after provisioning', () async {
-      await BmoniSdkService.initWallet();
-      expect(await BmoniSdkService.hasWallet(), isTrue);
-    });
-
-    test('deleteWallet() removes wallet from device', () async {
-      await BmoniSdkService.initWallet();
-      expect(await BmoniSdkService.hasWallet(), isTrue);
-
-      await BmoniSdkService.deleteWallet();
-      expect(await BmoniSdkService.hasWallet(), isFalse);
-      expect(await BmoniSdkService.walletAddress(), isNull);
-    });
-
-    test('setPin() + hasPin() + matchPin() work correctly', () async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-      expect(await BmoniSdkService.hasPin(), isFalse);
-
-      await BmoniSdkService.setPin('123456');
-      expect(await BmoniSdkService.hasPin(), isTrue);
-      expect(await BmoniSdkService.matchPin('123456'), isTrue);
-      expect(await BmoniSdkService.matchPin('000000'), isFalse);
-    });
-
-    test('setPin() rejects wrong-length PIN', () async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-
-      expect(
-        () => BmoniSdkService.setPin('12'),
-        throwsA(isA<BmoniSignerException>()),
-      );
-    });
-
-    test('changePin() transitions PIN correctly', () async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-
-      await BmoniSdkService.setPin('111111');
-      await BmoniSdkService.changePin(currentPin: '111111', newPin: '222222');
-
-      expect(await BmoniSdkService.matchPin('222222'), isTrue);
-      expect(await BmoniSdkService.matchPin('111111'), isFalse);
-    });
-
-    test('changePin() rejects wrong current PIN', () async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-
-      await BmoniSdkService.setPin('111111');
-
-      expect(
-        () => BmoniSdkService.changePin(currentPin: '999999', newPin: '222222'),
-        throwsA(isA<BmoniSignerException>()),
-      );
-    });
-
-    test('removePin() clears PIN after validation', () async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-
-      await BmoniSdkService.setPin('123456');
-      await BmoniSdkService.removePin('123456');
-
-      expect(await BmoniSdkService.hasPin(), isFalse);
+    test('storage failures propagate (no silent "saved" wallet)', () async {
+      final vault = _vault(store: _FailingStore());
+      await expectLater(() => vault.createWallet(pin: '123456'), throwsA(_vaultError(StellarVaultErrorCode.storageFailure)));
     });
   });
 
   // ---------------------------------------------------------------------------
-  // SIGNING OPERATIONS — BMONI SDK SERVICE
-  // ---------------------------------------------------------------------------
-  group('BmoniSdkService — signing operations', () {
-    setUp(() async {
-      BmoniSdkService.initialize(pinLength: 6, requirePin: true);
-      await BmoniSdkService.initWallet();
-      await BmoniSdkService.setPin('123456');
+  group('StellarWalletSigner — signatures verify against the public key', () {
+    test('signTransactionXdr produces a valid ed25519 signature for this network', () async {
+      final id = await StellarKeyVault.instance.createWallet(pin: '123456');
+      final signed = await const StellarWalletSigner().signTransactionXdr(_unsignedPaymentXdr(id), pin: '123456');
+
+      final tx = AbstractTransaction.fromEnvelopeXdrString(signed) as Transaction;
+      expect(tx.signatures, hasLength(1));
+      final hash = tx.hash(Network(StellarNetwork.current.passphrase));
+      final ok = KeyPair.fromAccountId(id).verify(hash, tx.signatures.first.signature.signature);
+      expect(ok, isTrue);
     });
 
-    tearDown(() async {
-      await BmoniSdkService.deleteWallet();
-      try {
-        await BmoniSdkService.removePin('123456');
-      } catch (_) {}
+    test('signMessage signature verifies; wrong PIN refuses to sign', () async {
+      final id = await StellarKeyVault.instance.createWallet(pin: '123456');
+      const signer = StellarWalletSigner();
+      final sigHex = await signer.signMessage('hello', pin: '123456');
+      final sig = Uint8List.fromList([for (var i = 0; i < sigHex.length; i += 2) int.parse(sigHex.substring(i, i + 2), radix: 16)]);
+      expect(KeyPair.fromAccountId(id).verify(Uint8List.fromList(utf8.encode('hello')), sig), isTrue);
+      await expectLater(() => signer.signMessage('hello', pin: '000000'), throwsA(_vaultError(StellarVaultErrorCode.pinMismatch)));
     });
 
-    test('signMessage() returns hex signature on correct PIN', () async {
-      final sig = await BmoniSdkService.signMessage(
-        'Hello FlowPay',
-        pin: '123456',
-      );
-
-      expect(sig, startsWith('0x'));
-      expect(sig.length, greaterThan(64));
-    });
-
-    test('signMessage() rejects incorrect PIN', () async {
-      expect(
-        () => BmoniSdkService.signMessage('Hello', pin: '000000'),
-        throwsA(isA<BmoniSignerException>()),
-      );
-    });
-
-    test('signTransactionHash() returns hex signature on correct PIN',
-        () async {
-      final hash = '0x${'ab' * 32}'; // 32-byte hash
-      final sig = await BmoniSdkService.signTransactionHash(
-        hash,
-        pin: '123456',
-      );
-
-      expect(sig, startsWith('0x'));
-      expect(sig.length, greaterThan(64));
-    });
-
-    test('signTransactionHash() rejects incorrect PIN', () async {
-      final hash = '0x${'cd' * 32}';
-      expect(
-        () => BmoniSdkService.signTransactionHash(hash, pin: '000000'),
-        throwsA(isA<BmoniSignerException>()),
-      );
-    });
-
-    test('Deterministic: same message + PIN → same signature', () async {
-      final sig1 = await BmoniSdkService.signMessage('Hello', pin: '123456');
-      final sig2 = await BmoniSdkService.signMessage('Hello', pin: '123456');
-      expect(sig1, sig2);
-    });
-
-    test('Different messages → different signatures', () async {
-      final sig1 =
-          await BmoniSdkService.signMessage('Message A', pin: '123456');
-      final sig2 =
-          await BmoniSdkService.signMessage('Message B', pin: '123456');
-      expect(sig1, isNot(sig2));
+    test('signTransactionHash rejects non-hex input', () async {
+      await StellarKeyVault.instance.createWallet(pin: '123456');
+      await expectLater(() => const StellarWalletSigner().signTransactionHash('0xZZ', pin: '123456'), throwsA(isA<StellarVaultException>()));
     });
   });
 
   // ---------------------------------------------------------------------------
-  // WALLET SIGNER — ABSTRACT CONTRACT
-  // ---------------------------------------------------------------------------
-  group('WalletSigner — SigningCancelledException', () {
-    test('toString() formats correctly', () {
-      const e = SigningCancelledException('User tapped cancel');
-      expect(e.toString(), contains('SigningCancelledException'));
-      expect(e.toString(), contains('User tapped cancel'));
+  group('SigningCoordinator — delegation & error propagation', () {
+    test('signs with the injected signer', () async {
+      final sig = await SigningCoordinator.authorizeAndSign(hashToSign: '0xabcd', pin: '123456', signer: _MockWalletSigner());
+      expect(sig, 'MOCK_SIG');
     });
 
-    test('default message is present', () {
-      const e = SigningCancelledException();
-      expect(e.message, contains('cancelled'));
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // ERROR CODE COVERAGE
-  // ---------------------------------------------------------------------------
-  group('BmoniSignerException — error code semantics', () {
-    test('walletAlreadyExists error code is accessible', () {
-      const e = BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.walletAlreadyExists,
-        message: 'Already provisioned',
-      );
-      expect(e.errorCode, BmoniSignerErrorCode.walletAlreadyExists);
-      expect(e.message, 'Already provisioned');
-    });
-
-    test('pinMismatch error code is accessible', () {
-      const e = BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.pinMismatch,
-        message: 'Wrong PIN',
-      );
-      expect(e.errorCode, BmoniSignerErrorCode.pinMismatch);
-    });
-
-    test('pinInvalid error code is accessible', () {
-      const e = BmoniSignerException(
-        errorCode: BmoniSignerErrorCode.pinInvalid,
-        message: 'Invalid length',
-      );
-      expect(e.errorCode, BmoniSignerErrorCode.pinInvalid);
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // SIGNING COORDINATOR & WALLET SIGNER INTEGRATION
-  // ---------------------------------------------------------------------------
-  group('SigningCoordinator — WalletSigner delegation & error propagation', () {
-    test('authorizes and signs using injected WalletSigner', () async {
-      final mockSigner = _MockWalletSigner();
-      final signature = await SigningCoordinator.authorizeAndSign(
-        hashToSign: '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-        pin: '123456',
-        signer: mockSigner,
-      );
-      expect(signature, equals('0xMOCK_SIGNATURE_1C'));
-    });
-
-    test('propagates BmoniSignerException when signing fails (no silent success)', () async {
-      final failingSigner = _FailingWalletSigner();
+    test('propagates signer failures (no silent success)', () async {
       expect(
-        () => SigningCoordinator.authorizeAndSign(
-          hashToSign: '0x1111',
-          pin: '000000',
-          signer: failingSigner,
-        ),
-        throwsA(isA<BmoniSignerException>()),
+        () => SigningCoordinator.authorizeAndSign(hashToSign: '0x1111', pin: '000000', signer: _FailingWalletSigner()),
+        throwsA(isA<StellarVaultException>()),
       );
+    });
+
+    test('SigningCancelledException formats its message', () {
+      expect(const SigningCancelledException().toString(), contains('cancelled'));
     });
   });
 }
 
 class _MockWalletSigner implements WalletSigner {
   @override
-  Future<String> signMessage(String message, {String? pin}) async =>
-      '0xMOCK_SIGNATURE_1B';
-
+  Future<String> signMessage(String message, {required String pin}) async => 'MOCK_SIG';
   @override
-  Future<String> signTransactionHash(String hashHex, {String? pin}) async =>
-      '0xMOCK_SIGNATURE_1C';
+  Future<String> signTransactionHash(String hashHex, {required String pin}) async => 'MOCK_SIG';
+  @override
+  Future<String> signTransactionXdr(String envelopeXdr, {required String pin}) async => 'MOCK_XDR';
 }
 
 class _FailingWalletSigner implements WalletSigner {
+  static const _err = StellarVaultException(StellarVaultErrorCode.signingFailed, 'signing failed');
   @override
-  Future<String> signMessage(String message, {String? pin}) async {
-    throw const BmoniSignerException(
-      errorCode: BmoniSignerErrorCode.signingFailed,
-      message: 'Hardware enclave signing failed',
-    );
-  }
-
+  Future<String> signMessage(String message, {required String pin}) async => throw _err;
   @override
-  Future<String> signTransactionHash(String hashHex, {String? pin}) async {
-    throw const BmoniSignerException(
-      errorCode: BmoniSignerErrorCode.signingFailed,
-      message: 'Hardware enclave signing failed',
-    );
-  }
+  Future<String> signTransactionHash(String hashHex, {required String pin}) async => throw _err;
+  @override
+  Future<String> signTransactionXdr(String envelopeXdr, {required String pin}) async => throw _err;
 }

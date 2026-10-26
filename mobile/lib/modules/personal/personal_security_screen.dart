@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/bmoni_sdk/bmoni_sdk_service.dart';
+import '../../core/stellar/stellar_key_vault.dart';
+import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
@@ -42,16 +43,16 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
 
   Future<void> _checkSecurityState() async {
     setState(() => _isLoading = true);
-    final hasWallet = await BmoniSdkService.hasWallet();
-    final address = await BmoniSdkService.walletAddress();
-    final hasPin = await BmoniSdkService.hasPin();
+    final hasWallet = await StellarKeyVault.instance.hasWallet();
+    final address = await StellarKeyVault.instance.publicKey();
+    final hasPin = await StellarKeyVault.instance.hasWallet();
 
     if (mounted) {
       setState(() {
         _hasWallet = hasWallet || (address != null && address.isNotEmpty);
         _walletAddress = address;
         _hasPin = hasPin;
-        _isSigningAvailable = BmoniSdkService.isInitialized;
+        _isSigningAvailable = true;
         _isLoading = false;
       });
     }
@@ -76,7 +77,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
           'Confirm it\'s you with your PIN',
       onAuthorize: (pin) async {
         try {
-          final sig = await BmoniSdkService.signMessage('FlowPay Security Test',
+          final sig = await const StellarWalletSigner().signMessage('FlowPay Security Test',
               pin: pin);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -353,8 +354,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   children: [
                     Expanded(
                       child: SelectableText(
-                        _walletAddress ??
-                            '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
+                        _walletAddress ?? 'No wallet on this device',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontSize: 12,
@@ -367,11 +367,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     IconButton(
                       icon: const Icon(Icons.copy, size: 16),
                       tooltip: 'Copy address',
-                      onPressed: () => _copyToClipboard(
-                        _walletAddress ??
-                            '0x71C84517C3741Cd1f85D2F2c3e14B9245A009a19',
-                        'Address',
-                      ),
+                      onPressed: _walletAddress == null
+                          ? null
+                          : () => _copyToClipboard(_walletAddress!, 'Address'),
                     ),
                   ],
                 ),

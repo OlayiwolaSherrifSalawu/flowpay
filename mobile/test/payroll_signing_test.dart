@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flowpay_mobile/core/bmoni_sdk/bmoni_sdk_service.dart';
+import 'package:flowpay_mobile/core/wallet/wallet_signer.dart';
+import 'helpers/test_wallet.dart';
 import 'package:flowpay_mobile/core/money/currency.dart';
 import 'package:flowpay_mobile/core/money/money.dart';
 import 'package:flowpay_mobile/core/repositories/payroll_repository.dart';
@@ -77,9 +78,8 @@ class FakeCardRepository implements CardRepository {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() async {
-    await BmoniSdkService.initialize();
-    await BmoniSdkService.setPin('123456');
+  setUp(() async {
+    await provisionTestWallet();
   });
 
   group('Payroll Proposal Hashing & On-Device Signing Verification', () {
@@ -168,8 +168,8 @@ void main() {
       final hash1 = BusinessProvider.computeProposalHash(runId: runId, item: item1);
       final hash2 = BusinessProvider.computeProposalHash(runId: runId, item: item2);
 
-      final sig1 = await BmoniSdkService.signTransactionHash(hash1, pin: '123456');
-      final sig2 = await BmoniSdkService.signTransactionHash(hash2, pin: '123456');
+      final sig1 = await const StellarWalletSigner().signTransactionHash(hash1, pin: '123456');
+      final sig2 = await const StellarWalletSigner().signTransactionHash(hash2, pin: '123456');
 
       expect(sig1, isNot(equals(sig2)),
           reason: 'Signatures for distinct proposals must never be identical');
@@ -209,7 +209,8 @@ void main() {
       final result = await provider.runPayroll(pin: '123456');
       expect(result.status, equals('COMPLETED'));
       expect(mockRepo.lastSignature, isNotNull);
-      expect(mockRepo.lastSignature!.startsWith('0x'), isTrue);
+      expect(mockRepo.lastSignature, matches(RegExp(r'^[0-9a-f]{128}$')),
+          reason: 'ed25519 signature: 64 bytes, hex-encoded');
     });
 
     test('runPayroll() fails loudly with StateError on duplicate proposal hash collision', () async {

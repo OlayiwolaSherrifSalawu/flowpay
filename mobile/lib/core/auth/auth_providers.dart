@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import '../bmoni_sdk/bmoni_sdk_service.dart';
+import '../stellar/stellar_key_vault.dart';
 import 'account_capabilities.dart';
 import 'app_lock_service.dart';
 import 'secure_storage_service.dart';
@@ -342,9 +342,9 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
   Future<void> resetToSignup() async {
     await _storage.resetSession();
     await _ref.read(currentUserProfileProvider.notifier).clearProfile();
-    try {
-      await BmoniSdkService.deleteWallet();
-    } catch (_) {}
+    // The on-device wallet is intentionally KEPT on logout: it holds the user's
+    // Stellar key, and deleting it without a backup would destroy their funds.
+    // Removing it is an explicit, PIN-gated action in Security settings.
     state = state.copyWith(isLocked: true, hasSession: false);
   }
 
@@ -369,7 +369,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
 
     // Register active wallet address with backend
     try {
-      final addr = await BmoniSdkService.walletAddress();
+      final addr = await StellarKeyVault.instance.publicKey();
       if (addr != null && addr.isNotEmpty && !SecureStorageService.isTestEnv) {
         await http.post(
           Uri.parse('${ApiConfig.baseUrl}/api/wallets/register'),
