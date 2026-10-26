@@ -11,8 +11,10 @@ One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, �
 
 [![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-FDDA24?style=for-the-badge&logo=stellar&logoColor=black)](https://stellar.expert/explorer/testnet)
 [![Non-custodial](https://img.shields.io/badge/Keys-On%20device-0F0F0F?style=for-the-badge)](#-security-model)
-[![SEP-10 · SEP-24](https://img.shields.io/badge/SEP-10%20·%2024-00A7B5?style=for-the-badge)](#-what-we-use-from-stellar)
-[![Tests](https://img.shields.io/badge/Tests-274%20passing-12A150?style=for-the-badge)](#-tests)
+[![SEP-1 · 2 · 10 · 24](https://img.shields.io/badge/SEP-1%20·%202%20·%2010%20·%2024-00A7B5?style=for-the-badge)](#-what-we-use-from-stellar)
+[![CI](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml/badge.svg)](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-280%20passing-12A150?style=for-the-badge)](#-tests)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
 
 [**Watch it run**](#-watch-a-real-payroll-run) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
@@ -118,6 +120,8 @@ sequenceDiagram
 | **SEP-10** web authentication | The device proves ownership of its key to the anchor (challenge validated with a 60 s clock-skew grace). The anchor JWT never touches FlowPay's servers. |
 | **SEP-24** interactive deposit/withdraw | "Add money" and "Cash out" through the anchor's own KYC and bank pages ([`testanchor.stellar.org`](https://testanchor.stellar.org), Circle testnet USDC). |
 | **ed25519 message signing** | Passwordless login: the server issues a challenge, the device signs it with the wallet key, and the server issues a session token. |
+| **SEP-1 `stellar.toml`** | Published at `/.well-known/stellar.toml`: FlowPay's federation server, accounts and test assets (marked `status="test"`). The issuer's `home_domain` points at it, so explorers show the assets' names. |
+| **SEP-2 federation** | Opt-in payment addresses: claim `ada` and be paid at `ada*<FlowPay domain>` from any Stellar wallet. Only claimed names resolve, so the server can't be used to discover who has an account. |
 | **Memos** | Payroll and transfer references (≤28 bytes) on every payment. |
 | **Friendbot** | One-tap testnet activation (gated to `STELLAR_NETWORK=testnet`). |
 
@@ -143,7 +147,7 @@ Stellar already has a great tool for bulk payouts: SDF's open-source [Stellar Di
 **Personal**
 - **One wallet, five currencies.** USD · CAD · MXN · GBP · NGN, with balances read live from Horizon.
 - **Send** to a `G…` address, an email, a phone number or a federation address (`name*domain`). Recipient resolution is strict: an ambiguous match is an error, never a guess.
-- **Receive** with your real address and a QR code.
+- **Receive** with a payment address you choose (`ada*<FlowPay domain>`, SEP-2), or your raw address and a QR code.
 - **Convert** between any pair at a live path-payment quote. The quote *is* the transaction you sign.
 - **Money missions.** Describe a rule in plain English ("keep 30%, convert 50% to naira, lock 20% for tax"). FlowPay compiles it into Stellar operations and shows the exact transaction, and you approve it with your PIN. The AI interprets; it never signs.
 - **Bank in/out** through a Stellar anchor (SEP-24), with KYC handled by the anchor.
@@ -208,7 +212,8 @@ flowpay/
 
 | Area | Endpoints |
 | :--- | :--- |
-| Auth | `POST /api/auth/signup` · `/challenge` · `/login` · `/email/send` · `/email/verify` · `GET /capabilities` |
+| Auth | `POST /api/auth/signup` · `/challenge` · `/login` · `/email/send` · `/email/verify` · `GET /capabilities` · `GET/POST /handle` |
+| SEP-1 / SEP-2 (public) | `GET /.well-known/stellar.toml` · `GET /federation?q=…&type=name\|id` |
 | Stellar | `GET /api/stellar/config` · `/accounts/:id` · `/accounts/:id/payments` · `POST /transactions` · `GET /transactions/:hash` |
 | Wallets | `GET /api/wallets` · `/balances` · `/transactions` · `POST /challenge` · `/register` |
 | Transfers | `POST /api/transfers/interpret` · `/recipient` · `/propose` · `/execute` · `GET /rates` |
@@ -234,14 +239,14 @@ cd backend
 npm install
 npm run stellar:bootstrap   # creates YOUR testnet issuer + market maker, issues 5 assets,
                             # seeds 4 liquidity pools, writes keys to backend/.env (gitignored)
-npm run build && npm test   # 95 tests
+npm run build && npm test   # 100 tests
 DATABASE_URL=postgresql://none:none@127.0.0.1:1/none \
 DEV_ECHO_EMAIL_CODES=true PORT=4000 npm start       # in-memory DB, email codes echoed (dev only)
 
 # 2 · App (new terminal)
 cd mobile
 flutter pub get
-flutter test                # 179 tests
+flutter test                # 180 tests
 flutter run -d chrome --dart-define=FLOWPAY_API_URL=http://localhost:4000
 ```
 
@@ -263,6 +268,7 @@ cd mobile  && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test
 | `STELLAR_HORIZON_URL`, `STELLAR_FRIENDBOT_URL` | Override the endpoints |
 | `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`, `STELLAR_DISTRIBUTOR_SECRET` | Written by `stellar:bootstrap`. Never commit them. |
 | `STELLAR_ASSET_USD` … `_NGN` | Optional per-asset `CODE:ISSUER` overrides (e.g. real anchored assets on mainnet) |
+| `FLOWPAY_HOME_DOMAIN` | Domain for `stellar.toml` and payment addresses (`name*domain`). Defaults to the host serving the request. |
 | `FLOWPAY_JWT_SECRET` | **Required in production** (≥32 random chars) |
 | `DATABASE_URL` | Postgres. An unreachable URL means in-memory mode. |
 | `DEV_ECHO_EMAIL_CODES` | `true` returns verification codes in API responses. Refused when `NODE_ENV=production`. |
@@ -272,7 +278,7 @@ cd mobile  && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test
 
 Mobile `--dart-define`s: `FLOWPAY_API_URL`, `STELLAR_NETWORK`.
 
-Database: schema changes for the Stellar migration are in `backend/prisma/sql/2026-10-26_*.sql`. Apply them in order before deploying against an existing database.
+Database: schema changes for the Stellar migration are in `backend/prisma/sql/2026-10-2*_*.sql`. Apply them in order before deploying against an existing database.
 </details>
 
 ---
@@ -281,8 +287,9 @@ Database: schema changes for the Stellar migration are in `backend/prisma/sql/20
 
 | Suite | Count | What it covers |
 | :--- | :--- | :--- |
-| Backend unit (`npm test`) | **95** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens |
-| App (`flutter test`) | **179** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
+| Backend unit (`npm test`) | **100** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens, federation privacy, `stellar.toml` contents |
+| App (`flutter test`) | **180** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
+| CI | every push and PR | Both suites run on GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) |
 | Live testnet (`LIVE_STELLAR=1`) | **6 suites** | Transfers, FX, missions + locked savings, employee invites (impostor → 403, unverified email blocked), multi-country payroll, SEP-10/24 |
 
 ---
