@@ -78,7 +78,8 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => AiFxConversionModal(
         personalProvider: _provider,
-        initialAmount: amount ?? Money.fromMajorString('1000.00', Currency.usd),
+        initialAmount: amount ?? Money.fromMajorString('100.00', Currency.usd),
+        apiClient: widget.appState.isDemo ? null : widget.appState.apiClient,
       ),
     );
   }

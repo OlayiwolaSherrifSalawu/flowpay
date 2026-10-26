@@ -180,8 +180,9 @@ void main() {
 
       // Verify AiFxConversionModal opened
       expect(find.byType(AiFxConversionModal), findsOneWidget);
-      expect(find.text('Instant Currency Exchange'), findsOneWidget);
-      expect(find.text('Low-fee exchange rates'), findsOneWidget);
+      expect(find.text('Convert currency'), findsOneWidget);
+      // Default AppState is demo mode: the modal must say so.
+      expect(find.text('Demo mode — simulated at reference rates.'), findsOneWidget);
       expect(find.text('Convert'), findsOneWidget);
     });
 

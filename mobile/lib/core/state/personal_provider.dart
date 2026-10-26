@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../design_system/states.dart';
-import '../wallet/wallet_signer.dart';
+import '../stellar/stellar_key_vault.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 import '../repositories/activity_repository.dart';
@@ -184,11 +184,10 @@ class PersonalProvider extends ChangeNotifier {
     try {
       final approval = _pendingApprovals.firstWhere((a) => a.id == approvalId);
 
-      // Sign authorization payload on-device via BMONI B-Key SDK
-      await const StellarWalletSigner().signTransactionHash(
-        '0x7e8125a09c2cdc7bedc12253e49e4946c6fff0273034eb485750035d21ad31',
-        pin: pin,
-      );
+      // The PIN must unlock this device's wallet to approve anything.
+      if (!await StellarKeyVault.instance.verifyPin(pin)) {
+        throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+      }
 
       // Execute approval in repository
       final success = await approvalRepo.approveAction(approvalId, pin: pin);

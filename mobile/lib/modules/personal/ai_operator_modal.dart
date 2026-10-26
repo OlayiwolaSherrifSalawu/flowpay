@@ -1,3 +1,5 @@
+import '../../core/stellar/stellar_key_vault.dart';
+import '../../core/financial_operator/services/stellar_execution_provider.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -48,10 +50,12 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       missionRepo: widget.appState.missionRepo,
       activityRepo: widget.appState.activityRepo,
     );
-    final executionProvider = DemoFinancialExecutionProvider(
-      walletRepo: widget.appState.walletRepo,
-      activityRepo: widget.appState.activityRepo,
-    );
+    final FinancialExecutionProvider executionProvider = widget.appState.isDemo
+        ? DemoFinancialExecutionProvider(
+            walletRepo: widget.appState.walletRepo,
+            activityRepo: widget.appState.activityRepo,
+          )
+        : StellarFinancialExecutionProvider(apiClient: widget.appState.apiClient);
 
     _operator = FinancialOperator(
       contextService: contextService,
@@ -181,6 +185,29 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
       final hashToSign = plan.hashToSign ??
           '0x${sha256.convert(utf8.encode(plan.planId)).toString()}';
 
+      if (_operator.executionProvider.settlesAtomically) {
+        // Live: confirm the PIN here (so typos show in the sheet), then the operator
+        // builds, signs and submits ONE Stellar transaction for the whole plan.
+        final pin = await WalletPinAuthSheet.show(
+          context: context,
+          title: 'Confirm payment',
+          subtitle: 'Enter your 6-digit PIN to confirm',
+          amountDisplay: plan.totalDebit.toFormattedString(),
+          recipient: plan.summary,
+          onAuthorize: (pin) async {
+            if (!await StellarKeyVault.instance.verifyPin(pin)) {
+              throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+            }
+            return pin;
+          },
+        );
+        if (pin != null) {
+          await _operator.approveAndExecute(pin: pin);
+          await widget.appState.personalProvider.refresh();
+        }
+        return;
+      }
+
       final signature = await WalletPinAuthSheet.show(
         context: context,
         title: 'Confirm payment',
@@ -188,7 +215,7 @@ class _AiOperatorModalState extends State<AiOperatorModal> {
         amountDisplay: plan.totalDebit.toFormattedString(),
         recipient: plan.summary,
         onAuthorize: (pin) async {
-          // Perform authentic on-device signing via BmoniSdkService
+          // Demo mode: sign the simulated plan hash.
           return await const StellarWalletSigner().signTransactionHash(
             hashToSign,
             pin: pin,

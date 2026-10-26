@@ -237,7 +237,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify PIN entry sheet opens for test execution
-      expect(find.text('Test this rule'), findsOneWidget);
+      expect(find.text('Run this rule now'), findsOneWidget);
 
       // Enter PIN: 123456
       await tester.tap(find.byKey(const Key('pin_key_1')));
@@ -256,7 +256,7 @@ void main() {
       // Verify success snackbar
       expect(
         find.textContaining(
-            '✓ Rule triggered successfully!'),
+            '✓ Rule ran (demo simulation — no real money moved)'),
         findsOneWidget,
       );
     });

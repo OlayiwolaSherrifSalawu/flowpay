@@ -8,17 +8,18 @@ class BmoniApprovalRepository implements ApprovalRepository {
 
   @override
   Future<List<PendingApprovalModel>> getPendingApprovals() async {
-    // In live BMONI, pending approvals are gathered from active proposals
     return [];
   }
 
+  // On Stellar every money movement is approved by signing its transaction, so
+  // there is no separate approval queue. Refuse instead of reporting success.
   @override
   Future<bool> approveAction(String approvalId, {String? pin}) async {
-    return true;
+    throw UnsupportedError('There is no approval queue on Stellar; payments are approved by signing them.');
   }
 
   @override
   Future<bool> rejectAction(String approvalId, {String? reason}) async {
-    return true;
+    throw UnsupportedError('There is no approval queue on Stellar; payments are approved by signing them.');
   }
 }

@@ -40,6 +40,11 @@ class ExecutionResult {
 /// Decouples AI planning from actual underlying blockchain / banking rails.
 abstract class FinancialExecutionProvider {
   Future<ExecutionResult> executePlan(FinancialPlan plan, {required String pin});
+
+  /// True when [executePlan] settles every action of the plan in ONE
+  /// all-or-nothing transaction (live Stellar). The operator then runs the whole
+  /// plan once instead of action by action.
+  bool get settlesAtomically => false;
 }
 
 /// Demo & Sandbox Execution Provider
@@ -52,6 +57,9 @@ class DemoFinancialExecutionProvider implements FinancialExecutionProvider {
     required this.walletRepo,
     this.activityRepo,
   });
+
+  @override
+  bool get settlesAtomically => false;
 
   @override
   Future<ExecutionResult> executePlan(FinancialPlan plan,

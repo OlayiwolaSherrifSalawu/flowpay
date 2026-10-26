@@ -1,5 +1,9 @@
 import '../money/currency.dart';
 
+/// Enum name → backend wire format: `convertFx` → `CONVERT_FX`.
+String wireName(String enumName) =>
+    enumName.replaceAllMapped(RegExp(r'(?<=[a-z0-9])([A-Z])'), (m) => '_${m[1]}').toUpperCase();
+
 enum MissionStatus {
   draft,
   pendingApproval,
@@ -171,7 +175,7 @@ class MissionAllocation {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'category': category.name.toUpperCase(),
+        'category': wireName(category.name),
         'label': label,
         'percentage': percentage,
         'targetCurrency': targetCurrency.code,
@@ -181,7 +185,7 @@ class MissionAllocation {
         if (targetAmountFormatted != null)
           'targetAmountFormatted': targetAmountFormatted,
         'destinationWalletTag': destinationWalletTag,
-        'actionType': actionType.name.toUpperCase(),
+        'actionType': wireName(actionType.name),
         if (recipientIdentifier != null)
           'recipientIdentifier': recipientIdentifier,
       };
@@ -284,7 +288,7 @@ class MissionIntent {
   Map<String, dynamic> toJson() => {
         'intentId': intentId,
         'originalPrompt': originalPrompt,
-        'intentType': intentType.name.toUpperCase(),
+        'intentType': wireName(intentType.name),
         'ruleTitle': ruleTitle,
         'triggerCondition': triggerCondition.toJson(),
         'allocations': allocations.map((a) => a.toJson()).toList(),

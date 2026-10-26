@@ -222,25 +222,62 @@ class DemoMissionRepository implements MissionRepository {
     return ClientMissionInterpreter.interpret(prompt);
   }
 
-  @override
-  Future<Map<String, dynamic>> proposeMission(MissionIntent intent) async {
-    return {
-      'proposalId': 'bmoni_prop_${DateTime.now().millisecondsSinceEpoch}',
-      'missionId': intent.intentId,
-      'hashToSign':
-          '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
-      'signingInstructions':
-          'Authorize autonomous money mission via on-device BMONI B-Key PIN',
-      'allocations': intent.allocations.map((a) => a.toJson()).toList(),
+  // Demo mode: simulated runs, clearly not on any network.
+  MissionRun _demoRun(String missionId) => MissionRun(
+        missionId: missionId,
+        proposalId: 'demo_prop_${DateTime.now().millisecondsSinceEpoch}',
+        hashToSign: '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa',
+      );
+
+  MoneyMissionModel _missionFromIntent(MissionIntent intent) {
+    final rule = switch (intent.intentType) {
+      MissionIntentType.convertFx => MissionRuleType.fxTarget,
+      MissionIntentType.splitIncoming => MissionRuleType.splitIncoming,
+      _ => MissionRuleType.autoSweep,
     };
+    final amt = Money.fromMajorString(intent.triggerCondition.sourceAmount, intent.triggerCondition.sourceCurrency);
+    return MoneyMissionModel(
+      id: intent.intentId,
+      title: intent.ruleTitle,
+      tagline: intent.explanation,
+      ruleType: rule,
+      isActive: false,
+      status: MissionStatus.pendingApproval,
+      stats: '${amt.toFormattedString()} scheduled',
+      conditionSummary: intent.triggerCondition.description,
+      actionSummary: intent.explanation,
+      targetCurrency: intent.triggerCondition.sourceCurrency,
+      thresholdAmount: amt,
+      allocations: intent.allocations,
+      nextExecution: 'On trigger',
+      createdAt: DateTime.now(),
+    );
   }
+
+  @override
+  Future<MissionRun> proposeMission(MissionIntent intent) async {
+    _missions.removeWhere((m) => m.id == intent.intentId);
+    _missions.insert(0, _missionFromIntent(intent));
+    return _demoRun(intent.intentId);
+  }
+
+  @override
+  Future<MissionRun> prepareRun(String missionId) async => _demoRun(missionId);
 
   @override
   Future<Map<String, dynamic>> executeMission({
     required String missionId,
-    required String signature,
-    bool pinValidated = true,
+    String? proposalId,
+    String? signedPayload,
   }) async {
+    final existing = _missions.indexWhere((m) => m.id == missionId);
+    final movesMoney = existing != -1 &&
+        _missions[existing].allocations.any((a) => a.actionType != MissionActionType.hold);
+    if (existing != -1 && (_missions[existing].isActive || (proposalId != null && movesMoney))) {
+      // Mirrors live: activating a money-moving rule submits its first run.
+      await _simulateRun(missionId);
+      return {'status': 'ACTIVE', 'transactionHash': 'demo_tx_${DateTime.now().millisecondsSinceEpoch}'};
+    }
     // Simulate on-device B-Key signing and BMONI settlement
     final idx = _missions.indexWhere((m) => m.id == missionId);
     if (idx != -1) {
@@ -296,13 +333,13 @@ class DemoMissionRepository implements MissionRepository {
       'status': 'ACTIVE',
       'executedAt': DateTime.now().toIso8601String(),
       'transactionReference': txRef,
+      'transactionHash': txRef,
       'summary':
           'Mission successfully authorized, signed with B-Key PIN, and executed on BMONI rails.',
     };
   }
 
-  @override
-  Future<MoneyMissionModel> triggerManualExecution(String id) async {
+  Future<MoneyMissionModel> _simulateRun(String id) async {
     final idx = _missions.indexWhere((m) => m.id == id);
     if (idx != -1) {
       final current = _missions[idx];

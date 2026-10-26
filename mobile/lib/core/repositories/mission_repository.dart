@@ -94,17 +94,47 @@ class MoneyMissionModel {
   }
 }
 
+/// One run of a mission, ready for the user to approve.
+///
+/// Live: [signPayload] is the unsigned Stellar transaction carrying every money
+/// movement of this run (one atomic transaction). Demo: [hashToSign] is a
+/// simulated payload. A run that moves no money (all HOLD) has neither.
+class MissionRun {
+  final String missionId;
+  final String? proposalId;
+  final String? signPayload;
+  final String? hashToSign;
+  final List<Map<String, dynamic>> legs;
+
+  const MissionRun({
+    required this.missionId,
+    this.proposalId,
+    this.signPayload,
+    this.hashToSign,
+    this.legs = const [],
+  });
+
+  bool get movesMoney => proposalId != null;
+}
+
 abstract class MissionRepository {
   Future<List<MoneyMissionModel>> getMissions();
   Future<MoneyMissionModel> toggleMission(String id);
   Future<MoneyMissionModel> createMission(MoneyMissionModel mission);
   Future<MissionIntent> interpretMission(String prompt);
-  Future<Map<String, dynamic>> proposeMission(MissionIntent intent);
+
+  /// Saves the rule and prepares its first run.
+  Future<MissionRun> proposeMission(MissionIntent intent);
+
+  /// Prepares a new run of an existing rule.
+  Future<MissionRun> prepareRun(String missionId);
+
+  /// Activates the rule and submits the signed run (if it moves money).
+  /// Returns `status`, `transactionHash`, `explorerUrl`.
   Future<Map<String, dynamic>> executeMission({
     required String missionId,
-    required String signature,
-    bool pinValidated = true,
+    String? proposalId,
+    String? signedPayload,
   });
-  Future<MoneyMissionModel> triggerManualExecution(String id);
   Future<bool> deleteMission(String id);
 }

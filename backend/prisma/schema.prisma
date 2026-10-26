@@ -253,6 +253,8 @@ model PayrollItem {
 
 model MoneyMission {
   id               String            @id
+  // Owner of the rule. Nullable only for legacy rows created before 2026-10-26.
+  userId           String?           @map("user_id")
   title            String
   description      String
   ruleType         String            @map("rule_type") // 'AUTO_SWEEP', 'SPEND_CAP', 'EMERGENCY_RESERVE', 'FX_TARGET'
@@ -263,6 +265,7 @@ model MoneyMission {
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   pendingApprovals PendingApproval[]
 
+  @@index([userId], name: "idx_money_missions_user_id")
   @@map("money_missions")
 }
 

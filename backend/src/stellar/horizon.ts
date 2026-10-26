@@ -26,6 +26,7 @@ export interface HorizonGateway {
   submitTransaction(tx: Transaction | FeeBumpTransaction): Promise<Horizon.HorizonApi.SubmitTransactionResponse>;
   getTransaction(hash: string): Promise<{ hash: string; ledger: number; successful: boolean }>;
   strictReceivePaths(sourceAssets: Asset[], destinationAsset: Asset, destinationAmount: string): Promise<PathQuote[]>;
+  strictSendPaths(sourceAsset: Asset, sourceAmount: string, destinationAssets: Asset[]): Promise<PathQuote[]>;
   fetchBaseFee(): Promise<number>;
 }
 
@@ -136,6 +137,22 @@ export class SdkHorizonGateway implements HorizonGateway {
     }));
   }
 
+  async strictSendPaths(sourceAsset: Asset, sourceAmount: string, destinationAssets: Asset[]): Promise<PathQuote[]> {
+    const page = await this.server.strictSendPaths(sourceAsset, sourceAmount, destinationAssets).call();
+    return page.records.map((r) => ({
+      sourceAsset: {
+        code: r.source_asset_type === 'native' ? 'XLM' : r.source_asset_code,
+        issuer: r.source_asset_type === 'native' ? null : r.source_asset_issuer,
+      },
+      sourceAmount: r.source_amount,
+      destinationAmount: r.destination_amount,
+      path: r.path.map((p) => ({
+        code: p.asset_type === 'native' ? 'XLM' : p.asset_code,
+        issuer: p.asset_type === 'native' ? null : p.asset_issuer,
+      })),
+    }));
+  }
+
   fetchBaseFee() {
     return this.server.fetchBaseFee();
   }
@@ -207,6 +224,14 @@ export class StellarHorizon {
   async quoteStrictReceive(sourceAssets: Asset[], destinationAsset: Asset, destinationAmount: string): Promise<PathQuote[]> {
     try {
       return await this.gateway.strictReceivePaths(sourceAssets, destinationAsset, destinationAmount);
+    } catch (err) {
+      throw mapHorizonError(err);
+    }
+  }
+
+  async quoteStrictSend(sourceAsset: Asset, sourceAmount: string, destinationAssets: Asset[]): Promise<PathQuote[]> {
+    try {
+      return await this.gateway.strictSendPaths(sourceAsset, sourceAmount, destinationAssets);
     } catch (err) {
       throw mapHorizonError(err);
     }

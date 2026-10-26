@@ -2,7 +2,6 @@ import test, { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { MissionInterpreter } from '../ai/mission_interpreter.js';
 import { MissionValidator } from './validator.js';
-import { MoneyMissionService } from './service.js';
 import type { MissionIntent } from './types.js';
 
 describe('Money Missions Flagship Feature Tests', () => {
@@ -131,30 +130,5 @@ describe('Money Missions Flagship Feature Tests', () => {
     const result = MissionValidator.validate(invalidCurrencyIntent);
     assert.strictEqual(result.valid, false);
     assert.ok(result.errors.some((e) => e.includes('unsupported')));
-  });
-
-  it('generates proposal and signing hash payload for valid mission', async () => {
-    const { intent } = await MissionInterpreter.interpret(flagshipPrompt);
-    const proposal = await MoneyMissionService.proposeMission(intent);
-
-    assert.ok(proposal.proposalId.startsWith('bmoni_prop_'));
-    assert.ok(proposal.missionId.startsWith('mission_'));
-    assert.ok(proposal.hashToSign.startsWith('0x'));
-    assert.strictEqual(proposal.hashToSign.length, 66); // '0x' + 64 hex chars (32 bytes)
-    assert.strictEqual(proposal.allocations.length, 3);
-  });
-
-  it('executes mission with explicit B-Key signature', async () => {
-    const mockSignature = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1c';
-    const execution = await MoneyMissionService.executeMission({
-      missionId: 'mission_test_exec',
-      signature: mockSignature,
-      pinValidated: true,
-    });
-
-    assert.strictEqual(execution.success, true);
-    assert.strictEqual(execution.status, 'ACTIVE');
-    assert.ok(execution.transactionReference.startsWith('bmoni_tx_'));
-    assert.ok(execution.auditId.startsWith('audit_'));
   });
 });

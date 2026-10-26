@@ -19,6 +19,7 @@ import { mailRouter } from './routes/mail.routes.js';
 import { mailService } from './modules/mail/service.js';
 import { banksRouter } from './routes/banks.routes.js';
 import { stellarRouter } from './routes/stellar.routes.js';
+import { paymentsRouter } from './routes/payments.routes.js';
 
 const app = express();
 
@@ -97,6 +98,7 @@ app.use('/api/webhooks', webhookConfigRouter);
 app.use('/api/mail', mailRouter);
 app.use('/api/banks', banksRouter);
 app.use('/api/stellar', stellarRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Top-level invite link route (for web previews and deep links)
 app.use('/invite', (req: Request, res: Response) => {

@@ -8,7 +8,7 @@ import {
 } from '../../core/errors.js';
 import { Money } from '../../core/money.js';
 import { isPostgresDb, prisma } from '../../db/index.js';
-import { recordInMemoryActivity } from '../../routes/activity.routes.js';
+import { newId, recordActivity } from '../activity/record.js';
 import { StellarAccountService, assertAccountId } from '../../stellar/accounts.js';
 import { assetFor, explorerTxUrl, getNetworkConfig, STELLAR_CURRENCIES, type StellarCurrency } from '../../stellar/config.js';
 import { accountForUser, resolveRecipient, userForAccount, type ResolvedRecipient } from '../../stellar/directory.js';
@@ -116,29 +116,6 @@ function toFundingOption(q: FundingQuote, sourceAccountId: string, target: Money
     targetCurrency: target.currency,
   };
 }
-
-async function recordActivity(entry: { id: string; action: string; actor: string; details: Record<string, unknown> }) {
-  const record = {
-    id: entry.id,
-    category: 'PERSONAL',
-    action: entry.action,
-    actor: entry.actor,
-    detailsJson: entry.details,
-    createdAt: new Date().toISOString(),
-  };
-  recordInMemoryActivity(record);
-  if (isPostgresDb()) {
-    try {
-      await prisma.auditActivity.create({
-        data: { id: record.id, category: record.category, action: record.action, actor: record.actor, detailsJson: record.detailsJson as any },
-      });
-    } catch (dbErr: any) {
-      console.warn('[Transfers] activity persistence failed:', dbErr.message);
-    }
-  }
-}
-
-const newId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 export class TransferService {
   /** Natural-language intent → structured intent (AI is advisory; nothing moves here). */

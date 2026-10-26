@@ -1,3 +1,4 @@
+import '../../core/stellar/stellar_key_vault.dart';
 import 'package:flutter/material.dart';
 import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/buttons.dart';
@@ -6,9 +7,7 @@ import '../../core/design_system/states.dart';
 import '../../core/missions/mission_intent.dart';
 import '../../core/missions/mission_validator.dart';
 import '../../core/models/paginated_result.dart';
-import '../../core/money/money.dart';
 import '../../core/navigation/personal_tab_provider.dart';
-import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/mission_repository.dart';
 import '../../core/state/app_state.dart';
 import '../../core/theme/colors.dart';
@@ -154,173 +153,76 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     );
   }
 
+  /// Shows the PIN sheet for a mission run and returns what to submit:
+  /// the signed Stellar transaction (live), a signed demo hash, or 'approved'
+  /// for runs that move no money. Null when the user cancels.
+  Future<String?> _approveRun(MissionRun run, {required String title, required String subtitle, String? amountDisplay}) {
+    return WalletPinAuthSheet.show(
+      context: context,
+      title: title,
+      subtitle: run.movesMoney ? subtitle : '$subtitle\nThis activates the rule; no money moves now.',
+      amountDisplay: amountDisplay,
+      recipient: '',
+      onAuthorize: (pin) async {
+        const signer = StellarWalletSigner();
+        if (run.signPayload != null) return signer.signTransactionXdr(run.signPayload!, pin: pin);
+        if (run.hashToSign != null) return signer.signTransactionHash(run.hashToSign!, pin: pin);
+        if (!await StellarKeyVault.instance.verifyPin(pin)) {
+          throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
+        }
+        return 'approved';
+      },
+    );
+  }
+
   Future<void> _startSigningAndExecutionFlow(MissionIntent intent) async {
     try {
-      // 1. Backend generates proposal & cryptographic hash to sign
-      final proposal = await widget.appState.missionRepo.proposeMission(intent);
-      final hashToSign = proposal['hashToSign']?.toString() ??
-          '0x7f4e912389ab4c10ef9238914ba1238914ab1238914ba1238914ba1238914baa';
-      final missionId = proposal['missionId']?.toString() ?? intent.intentId;
-
+      // 1. Save the rule and build its first run (one atomic transaction).
+      final run = await widget.appState.missionRepo.proposeMission(intent);
       if (!mounted) return;
 
-      // 2. Open B-Key PIN Signing Sheet
-      final signature = await WalletPinAuthSheet.show(
-        context: context,
+      // 2. User reviews and signs on this device.
+      final approval = await _approveRun(
+        run,
         title: 'Approve this rule',
         subtitle: 'You\'re setting up: "${intent.ruleTitle}"',
-        amountDisplay: '\$${intent.triggerCondition.sourceAmount}',
-        recipient: '',
-        onAuthorize: (pin) async {
-          // Hardware enclave signing via BMONI Embedded SDK
-          return await const StellarWalletSigner().signTransactionHash(hashToSign,
-              pin: pin);
-        },
+        amountDisplay: '${intent.triggerCondition.sourceCurrency.symbol}${intent.triggerCondition.sourceAmount}',
+      );
+      if (approval == null || !mounted) return;
+
+      // 3. Activate + submit. Errors propagate to the catch below.
+      final result = await widget.appState.missionRepo.executeMission(
+        missionId: run.missionId,
+        proposalId: run.proposalId,
+        signedPayload: run.movesMoney ? approval : null,
       );
 
-      if (signature != null && mounted) {
-        // 3. Complete execution on backend
-        final result = await widget.appState.missionRepo.executeMission(
-          missionId: missionId,
-          signature: signature,
-          pinValidated: true,
-        );
-
-        // 4. Create and persist active mission item with real intent parameters
-        MissionRuleType rule = MissionRuleType.splitIncoming;
-        if (intent.intentType == MissionIntentType.sendMoney) {
-          rule = MissionRuleType.autoSweep;
-        } else if (intent.intentType == MissionIntentType.saveGoal) {
-          rule = MissionRuleType.autoSweep;
-        } else if (intent.intentType == MissionIntentType.splitIncoming) {
-          rule = MissionRuleType.splitIncoming;
-        } else if (intent.intentType == MissionIntentType.convertFx) {
-          rule = MissionRuleType.fxTarget;
-        }
-
-        final srcCur = intent.triggerCondition.sourceCurrency;
-        final amt = Money.fromMajorString(
-          intent.triggerCondition.sourceAmount,
-          srcCur,
-        );
-
-        final newMission = MoneyMissionModel(
-          id: missionId,
+      await _loadMissions();
+      widget.appState.notifyStateChanged();
+      if (!mounted) return;
+      setState(() {
+        currentIntent = null;
+        processingStage = 0;
+      });
+      final created = missions.firstWhere(
+        (m) => m.id == run.missionId,
+        orElse: () => MoneyMissionModel(
+          id: run.missionId,
           title: intent.ruleTitle,
           tagline: intent.explanation,
-          ruleType: rule,
+          ruleType: MissionRuleType.splitIncoming,
           isActive: true,
-          status: MissionStatus.active,
-          stats: intent.allocations.length > 1
-              ? '${amt.toFormattedString()} scheduled • ${intent.allocations.length} active'
-              : '${amt.toFormattedString()} scheduled',
+          stats: '',
           conditionSummary: intent.triggerCondition.description,
           actionSummary: intent.explanation,
-          targetCurrency: srcCur,
-          thresholdAmount: amt,
-          allocations: intent.allocations,
-          executionCount: 1,
-          executedAmount: amt,
-          lastExecution: 'Just now',
-          nextExecution:
-              'On Incoming Transfer (${amt.toFormattedString()})',
-          createdAt: DateTime.now(),
-        );
-
-        // Persist into repository
-        await widget.appState.missionRepo.createMission(newMission);
-
-        // Check if condition is already satisfied to trigger execution immediately
-        bool conditionMet = false;
-        if (intent.triggerCondition.type == 'BALANCE_THRESHOLD') {
-          try {
-            final wallets = await widget.appState.walletRepo.getWallets();
-            final matchingWallet = wallets.firstWhere(
-              (w) => w.currency == srcCur,
-              orElse: () => wallets.first,
-            );
-            final thresholdMatch =
-                RegExp(r'([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)')
-                    .firstMatch(intent.triggerCondition.description);
-            final thresholdNum = thresholdMatch != null
-                ? double.tryParse(
-                        thresholdMatch.group(1)!.replaceAll(',', '')) ??
-                    0.0
-                : 0.0;
-            if (matchingWallet.balance.majorUnits >= thresholdNum &&
-                matchingWallet.balance.minorUnits >= amt.minorUnits) {
-              conditionMet = true;
-            }
-          } catch (_) {
-            conditionMet = true;
-          }
-        }
-
-        if (conditionMet) {
-          // Debit funding wallet immediately
-          try {
-            final wallets = await widget.appState.walletRepo.getWallets();
-            final matchingWallet = wallets.firstWhere(
-              (w) => w.currency == amt.currency,
-              orElse: () => wallets.first,
-            );
-            if (matchingWallet.balance.minorUnits >= amt.minorUnits) {
-              await widget.appState.walletRepo.debitWallet(
-                walletId: matchingWallet.id,
-                amount: amt,
-              );
-            }
-          } catch (_) {}
-
-          // Record transfer activity
-          final recipient =
-              intent.allocations.first.recipientIdentifier ?? 'Mom';
-          await widget.appState.activityRepo.recordActivity(
-            ActivityModel(
-              id: 'act_msn_${DateTime.now().millisecondsSinceEpoch}',
-              title: 'Transfer to $recipient',
-              description:
-                  'Autonomous execution triggered by ${intent.ruleTitle}',
-              amount: amt,
-              currency: amt.currency,
-              type: ActivityType.transfer,
-              category: ActivityCategory.transfer,
-              counterparty: 'Mary Fashola ($recipient)',
-              status: FlowPayAppStatus.completed,
-              timestamp: DateTime.now(),
-              reference:
-                  'FP-MSN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-              source: 'FlowPay Wallet (${amt.currency.code})',
-              destination: "$recipient's Wallet",
-              fee: Money.zero(amt.currency),
-              exchangeRate: '1 USD = 1.00 USD',
-              bmoniReference: result['transactionReference']?.toString() ??
-                  'rail_tx_active',
-              metadata: {
-                'missionId': missionId,
-                'rule': intent.ruleTitle,
-                'recipient': recipient,
-              },
-            ),
-          );
-        }
-
-        // Notify app state so balances and activity feeds react across all tabs
-        widget.appState.notifyStateChanged();
-
-        setState(() {
-          missions.insert(0, newMission);
-          currentIntent = null;
-          processingStage = 0;
-        });
-
-        _showExecutionCelebrationDialog(newMission, result);
-      }
+        ),
+      );
+      _showExecutionCelebrationDialog(created, result);
     } catch (err) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Signing cancelled or failed: $err'),
+            content: Text('The rule was not activated: $err'),
             backgroundColor: FlowPayColors.error,
           ),
         );
@@ -331,8 +233,7 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
   void _showExecutionCelebrationDialog(
       MoneyMissionModel mission, Map<String, dynamic> result) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final txRef =
-        result['transactionReference']?.toString() ?? 'rail_tx_active';
+    final txRef = result['transactionHash']?.toString() ?? 'No money moved (rule activated)';
 
     showDialog(
       context: context,
@@ -545,39 +446,50 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
     }
   }
 
+  static String _shortHash(dynamic hash) {
+    final h = hash?.toString() ?? '';
+    return h.length >= 8 ? ' (${h.substring(0, 8)}…)' : '';
+  }
+
   Future<void> _handleManualTrigger(String id) async {
     final idx = missions.indexWhere((m) => m.id == id);
     if (idx == -1) return;
     final mission = missions[idx];
 
-    // Show PIN signing sheet for test execution
-    final signature = await WalletPinAuthSheet.show(
-      context: context,
-      title: 'Test this rule',
-      subtitle: 'Test run for "${mission.title}"',
-      amountDisplay: mission.thresholdAmount?.formatFormatted() ?? '\$2,000.00',
-      recipient: '',
-      onAuthorize: (pin) async {
-        return await const StellarWalletSigner().signTransactionHash(
-          '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-          pin: pin,
-        );
-      },
-    );
-
-    if (signature != null && mounted) {
-      final updated =
-          await widget.appState.missionRepo.triggerManualExecution(id);
+    try {
+      final run = await widget.appState.missionRepo.prepareRun(id);
       if (!mounted) return;
-      setState(() {
-        missions[idx] = updated;
-      });
+      if (!run.movesMoney) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This rule only holds funds — there is nothing to send.')),
+        );
+        return;
+      }
+      final signed = await _approveRun(
+        run,
+        title: 'Run this rule now',
+        subtitle: 'Run "${mission.title}" as one Stellar transaction',
+        amountDisplay: mission.thresholdAmount?.formatFormatted(),
+      );
+      if (signed == null || !mounted) return;
 
+      final result = await widget.appState.missionRepo.executeMission(
+        missionId: id,
+        proposalId: run.proposalId,
+        signedPayload: signed,
+      );
+      await _loadMissions();
       widget.appState.notifyStateChanged();
+      if (!mounted) return;
 
+      final pending = result['status'] == 'PENDING';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('✓ Rule triggered successfully!'),
+          content: Text(pending
+              ? 'Submitted — waiting for the Stellar network to confirm.'
+              : widget.appState.isDemo
+                  ? '✓ Rule ran (demo simulation — no real money moved)'
+                  : '✓ Rule ran on Stellar${_shortHash(result['transactionHash'])}'),
           backgroundColor: FlowPayColors.primary,
           action: SnackBarAction(
             label: 'View Activity',
@@ -590,6 +502,11 @@ class _MoneyMissionsScreenState extends State<MoneyMissionsScreen> {
             },
           ),
         ),
+      );
+    } catch (err) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('The rule did not run: $err'), backgroundColor: FlowPayColors.error),
       );
     }
   }
