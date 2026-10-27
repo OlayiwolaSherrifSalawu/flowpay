@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,7 +12,6 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: read
-      packages: read
     defaults:
       run:
         working-directory: mobile
@@ -37,9 +37,6 @@ jobs:
 
       - name: Build Android Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
-        env:
-          USERNAME: ${{ github.actor }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build iOS Release IPA
         run: flutter build ipa --no-codesign
