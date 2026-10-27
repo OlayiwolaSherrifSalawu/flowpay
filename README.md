@@ -10,10 +10,11 @@
 One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, 🇬🇧 UK and 🇳🇬 Nigeria in a **single atomic Stellar transaction**, signed on the employer's phone. FlowPay never holds a key.
 
 [![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-FDDA24?style=for-the-badge&logo=stellar&logoColor=black)](https://stellar.expert/explorer/testnet)
+[![Soroban](https://img.shields.io/badge/Soroban-Payday%20guarantee-B7ACE8?style=for-the-badge)](#-soroban-payday-guarantee)
 [![Non-custodial](https://img.shields.io/badge/Keys-On%20device-0F0F0F?style=for-the-badge)](#-security-model)
 [![SEP-1 · 2 · 10 · 24](https://img.shields.io/badge/SEP-1%20·%202%20·%2010%20·%2024-00A7B5?style=for-the-badge)](#-what-we-use-from-stellar)
 [![CI](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml/badge.svg)](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-280%20passing-12A150?style=for-the-badge)](#-tests)
+[![Tests](https://img.shields.io/badge/Tests-296%20passing-12A150?style=for-the-badge)](#-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
 
@@ -67,9 +68,12 @@ Every row below is a real, successful transaction on **Stellar testnet**. FlowPa
 | **Currency conversion to self.** Exactly $100 → Mex$1,743.53 through a USD/MXN liquidity pool | `path_payment_strict_send` | [`2ee6a07b…`](https://stellar.expert/explorer/testnet/tx/2ee6a07bb8c8a50eadcdf81b5f48f8f3c3d5f611c4541e2264bd0c118857575f) |
 | **Cross-currency send.** The recipient gets exactly ₦10,000; the sender pays $6.47 | `path_payment_strict_receive` | [`14b58a5f…`](https://stellar.expert/explorer/testnet/tx/14b58a5fe2efb34b6e0c12be3036c3ed7b429b7b714396b89fbf877691c2b969) |
 | **Send by email.** $25 to a user looked up by email, resolved to their `G…` account | `payment` | [`24515f8b…`](https://stellar.expert/explorer/testnet/tx/24515f8b517acbfc818b939d05c9aefd4e8074fec9f8303198fae5b8f3a44797) |
+| **Payday guarantee locked on Soroban.** An employer locked $20.11 for two employees in the PayrollVault contract until payday | `invoke_host_function` → `fund` | [`ec382dc0…`](https://stellar.expert/explorer/testnet/tx/ec382dc0d2aaaed5a8e40ca7a9909032ae98d1a2a5e50efd99df159ea915a10e) |
+| **Early claim refused, then claimed on payday.** The contract rejected the employee's claim before payday; after it, she claimed her $10.05 | `claim` | [`c0c02e77…`](https://stellar.expert/explorer/testnet/tx/c0c02e773f76f99f89069e923173401539c472033e6e29bb7f1dc4d6a22a2ffb) |
+| **Released by the employer on payday.** The other salary pushed to its employee (the contract can only pay the recorded employee) | `release` | [`1420c9b8…`](https://stellar.expert/explorer/testnet/tx/1420c9b801be4048c73ff1fae23aa001bb52b5db02f2d810abdc7ebdcc51216b) |
 | **First device-signed transaction.** Trustlines created by a key that exists only on the phone | `change_trust` × 2 | [`e1b1277a…`](https://stellar.expert/explorer/testnet/tx/e1b1277ae1f74f551b15b5b5437b69525596901e0163049b9f21589a60342955) |
 
-FlowPay's testnet treasury: issuer [`GD3JY7…XWN433`](https://stellar.expert/explorer/testnet/account/GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433) · distributor / market maker [`GBX5PM…MOS56`](https://stellar.expert/explorer/testnet/account/GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56).
+PayrollVault contract: [`CC7FY7…3GBSSF`](https://stellar.expert/explorer/testnet/contract/CC7FY73K6K44J5UFOGAPEDGNNF44OOM22LXO7EMGRAXPIQYIKS3GBSSF). FlowPay's testnet treasury: issuer [`GD3JY7…XWN433`](https://stellar.expert/explorer/testnet/account/GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433) · distributor / market maker [`GBX5PM…MOS56`](https://stellar.expert/explorer/testnet/account/GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56).
 
 > Stellar resets testnet periodically. If a link stops resolving, `npm run stellar:bootstrap` plus the live suites recreate everything from scratch. See [Run it yourself](#-run-it-yourself).
 
@@ -120,10 +124,32 @@ sequenceDiagram
 | **SEP-10** web authentication | The device proves ownership of its key to the anchor (challenge validated with a 60 s clock-skew grace). The anchor JWT never touches FlowPay's servers. |
 | **SEP-24** interactive deposit/withdraw | "Add money" and "Cash out" through the anchor's own KYC and bank pages ([`testanchor.stellar.org`](https://testanchor.stellar.org), Circle testnet USDC). |
 | **ed25519 message signing** | Passwordless login: the server issues a challenge, the device signs it with the wallet key, and the server issues a session token. |
+| **Soroban smart contract** | The [payday guarantee](#-soroban-payday-guarantee): an employer locks next payday's payroll; it's paid on payday and can't be pulled back early. |
+| **Stellar Asset Contract** | FlowPay USD wrapped for Soroban, so the contract holds and pays the same asset the app uses. |
 | **SEP-1 `stellar.toml`** | Published at `/.well-known/stellar.toml`: FlowPay's federation server, accounts and test assets (marked `status="test"`). Running `stellar:bootstrap` with `FLOWPAY_HOME_DOMAIN` set points the issuer's `home_domain` at it, so explorers can show the assets' names. |
 | **SEP-2 federation** | Opt-in payment addresses: claim `ada` and be paid at `ada*<FlowPay domain>` from any Stellar wallet. Only claimed names resolve, so the server can't be used to discover who has an account. |
 | **Memos** | Payroll and transfer references (≤28 bytes) on every payment. |
 | **Friendbot** | One-tap testnet activation (gated to `STELLAR_NETWORK=testnet`). |
+
+---
+
+## 🔒 Soroban payday guarantee
+
+Contractors abroad carry the risk of late or missing pay. FlowPay lets an employer **lock next payday's payroll in a Soroban smart contract** ([`contracts/payroll_vault`](contracts/payroll_vault/src/lib.rs)) ahead of time:
+
+- **Employees can verify it.** The app shows "Your pay is guaranteed: $X, unlocks on <date>" with a link to the contract on-chain.
+- **The employer can't take it back early.** Funds unlock at payday. The employer can recover only *unclaimed* salaries, and only 30 days after payday.
+- **It can only go to the right person.** On payday each employee can `claim` their salary, or anyone, such as FlowPay's backend, can `release` it, but the contract only ever pays the employee recorded for it.
+- **Signed on device, like everything else.** The backend simulates the contract call (footprint, fees, auth) and the employer's phone signs it.
+
+| | |
+| :--- | :--- |
+| Contract | Rust, `soroban-sdk` 29, 7 KB WASM; 8 unit tests ([`test.rs`](contracts/payroll_vault/src/test.rs)) |
+| Deployed (testnet) | [`CC7FY73K…`](https://stellar.expert/explorer/testnet/contract/CC7FY73K6K44J5UFOGAPEDGNNF44OOM22LXO7EMGRAXPIQYIKS3GBSSF) holding FlowPay USD through its Stellar Asset Contract |
+| Cost | Funding ≈ 4.5 XLM for a two-person guarantee (mostly storage rent for ~31 days); claim/release ≈ 0.001 XLM |
+| Proven live | Lock → early claim refused → claim on payday → release, with on-chain balances asserted ([`stellar_guarantee_live_test.dart`](mobile/test/live/stellar_guarantee_live_test.dart)) |
+
+**Honest limit:** salaries are reserved and paid in USD. The employee converts to local currency afterwards in the app; converting automatically at release would need an AMM contract call.
 
 ---
 
@@ -150,11 +176,13 @@ Stellar already has a great tool for bulk payouts: SDF's open-source [Stellar Di
 - **Receive** with a payment address you choose (`ada*<FlowPay domain>`, SEP-2), or your raw address and a QR code.
 - **Convert** between any pair at a live path-payment quote. The quote *is* the transaction you sign.
 - **Money missions.** Describe a rule in plain English ("keep 30%, convert 50% to naira, lock 20% for tax"). FlowPay compiles it into Stellar operations and shows the exact transaction, and you approve it with your PIN. The AI interprets; it never signs.
+- **See guaranteed pay** an employer locked for you on Soroban, and claim it on payday.
 - **Bank in/out** through a Stellar anchor (SEP-24), with KYC handled by the anchor.
 
 **Business**
 - **Invite employees by link.** The employee joins with *their own* wallet. Invites are bound to the invited email (verified), single use, and only the SHA-256 hash of the token is stored.
 - **Payroll preview = the real transactions.** It shows who gets paid, the exact local amounts, the worst-case USD cost and the network fee. Employees who can't be paid yet are listed with the reason instead of being dropped silently.
+- **Payday guarantee (Soroban).** Lock next payday's salaries in a smart contract so your team can see their pay is reserved.
 - **Pay-period guard.** Nobody is accidentally paid twice in the same period.
 - **Audit log** of payroll runs, employee payments and wallet operations, each linked to its Stellar transaction.
 
@@ -191,6 +219,7 @@ These rules were earned. This project began on a custodial provider, and the mig
 
 ```
 flowpay/
+├── contracts/payroll_vault/    Soroban (Rust) payday-guarantee contract + tests
 ├── backend/                     Node 20 · TypeScript · Express · Prisma/Postgres (in-memory fallback)
 │   └── src/
 │       ├── stellar/             The Stellar layer: config, horizon (honest error mapping + reconcile),
@@ -221,6 +250,7 @@ flowpay/
 | Missions | `GET/POST /api/missions` · `POST /:id/prepare` · `/:id/execute` |
 | Employees | `GET/POST /api/employees` · `GET /invite/:token` · `POST /invite/:token/accept` · `/:id/resend-invite` · `PATCH /:id` |
 | Payroll | `GET /api/payroll/preview` · `POST /execute` · `GET /runs` · `/runs/:id` |
+| Payday guarantee | `POST /api/payroll/guarantees/propose` · `/execute` · `GET /guarantees` · `/guarantees/mine` · `POST /guarantees/:id/claim` · `/claim/execute` · `/guarantees/:id/release` |
 | Health | `GET /api/health` · `/api/health/stellar` |
 
 `POST` endpoints that submit to the network return **200** COMPLETED, **202** PENDING, or **4xx** FAILED with Horizon `result_codes` translated into plain language.
@@ -239,20 +269,28 @@ cd backend
 npm install
 npm run stellar:bootstrap   # creates YOUR testnet issuer + market maker, issues 5 assets,
                             # seeds 4 liquidity pools, writes keys to backend/.env (gitignored)
-npm run build && npm test   # 100 tests
+npm run build && npm test   # 106 tests
 DATABASE_URL=postgresql://none:none@127.0.0.1:1/none \
 DEV_ECHO_EMAIL_CODES=true PORT=4000 npm start       # in-memory DB, email codes echoed (dev only)
 
 # 2 · App (new terminal)
 cd mobile
 flutter pub get
-flutter test                # 180 tests
+flutter test                # 182 tests
 flutter run -d chrome --dart-define=FLOWPAY_API_URL=http://localhost:4000
 ```
 
 Sign up, choose a PIN and your wallet is created on the device. Activate it to get testnet XLM, trustlines and test USD, and you can send, convert and run payroll for real on testnet.
 
-**Prove it end to end against testnet.** These six suites create users, sign on a device key and assert on-chain balances:
+**Soroban contract (optional):**
+
+```bash
+cargo install --locked stellar-cli     # or: brew install stellar-cli
+cd contracts && cargo test && stellar contract build    # 8 tests, then the WASM
+cd ../backend && npm run stellar:deploy-vault           # deploys + writes STELLAR_PAYROLL_VAULT_ID
+```
+
+**Prove it end to end against testnet.** These seven suites create users, sign on a device key and assert on-chain balances:
 
 ```bash
 cd backend && DATABASE_URL=postgresql://none:none@127.0.0.1:1/none DEV_ECHO_EMAIL_CODES=true PORT=4099 node dist/server.js &
@@ -268,6 +306,7 @@ cd mobile  && LIVE_STELLAR=1 FLOWPAY_API=http://localhost:4099 flutter test test
 | `STELLAR_HORIZON_URL`, `STELLAR_FRIENDBOT_URL` | Override the endpoints |
 | `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`, `STELLAR_DISTRIBUTOR_SECRET` | Written by `stellar:bootstrap`. Never commit them. |
 | `STELLAR_ASSET_USD` … `_NGN` | Optional per-asset `CODE:ISSUER` overrides (e.g. real anchored assets on mainnet) |
+| `SOROBAN_RPC_URL`, `STELLAR_PAYROLL_VAULT_ID` | Soroban RPC (defaults to SDF's testnet RPC) and the deployed PayrollVault (written by `stellar:deploy-vault`) |
 | `FLOWPAY_HOME_DOMAIN` | Domain for `stellar.toml` and payment addresses (`name*domain`). Defaults to the host serving the request. |
 | `FLOWPAY_JWT_SECRET` | **Required in production** (≥32 random chars) |
 | `DATABASE_URL` | Postgres. An unreachable URL means in-memory mode. |
@@ -287,10 +326,11 @@ Database: schema changes for the Stellar migration are in `backend/prisma/sql/20
 
 | Suite | Count | What it covers |
 | :--- | :--- | :--- |
-| Backend unit (`npm test`) | **100** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens, federation privacy, `stellar.toml` contents |
-| App (`flutter test`) | **180** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
+| Soroban contract (`cargo test`) | **8** | Funding rules, no payout before payday, exactly-once claim/release, reclaim only after grace, auth, storage rent window |
+| Backend unit (`npm test`) | **106** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens, federation privacy, `stellar.toml` contents, guarantee proposals and Soroban status mapping |
+| App (`flutter test`) | **182** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
 | CI | every push and PR | Both suites run on GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) |
-| Live testnet (`LIVE_STELLAR=1`) | **6 suites** | Transfers, FX, missions + locked savings, employee invites (impostor → 403, unverified email blocked), multi-country payroll, SEP-10/24 |
+| Live testnet (`LIVE_STELLAR=1`) | **7 suites** | Transfers, FX, missions + locked savings, employee invites (impostor → 403, unverified email blocked), multi-country payroll, SEP-10/24, Soroban payday guarantee |
 
 ---
 
@@ -302,7 +342,8 @@ FlowPay was built so that going live is mostly configuration plus partnerships, 
 - [ ] **Real anchored assets.** Point `STELLAR_ASSET_*` at anchored USDC and local-currency anchors in each corridor (NG, MX, CA, UK)
 - [ ] **SEP-31 + SEP-38** for regulated cross-border payouts with firm quotes, and **SEP-12** for reusable KYC
 - [ ] **Passkey smart wallets (Soroban)** so web users get hardware-backed keys instead of browser storage
-- [ ] **Scheduled payroll** with an on-chain escrow contract, so employers can pre-fund and employees can see the guarantee
+- [x] **Payday guarantee on Soroban**: employers pre-fund, employees see the guarantee ([details](#-soroban-payday-guarantee))
+- [ ] Convert to local currency on release (AMM contract call), and pack salaries into one storage entry to cut rent
 - [ ] Recovery-key backup during onboarding, and a persisted contacts book for plain-English payments
 - [ ] Production deploy (web on Vercel, API on Render), audit, then mainnet
 
@@ -316,6 +357,7 @@ FlowPay was built so that going live is mostly configuration plus partnerships, 
 | M4 employees · M5 atomic payroll · M6 anchors and honest KYC | ✅ |
 | M7 removal of the previous custodial provider · M8 real authentication + end-to-end live tests | ✅ |
 | M9 Stellar-inspired redesign + visual QA | ✅ |
+| M11 Soroban payday guarantee (contract, API, app, live test) | ✅ |
 | M10 public deploy | 🔜 |
 
 The development history and every decision are recorded in [`.agents/skills/stellar/SKILL.md`](.agents/skills/stellar/SKILL.md).
