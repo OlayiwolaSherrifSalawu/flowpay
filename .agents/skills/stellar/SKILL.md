@@ -210,6 +210,20 @@ removed completely.
   * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
         to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
 
+* [ ] **M11 — Soroban payday guarantee** (in progress):
+  * [x] `contracts/payroll_vault` (soroban-sdk 29.0.1, protocol 29): `fund` (employer auth, 1–100 employees, unlock in
+        future) / `claim` (employee auth) / `release` (anyone; only ever pays the recorded employee) / `reclaim` (employer,
+        only 30 days after payday) / `payroll` / `salary`. 7 Rust tests; CI job `contracts`.
+  * [x] Backend `stellar/soroban.ts` (injectable RPC gateway, honest COMPLETED/FAILED/PENDING, plain-language contract
+        errors), `modules/payroll/guarantee_service.ts`, routes `/api/payroll/guarantees/*`; 6 tests. Guarantees are
+        tracked in memory (chain is the source of truth for amounts/paid state).
+  * [x] App: `PaydayGuaranteeSection` (Payroll screen) and `GuaranteedPayCard` (personal dashboard); demo simulation.
+  * [ ] Build wasm (`stellar contract build` — needs stellar-cli ≥25.2; on macOS Monterey use `cargo install --locked
+        stellar-cli`, Homebrew would compile LLVM from source), `npm run stellar:deploy-vault`, live testnet test,
+        README + recording. Render needs `STELLAR_PAYROLL_VAULT_ID` after deploy.
+  * Honest limits: salaries are reserved and paid in USD (the employee converts afterwards); converting on release would
+        need an AMM contract call.
+
 ## 🛠️ 6. Runbook & Verification
 
 ```bash
