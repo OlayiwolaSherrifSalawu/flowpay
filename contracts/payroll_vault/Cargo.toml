@@ -1,0 +1,17 @@
+[package]
+name = "payroll-vault"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "FlowPay payday guarantee: an employer locks a payroll on Soroban; employees claim it on payday."
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
