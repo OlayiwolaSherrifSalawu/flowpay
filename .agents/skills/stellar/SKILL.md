@@ -243,6 +243,11 @@ removed completely.
         Current vault **`CDE7O32BANGSQOZG4BBBKTWOOLM66H6EVALBLGJ3EAF5D7NMMNDJJCYS`** — update Render's
         `STELLAR_PAYROLL_VAULT_ID`. Re-run `--extend-only` within ~60 days if no guarantees are funded meanwhile.
 
+* [x] **Payday-guarantee recording** (`docs/demo/flowpay-guarantee.{gif,mp4}`; fund `a701b364…` 0.025 XLM, claim
+        `91b69720…`). Filming exposed + fixed: `WalletPinAuthSheet` used the light paper colour in dark mode (title
+        white-on-white) — now theme-aware; dashboard balance stale after claiming — `GuaranteedPayCard.onClaimed` refreshes.
+        Testnet-only "In 2 minutes (testnet)" payday choice for demos.
+
 ## 🛠️ 6. Runbook & Verification
 
 ```bash
