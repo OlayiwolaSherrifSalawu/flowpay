@@ -403,7 +403,7 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
               const RecoveryBackupReminder(),
 
               // Salary an employer has locked on Soroban for this user (hidden if none).
-              GuaranteedPayCard(appState: widget.appState),
+              GuaranteedPayCard(appState: widget.appState, onClaimed: _provider.refresh),
 
               // 4. Money Missions Feature Card
               InkWell(
