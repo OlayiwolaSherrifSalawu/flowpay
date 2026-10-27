@@ -8,12 +8,16 @@
  *    classic USD asset can be held by contracts.
  * 2. Uploads the contract WASM and creates a new PayrollVault instance, with the
  *    distributor account as deployer (it only pays fees; it has no special rights).
- * 3. Writes STELLAR_PAYROLL_VAULT_ID to backend/.env.
+ * 3. Pre-pays ~60 days of rent for the contract's code + instance, so the first employer
+ *    to fund a guarantee doesn't pay a one-time warm-up (~4.4 XLM on testnet).
+ * 4. Writes STELLAR_PAYROLL_VAULT_ID to backend/.env.
+ *
+ *   npm run stellar:deploy-vault -- --extend-only   # just top up the existing contract's rent
  */
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Address, Keypair, Operation, TransactionBuilder, rpc, scValToNative, xdr, type Transaction } from '@stellar/stellar-sdk';
+import { Address, Contract, Keypair, Operation, SorobanDataBuilder, TransactionBuilder, rpc, scValToNative, xdr, type Transaction } from '@stellar/stellar-sdk';
 import { env } from '../config/env.js';
 import { assetFor, getNetworkConfig } from './config.js';
 import { PayrollVaultClient } from './soroban.js';
@@ -45,6 +49,34 @@ async function invoke(label: string, signer: Keypair, op: any): Promise<unknown>
   throw new Error(`${label}: not confirmed yet — check ${cfg.explorerBaseUrl}/tx/${sent.hash} before retrying`);
 }
 
+/** Contract code + instance are kept alive this long by the deployer (~60 days). */
+const PREPAID_TTL_LEDGERS = 1_036_800;
+
+async function extendContractTtl(deployer: Keypair, contractId: string, wasmHash: Buffer) {
+  const source = await server.getAccount(deployer.publicKey());
+  const data = new SorobanDataBuilder()
+    .setReadOnly([new Contract(contractId).getFootprint(), xdr.LedgerKey.contractCode(new xdr.LedgerKeyContractCode({ hash: wasmHash }))])
+    .build();
+  const tx = new TransactionBuilder(source, { fee: '1000000', networkPassphrase: cfg.passphrase })
+    .addOperation(Operation.extendFootprintTtl({ extendTo: PREPAID_TTL_LEDGERS }))
+    .setSorobanData(data)
+    .setTimeout(120)
+    .build();
+  const prepared = (await server.prepareTransaction(tx)) as Transaction;
+  prepared.sign(deployer);
+  const sent = await server.sendTransaction(prepared);
+  if (sent.status === 'ERROR') throw new Error(`extend contract rent: rejected (${JSON.stringify(sent.errorResult)})`);
+  for (let i = 0; i < 30; i++) {
+    const res = await server.getTransaction(sent.hash);
+    if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+      return log(`prepay contract rent (~60 days): ✓ ${sent.hash}  ${cfg.explorerBaseUrl}/tx/${sent.hash}`);
+    }
+    if (res.status === rpc.Api.GetTransactionStatus.FAILED) throw new Error(`extend contract rent: failed on-chain (${sent.hash})`);
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  throw new Error(`extend contract rent: not confirmed yet — check ${cfg.explorerBaseUrl}/tx/${sent.hash}`);
+}
+
 function upsertEnv(file: string, key: string, value: string) {
   let text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
   const re = new RegExp(`^${key}=.*$`, 'm');
@@ -57,6 +89,14 @@ async function main() {
   if (!env.STELLAR_DISTRIBUTOR_SECRET) throw new Error('Run `npm run stellar:bootstrap` first (needs STELLAR_DISTRIBUTOR_SECRET).');
   if (!fs.existsSync(WASM)) throw new Error(`Contract not built: ${WASM}\nRun \`stellar contract build\` in contracts/.`);
   const deployer = Keypair.fromSecret(env.STELLAR_DISTRIBUTOR_SECRET);
+  const wasm = fs.readFileSync(WASM);
+  const wasmHash = crypto.createHash('sha256').update(wasm).digest();
+
+  if (process.argv.includes('--extend-only')) {
+    if (!env.STELLAR_PAYROLL_VAULT_ID) throw new Error('No STELLAR_PAYROLL_VAULT_ID to extend.');
+    await extendContractTtl(deployer, env.STELLAR_PAYROLL_VAULT_ID, wasmHash);
+    return;
+  }
 
   // 1) Stellar Asset Contract for USD.
   const usd = assetFor('USD');
@@ -69,22 +109,24 @@ async function main() {
   }
 
   // 2) Upload WASM + create the vault.
-  const wasm = fs.readFileSync(WASM);
-  log(`wasm ${wasm.length} bytes, sha256 ${crypto.createHash('sha256').update(wasm).digest('hex')}`);
+  log(`wasm ${wasm.length} bytes, sha256 ${wasmHash.toString('hex')}`);
   await invoke('upload PayrollVault wasm', deployer, Operation.uploadContractWasm({ wasm }));
   const created = await invoke(
     'create PayrollVault',
     deployer,
     Operation.createCustomContract({
       address: new Address(deployer.publicKey()),
-      wasmHash: crypto.createHash('sha256').update(wasm).digest(),
+      wasmHash,
       salt: crypto.randomBytes(32),
     })
   );
   const contractId = String(created);
   if (!contractId.startsWith('C')) throw new Error(`Unexpected contract id: ${contractId}`);
 
-  // 3) Persist.
+  // 3) Pre-pay the contract's rent so employers never pay a warm-up.
+  await extendContractTtl(deployer, contractId, wasmHash);
+
+  // 4) Persist.
   upsertEnv(path.resolve(process.cwd(), '.env'), 'STELLAR_PAYROLL_VAULT_ID', contractId);
   log(`PayrollVault ${contractId}  ${cfg.explorerBaseUrl}/contract/${contractId}`);
   log(`USD token    ${sacId}`);

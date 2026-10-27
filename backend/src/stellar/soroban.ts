@@ -257,7 +257,8 @@ export class PayrollVaultClient {
       reclaimAfter: Number(v.reclaim_after),
       totalStroops: BigInt(v.total as bigint),
       remainingStroops: BigInt(v.remaining as bigint),
-      employees: (v.employees as unknown[]).map(String),
+      // `salaries` (employee → unpaid amount) decodes to a Map or a plain object.
+      employees: v.salaries instanceof Map ? [...v.salaries.keys()].map(String) : Object.keys((v.salaries ?? {}) as object),
     };
   }
 
