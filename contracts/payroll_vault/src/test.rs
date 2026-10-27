@@ -173,3 +173,16 @@ fn funding_requires_the_employers_signature() {
     let auths = env.auths();
     assert!(auths.iter().any(|(who, _)| who == &employer), "employer authorized the funding");
 }
+
+#[test]
+fn storage_rent_covers_the_reclaim_window_and_no_more() {
+    use soroban_sdk::testutils::storage::Persistent;
+    let s = setup();
+    let id = fund(&s);
+    let ttl = s.env.as_contract(&s.vault.address, || {
+        s.env.storage().persistent().get_ttl(&DataKey::Payroll(id))
+    });
+    let needed = ((7 * DAY + RECLAIM_GRACE_SECONDS) / 5) as u32;
+    assert!(ttl >= needed, "alive through the reclaim window: {ttl} < {needed}");
+    assert!(ttl <= needed + 17_280 + 1, "not rented for longer than needed: {ttl}");
+}

@@ -85,10 +85,25 @@ pub struct PayrollReclaimed {
 #[contract]
 pub struct PayrollVault;
 
-fn bump<K: soroban_sdk::IntoVal<Env, soroban_sdk::Val>>(env: &Env, key: &K) {
-    // Keep entries alive at least until the employer could reclaim (payday + 30 days).
-    let max = env.storage().max_ttl();
-    env.storage().persistent().extend_ttl(key, max / 2, max);
+/// Approximate ledger close time, used to turn seconds into ledgers for storage rent.
+const SECONDS_PER_LEDGER: u64 = 5;
+/// Extra lifetime beyond the reclaim date, so an entry never expires right at the edge.
+const TTL_MARGIN_LEDGERS: u32 = 17_280; // ~1 day
+/// The contract instance (holding only the id counter) is kept alive for ~60 days per funding.
+const INSTANCE_TTL_LEDGERS: u32 = 1_036_800;
+
+/// Ledgers needed to keep an entry alive until `until` (+ margin), capped at the network max.
+/// Renting only what's needed keeps funding cheap (storage rent scales with lifetime).
+fn ledgers_until(env: &Env, until: u64) -> u32 {
+    let secs = until.saturating_sub(env.ledger().timestamp());
+    let needed = (secs / SECONDS_PER_LEDGER).saturating_add(TTL_MARGIN_LEDGERS as u64);
+    needed.min(env.storage().max_ttl() as u64) as u32
+}
+
+fn bump<K: soroban_sdk::IntoVal<Env, soroban_sdk::Val>>(env: &Env, key: &K, until: u64) {
+    // Alive at least until the employer could reclaim (payday + 30 days), and no longer.
+    let ledgers = ledgers_until(env, until);
+    env.storage().persistent().extend_ttl(key, ledgers, ledgers);
 }
 
 fn load(env: &Env, id: u64) -> Payroll {
@@ -135,7 +150,9 @@ impl PayrollVault {
 
         let id: u64 = env.storage().instance().get(&DataKey::NextId).unwrap_or(1);
         env.storage().instance().set(&DataKey::NextId, &(id + 1));
-        env.storage().instance().extend_ttl(env.storage().max_ttl() / 2, env.storage().max_ttl());
+        let instance_ttl = INSTANCE_TTL_LEDGERS.min(env.storage().max_ttl());
+        env.storage().instance().extend_ttl(instance_ttl, instance_ttl);
+        let keep_until = unlock_at.saturating_add(RECLAIM_GRACE_SECONDS);
 
         let mut total: i128 = 0;
         let mut employees = Vec::new(&env);
@@ -149,7 +166,7 @@ impl PayrollVault {
             total = total.checked_add(amount).unwrap_or_else(|| panic_with_error!(&env, Error::Overflow));
             let key = DataKey::Salary(id, employee.clone());
             env.storage().persistent().set(&key, &amount);
-            bump(&env, &key);
+            bump(&env, &key, keep_until);
             employees.push_back(employee);
         }
 
@@ -157,14 +174,14 @@ impl PayrollVault {
             employer: employer.clone(),
             token: token.clone(),
             unlock_at,
-            reclaim_after: unlock_at + RECLAIM_GRACE_SECONDS,
+            reclaim_after: keep_until,
             total,
             remaining: total,
             employees,
         };
         let key = DataKey::Payroll(id);
         env.storage().persistent().set(&key, &payroll);
-        bump(&env, &key);
+        bump(&env, &key, keep_until);
 
         token::Client::new(&env, &token).transfer(&employer, &env.current_contract_address(), &total);
         PayrollFunded { id, employer, total, unlock_at }.publish(&env);
