@@ -283,9 +283,13 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               ),
               const SizedBox(height: 8),
               Text(
-                isExpired
-                    ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
-                    : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
+                _usesPasskey
+                    ? (isExpired
+                        ? 'Your session has expired. Confirm with your passkey to renew it.'
+                        : 'Confirm with your passkey (Face ID / fingerprint) to open FlowPay.')
+                    : isExpired
+                        ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
+                        : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
                 style: TextStyle(
                   fontSize: 13,
                   color: textSecondary,
@@ -393,19 +397,21 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               ],
 
               // ── Primary: Biometric Unlock Button ──
-              FlowPayButton(
-                text: lockState.isAuthenticating
-                    ? 'Verifying...'
-                    : 'Unlock with ${lockState.biometricLabel}',
-                icon: lockState.hasFaceId ? Icons.face : Icons.fingerprint,
-                onPressed: lockState.isAuthenticating
-                    ? null
-                    : () {
-                        ref.read(appLockStateProvider.notifier).authenticate();
-                      },
-              ),
-
-              const SizedBox(height: 10),
+              // (Passkey wallets already unlock with Face ID / fingerprint above.)
+              if (!_usesPasskey) ...[
+                FlowPayButton(
+                  text: lockState.isAuthenticating
+                      ? 'Verifying...'
+                      : 'Unlock with ${lockState.biometricLabel}',
+                  icon: lockState.hasFaceId ? Icons.face : Icons.fingerprint,
+                  onPressed: lockState.isAuthenticating
+                      ? null
+                      : () {
+                          ref.read(appLockStateProvider.notifier).authenticate();
+                        },
+                ),
+                const SizedBox(height: 10),
+              ],
 
               // ── Secondary: Log In to Existing Account ──
               FlowPayButton(

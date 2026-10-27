@@ -345,8 +345,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     : FlowPayColors.warning,
                 showDot: true,
               ),
-              const FlowPayBadge(
-                label: 'AES-256 · PIN-encrypted key',
+              FlowPayBadge(
+                label: _usesPasskey ? 'AES-256 · Passkey-encrypted key' : 'AES-256 · PIN-encrypted key',
                 color: FlowPayColors.primary,
                 showDot: false,
               ),
@@ -641,11 +641,13 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Security PIN',
-                subtitle: _hasPin
-                    ? 'Enabled — your PIN protects all payments'
-                    : 'Not set up — add a PIN to protect your payments',
-                statusText: _hasPin ? 'ENABLED' : 'NOT SET UP',
-                isSuccess: _hasPin,
+                subtitle: _usesPasskey
+                    ? 'Replaced by your passkey'
+                    : _hasPin
+                        ? 'Enabled — your PIN protects all payments'
+                        : 'Not set up — add a PIN to protect your payments',
+                statusText: _usesPasskey ? 'PASSKEY' : _hasPin ? 'ENABLED' : 'NOT SET UP',
+                isSuccess: _usesPasskey || _hasPin,
                 icon: Icons.pin,
               ),
 

@@ -216,7 +216,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Top Security Header
-      expect(find.text('Secured with your PIN'), findsOneWidget);
+      expect(find.text('Secured on this device'), findsOneWidget);
       expect(find.text('Natural Language Entry'), findsOneWidget);
 
       // Natural language text input
