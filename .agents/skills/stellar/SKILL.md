@@ -203,10 +203,13 @@ removed completely.
         locally when sending. Home domain = `FLOWPAY_HOME_DOMAIN` or the request host. App: Receive sheet claims/shows
         `name*domain`. **After deploying**, run `FLOWPAY_HOME_DOMAIN=<render host> npm run stellar:bootstrap` locally to
         set the issuer `home_domain` (idempotent).
-  * Render currently still serves the **pre-migration BMONI build** (`/api/health` reports `bmoniOrigin`;
-        `/api/health/stellar` 404). Deploying needs the owner's Render access: point the service at this branch (or merge),
-        set `FLOWPAY_JWT_SECRET`, `STELLAR_NETWORK`, `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`,
-        `STELLAR_DISTRIBUTOR_SECRET`, and apply the SQL migrations before giving it a reachable `DATABASE_URL`.
+  * [x] **Render is live on the Stellar build** (2026-10-27, `main` @ `1f72d10`, https://flowpay-k2wn.onrender.com):
+        `/api/health` → `stellarNetwork: testnet`, `/.well-known/stellar.toml` + `/federation` public, Soroban vault set.
+        Verified end to end against the deployed API (live transfer suite: `a4303f31…`, `929e79fb…`). Issuer
+        `home_domain` = `flowpay-k2wn.onrender.com` (`6f3c4a0b…`). Render runs without a database (in-memory; data resets
+        on restart/spin-down) — apply `prisma/sql/2026-10-2*_*.sql` before pointing it at Supabase. Render's Mailgun is a
+        sandbox domain (can only email authorised recipients). Note: the service had been deploying a stale commit
+        (`88afd1b`) until `main` was merged; deploys now auto-run from `main`.
   * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
         to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
 
