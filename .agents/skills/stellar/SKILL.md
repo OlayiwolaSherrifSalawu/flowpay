@@ -232,6 +232,17 @@ removed completely.
   * Honest limits: salaries are reserved and paid in USD (the employee converts afterwards); converting on release would
         need an AMM contract call.
 
+* [x] **M12 — Wallet safety & cheaper guarantee**:
+  * Recovery-key backup: `RecoveryKeyBackupScreen` after a NEW wallet at sign-up (confirm by re-typing the last 4 chars;
+        "later" allowed), Security "Recovery key" (SAVED / NOT SAVED, PIN-gated reveal via
+        `RecoveryKeyBackupScreen.revealWithPin`), dashboard `RecoveryBackupReminder`. Vault flag
+        `flowpay_stellar_vault_backed_up` = public key of the backed-up wallet (import ⇒ backed up; delete clears).
+  * PayrollVault v3: salaries in a `Map` inside the single payroll entry (paid → 0). The ~4.4 XLM "funding fee" was a
+        one-time warm-up (contract code+instance rent for 60 days); steady-state funding is **0.024 XLM**
+        (`ffdb831e…`). `stellar:deploy-vault` now pre-pays that rent (ExtendFootprintTTL; `--extend-only` to top up).
+        Current vault **`CDE7O32BANGSQOZG4BBBKTWOOLM66H6EVALBLGJ3EAF5D7NMMNDJJCYS`** — update Render's
+        `STELLAR_PAYROLL_VAULT_ID`. Re-run `--extend-only` within ~60 days if no guarantees are funded meanwhile.
+
 ## 🛠️ 6. Runbook & Verification
 
 ```bash
