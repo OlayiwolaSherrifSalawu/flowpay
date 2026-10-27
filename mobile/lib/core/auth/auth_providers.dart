@@ -313,6 +313,37 @@ class AppLockNotifier extends StateNotifier<AppLockState> {
     }
   }
 
+  /// Passkey wallets: one Face ID / fingerprint prompt both proves the user and
+  /// renews the server session (signing in signs a challenge with the key).
+  /// Only if sign-in can't happen (e.g. offline) is the passkey checked locally.
+  Future<bool> unlockWithPasskey() async {
+    var ok = false;
+    try {
+      final result = await WalletLogin.signIn(pin: StellarKeyVault.passkey);
+      await _storage.saveAuthToken(result.token);
+      ok = true;
+    } on StellarVaultException catch (e) {
+      debugPrint('[AppLock] passkey unlock failed: ${e.message}');
+      return false;
+    } catch (e) {
+      debugPrint('[AppLock] sign-in unavailable, checking passkey locally: $e');
+      try {
+        ok = await _storage.verifyFallbackPin(StellarKeyVault.passkey);
+      } on StellarVaultException {
+        return false;
+      }
+    }
+    if (!ok) return false;
+    await _storage.updateAuthTimestamp();
+    state = state.copyWith(
+      isLocked: false,
+      isAuthExpired: false,
+      showFallbackPin: false,
+      lastResult: AppLockAuthResult.success(),
+    );
+    return true;
+  }
+
   /// Fallback In-App PIN Entry (6 digits)
   Future<bool> verifyFallbackPin(String pin) async {
     final isValid = await _storage.verifyFallbackPin(pin);

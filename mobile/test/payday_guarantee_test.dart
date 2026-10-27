@@ -22,7 +22,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('guarantee_create_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('guarantee_choice_2'))); // in 14 days
+    expect(find.text('In 2 minutes (testnet)'), findsOneWidget, reason: 'testnet-only quick payday');
+    await tester.tap(find.text('In 14 days'));
     await tester.tap(find.byKey(const Key('guarantee_review_button')));
     await tester.pumpAndSettle();
 

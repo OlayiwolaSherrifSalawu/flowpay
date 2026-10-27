@@ -203,10 +203,13 @@ removed completely.
         locally when sending. Home domain = `FLOWPAY_HOME_DOMAIN` or the request host. App: Receive sheet claims/shows
         `name*domain`. **After deploying**, run `FLOWPAY_HOME_DOMAIN=<render host> npm run stellar:bootstrap` locally to
         set the issuer `home_domain` (idempotent).
-  * Render currently still serves the **pre-migration BMONI build** (`/api/health` reports `bmoniOrigin`;
-        `/api/health/stellar` 404). Deploying needs the owner's Render access: point the service at this branch (or merge),
-        set `FLOWPAY_JWT_SECRET`, `STELLAR_NETWORK`, `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`,
-        `STELLAR_DISTRIBUTOR_SECRET`, and apply the SQL migrations before giving it a reachable `DATABASE_URL`.
+  * [x] **Render is live on the Stellar build** (2026-10-27, `main` @ `1f72d10`, https://flowpay-k2wn.onrender.com):
+        `/api/health` → `stellarNetwork: testnet`, `/.well-known/stellar.toml` + `/federation` public, Soroban vault set.
+        Verified end to end against the deployed API (live transfer suite: `a4303f31…`, `929e79fb…`). Issuer
+        `home_domain` = `flowpay-k2wn.onrender.com` (`6f3c4a0b…`). Render runs without a database (in-memory; data resets
+        on restart/spin-down) — apply `prisma/sql/2026-10-2*_*.sql` before pointing it at Supabase. Render's Mailgun is a
+        sandbox domain (can only email authorised recipients). Note: the service had been deploying a stale commit
+        (`88afd1b`) until `main` was merged; deploys now auto-run from `main`.
   * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
         to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
 
@@ -228,6 +231,37 @@ removed completely.
         entry per payroll to cut rent further; convert to local currency on release via an AMM.
   * Honest limits: salaries are reserved and paid in USD (the employee converts afterwards); converting on release would
         need an AMM contract call.
+
+* [x] **M12 — Wallet safety & cheaper guarantee**:
+  * Recovery-key backup: `RecoveryKeyBackupScreen` after a NEW wallet at sign-up (confirm by re-typing the last 4 chars;
+        "later" allowed), Security "Recovery key" (SAVED / NOT SAVED, PIN-gated reveal via
+        `RecoveryKeyBackupScreen.revealWithPin`), dashboard `RecoveryBackupReminder`. Vault flag
+        `flowpay_stellar_vault_backed_up` = public key of the backed-up wallet (import ⇒ backed up; delete clears).
+  * PayrollVault v3: salaries in a `Map` inside the single payroll entry (paid → 0). The ~4.4 XLM "funding fee" was a
+        one-time warm-up (contract code+instance rent for 60 days); steady-state funding is **0.024 XLM**
+        (`ffdb831e…`). `stellar:deploy-vault` now pre-pays that rent (ExtendFootprintTTL; `--extend-only` to top up).
+        Current vault **`CDE7O32BANGSQOZG4BBBKTWOOLM66H6EVALBLGJ3EAF5D7NMMNDJJCYS`** — update Render's
+        `STELLAR_PAYROLL_VAULT_ID`. Re-run `--extend-only` within ~60 days if no guarantees are funded meanwhile.
+
+* [x] **Payday-guarantee recording** (`docs/demo/flowpay-guarantee.{gif,mp4}`; fund `a701b364…` 0.025 XLM, claim
+        `91b69720…`). Filming exposed + fixed: `WalletPinAuthSheet` used the light paper colour in dark mode (title
+        white-on-white) — now theme-aware; dashboard balance stale after claiming — `GuaranteedPayCard.onClaimed` refreshes.
+        Testnet-only "In 2 minutes (testnet)" payday choice for demos.
+
+* [x] **M13 — Passkey key vault (web)** (owner chose this over Soroban smart wallets: contract accounts can't use the
+        classic path payments / pools / claimable balances FlowPay is built on):
+  * `web/passkey.js` (WebAuthn bridge, PRF required at registration) + `core/stellar/passkey/` (`PasskeyAuthenticator`,
+        web impl via `dart:js_interop`, unsupported stub on native). Dart SDK minimum raised to 3.3.
+  * Vault blob v2 `kdf: webauthn-prf-hkdf` (PRF output → HKDF-SHA256 → AES-256-GCM); `enablePasskey` requires saved
+        recovery key + PIN and deletes the PIN-encrypted copy; `disablePasskey` → new PIN. Unlock/sign with the sentinel
+        `StellarKeyVault.passkey` as the `pin` argument (every existing call site works unchanged). Cancels never count as
+        failed attempts.
+  * UI: Security "Face ID / passkey" (only where supported), PIN sheet "Confirm with passkey", lock screen "Unlock with
+        passkey" (one prompt: sign-in both proves the user and renews the session; local check only if offline).
+  * Verified in real Chrome with CDP `WebAuthn.addVirtualAuthenticator({hasPrf:true})`: bridge (32-byte, salt-stable PRF),
+        enable → lock → unlock → $500 testnet payment confirmed by passkey (`1e0c35c4…`). Fixed along the way: FlowPayButton
+        labels overflowed at phone width (now ellipsize); PIN wording/badges/duplicate biometric button in passkey mode.
+  * Native apps still use PIN + OS keychain (PRF on native needs a platform plugin — follow-up).
 
 ## 🛠️ 6. Runbook & Verification
 

@@ -11,6 +11,14 @@ import 'package:flowpay_mobile/core/safety/signing_coordinator.dart';
 
 /// In-memory mock wallet service for deterministic notifier tests.
 class MockWalletService implements WalletService {
+  bool backedUp = false;
+
+  @override
+  Future<bool> isRecoveryKeyBackedUp() async => backedUp;
+
+  @override
+  Future<void> markRecoveryKeyBackedUp() async => backedUp = true;
+
   String? _address;
   String? _pin;
 

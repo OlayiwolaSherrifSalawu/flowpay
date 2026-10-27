@@ -9,7 +9,7 @@
 //! only after a grace period, never before payday.
 
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error, token, Address, Env, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error, token, Address, Env, Map, Vec,
 };
 
 /// Unclaimed salaries stay reserved for 30 days after payday before the employer may reclaim them.
@@ -45,7 +45,9 @@ pub struct Payroll {
     pub total: i128,
     /// Still held by the contract for this payroll.
     pub remaining: i128,
-    pub employees: Vec<Address>,
+    /// Unpaid salary per employee; 0 once paid. Kept inside this one entry
+    /// (instead of an entry per employee) to minimise storage fees.
+    pub salaries: Map<Address, i128>,
 }
 
 #[contracttype]
@@ -53,8 +55,6 @@ pub struct Payroll {
 enum DataKey {
     NextId,
     Payroll(u64),
-    /// Unpaid salary of one employee in one payroll. Removed once paid.
-    Salary(u64, Address),
 }
 
 #[contractevent(topics = ["payroll_funded"])]
@@ -117,14 +117,12 @@ fn pay(env: &Env, id: u64, payroll: &mut Payroll, employee: &Address) -> i128 {
     if env.ledger().timestamp() < payroll.unlock_at {
         panic_with_error!(env, Error::NotUnlocked);
     }
-    let key = DataKey::Salary(id, employee.clone());
-    let amount: i128 = env
-        .storage()
-        .persistent()
-        .get(&key)
-        .unwrap_or_else(|| panic_with_error!(env, Error::NothingToPay));
+    let amount = payroll.salaries.get(employee.clone()).unwrap_or(0);
+    if amount <= 0 {
+        panic_with_error!(env, Error::NothingToPay);
+    }
     // Effects before the external call.
-    env.storage().persistent().remove(&key);
+    payroll.salaries.set(employee.clone(), 0);
     payroll.remaining -= amount;
     env.storage().persistent().set(&DataKey::Payroll(id), payroll);
     token::Client::new(env, &payroll.token).transfer(&env.current_contract_address(), employee, &amount);
@@ -155,19 +153,16 @@ impl PayrollVault {
         let keep_until = unlock_at.saturating_add(RECLAIM_GRACE_SECONDS);
 
         let mut total: i128 = 0;
-        let mut employees = Vec::new(&env);
+        let mut salaries = Map::new(&env);
         for (employee, amount) in entries.iter() {
             if amount <= 0 {
                 panic_with_error!(&env, Error::InvalidAmount);
             }
-            if employees.contains(&employee) {
+            if salaries.contains_key(employee.clone()) {
                 panic_with_error!(&env, Error::DuplicateEmployee);
             }
             total = total.checked_add(amount).unwrap_or_else(|| panic_with_error!(&env, Error::Overflow));
-            let key = DataKey::Salary(id, employee.clone());
-            env.storage().persistent().set(&key, &amount);
-            bump(&env, &key, keep_until);
-            employees.push_back(employee);
+            salaries.set(employee, amount);
         }
 
         let payroll = Payroll {
@@ -177,7 +172,7 @@ impl PayrollVault {
             reclaim_after: keep_until,
             total,
             remaining: total,
-            employees,
+            salaries,
         };
         let key = DataKey::Payroll(id);
         env.storage().persistent().set(&key, &payroll);
@@ -212,8 +207,8 @@ impl PayrollVault {
             panic_with_error!(&env, Error::NothingToPay);
         }
         let amount = payroll.remaining;
-        for employee in payroll.employees.iter() {
-            env.storage().persistent().remove(&DataKey::Salary(id, employee));
+        for (employee, _) in payroll.salaries.clone().iter() {
+            payroll.salaries.set(employee, 0);
         }
         payroll.remaining = 0;
         env.storage().persistent().set(&DataKey::Payroll(id), &payroll);
@@ -228,7 +223,7 @@ impl PayrollVault {
 
     /// The unpaid salary reserved for `employee` in payroll `id` (0 once paid).
     pub fn salary(env: Env, id: u64, employee: Address) -> i128 {
-        env.storage().persistent().get(&DataKey::Salary(id, employee)).unwrap_or(0)
+        load(&env, id).salaries.get(employee).unwrap_or(0)
     }
 }
 

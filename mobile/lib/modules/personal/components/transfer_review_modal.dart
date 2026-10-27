@@ -448,7 +448,7 @@ class TransferReviewModal extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                'Requires your PIN • Only you can approve payments',
+                                'Requires your approval on this device • Only you can approve payments',
                                 style: FlowPayTypography.captionStyle(
                                   color: FlowPayColors.darkTextSecondary,
                                 ),

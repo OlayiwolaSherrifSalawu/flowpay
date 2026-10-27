@@ -1,6 +1,7 @@
 import '../../modules/personal/components/accept_invite_sheet.dart';
 import '../navigation/invite_link.dart';
 import 'package:flutter/material.dart';
+import '../stellar/stellar_key_vault.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../design_system/design_system.dart';
 import '../state/app_state.dart';
@@ -38,11 +39,38 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
   final TextEditingController _pinController = TextEditingController();
   bool _pinError = false;
   bool _hasCheckedInitialPicker = false;
+  /// The wallet is unlocked with a passkey instead of a PIN (web).
+  bool _usesPasskey = false;
+  bool _passkeyBusy = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkPasskeyMode();
+  }
+
+  Future<void> _checkPasskeyMode() async {
+    try {
+      final uses = await StellarKeyVault.instance.usesPasskey();
+      if (mounted && uses != _usesPasskey) setState(() => _usesPasskey = uses);
+    } catch (_) {
+      // Storage unreadable: the PIN field stays, and its errors will say why.
+    }
+  }
+
+  Future<void> _unlockWithPasskey() async {
+    setState(() {
+      _passkeyBusy = true;
+      _pinError = false;
+    });
+    final ok = await ref.read(appLockStateProvider.notifier).unlockWithPasskey();
+    if (mounted) {
+      setState(() {
+        _passkeyBusy = false;
+        _pinError = !ok;
+      });
+    }
   }
 
   @override
@@ -156,6 +184,8 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
   }
 
   Widget _buildLockScreen(BuildContext context, AppLockState lockState) {
+    // The unlock method can change in Security (PIN ↔ passkey) while the app runs.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPasskeyMode());
     final isExpired = lockState.isAuthExpired;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor =
@@ -253,9 +283,13 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               ),
               const SizedBox(height: 8),
               Text(
-                isExpired
-                    ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
-                    : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
+                _usesPasskey
+                    ? (isExpired
+                        ? 'Your session has expired. Confirm with your passkey to renew it.'
+                        : 'Confirm with your passkey (Face ID / fingerprint) to open FlowPay.')
+                    : isExpired
+                        ? 'Your session has expired. Enter your 6-digit PIN, use ${lockState.biometricLabel}, or log in to renew.'
+                        : 'Enter your 6-digit PIN or authenticate via ${lockState.biometricLabel} to access FlowPay.',
                 style: TextStyle(
                   fontSize: 13,
                   color: textSecondary,
@@ -363,19 +397,21 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
               ],
 
               // ── Primary: Biometric Unlock Button ──
-              FlowPayButton(
-                text: lockState.isAuthenticating
-                    ? 'Verifying...'
-                    : 'Unlock with ${lockState.biometricLabel}',
-                icon: lockState.hasFaceId ? Icons.face : Icons.fingerprint,
-                onPressed: lockState.isAuthenticating
-                    ? null
-                    : () {
-                        ref.read(appLockStateProvider.notifier).authenticate();
-                      },
-              ),
-
-              const SizedBox(height: 10),
+              // (Passkey wallets already unlock with Face ID / fingerprint above.)
+              if (!_usesPasskey) ...[
+                FlowPayButton(
+                  text: lockState.isAuthenticating
+                      ? 'Verifying...'
+                      : 'Unlock with ${lockState.biometricLabel}',
+                  icon: lockState.hasFaceId ? Icons.face : Icons.fingerprint,
+                  onPressed: lockState.isAuthenticating
+                      ? null
+                      : () {
+                          ref.read(appLockStateProvider.notifier).authenticate();
+                        },
+                ),
+                const SizedBox(height: 10),
+              ],
 
               // ── Secondary: Log In to Existing Account ──
               FlowPayButton(
@@ -442,6 +478,28 @@ class _AppAuthGateState extends ConsumerState<AppAuthGate>
         isDark ? FlowPayColors.darkTextPrimary : FlowPayColors.ink;
     final textSecondary =
         isDark ? FlowPayColors.darkTextSecondary : FlowPayColors.textSecondary;
+
+    if (_usesPasskey) {
+      return Column(
+        children: [
+          FlowPayButton(
+            key: const Key('lock_unlock_passkey'),
+            text: 'Unlock with passkey',
+            icon: Icons.fingerprint,
+            isLoading: _passkeyBusy,
+            onPressed: _passkeyBusy ? null : _unlockWithPasskey,
+          ),
+          if (_pinError)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                "Couldn't confirm your passkey. Try again.",
+                style: TextStyle(fontSize: 11, color: FlowPayColors.error, fontWeight: FontWeight.w600),
+              ),
+            ),
+        ],
+      );
+    }
 
     return Column(
       children: [

@@ -14,18 +14,19 @@ One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, �
 [![Non-custodial](https://img.shields.io/badge/Keys-On%20device-0F0F0F?style=for-the-badge)](#-security-model)
 [![SEP-1 · 2 · 10 · 24](https://img.shields.io/badge/SEP-1%20·%202%20·%2010%20·%2024-00A7B5?style=for-the-badge)](#-what-we-use-from-stellar)
 [![CI](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml/badge.svg)](https://github.com/flowpay-bmoni/flowpay/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-296%20passing-12A150?style=for-the-badge)](#-tests)
+[![Tests](https://img.shields.io/badge/Tests-309%20passing-12A150?style=for-the-badge)](#-tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
 
-[**Watch it run**](#-watch-a-real-payroll-run) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
+[**Watch it run**](#-watch-a-real-payroll-run) · [**Payday guarantee**](#-soroban-payday-guarantee) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
 
 <br/>
 
 <img src="docs/screenshots/landing.png" width="180" alt="Landing" />&nbsp;
 <img src="docs/screenshots/dashboard.png" width="180" alt="Personal dashboard" />&nbsp;
 <img src="docs/screenshots/wallets.png" width="180" alt="Multi-currency wallets" />&nbsp;
-<img src="docs/screenshots/audit.png" width="180" alt="Business audit log" />
+<img src="docs/screenshots/audit.png" width="180" alt="Business audit log" />&nbsp;
+<img src="docs/screenshots/passkey.png" width="180" alt="Confirm a payment with a passkey" />
 
 <sub>Screens from the app's labelled demo mode. Live mode shows the same UI over your real testnet balances.</sub>
 
@@ -68,12 +69,13 @@ Every row below is a real, successful transaction on **Stellar testnet**. FlowPa
 | **Currency conversion to self.** Exactly $100 → Mex$1,743.53 through a USD/MXN liquidity pool | `path_payment_strict_send` | [`2ee6a07b…`](https://stellar.expert/explorer/testnet/tx/2ee6a07bb8c8a50eadcdf81b5f48f8f3c3d5f611c4541e2264bd0c118857575f) |
 | **Cross-currency send.** The recipient gets exactly ₦10,000; the sender pays $6.47 | `path_payment_strict_receive` | [`14b58a5f…`](https://stellar.expert/explorer/testnet/tx/14b58a5fe2efb34b6e0c12be3036c3ed7b429b7b714396b89fbf877691c2b969) |
 | **Send by email.** $25 to a user looked up by email, resolved to their `G…` account | `payment` | [`24515f8b…`](https://stellar.expert/explorer/testnet/tx/24515f8b517acbfc818b939d05c9aefd4e8074fec9f8303198fae5b8f3a44797) |
-| **Payday guarantee locked on Soroban.** An employer locked $20.11 for two employees in the PayrollVault contract until payday | `invoke_host_function` → `fund` | [`ec382dc0…`](https://stellar.expert/explorer/testnet/tx/ec382dc0d2aaaed5a8e40ca7a9909032ae98d1a2a5e50efd99df159ea915a10e) |
-| **Early claim refused, then claimed on payday.** The contract rejected the employee's claim before payday; after it, she claimed her $10.05 | `claim` | [`c0c02e77…`](https://stellar.expert/explorer/testnet/tx/c0c02e773f76f99f89069e923173401539c472033e6e29bb7f1dc4d6a22a2ffb) |
-| **Released by the employer on payday.** The other salary pushed to its employee (the contract can only pay the recorded employee) | `release` | [`1420c9b8…`](https://stellar.expert/explorer/testnet/tx/1420c9b801be4048c73ff1fae23aa001bb52b5db02f2d810abdc7ebdcc51216b) |
+| **Payday guarantee locked on Soroban.** An employer locked $20.11 for two employees in the PayrollVault contract until payday | `invoke_host_function` → `fund` | [`efe564e0…`](https://stellar.expert/explorer/testnet/tx/efe564e00b097c20946f87b7fe06cdf087bceb6826f56a251de4ee75a299be30) |
+| **Early claim refused, then claimed on payday.** The contract rejected the employee's claim before payday; after it, she claimed her $10.05 | `claim` | [`b3aca055…`](https://stellar.expert/explorer/testnet/tx/b3aca055f9f5a6c790668c0161091d4f9d22b95440c7789239cd0e9d8e5d223a) |
+| **Released by the employer on payday.** The other salary pushed to its employee (the contract can only pay the recorded employee) | `release` | [`4b21ba3a…`](https://stellar.expert/explorer/testnet/tx/4b21ba3add1dbadbd3019438eb06dfa1c629245683e8dba4c1a05e8686cd3599) |
+| **Payment approved with a passkey.** $500 sent from the web app after the user confirmed with their passkey (WebAuthn PRF), with no PIN involved | `payment` | [`1e0c35c4…`](https://stellar.expert/explorer/testnet/tx/1e0c35c4a2e810186c03b7a239bcf0e1a5991e3b9aeec862453355be5e9c0196) |
 | **First device-signed transaction.** Trustlines created by a key that exists only on the phone | `change_trust` × 2 | [`e1b1277a…`](https://stellar.expert/explorer/testnet/tx/e1b1277ae1f74f551b15b5b5437b69525596901e0163049b9f21589a60342955) |
 
-PayrollVault contract: [`CC7FY7…3GBSSF`](https://stellar.expert/explorer/testnet/contract/CC7FY73K6K44J5UFOGAPEDGNNF44OOM22LXO7EMGRAXPIQYIKS3GBSSF). FlowPay's testnet treasury: issuer [`GD3JY7…XWN433`](https://stellar.expert/explorer/testnet/account/GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433) · distributor / market maker [`GBX5PM…MOS56`](https://stellar.expert/explorer/testnet/account/GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56).
+PayrollVault contract: [`CDE7O3…DJJCYS`](https://stellar.expert/explorer/testnet/contract/CDE7O32BANGSQOZG4BBBKTWOOLM66H6EVALBLGJ3EAF5D7NMMNDJJCYS). FlowPay's testnet treasury: issuer [`GD3JY7…XWN433`](https://stellar.expert/explorer/testnet/account/GD3JY73LVFKPRAKV6QYLBKYBTDHP7WFVJQBQZVAWL5WT2FISH6XWN433) · distributor / market maker [`GBX5PM…MOS56`](https://stellar.expert/explorer/testnet/account/GBX5PMNBNNG5SJLK5QZHVLOSCGK6O3RNXJPYNM7JB7XOWQRYAZSMOS56).
 
 > Stellar resets testnet periodically. If a link stops resolving, `npm run stellar:bootstrap` plus the live suites recreate everything from scratch. See [Run it yourself](#-run-it-yourself).
 
@@ -123,6 +125,7 @@ sequenceDiagram
 | **Issued assets + trustlines** | FlowPay-issued test USD/CAD/MXN/GBP/NGN. Codes and issuers are configuration, so mainnet swaps in real anchored assets without code changes. |
 | **SEP-10** web authentication | The device proves ownership of its key to the anchor (challenge validated with a 60 s clock-skew grace). The anchor JWT never touches FlowPay's servers. |
 | **SEP-24** interactive deposit/withdraw | "Add money" and "Cash out" through the anchor's own KYC and bank pages ([`testanchor.stellar.org`](https://testanchor.stellar.org), Circle testnet USDC). |
+| **WebAuthn passkeys (PRF)** | Web wallets can be unlocked and payments confirmed with Face ID / fingerprint; the Stellar key is encrypted under the passkey's PRF secret. |
 | **ed25519 message signing** | Passwordless login: the server issues a challenge, the device signs it with the wallet key, and the server issues a session token. |
 | **Soroban smart contract** | The [payday guarantee](#-soroban-payday-guarantee): an employer locks next payday's payroll; it's paid on payday and can't be pulled back early. |
 | **Stellar Asset Contract** | FlowPay USD wrapped for Soroban, so the contract holds and pays the same asset the app uses. |
@@ -135,6 +138,12 @@ sequenceDiagram
 
 ## 🔒 Soroban payday guarantee
 
+<div align="center">
+<img src="docs/demo/flowpay-guarantee.gif" width="300" alt="FlowPay payday guarantee on Soroban testnet" />
+</div>
+
+**Recorded live on testnet ([full-quality MP4](docs/demo/flowpay-guarantee.mp4)).** The employer locks payday for two people ([`a701b364…`](https://stellar.expert/explorer/testnet/tx/a701b364b6ef7037f9f7cfbbc76d2600c6dd77dac2e6bc2d2856910e0de0fd22), fee 0.025 XLM). The employee sees *"Your pay is guaranteed"*. On payday she claims her $97.22 with her PIN ([`91b69720…`](https://stellar.expert/explorer/testnet/tx/91b69720eaef0d443558ea35266dcf6b8ebe4595b9fe368da224e11b49c562ce)), her balance updates, and the video ends on the contract call in StellarExpert. The wait for payday is cut; nothing else is edited.
+
 Contractors abroad carry the risk of late or missing pay. FlowPay lets an employer **lock next payday's payroll in a Soroban smart contract** ([`contracts/payroll_vault`](contracts/payroll_vault/src/lib.rs)) ahead of time:
 
 - **Employees can verify it.** The app shows "Your pay is guaranteed: $X, unlocks on <date>" with a link to the contract on-chain.
@@ -144,9 +153,9 @@ Contractors abroad carry the risk of late or missing pay. FlowPay lets an employ
 
 | | |
 | :--- | :--- |
-| Contract | Rust, `soroban-sdk` 29, 7 KB WASM; 8 unit tests ([`test.rs`](contracts/payroll_vault/src/test.rs)) |
-| Deployed (testnet) | [`CC7FY73K…`](https://stellar.expert/explorer/testnet/contract/CC7FY73K6K44J5UFOGAPEDGNNF44OOM22LXO7EMGRAXPIQYIKS3GBSSF) holding FlowPay USD through its Stellar Asset Contract |
-| Cost | Funding ≈ 4.5 XLM for a two-person guarantee (mostly storage rent for ~31 days); claim/release ≈ 0.001 XLM |
+| Contract | Rust, `soroban-sdk` 29, 7 KB WASM; 9 unit tests (incl. a full 100-person payroll within real network budgets) ([`test.rs`](contracts/payroll_vault/src/test.rs)) |
+| Deployed (testnet) | [`CDE7O32B…`](https://stellar.expert/explorer/testnet/contract/CDE7O32BANGSQOZG4BBBKTWOOLM66H6EVALBLGJ3EAF5D7NMMNDJJCYS) holding FlowPay USD through its Stellar Asset Contract |
+| Cost | Funding a guarantee ≈ **0.024 XLM** ([`ffdb831e…`](https://stellar.expert/explorer/testnet/tx/ffdb831e0625a45aaa9c5c340047a256085e9a9775a157e0c445c7ab9e6a6098)); claim/release ≈ 0.001 XLM. All salaries live in one storage entry, and the deployer pre-pays the contract's own rent, so employers never pay a warm-up. |
 | Proven live | Lock → early claim refused → claim on payday → release, with on-chain balances asserted ([`stellar_guarantee_live_test.dart`](mobile/test/live/stellar_guarantee_live_test.dart)) |
 
 **Honest limit:** salaries are reserved and paid in USD. The employee converts to local currency afterwards in the app; converting automatically at release would need an AMM contract call.
@@ -204,13 +213,15 @@ These rules were earned. This project began on a custodial provider, and the mig
 
 | Layer | How |
 | :--- | :--- |
-| **Keys** | Ed25519 keypair generated on device. The seed is encrypted with **AES-256-GCM** under **PBKDF2-HMAC-SHA256** (PIN, 24-byte salt, 100k iterations) and stored in the OS keychain/keystore. A wrong PIN fails GCM authentication; no PIN hash exists to attack. Lockout starts after 5 failures. Recovery-key export/import is available. |
+| **Keys** | Ed25519 keypair generated on device. Users are walked through saving their recovery key at sign-up (confirmed by re-typing its end) and reminded until they do. The seed is encrypted with **AES-256-GCM** under **PBKDF2-HMAC-SHA256** (PIN, 24-byte salt, 100k iterations) and stored in the OS keychain/keystore. A wrong PIN fails GCM authentication; no PIN hash exists to attack. Lockout starts after 5 failures. Recovery-key export/import is available. |
+| **Passkeys (web)** | Optional and recommended in browsers: the wallet key is re-encrypted under a secret only the user's passkey can produce (**WebAuthn PRF** → HKDF-SHA256 → AES-256-GCM), and the PIN-encrypted copy is removed. Payments and unlocking use **Face ID / fingerprint**, and stolen storage can't be decrypted by another device's passkey. Verified in real Chrome with a virtual PRF authenticator: switch on → lock → unlock → a $500 testnet payment confirmed by passkey ([`1e0c35c4…`](https://stellar.expert/explorer/testnet/tx/1e0c35c4a2e810186c03b7a239bcf0e1a5991e3b9aeec862453355be5e9c0196)). |
 | **Sessions** | HS256 JWTs (12 h), issued only at signup or after a signed ownership challenge. Identity comes **only** from the token, never from headers, query strings or bodies. Production refuses to start without a real secret. |
 | **Transactions** | Proposal ID = transaction hash, single use, per user, with expiry. Signed payloads are never echoed back. |
 | **Invites** | 48-hex tokens with only the hash stored. Acceptance requires the invited, verified email and a wallet whose ownership has been proven. The landing page is HTML-escaped. |
 
 **Honest limits, and what we plan to do about them:**
-- A 6-digit PIN can be brute-forced offline if the encrypted blob is ever exfiltrated. Protection rests on the OS keystore plus lockout. On **web**, "secure storage" is browser storage, which is weaker. → [Passkey-based smart wallets](#-road-to-mainnet) are the planned fix.
+- With a PIN, a 6-digit code can be brute-forced offline if the encrypted blob is ever exfiltrated. On phones it sits in the OS keychain/keystore behind a lockout. On **web**, browser storage is weaker, so web users can switch to a **passkey** (below) and the PIN-encrypted copy is deleted.
+- Passkeys are bound to the website's domain. That's why switching requires a saved recovery key first, which is the way back if the domain or the passkey is ever lost.
 - The test assets are FlowPay-issued and the liquidity pools are seeded by us. That makes them realistic plumbing, but they are not real money or real market rates.
 
 ---
@@ -276,7 +287,7 @@ DEV_ECHO_EMAIL_CODES=true PORT=4000 npm start       # in-memory DB, email codes 
 # 2 · App (new terminal)
 cd mobile
 flutter pub get
-flutter test                # 182 tests
+flutter test                # 194 tests
 flutter run -d chrome --dart-define=FLOWPAY_API_URL=http://localhost:4000
 ```
 
@@ -286,7 +297,7 @@ Sign up, choose a PIN and your wallet is created on the device. Activate it to g
 
 ```bash
 cargo install --locked stellar-cli     # or: brew install stellar-cli
-cd contracts && cargo test && stellar contract build    # 8 tests, then the WASM
+cd contracts && cargo test && stellar contract build    # 9 tests, then the WASM
 cd ../backend && npm run stellar:deploy-vault           # deploys + writes STELLAR_PAYROLL_VAULT_ID
 ```
 
@@ -326,9 +337,9 @@ Database: schema changes for the Stellar migration are in `backend/prisma/sql/20
 
 | Suite | Count | What it covers |
 | :--- | :--- | :--- |
-| Soroban contract (`cargo test`) | **8** | Funding rules, no payout before payday, exactly-once claim/release, reclaim only after grace, auth, storage rent window |
+| Soroban contract (`cargo test`) | **9** | Funding rules, no payout before payday, exactly-once claim/release, reclaim only after grace, auth, storage rent window, 100-person budget |
 | Backend unit (`npm test`) | **106** | Horizon error mapping, PENDING on timeout, proposal hash binding, batch splitting, payroll eligibility, invite security, session tokens, federation privacy, `stellar.toml` contents, guarantee proposals and Soroban status mapping |
-| App (`flutter test`) | **182** | Key vault crypto (signatures verified with the SDK), wallet lifecycle, PIN gating, every screen, demo vs live separation |
+| App (`flutter test`) | **194** | Key vault crypto (signatures verified with the SDK), passkey vault (PRF), wallet lifecycle, PIN/passkey gating, every screen, demo vs live separation |
 | CI | every push and PR | Both suites run on GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)) |
 | Live testnet (`LIVE_STELLAR=1`) | **7 suites** | Transfers, FX, missions + locked savings, employee invites (impostor → 403, unverified email blocked), multi-country payroll, SEP-10/24, Soroban payday guarantee |
 
@@ -341,9 +352,10 @@ FlowPay was built so that going live is mostly configuration plus partnerships, 
 - [x] Non-custodial wallets, atomic payroll, path-payment FX, locked savings and SEP-10/24 on testnet
 - [ ] **Real anchored assets.** Point `STELLAR_ASSET_*` at anchored USDC and local-currency anchors in each corridor (NG, MX, CA, UK)
 - [ ] **SEP-31 + SEP-38** for regulated cross-border payouts with firm quotes, and **SEP-12** for reusable KYC
-- [ ] **Passkey smart wallets (Soroban)** so web users get hardware-backed keys instead of browser storage
+- [x] **Passkeys on web**: Face ID / fingerprint instead of a PIN, with the key encrypted under the passkey (WebAuthn PRF)
+- [ ] Passkeys on native apps (platform PRF), and Soroban passkey smart wallets once FlowPay's FX/payroll can run on Soroban AMMs
 - [x] **Payday guarantee on Soroban**: employers pre-fund, employees see the guarantee ([details](#-soroban-payday-guarantee))
-- [ ] Convert to local currency on release (AMM contract call), and pack salaries into one storage entry to cut rent
+- [ ] Convert to local currency on release (AMM contract call)
 - [ ] Recovery-key backup during onboarding, and a persisted contacts book for plain-English payments
 - [ ] Production deploy (web on Vercel, API on Render), audit, then mainnet
 

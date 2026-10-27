@@ -1,4 +1,5 @@
 import 'components/accept_invite_sheet.dart';
+import '../auth/recovery_key_backup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/auth/app_lock_service.dart';
@@ -7,6 +8,7 @@ import '../../core/wallet/wallet_signer.dart';
 import '../../core/design_system/design_system.dart';
 import '../../core/state/app_state.dart';
 import '../../core/wallet/components/wallet_pin_auth_sheet.dart';
+import '../../core/wallet/components/create_pin_sheet.dart';
 import 'wallet_provisioning_screen.dart';
 
 /// FlowPay Personal Security Screen
@@ -36,6 +38,10 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
   bool _hasPin = false;
   bool _isSigningAvailable = false;
   bool _hasDeviceLock = false;
+  bool _isBackedUp = false;
+  bool _passkeySupported = false;
+  bool _usesPasskey = false;
+  bool _passkeyBusy = false;
   bool _isLoading = true;
 
   @override
@@ -51,6 +57,9 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     // The PIN encrypts the wallet key, so a wallet on this device implies a PIN.
     final hasPin = hasWallet;
     final hasDeviceLock = await AppLockService().canAuthenticate();
+    final isBackedUp = hasWallet && await StellarKeyVault.instance.isBackedUp();
+    final usesPasskey = hasWallet && await StellarKeyVault.instance.usesPasskey();
+    final passkeySupported = await StellarKeyVault.instance.passkeySupported();
 
     if (mounted) {
       setState(() {
@@ -59,9 +68,64 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         _hasPin = hasPin;
         _isSigningAvailable = _hasWallet;
         _hasDeviceLock = hasDeviceLock;
+        _isBackedUp = isBackedUp;
+        _usesPasskey = usesPasskey;
+        _passkeySupported = passkeySupported;
         _isLoading = false;
       });
     }
+  }
+
+  /// PIN → passkey (Face ID / fingerprint). Needs a saved recovery key first,
+  /// because the passkey is tied to this website.
+  Future<void> _turnOnPasskey() async {
+    if (!_isBackedUp) {
+      final saved = await RecoveryKeyBackupScreen.revealWithPin(context);
+      await _checkSecurityState();
+      if (!saved || !mounted) return;
+    }
+    setState(() => _passkeyBusy = true);
+    try {
+      final done = await WalletPinAuthSheet.show(
+        context: context,
+        title: 'Use Face ID / passkey',
+        subtitle: 'Enter your PIN once to switch',
+        onAuthorize: (pin) async {
+          await StellarKeyVault.instance.enablePasskey(pin: pin);
+          return 'ok';
+        },
+      );
+      if (done != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Passkey on. Payments are now confirmed with Face ID / fingerprint.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _passkeyBusy = false);
+      await _checkSecurityState();
+    }
+  }
+
+  Future<void> _turnOffPasskey() async {
+    final newPin = await CreatePinSheet.show(context);
+    if (newPin == null || !mounted) return;
+    setState(() => _passkeyBusy = true);
+    try {
+      await StellarKeyVault.instance.disablePasskey(newPin: newPin);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Back to your PIN.')));
+      }
+    } on StellarVaultException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _passkeyBusy = false);
+      await _checkSecurityState();
+    }
+  }
+
+  Future<void> _showRecoveryKey() async {
+    await RecoveryKeyBackupScreen.revealWithPin(context);
+    await _checkSecurityState();
   }
 
   void _copyToClipboard(String text, String label) {
@@ -281,8 +345,8 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                     : FlowPayColors.warning,
                 showDot: true,
               ),
-              const FlowPayBadge(
-                label: 'AES-256 · PIN-encrypted key',
+              FlowPayBadge(
+                label: _usesPasskey ? 'AES-256 · Passkey-encrypted key' : 'AES-256 · PIN-encrypted key',
                 color: FlowPayColors.primary,
                 showDot: false,
               ),
@@ -432,6 +496,53 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                 ],
               ),
 
+              if (_hasWallet) ...[
+                const Divider(height: 28),
+                _buildSecurityStatusRow(
+                  isDark,
+                  title: 'Recovery key',
+                  subtitle: _isBackedUp
+                      ? 'Saved. It restores your wallet on a new phone.'
+                      : 'Not saved yet. Without it, losing this phone means losing your money.',
+                  statusText: _isBackedUp ? 'SAVED' : 'NOT SAVED',
+                  isSuccess: _isBackedUp,
+                  icon: Icons.key_rounded,
+                ),
+                const SizedBox(height: 12),
+                if (_passkeySupported || _usesPasskey) ...[
+                  const Divider(height: 28),
+                  _buildSecurityStatusRow(
+                    isDark,
+                    title: 'Face ID / passkey',
+                    subtitle: _usesPasskey
+                        ? 'On. Your key can only be unlocked with your passkey.'
+                        : 'Confirm payments with Face ID or fingerprint instead of a PIN.',
+                    statusText: _usesPasskey ? 'ON' : 'OFF',
+                    isSuccess: _usesPasskey,
+                    icon: Icons.fingerprint,
+                  ),
+                  const SizedBox(height: 12),
+                  FlowPayButton(
+                    key: const Key('security_toggle_passkey'),
+                    text: _usesPasskey ? 'Switch back to a PIN' : 'Use a passkey',
+                    icon: Icons.fingerprint,
+                    isFullWidth: true,
+                    isLoading: _passkeyBusy,
+                    variant: _usesPasskey ? FlowPayButtonVariant.secondary : FlowPayButtonVariant.primary,
+                    onPressed: _passkeyBusy ? null : (_usesPasskey ? _turnOffPasskey : _turnOnPasskey),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                FlowPayButton(
+                  key: const Key('security_show_recovery_key'),
+                  text: _isBackedUp ? 'Show recovery key' : 'Back up recovery key',
+                  icon: Icons.key_rounded,
+                  isFullWidth: true,
+                  variant: _isBackedUp ? FlowPayButtonVariant.secondary : FlowPayButtonVariant.primary,
+                  onPressed: _showRecoveryKey,
+                ),
+              ],
+
               const SizedBox(height: 18),
 
               FlowPayButton(
@@ -530,11 +641,13 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
               _buildSecurityStatusRow(
                 isDark,
                 title: 'Security PIN',
-                subtitle: _hasPin
-                    ? 'Enabled — your PIN protects all payments'
-                    : 'Not set up — add a PIN to protect your payments',
-                statusText: _hasPin ? 'ENABLED' : 'NOT SET UP',
-                isSuccess: _hasPin,
+                subtitle: _usesPasskey
+                    ? 'Replaced by your passkey'
+                    : _hasPin
+                        ? 'Enabled — your PIN protects all payments'
+                        : 'Not set up — add a PIN to protect your payments',
+                statusText: _usesPasskey ? 'PASSKEY' : _hasPin ? 'ENABLED' : 'NOT SET UP',
+                isSuccess: _usesPasskey || _hasPin,
                 icon: Icons.pin,
               ),
 

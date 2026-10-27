@@ -232,7 +232,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Verify SendMoneyScreen is displayed
-      expect(find.text('Secured with your PIN'), findsOneWidget);
+      expect(find.text('Secured on this device'), findsOneWidget);
 
       // 2. Select a pre-canned suggestion chip to set recipient & amount without typing
       final chipFinder = find.text('Send \$500 to my designer in Ghana');

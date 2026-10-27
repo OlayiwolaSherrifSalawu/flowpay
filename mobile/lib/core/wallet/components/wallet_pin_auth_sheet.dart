@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../stellar/stellar_key_vault.dart';
+import '../../design_system/buttons.dart';
 import '../../theme/colors.dart';
 import '../../theme/radii.dart';
 import '../../theme/typography.dart';
@@ -63,6 +64,22 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
   String? _errorMessage;
   int _failedAttempts = 0;
 
+  /// Passkey wallets confirm with Face ID / fingerprint instead of a PIN.
+  bool _usesPasskey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    StellarKeyVault.instance.usesPasskey().then((uses) {
+      if (mounted && uses) setState(() => _usesPasskey = true);
+    }).catchError((_) {});
+  }
+
+  Future<void> _confirmWithPasskey() async {
+    _pin = StellarKeyVault.passkey;
+    await _submitPin();
+  }
+
   void _onDigitTapped(String digit) {
     if (_isAuthorizing) return;
     if (_pin.length >= 6) return;
@@ -105,9 +122,13 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
       if (mounted) {
         setState(() {
           _isAuthorizing = false;
-          _errorMessage = e.code == StellarVaultErrorCode.pinMismatch
-              ? 'Incorrect PIN ($_failedAttempts/${StellarKeyVault.freeAttempts} attempts). Please try again.'
-              : e.message;
+          _errorMessage = _usesPasskey
+              ? (e.code == StellarVaultErrorCode.passkeyCancelled
+                  ? 'Cancelled. Tap to try again.'
+                  : e.message)
+              : e.code == StellarVaultErrorCode.pinMismatch
+                  ? 'Incorrect PIN ($_failedAttempts/${StellarKeyVault.freeAttempts} attempts). Please try again.'
+                  : e.message;
           _pin = '';
         });
       }
@@ -128,17 +149,15 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return SafeArea(
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.9,
         ),
         decoration: BoxDecoration(
-          color: isDark ? FlowPayColors.canvas : Colors.white,
+          color: FlowPayColors.surfaceOf(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: FlowPayColors.hairline),
+          border: Border.all(color: FlowPayColors.borderOf(context)),
         ),
         padding: EdgeInsets.only(
           left: 24,
@@ -150,185 +169,206 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: FlowPayColors.hairline,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Header with Cancel button
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: FlowPayTypography.title(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.borderOf(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              IconButton(
-                key: const Key('wallet_pin_cancel_button'),
-                icon:
-                    const Icon(Icons.close, color: FlowPayColors.textSecondary),
-                onPressed: _cancelSigning,
-                tooltip: 'Cancel Signing',
-              ),
-            ],
-          ),
+              const SizedBox(height: 12),
 
-          // Operation Details card (if present)
-          if (widget.amountDisplay != null || widget.recipient != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: FlowPayColors.surfaceAlt,
-                borderRadius: FlowPayRadii.card,
-                border: Border.all(color: FlowPayColors.hairline),
-              ),
-              child: Row(
+              // Header with Cancel button
+              Row(
                 children: [
-                  const Icon(Icons.lock_clock,
-                      size: 20, color: FlowPayColors.primary),
-                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget.amountDisplay != null)
-                          Text(
-                            widget.amountDisplay!,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: FlowPayColors.ink,
-                            ),
-                          ),
-                        if (widget.recipient != null)
-                          Text(
-                            'To: ${widget.recipient!}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: FlowPayColors.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
+                    child: Text(
+                      widget.title,
+                      style: FlowPayTypography.title(
+                          color: FlowPayColors.textPrimaryOf(context)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
+                  IconButton(
+                    key: const Key('wallet_pin_cancel_button'),
+                    icon: Icon(Icons.close,
+                        color: FlowPayColors.textSecondaryOf(context)),
+                    onPressed: _cancelSigning,
+                    tooltip: 'Cancel Signing',
                   ),
                 ],
               ),
-            ),
-          ],
 
-          const SizedBox(height: 12),
-
-          // Trust Reassurance Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: FlowPayColors.primary.withAlpha(20),
-              borderRadius: FlowPayRadii.chip,
-              border: Border.all(color: FlowPayColors.primary.withAlpha(50)),
-            ),
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.shield_outlined,
-                    size: 16, color: FlowPayColors.primary),
-                SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    'Your FlowPay wallet is secured on this device.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: FlowPayColors.primary,
-                    ),
+              // Operation Details card (if present)
+              if (widget.amountDisplay != null || widget.recipient != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.surfaceElevatedOf(context),
+                    borderRadius: FlowPayRadii.card,
+                    border: Border.all(color: FlowPayColors.borderOf(context)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_clock,
+                          size: 20, color: FlowPayColors.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (widget.amountDisplay != null)
+                              Text(
+                                widget.amountDisplay!,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: FlowPayColors.textPrimaryOf(context),
+                                ),
+                              ),
+                            if (widget.recipient != null)
+                              Text(
+                                'To: ${widget.recipient!}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: FlowPayColors.textSecondaryOf(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-          ),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-          // 6 PIN Dots
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(6, (index) {
-              final isFilled = index < _pin.length;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                width: 16,
-                height: 16,
+              // Trust Reassurance Banner
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isFilled ? FlowPayColors.primary : Colors.transparent,
-                  border: Border.all(
-                    color: _errorMessage != null
-                        ? FlowPayColors.stateError
-                        : isFilled
+                  color: FlowPayColors.primary.withAlpha(20),
+                  borderRadius: FlowPayRadii.chip,
+                  border:
+                      Border.all(color: FlowPayColors.primary.withAlpha(50)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.shield_outlined,
+                        size: 16, color: FlowPayColors.primary),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Your FlowPay wallet is secured on this device.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: FlowPayColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 6 PIN Dots (PIN wallets only)
+              if (!_usesPasskey)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(6, (index) {
+                    final isFilled = index < _pin.length;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isFilled
                             ? FlowPayColors.primary
-                            : FlowPayColors.hairline,
-                    width: 2,
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: _errorMessage != null
+                              ? FlowPayColors.stateError
+                              : isFilled
+                                  ? FlowPayColors.primary
+                                  : FlowPayColors.borderOf(context),
+                          width: 2,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+
+              const SizedBox(height: 12),
+
+              // Error banner
+              if (_errorMessage != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: FlowPayColors.stateError.withAlpha(25),
+                    borderRadius: FlowPayRadii.chip,
+                    border: Border.all(color: FlowPayColors.stateError),
+                  ),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: FlowPayColors.stateError,
+                    ),
                   ),
                 ),
-              );
-            }),
-          ),
 
-          const SizedBox(height: 12),
-
-          // Error banner
-          if (_errorMessage != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: FlowPayColors.stateError.withAlpha(25),
-                borderRadius: FlowPayRadii.chip,
-                border: Border.all(color: FlowPayColors.stateError),
-              ),
-              child: Text(
-                _errorMessage!,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: FlowPayColors.stateError,
+              if (_isAuthorizing) ...[
+                const SizedBox(height: 32),
+                const CircularProgressIndicator(color: FlowPayColors.primary),
+                const SizedBox(height: 12),
+                Text(
+                  'Signing securely on this device...',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: FlowPayColors.textSecondaryOf(context)),
                 ),
-              ),
-            ),
-
-          if (_isAuthorizing) ...[
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(color: FlowPayColors.primary),
-            const SizedBox(height: 12),
-            const Text(
-              'Signing securely on this device...',
-              style:
-                  TextStyle(fontSize: 12, color: FlowPayColors.textSecondary),
-            ),
-            const SizedBox(height: 32),
-          ] else ...[
-            const SizedBox(height: 16),
-            _buildKeypad(),
-          ],
-        ],
+                const SizedBox(height: 32),
+              ] else if (_usesPasskey) ...[
+                const SizedBox(height: 20),
+                Icon(Icons.fingerprint,
+                    size: 56, color: FlowPayColors.accentTextOf(context)),
+                const SizedBox(height: 12),
+                FlowPayButton(
+                  key: const Key('wallet_pin_passkey_button'),
+                  text: 'Confirm with passkey',
+                  isFullWidth: true,
+                  onPressed: _confirmWithPasskey,
+                ),
+                const SizedBox(height: 24),
+              ] else ...[
+                const SizedBox(height: 16),
+                _buildKeypad(),
+              ],
+            ],
+          ),
+        ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
   Widget _buildKeypad() {
     return Column(
@@ -367,17 +407,17 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: FlowPayColors.surfaceAlt,
+          color: FlowPayColors.surfaceElevatedOf(context),
           shape: BoxShape.circle,
-          border: Border.all(color: FlowPayColors.hairline),
+          border: Border.all(color: FlowPayColors.borderOf(context)),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: FlowPayColors.ink,
+            color: FlowPayColors.textPrimaryOf(context),
           ),
         ),
       ),
@@ -393,14 +433,14 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
         width: 64,
         height: 64,
         decoration: BoxDecoration(
-          color: FlowPayColors.surfaceAlt,
+          color: FlowPayColors.surfaceElevatedOf(context),
           shape: BoxShape.circle,
-          border: Border.all(color: FlowPayColors.hairline),
+          border: Border.all(color: FlowPayColors.borderOf(context)),
         ),
         alignment: Alignment.center,
-        child: const Icon(
+        child: Icon(
           Icons.backspace_outlined,
-          color: FlowPayColors.ink,
+          color: FlowPayColors.textPrimaryOf(context),
           size: 20,
         ),
       ),

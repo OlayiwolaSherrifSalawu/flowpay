@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/design_system/design_system.dart';
 import '../../../core/repositories/payroll_repository.dart';
 import '../../../core/state/app_state.dart';
+import '../../../core/stellar/stellar_network.dart';
 import '../../../core/wallet/components/wallet_pin_auth_sheet.dart';
 import '../../../core/wallet/wallet_signer.dart';
 
@@ -237,13 +238,16 @@ class _GuaranteeSheet extends StatefulWidget {
 }
 
 class _GuaranteeSheetState extends State<_GuaranteeSheet> {
-  static const _choices = <(String, Duration)>[
-    ('In 10 minutes', Duration(minutes: 10)),
-    ('In 7 days', Duration(days: 7)),
-    ('In 14 days', Duration(days: 14)),
-    ('In 30 days', Duration(days: 30)),
+  // A 2-minute payday exists only on testnet, for demos and testing.
+  static final _choices = <(String, Duration)>[
+    if (StellarNetwork.current.isTestnet) ('In 2 minutes (testnet)', const Duration(minutes: 2)),
+    ('In 10 minutes', const Duration(minutes: 10)),
+    ('In 7 days', const Duration(days: 7)),
+    ('In 14 days', const Duration(days: 14)),
+    ('In 30 days', const Duration(days: 30)),
   ];
-  int _choice = 1;
+  // Default: one week out.
+  int _choice = _choices.indexWhere((c) => c.$2 == const Duration(days: 7));
   PayrollGuaranteeProposal? _proposal;
   bool _busy = false;
   String? _error;

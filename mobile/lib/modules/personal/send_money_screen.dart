@@ -795,7 +795,7 @@ class _SendMoneyScreenState extends State<SendMoneyScreen> {
                             ),
                           ),
                           Text(
-                            'Secured with your PIN',
+                            'Secured on this device',
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? FlowPayColors.darkTextSecondary : const Color(0xFF6B7280),

@@ -186,3 +186,25 @@ fn storage_rent_covers_the_reclaim_window_and_no_more() {
     assert!(ttl >= needed, "alive through the reclaim window: {ttl} < {needed}");
     assert!(ttl <= needed + 17_280 + 1, "not rented for longer than needed: {ttl}");
 }
+
+#[test]
+fn a_full_100_person_payroll_fits_in_one_entry_and_pays_out() {
+    let s = setup();
+    let e = &s.env;
+    let mut entries = vec![e];
+    let mut people = std::vec::Vec::new();
+    for _ in 0..MAX_EMPLOYEES {
+        let who = Address::generate(e);
+        people.push(who.clone());
+        entries.push_back((who, 1_000_000i128));
+    }
+    // Real network budgets, not the unlimited test default.
+    e.cost_estimate().budget().reset_default();
+    let id = s.vault.fund(&s.employer, &s.usd.address, &(NOW + DAY), &entries);
+    at(&s, NOW + DAY);
+    e.cost_estimate().budget().reset_default();
+    s.vault.release(&id, &people[99]);
+    assert_eq!(s.usd.balance(&people[99]), 1_000_000);
+    assert_eq!(s.vault.salary(&id, &people[0]), 1_000_000);
+    assert_eq!(s.vault.payroll(&id).remaining, 99_000_000);
+}

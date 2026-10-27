@@ -11,7 +11,9 @@ import '../../../core/wallet/wallet_signer.dart';
 /// Soroban PayrollVault. Hidden when nothing is reserved.
 class GuaranteedPayCard extends StatefulWidget {
   final AppState appState;
-  const GuaranteedPayCard({super.key, required this.appState});
+  /// Called after a successful claim so the screen can refresh balances.
+  final Future<void> Function()? onClaimed;
+  const GuaranteedPayCard({super.key, required this.appState, this.onClaimed});
 
   @override
   State<GuaranteedPayCard> createState() => _GuaranteedPayCardState();
@@ -56,6 +58,7 @@ class _GuaranteedPayCardState extends State<GuaranteedPayCard> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('\$${r.amountUsd ?? p.amountUsd} received.')));
       }
       await _load();
+      await widget.onClaimed?.call();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
