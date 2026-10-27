@@ -28,6 +28,9 @@ const envSchema = z.object({
   STELLAR_DISTRIBUTOR_SECRET: z.string().optional(),
   // Domain for SEP-1 stellar.toml + SEP-2 federation addresses (name*domain). Defaults to the request host.
   FLOWPAY_HOME_DOMAIN: z.string().optional(),
+  // Soroban: RPC endpoint and the deployed PayrollVault contract (C...), written by `npm run stellar:deploy-vault`.
+  SOROBAN_RPC_URL: z.string().optional(),
+  STELLAR_PAYROLL_VAULT_ID: z.string().optional(),
   // DEVELOPMENT ONLY: return email verification codes in the API response instead of
   // requiring a working mailbox. Refused when NODE_ENV=production.
   DEV_ECHO_EMAIL_CODES: z.string().default('false').transform((v) => v === 'true'),
