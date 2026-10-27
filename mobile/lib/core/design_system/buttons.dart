@@ -123,13 +123,19 @@ class FlowPayButton extends StatelessWidget {
                 Icon(icon, size: iconSize, color: fg),
                 const SizedBox(width: FlowPaySpacing.sm),
               ],
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w700,
-                  color: fg,
-                  letterSpacing: -0.2,
+              // Long labels shrink with an ellipsis instead of overflowing on phones.
+              Flexible(
+                child: Text(
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                    letterSpacing: -0.2,
+                  ),
                 ),
               ),
               if (suffixIcon != null) ...[

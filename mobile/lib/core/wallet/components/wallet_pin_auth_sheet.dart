@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../stellar/stellar_key_vault.dart';
+import '../../design_system/buttons.dart';
 import '../../theme/colors.dart';
 import '../../theme/radii.dart';
 import '../../theme/typography.dart';
@@ -63,6 +64,22 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
   String? _errorMessage;
   int _failedAttempts = 0;
 
+  /// Passkey wallets confirm with Face ID / fingerprint instead of a PIN.
+  bool _usesPasskey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    StellarKeyVault.instance.usesPasskey().then((uses) {
+      if (mounted && uses) setState(() => _usesPasskey = true);
+    }).catchError((_) {});
+  }
+
+  Future<void> _confirmWithPasskey() async {
+    _pin = StellarKeyVault.passkey;
+    await _submitPin();
+  }
+
   void _onDigitTapped(String digit) {
     if (_isAuthorizing) return;
     if (_pin.length >= 6) return;
@@ -105,9 +122,13 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
       if (mounted) {
         setState(() {
           _isAuthorizing = false;
-          _errorMessage = e.code == StellarVaultErrorCode.pinMismatch
-              ? 'Incorrect PIN ($_failedAttempts/${StellarKeyVault.freeAttempts} attempts). Please try again.'
-              : e.message;
+          _errorMessage = _usesPasskey
+              ? (e.code == StellarVaultErrorCode.passkeyCancelled
+                  ? 'Cancelled. Tap to try again.'
+                  : e.message)
+              : e.code == StellarVaultErrorCode.pinMismatch
+                  ? 'Incorrect PIN ($_failedAttempts/${StellarKeyVault.freeAttempts} attempts). Please try again.'
+                  : e.message;
           _pin = '';
         });
       }
@@ -264,32 +285,34 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
 
               const SizedBox(height: 20),
 
-              // 6 PIN Dots
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (index) {
-                  final isFilled = index < _pin.length;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color:
-                          isFilled ? FlowPayColors.primary : Colors.transparent,
-                      border: Border.all(
-                        color: _errorMessage != null
-                            ? FlowPayColors.stateError
-                            : isFilled
-                                ? FlowPayColors.primary
-                                : FlowPayColors.borderOf(context),
-                        width: 2,
+              // 6 PIN Dots (PIN wallets only)
+              if (!_usesPasskey)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(6, (index) {
+                    final isFilled = index < _pin.length;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isFilled
+                            ? FlowPayColors.primary
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: _errorMessage != null
+                              ? FlowPayColors.stateError
+                              : isFilled
+                                  ? FlowPayColors.primary
+                                  : FlowPayColors.borderOf(context),
+                          width: 2,
+                        ),
                       ),
-                    ),
-                  );
-                }),
-              ),
+                    );
+                  }),
+                ),
 
               const SizedBox(height: 12),
 
@@ -324,6 +347,18 @@ class _WalletPinAuthSheetState extends State<WalletPinAuthSheet> {
                       color: FlowPayColors.textSecondaryOf(context)),
                 ),
                 const SizedBox(height: 32),
+              ] else if (_usesPasskey) ...[
+                const SizedBox(height: 20),
+                Icon(Icons.fingerprint,
+                    size: 56, color: FlowPayColors.accentTextOf(context)),
+                const SizedBox(height: 12),
+                FlowPayButton(
+                  key: const Key('wallet_pin_passkey_button'),
+                  text: 'Confirm with passkey',
+                  isFullWidth: true,
+                  onPressed: _confirmWithPasskey,
+                ),
+                const SizedBox(height: 24),
               ] else ...[
                 const SizedBox(height: 16),
                 _buildKeypad(),
