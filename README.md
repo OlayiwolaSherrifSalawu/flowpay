@@ -18,7 +18,7 @@ One employer pays a team in the 🇺🇸 US, 🇨🇦 Canada, 🇲🇽 Mexico, �
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 [![Flutter](https://img.shields.io/badge/Flutter-iOS%20·%20Android%20·%20Web-02569B?style=for-the-badge&logo=flutter&logoColor=white)](mobile/)
 
-[**Watch it run**](#-watch-a-real-payroll-run) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
+[**Watch it run**](#-watch-a-real-payroll-run) · [**Payday guarantee**](#-soroban-payday-guarantee) · [**On-chain proof**](#-dont-trust-us-check-the-ledger) · [**How it works**](#-how-it-works) · [**Stellar features used**](#-what-we-use-from-stellar) · [**Run it in 10 minutes**](#-run-it-yourself) · [**Road to mainnet**](#-road-to-mainnet)
 
 <br/>
 
@@ -134,6 +134,12 @@ sequenceDiagram
 ---
 
 ## 🔒 Soroban payday guarantee
+
+<div align="center">
+<img src="docs/demo/flowpay-guarantee.gif" width="300" alt="FlowPay payday guarantee on Soroban testnet" />
+</div>
+
+**Recorded live on testnet ([full-quality MP4](docs/demo/flowpay-guarantee.mp4)).** The employer locks payday for two people ([`a701b364…`](https://stellar.expert/explorer/testnet/tx/a701b364b6ef7037f9f7cfbbc76d2600c6dd77dac2e6bc2d2856910e0de0fd22), fee 0.025 XLM). The employee sees *"Your pay is guaranteed"*. On payday she claims her $97.22 with her PIN ([`91b69720…`](https://stellar.expert/explorer/testnet/tx/91b69720eaef0d443558ea35266dcf6b8ebe4595b9fe368da224e11b49c562ce)), her balance updates, and the video ends on the contract call in StellarExpert. The wait for payday is cut; nothing else is edited.
 
 Contractors abroad carry the risk of late or missing pay. FlowPay lets an employer **lock next payday's payroll in a Soroban smart contract** ([`contracts/payroll_vault`](contracts/payroll_vault/src/lib.rs)) ahead of time:
 
