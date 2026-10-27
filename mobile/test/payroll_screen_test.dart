@@ -27,8 +27,9 @@ void main() {
         ),
       );
 
-      // Let initial async load complete
+      // Let initial async load complete (preview, then the guarantee section's list)
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
 
       // 1. Header & Core Message

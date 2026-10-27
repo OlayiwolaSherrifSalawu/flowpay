@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flowpay_mobile/core/design_system/design_system.dart';
 import '../../core/models/paginated_result.dart';
 import '../../core/repositories/employee_repository.dart';
+import 'components/payday_guarantee_section.dart';
 import '../../core/repositories/payroll_repository.dart';
 import '../../core/state/app_state.dart';
 
@@ -615,6 +616,10 @@ class _PayrollScreenState extends State<PayrollScreen> {
                     onPressed: _isExecuting ? null : _onTapRunPayroll,
                   ),
                 if (_executionRun == null) const SizedBox(height: 24),
+
+                // Payday guarantee (Soroban): lock the next payroll in advance.
+                PaydayGuaranteeSection(appState: widget.appState),
+                const SizedBox(height: 24),
 
                 // 4. Parallel Multi-Rail Breakdown List
                 Row(

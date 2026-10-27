@@ -37,6 +37,122 @@ class _ReceiveSheetState extends State<ReceiveSheet> {
   String? _message;
   bool _messageIsError = false;
 
+  PaymentName? _name;
+  bool _savingName = false;
+  String? _nameError;
+  final _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadName();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadName() async {
+    final api = widget.api;
+    if (api == null) return;
+    try {
+      final name = await api.paymentName();
+      if (mounted) setState(() => _name = name);
+    } catch (_) {
+      // Optional feature: the account address below still works without it.
+    }
+  }
+
+  Future<void> _claimName() async {
+    final api = widget.api;
+    if (api == null) return;
+    setState(() {
+      _savingName = true;
+      _nameError = null;
+    });
+    try {
+      final name = await api.claimPaymentName(_nameController.text);
+      if (mounted) setState(() => _name = name);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _nameError = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _nameError = 'Could not save your payment name: $e');
+    } finally {
+      if (mounted) setState(() => _savingName = false);
+    }
+  }
+
+  Widget _buildPaymentName(Color textColor, Color mutedColor) {
+    final name = _name;
+    if (name == null) return const SizedBox.shrink();
+    final address = name.stellarAddress;
+    if (address != null) {
+      return Column(
+        children: [
+          Text('Your payment address', style: FlowPayTypography.captionStyle(color: mutedColor)),
+          const SizedBox(height: 4),
+          InkWell(
+            key: const Key('receive_payment_name'),
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: address));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$address copied')));
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(address,
+                        style: FlowPayTypography.headingSm.copyWith(fontWeight: FontWeight.w800, color: textColor)),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.copy_rounded, size: 16, color: mutedColor),
+                ],
+              ),
+            ),
+          ),
+          Text('Anyone on Stellar can pay this address.', style: FlowPayTypography.captionStyle(color: mutedColor)),
+          const SizedBox(height: 14),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Claim a payment address', style: FlowPayTypography.captionStyle(color: mutedColor)),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const Key('receive_payment_name_field'),
+                controller: _nameController,
+                autocorrect: false,
+                decoration: InputDecoration(
+                  hintText: 'yourname',
+                  suffixText: name.homeDomain != null ? '*${name.homeDomain}' : null,
+                  errorText: _nameError,
+                  isDense: true,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FlowPayButton(
+              key: const Key('receive_payment_name_claim'),
+              text: 'Claim',
+              isLoading: _savingName,
+              onPressed: _savingName ? null : _claimName,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+      ],
+    );
+  }
+
   Future<void> _claimTestFunds() async {
     final api = widget.api;
     if (api == null) return;
@@ -89,6 +205,7 @@ class _ReceiveSheetState extends State<ReceiveSheet> {
                 style: FlowPayTypography.captionStyle(color: mutedColor),
               ),
               const SizedBox(height: 16),
+              _buildPaymentName(textColor, mutedColor),
               Container(
                 key: const Key('receive_qr'),
                 padding: const EdgeInsets.all(12),

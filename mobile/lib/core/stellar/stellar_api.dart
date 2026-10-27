@@ -118,6 +118,20 @@ class StellarSubmission {
   const StellarSubmission(this.status, this.hash, this.explorerUrl);
 }
 
+/// The signed-in user's opt-in SEP-2 payment name (`handle*homeDomain`).
+class PaymentName {
+  final String? handle;
+  final String? stellarAddress;
+  final String? homeDomain;
+  const PaymentName({this.handle, this.stellarAddress, this.homeDomain});
+
+  factory PaymentName.fromJson(Map<String, dynamic> j) => PaymentName(
+        handle: j['handle'] as String?,
+        stellarAddress: j['stellarAddress'] as String?,
+        homeDomain: j['homeDomain'] as String?,
+      );
+}
+
 /// Typed access to FlowPay's `/api/stellar` and `/api/wallets` endpoints.
 class StellarApi {
   final FlowPayApiClient client;
@@ -152,6 +166,13 @@ class StellarApi {
     final res = Map<String, dynamic>.from(await client.post('/api/stellar/accounts/$accountId/faucet', body: {'currency': currency.code}));
     return Money.fromMajorString(res['amount'].toString(), currency);
   }
+
+  Future<PaymentName> paymentName() async =>
+      PaymentName.fromJson(Map<String, dynamic>.from(await client.get('/api/auth/handle') as Map));
+
+  /// Claims (or changes) the payment name. Throws [ApiException] when invalid or taken.
+  Future<PaymentName> claimPaymentName(String handle) async =>
+      PaymentName.fromJson(Map<String, dynamic>.from(await client.post('/api/auth/handle', body: {'handle': handle}) as Map));
 
   Future<List<StellarPayment>> payments(String accountId, {int limit = 30}) async {
     final res = await client.get('/api/stellar/accounts/$accountId/payments', queryParams: {'limit': '$limit'});

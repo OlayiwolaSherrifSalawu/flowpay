@@ -1,0 +1,66 @@
+name: CI
+
+# Runs both test suites on every push and pull request. The suites are fully
+# offline: Horizon is injected as a fake in backend tests, and the app tests use
+# an in-memory key vault. The opt-in live testnet suites (mobile/test/live) are
+# skipped unless LIVE_STELLAR=1, so they never run here.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (Node · Stellar SDK)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # Unreachable on purpose: the backend falls back to its in-memory store.
+      DATABASE_URL: postgresql://none:none@127.0.0.1:1/none
+      STELLAR_NETWORK: testnet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  app:
+    name: App (Flutter · iOS/Android/Web)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.2
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  contracts:
+    name: Soroban contract (Rust)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+      - run: cargo test

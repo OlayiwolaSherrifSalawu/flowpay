@@ -15,6 +15,8 @@ model User {
   bmoniUserId    String?  @unique @map("bmoni_user_id")
   // Public Stellar account (G...) proven to belong to this user via a signed challenge.
   stellarAccountId String? @unique @map("stellar_account_id")
+  // Opt-in SEP-2 payment name: <handle>*<home domain>.
+  stellarHandle  String?  @unique @map("stellar_handle")
   email          String   @unique
   emailVerified  Boolean  @default(false) @map("email_verified")
   fullName       String   @map("full_name")

@@ -1,7 +1,7 @@
 {
   "name": "flowpay-backend",
   "version": "1.0.0",
-  "description": "FlowPay backend — cross-border wallets and payroll on the Stellar network",
+  "description": "FlowPay backend \u2014 cross-border wallets and payroll on the Stellar network",
   "type": "module",
   "main": "dist/server.js",
   "engines": {
@@ -14,8 +14,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node --test dist/core/money.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/payroll/payroll.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js dist/stellar/stellar.test.js dist/modules/payments/batch.test.js dist/auth/session.test.js",
-    "stellar:bootstrap": "tsx src/stellar/bootstrap.ts"
+    "test": "node --test dist/core/money.test.js dist/modules/ai/safety.test.js dist/modules/employees/employee.test.js dist/modules/missions/mission.test.js dist/modules/transfers/transfer.test.js dist/modules/payroll/payroll.test.js dist/modules/mail/mail.test.js dist/modules/banks/banks.test.js dist/stellar/stellar.test.js dist/modules/payments/batch.test.js dist/auth/session.test.js dist/stellar/federation.test.js dist/modules/payroll/guarantee.test.js",
+    "stellar:bootstrap": "tsx src/stellar/bootstrap.ts",
+    "stellar:deploy-vault": "tsx src/stellar/deploy-vault.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

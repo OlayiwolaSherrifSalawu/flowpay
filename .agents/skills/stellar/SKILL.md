@@ -193,12 +193,41 @@ removed completely.
         count using the employer's wallets, invented "Saved (97%)" in live mode, 16-dp rates, "$0.00 / no payroll" while
         the first preview is still being quoted, two overflowing rows. Country name/flag now from
         `EmployeeModel.nameForCountry` / `flagForCountry`.
+  * [x] **Quick wins for ecosystem reviewers**: MIT `LICENSE`; GitHub Actions `ci.yml` (backend build + 100 tests,
+        app analyze + 180 tests, every push/PR, fully offline); README section positioning FlowPay vs SDF's Stellar
+        Disbursement Platform (complementary).
+  * [x] **SEP-1 + SEP-2** (`backend/src/stellar/federation.ts`, `routes/federation.routes.ts`): `/.well-known/stellar.toml`
+        (only FlowPay-issued assets, `status="test"` on testnet) and `/federation` (type=name|id). Payment names are
+        **opt-in** (`POST /api/auth/handle`, requires linked wallet, `users.stellar_handle` — apply
+        `prisma/sql/2026-10-27_stellar_handle.sql`); unclaimed users/emails are never discoverable. Own-domain names resolve
+        locally when sending. Home domain = `FLOWPAY_HOME_DOMAIN` or the request host. App: Receive sheet claims/shows
+        `name*domain`. **After deploying**, run `FLOWPAY_HOME_DOMAIN=<render host> npm run stellar:bootstrap` locally to
+        set the issuer `home_domain` (idempotent).
   * Render currently still serves the **pre-migration BMONI build** (`/api/health` reports `bmoniOrigin`;
         `/api/health/stellar` 404). Deploying needs the owner's Render access: point the service at this branch (or merge),
         set `FLOWPAY_JWT_SECRET`, `STELLAR_NETWORK`, `STELLAR_ASSET_ISSUER`, `STELLAR_ISSUER_SECRET`,
         `STELLAR_DISTRIBUTOR_SECRET`, and apply the SQL migrations before giving it a reachable `DATABASE_URL`.
   * [ ] Deploy web (Vercel, `build-web.sh`) + API (Render) from this branch; apply `backend/prisma/sql/2026-10-26_*.sql`
         to Supabase (ask the owner first); update `FLOWPAY_API_URL` if the API URL changes.
+
+* [x] **M11 — Soroban payday guarantee**:
+  * [x] `contracts/payroll_vault` (soroban-sdk 29.0.1, protocol 29): `fund` (employer auth, 1–100 employees, unlock in
+        future) / `claim` (employee auth) / `release` (anyone; only ever pays the recorded employee) / `reclaim` (employer,
+        only 30 days after payday) / `payroll` / `salary`. 7 Rust tests; CI job `contracts`.
+  * [x] Backend `stellar/soroban.ts` (injectable RPC gateway, honest COMPLETED/FAILED/PENDING, plain-language contract
+        errors), `modules/payroll/guarantee_service.ts`, routes `/api/payroll/guarantees/*`; 6 tests. Guarantees are
+        tracked in memory (chain is the source of truth for amounts/paid state).
+  * [x] App: `PaydayGuaranteeSection` (Payroll screen) and `GuaranteedPayCard` (personal dashboard); demo simulation.
+  * [x] Built with `stellar contract build` (stellar-cli 28.1 via `cargo install --locked stellar-cli`; Homebrew on macOS
+        Monterey would compile LLVM from source). Deployed by `npm run stellar:deploy-vault`: USD SAC
+        `CBP4JEE7…GG4E6N2`, **PayrollVault `CC7FY73K6K44J5UFOGAPEDGNNF44OOM22LXO7EMGRAXPIQYIKS3GBSSF`**.
+  * [x] Live test `test/live/stellar_guarantee_live_test.dart`: fund `ec382dc0…`, early claim refused, claim `c0c02e77…`,
+        release `1420c9b8…`, balances asserted. First deployment rented storage to max TTL (fund 14.79 XLM); fixed to
+        payday + 30 days (fund 4.53 XLM; claim/release ~0.001 XLM).
+  * Render needs `STELLAR_PAYROLL_VAULT_ID` (and `SOROBAN_RPC_URL` optional) after deploy. Possible follow-ups: one storage
+        entry per payroll to cut rent further; convert to local currency on release via an AMM.
+  * Honest limits: salaries are reserved and paid in USD (the employee converts afterwards); converting on release would
+        need an AMM contract call.
 
 ## 🛠️ 6. Runbook & Verification
 
