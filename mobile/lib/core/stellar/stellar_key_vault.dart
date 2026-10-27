@@ -5,6 +5,8 @@ import 'package:cryptography/cryptography.dart' hide KeyPair;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:stellar_flutter_sdk/stellar_flutter_sdk.dart';
 
+import 'passkey/passkey_authenticator.dart';
+
 /// Why a vault operation failed. UI maps these to plain-English messages.
 enum StellarVaultErrorCode {
   noWallet,
@@ -14,6 +16,12 @@ enum StellarVaultErrorCode {
   lockedOut,
   storageFailure,
   signingFailed,
+  /// The passkey prompt was dismissed (not counted as a failed attempt).
+  passkeyCancelled,
+  /// Passkeys can't be used (unsupported, PRF missing, or the passkey failed).
+  passkeyUnavailable,
+  /// The recovery key must be saved before switching to a passkey.
+  backupRequired,
 }
 
 class StellarVaultException implements Exception {
@@ -87,6 +95,13 @@ class StellarKeyVault {
   /// Public key of the wallet whose recovery key the user confirmed saving.
   static const String _backedUpKey = 'flowpay_stellar_vault_backed_up';
 
+  /// Pass as the `pin` argument when the wallet is protected by a passkey: the
+  /// vault then asks the passkey (Face ID / fingerprint) instead of using a PIN.
+  /// PINs are always 6 digits, so this can never collide with one.
+  static const String passkey = 'passkey';
+  static const String _kdfPin = 'pbkdf2-sha256';
+  static const String _kdfPasskey = 'webauthn-prf-hkdf';
+
   /// Process-wide vault. Tests replace it with an in-memory instance via
   /// `test/flutter_test_config.dart`.
   static StellarKeyVault instance = StellarKeyVault();
@@ -94,6 +109,7 @@ class StellarKeyVault {
   final VaultStore _store;
   final int _kdfIterations;
   final DateTime Function() _now;
+  final PasskeyAuthenticator _passkeys;
   final AesGcm _cipher = AesGcm.with256bits();
 
   String? _cachedPublicKey;
@@ -102,9 +118,11 @@ class StellarKeyVault {
     VaultStore store = const SecureVaultStore(),
     int kdfIterations = 100000,
     DateTime Function()? clock,
+    PasskeyAuthenticator? passkeys,
   })  : _store = store,
         _kdfIterations = kdfIterations,
-        _now = clock ?? DateTime.now;
+        _now = clock ?? DateTime.now,
+        _passkeys = passkeys ?? PasskeyAuthenticator.platform();
 
   // ── queries ────────────────────────────────────────────────────────────
 
@@ -122,6 +140,47 @@ class StellarKeyVault {
   Future<bool> isBackedUp() async {
     final pk = await publicKey();
     return pk != null && await _store.read(_backedUpKey) == pk;
+  }
+
+  /// Whether this platform can protect the wallet with a passkey.
+  Future<bool> passkeySupported() => _passkeys.isSupported();
+
+  /// True when the wallet key is encrypted under a passkey instead of a PIN.
+  Future<bool> usesPasskey() async => (await _readBlob())?['kdf'] == _kdfPasskey;
+
+  /// Re-encrypts the wallet key under a new passkey (Face ID / fingerprint) and
+  /// removes the PIN-encrypted copy, so stolen storage can't be brute-forced.
+  /// Requires the current [pin] and a saved recovery key (the passkey is tied to
+  /// this site; the recovery key is the way back if it is ever lost).
+  Future<void> enablePasskey({required String pin}) async {
+    if (!await isBackedUp()) {
+      throw const StellarVaultException(
+          StellarVaultErrorCode.backupRequired, 'Save your recovery key before switching to a passkey.');
+    }
+    final keyPair = await _unlock(pin);
+    final credentialId = await _passkeyCall(() => _passkeys.register(userName: 'FlowPay wallet ${_short(keyPair.accountId)}'));
+    final prfSalt = Uint8List.fromList(_cipher.newNonce() + _cipher.newNonce() + _cipher.newNonce().sublist(0, 8));
+    final secret = await _passkeyCall(() => _passkeys.prfSecret(credentialId: credentialId, salt: prfSalt));
+    final hkdfSalt = _cipher.newNonce() + _cipher.newNonce();
+    final box = await _cipher.encrypt(utf8.encode(keyPair.secretSeed), secretKey: await _passkeyKey(secret, hkdfSalt));
+    await _writeBlob({
+      'v': 2,
+      'publicKey': keyPair.accountId,
+      'kdf': _kdfPasskey,
+      'credentialId': credentialId,
+      'prfSalt': base64Encode(prfSalt),
+      'salt': base64Encode(hkdfSalt),
+      'nonce': base64Encode(box.nonce),
+      'cipherText': base64Encode(box.cipherText),
+      'mac': base64Encode(box.mac.bytes),
+    });
+  }
+
+  /// Back to a PIN: confirms with the passkey, then encrypts under [newPin].
+  Future<void> disablePasskey({required String newPin}) async {
+    _assertPinFormat(newPin);
+    final keyPair = await _unlock(passkey);
+    await _persist(keyPair, newPin, allowOverwrite: true);
   }
 
   Future<void> markBackedUp() async {
@@ -167,6 +226,10 @@ class StellarKeyVault {
   }
 
   Future<void> changePin({required String currentPin, required String newPin}) async {
+    if (await usesPasskey()) {
+      throw const StellarVaultException(
+          StellarVaultErrorCode.pinInvalid, 'This wallet uses a passkey. Switch back to a PIN first.');
+    }
     final keyPair = await _unlock(currentPin);
     await _persist(keyPair, newPin, allowOverwrite: true);
   }
@@ -221,7 +284,7 @@ class StellarKeyVault {
     final blob = jsonEncode({
       'v': 1,
       'publicKey': keyPair.accountId,
-      'kdf': 'pbkdf2-sha256',
+      'kdf': _kdfPin,
       'iterations': _kdfIterations,
       'salt': base64Encode(salt),
       'nonce': base64Encode(box.nonce),
@@ -237,11 +300,15 @@ class StellarKeyVault {
   }
 
   Future<KeyPair> _unlock(String pin) async {
-    _assertPinFormat(pin);
     final blob = await _readBlob();
     if (blob == null) {
       throw const StellarVaultException(StellarVaultErrorCode.noWallet, 'No wallet exists on this device yet.');
     }
+    if (blob['kdf'] == _kdfPasskey) return _unlockWithPasskey(blob, pin);
+    if (pin == passkey) {
+      throw const StellarVaultException(StellarVaultErrorCode.pinInvalid, 'This wallet is protected by a PIN.');
+    }
+    _assertPinFormat(pin);
     await _assertNotLockedOut();
 
     final secretKey = await _deriveKey(pin, base64Decode(blob['salt'] as String),
@@ -260,6 +327,56 @@ class StellarKeyVault {
       throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, 'Incorrect PIN.');
     }
   }
+
+  Future<KeyPair> _unlockWithPasskey(Map<String, dynamic> blob, String pin) async {
+    if (pin != passkey) {
+      throw const StellarVaultException(
+          StellarVaultErrorCode.pinInvalid, 'This wallet is unlocked with your passkey (Face ID / fingerprint).');
+    }
+    final secret = await _passkeyCall(() => _passkeys.prfSecret(
+          credentialId: blob['credentialId'] as String,
+          salt: base64Decode(blob['prfSalt'] as String),
+        ));
+    final box = SecretBox(
+      base64Decode(blob['cipherText'] as String),
+      nonce: base64Decode(blob['nonce'] as String),
+      mac: Mac(base64Decode(blob['mac'] as String)),
+    );
+    try {
+      final key = await _passkeyKey(secret, base64Decode(blob['salt'] as String));
+      return KeyPair.fromSecretSeed(utf8.decode(await _cipher.decrypt(box, secretKey: key)));
+    } on SecretBoxAuthenticationError {
+      throw const StellarVaultException(StellarVaultErrorCode.pinMismatch, "That passkey doesn't unlock this wallet.");
+    }
+  }
+
+  /// AES key from the passkey's PRF output (HKDF-SHA256, wallet-specific salt).
+  Future<SecretKey> _passkeyKey(List<int> prfSecret, List<int> salt) {
+    if (prfSecret.length < 32) {
+      throw const StellarVaultException(StellarVaultErrorCode.passkeyUnavailable, 'The passkey returned an invalid key.');
+    }
+    return Hkdf(hmac: Hmac.sha256(), outputLength: 32)
+        .deriveKey(secretKey: SecretKey(prfSecret), nonce: salt, info: utf8.encode('flowpay-wallet-key-v2'));
+  }
+
+  Future<T> _passkeyCall<T>(Future<T> Function() op) async {
+    try {
+      return await op();
+    } on PasskeyException catch (e) {
+      throw StellarVaultException(
+          e.cancelled ? StellarVaultErrorCode.passkeyCancelled : StellarVaultErrorCode.passkeyUnavailable, e.message);
+    }
+  }
+
+  Future<void> _writeBlob(Map<String, dynamic> blob) async {
+    await _wrap(() async {
+      await _store.write(_blobKey, jsonEncode(blob));
+      await _store.delete(_failuresKey);
+    });
+    _cachedPublicKey = blob['publicKey'] as String;
+  }
+
+  static String _short(String accountId) => '${accountId.substring(0, 4)}…${accountId.substring(accountId.length - 4)}';
 
   Future<SecretKey> _deriveKey(String pin, List<int> salt, {int? iterations}) {
     return Pbkdf2(macAlgorithm: Hmac.sha256(), iterations: iterations ?? _kdfIterations, bits: 256)
