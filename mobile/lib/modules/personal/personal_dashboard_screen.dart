@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'components/guaranteed_pay_card.dart';
 import 'package:flutter/services.dart';
 import '../../core/repositories/activity_repository.dart';
 import '../../core/repositories/approval_repository.dart';
@@ -396,6 +397,9 @@ class _PersonalDashboardScreenState extends State<PersonalDashboardScreen> {
                 ],
               ),
               const SizedBox(height: 14),
+
+              // Salary an employer has locked on Soroban for this user (hidden if none).
+              GuaranteedPayCard(appState: widget.appState),
 
               // 4. Money Missions Feature Card
               InkWell(

@@ -226,6 +226,158 @@ class PayrollRunModel {
   }
 }
 
+// ── Payday guarantee (Soroban PayrollVault) ─────────────────────────────────
+
+/// One employee's reserved salary inside a guarantee.
+class GuaranteeEntryModel {
+  final String employeeId;
+  final String name;
+  final String account;
+  final String amountUsd;
+  /// What the reserved USD covered at quote time, e.g. "150,000.00 NGN".
+  final String coversFormatted;
+  final bool paid;
+
+  const GuaranteeEntryModel({
+    required this.employeeId,
+    required this.name,
+    required this.account,
+    required this.amountUsd,
+    required this.coversFormatted,
+    this.paid = false,
+  });
+
+  factory GuaranteeEntryModel.fromJson(Map<String, dynamic> j) => GuaranteeEntryModel(
+        employeeId: j['employeeId']?.toString() ?? '',
+        name: j['name']?.toString() ?? '',
+        account: j['account']?.toString() ?? '',
+        amountUsd: j['amountUsd']?.toString() ?? '0.00',
+        coversFormatted: j['coversFormatted']?.toString() ?? '',
+        paid: j['paid'] == true,
+      );
+}
+
+/// An unsigned `fund` transaction for the employer to review and sign.
+class PayrollGuaranteeProposal {
+  final String proposalId;
+  /// Null in demo mode (nothing to sign on-chain).
+  final String? signPayload;
+  final DateTime unlockAt;
+  final String totalUsd;
+  final List<GuaranteeEntryModel> entries;
+  final List<String> skipped;
+  final bool isDemo;
+
+  const PayrollGuaranteeProposal({
+    required this.proposalId,
+    required this.signPayload,
+    required this.unlockAt,
+    required this.totalUsd,
+    required this.entries,
+    this.skipped = const [],
+    this.isDemo = false,
+  });
+
+  factory PayrollGuaranteeProposal.fromJson(Map<String, dynamic> j) => PayrollGuaranteeProposal(
+        proposalId: j['proposalId'].toString(),
+        signPayload: j['signPayload'] as String?,
+        unlockAt: DateTime.parse(j['unlockAt'].toString()),
+        totalUsd: j['totalUsd']?.toString() ?? '0.00',
+        entries: [for (final e in (j['entries'] as List? ?? const [])) GuaranteeEntryModel.fromJson(Map<String, dynamic>.from(e as Map))],
+        skipped: [for (final s in (j['skipped'] as List? ?? const [])) '${(s as Map)['name']}: ${s['reason']}'],
+      );
+}
+
+/// A funded guarantee and its on-chain state.
+class PayrollGuaranteeModel {
+  final int payrollId;
+  final DateTime unlockAt;
+  final String totalUsd;
+  final String remainingUsd;
+  final bool isUnlocked;
+  final List<GuaranteeEntryModel> entries;
+  final String? explorerUrl;
+  final bool isDemo;
+
+  const PayrollGuaranteeModel({
+    required this.payrollId,
+    required this.unlockAt,
+    required this.totalUsd,
+    required this.remainingUsd,
+    required this.isUnlocked,
+    required this.entries,
+    this.explorerUrl,
+    this.isDemo = false,
+  });
+
+  bool get isFullyPaid => entries.isNotEmpty && entries.every((e) => e.paid);
+
+  factory PayrollGuaranteeModel.fromJson(Map<String, dynamic> j) {
+    final unlockAt = DateTime.parse(j['unlockAt'].toString());
+    return PayrollGuaranteeModel(
+      payrollId: (j['payrollId'] as num).toInt(),
+      unlockAt: unlockAt,
+      totalUsd: j['totalUsd']?.toString() ?? '0.00',
+      // Missing on-chain state is unknown, never "all paid".
+      remainingUsd: j['remainingUsd']?.toString() ?? j['totalUsd']?.toString() ?? '0.00',
+      isUnlocked: j['isUnlocked'] == true || (j['isUnlocked'] == null && DateTime.now().isAfter(unlockAt)),
+      entries: [for (final e in (j['entries'] as List? ?? const [])) GuaranteeEntryModel.fromJson(Map<String, dynamic>.from(e as Map))],
+      explorerUrl: j['explorerUrl'] as String?,
+    );
+  }
+}
+
+/// Pay reserved for the signed-in employee.
+class GuaranteedPayModel {
+  final int payrollId;
+  final DateTime unlockAt;
+  final String amountUsd;
+  final String coversFormatted;
+  final bool paid;
+  final bool isUnlocked;
+  final String? explorerUrl;
+
+  const GuaranteedPayModel({
+    required this.payrollId,
+    required this.unlockAt,
+    required this.amountUsd,
+    required this.coversFormatted,
+    required this.paid,
+    required this.isUnlocked,
+    this.explorerUrl,
+  });
+
+  factory GuaranteedPayModel.fromJson(Map<String, dynamic> j) => GuaranteedPayModel(
+        payrollId: (j['payrollId'] as num).toInt(),
+        unlockAt: DateTime.parse(j['unlockAt'].toString()),
+        amountUsd: j['amountUsd']?.toString() ?? '0.00',
+        coversFormatted: j['coversFormatted']?.toString() ?? '',
+        paid: j['paid'] == true,
+        isUnlocked: j['isUnlocked'] == true,
+        explorerUrl: j['explorerUrl'] as String?,
+      );
+}
+
+/// Outcome of claiming or releasing a guaranteed salary.
+class GuaranteePayoutResult {
+  final String name;
+  /// COMPLETED, ALREADY_PAID, PENDING or FAILED.
+  final String status;
+  final String? amountUsd;
+  final String? explorerUrl;
+  final String? error;
+
+  const GuaranteePayoutResult({required this.name, required this.status, this.amountUsd, this.explorerUrl, this.error});
+
+  factory GuaranteePayoutResult.fromJson(Map<String, dynamic> j) => GuaranteePayoutResult(
+        name: j['name']?.toString() ?? '',
+        status: j['status']?.toString() ?? 'FAILED',
+        amountUsd: j['amountUsd']?.toString(),
+        explorerUrl: j['explorerUrl']?.toString(),
+        error: j['error']?.toString(),
+      );
+}
+
 abstract class PayrollRepository {
   /// Live: quotes + the unsigned transactions to approve ([PayrollRunModel.batches]).
   Future<PayrollRunModel> getPayrollPreview();
@@ -237,4 +389,25 @@ abstract class PayrollRepository {
   });
 
   Future<List<PayrollRunModel>> getPastRuns();
+
+  // ── Payday guarantee ──
+  /// Builds the guarantee from the live payroll for a payday at [unlockAt].
+  Future<PayrollGuaranteeProposal> proposeGuarantee(DateTime unlockAt);
+
+  /// Submits the employer-signed `fund` transaction ([signedPayload] is null in demo).
+  Future<PayrollGuaranteeModel> executeGuarantee({required String proposalId, String? signedPayload});
+
+  /// The employer's guarantees with on-chain status.
+  Future<List<PayrollGuaranteeModel>> getGuarantees();
+
+  /// Pays every unlocked, unpaid salary of a guarantee.
+  Future<List<GuaranteePayoutResult>> releaseGuarantee(int payrollId);
+
+  /// Employee side: pay reserved for me.
+  Future<List<GuaranteedPayModel>> getMyGuaranteedPay();
+
+  /// Employee side: unsigned `claim` → (proposalId, signPayload).
+  Future<({String proposalId, String? signPayload})> proposeGuaranteeClaim(int payrollId);
+
+  Future<GuaranteePayoutResult> executeGuaranteeClaim({required String proposalId, String? signedPayload});
 }

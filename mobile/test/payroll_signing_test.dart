@@ -11,6 +11,10 @@ import 'package:flowpay_mobile/core/stellar/stellar_network.dart';
 import 'helpers/test_wallet.dart';
 
 class MockPayrollRepository implements PayrollRepository {
+  // Guarantee methods aren't exercised here.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   PayrollRunModel? previewToReturn;
   Map<String, String>? lastSigned;
 

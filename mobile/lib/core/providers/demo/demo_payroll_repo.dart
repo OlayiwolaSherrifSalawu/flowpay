@@ -212,4 +212,105 @@ class DemoPayrollRepository implements PayrollRepository {
     await Future.delayed(const Duration(milliseconds: 150));
     return _runs;
   }
+
+  // ── Payday guarantee (demo simulation: nothing is locked on any ledger) ──
+
+  final List<PayrollGuaranteeModel> _guarantees = [];
+  final Map<String, PayrollGuaranteeProposal> _guaranteeProposals = {};
+  int _nextGuaranteeId = 1;
+
+  @override
+  Future<PayrollGuaranteeProposal> proposeGuarantee(DateTime unlockAt) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!unlockAt.isAfter(DateTime.now())) throw StateError('Payday must be in the future.');
+    final preview = await getPayrollPreview();
+    final entries = [
+      for (final i in preview.items)
+        GuaranteeEntryModel(
+          employeeId: i.employeeId,
+          name: i.employeeName,
+          account: 'demo',
+          amountUsd: i.usdAmount.toMajorString(),
+          coversFormatted: '${i.targetAmount.formatFormatted()} ${i.targetCurrency.code}',
+        ),
+    ];
+    final proposal = PayrollGuaranteeProposal(
+      proposalId: 'demo_guarantee_${DateTime.now().microsecondsSinceEpoch}',
+      signPayload: null,
+      unlockAt: unlockAt,
+      totalUsd: preview.totalUsd.toMajorString(),
+      entries: entries,
+      isDemo: true,
+    );
+    _guaranteeProposals[proposal.proposalId] = proposal;
+    return proposal;
+  }
+
+  @override
+  Future<PayrollGuaranteeModel> executeGuarantee({required String proposalId, String? signedPayload}) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    final p = _guaranteeProposals.remove(proposalId);
+    if (p == null) throw StateError('This proposal expired. Review it again.');
+    final g = PayrollGuaranteeModel(
+      payrollId: _nextGuaranteeId++,
+      unlockAt: p.unlockAt,
+      totalUsd: p.totalUsd,
+      remainingUsd: p.totalUsd,
+      isUnlocked: false,
+      entries: p.entries,
+      isDemo: true,
+    );
+    _guarantees.add(g);
+    return g;
+  }
+
+  @override
+  Future<List<PayrollGuaranteeModel>> getGuarantees() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    return [
+      for (final g in _guarantees)
+        PayrollGuaranteeModel(
+          payrollId: g.payrollId,
+          unlockAt: g.unlockAt,
+          totalUsd: g.totalUsd,
+          remainingUsd: g.remainingUsd,
+          isUnlocked: DateTime.now().isAfter(g.unlockAt),
+          entries: g.entries,
+          isDemo: true,
+        ),
+    ];
+  }
+
+  @override
+  Future<List<GuaranteePayoutResult>> releaseGuarantee(int payrollId) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final idx = _guarantees.indexWhere((g) => g.payrollId == payrollId);
+    if (idx < 0) throw StateError('Guarantee not found.');
+    final g = _guarantees[idx];
+    if (DateTime.now().isBefore(g.unlockAt)) throw StateError("It isn't payday yet.");
+    _guarantees[idx] = PayrollGuaranteeModel(
+      payrollId: g.payrollId,
+      unlockAt: g.unlockAt,
+      totalUsd: g.totalUsd,
+      remainingUsd: '0.00',
+      isUnlocked: true,
+      entries: [
+        for (final e in g.entries)
+          GuaranteeEntryModel(employeeId: e.employeeId, name: e.name, account: e.account, amountUsd: e.amountUsd, coversFormatted: e.coversFormatted, paid: true),
+      ],
+      isDemo: true,
+    );
+    return [for (final e in g.entries) GuaranteePayoutResult(name: e.name, status: e.paid ? 'ALREADY_PAID' : 'COMPLETED', amountUsd: e.amountUsd)];
+  }
+
+  @override
+  Future<List<GuaranteedPayModel>> getMyGuaranteedPay() async => const [];
+
+  @override
+  Future<({String proposalId, String? signPayload})> proposeGuaranteeClaim(int payrollId) async =>
+      throw StateError('Claiming guaranteed pay is only available for employees on Stellar.');
+
+  @override
+  Future<GuaranteePayoutResult> executeGuaranteeClaim({required String proposalId, String? signedPayload}) async =>
+      throw StateError('Claiming guaranteed pay is only available for employees on Stellar.');
 }
