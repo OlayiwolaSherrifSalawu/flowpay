@@ -84,6 +84,8 @@ class StellarKeyVault {
   static const int freeAttempts = 5;
   static const String _blobKey = 'flowpay_stellar_vault_v1';
   static const String _failuresKey = 'flowpay_stellar_vault_failures';
+  /// Public key of the wallet whose recovery key the user confirmed saving.
+  static const String _backedUpKey = 'flowpay_stellar_vault_backed_up';
 
   /// Process-wide vault. Tests replace it with an in-memory instance via
   /// `test/flutter_test_config.dart`.
@@ -115,6 +117,19 @@ class StellarKeyVault {
     return _cachedPublicKey;
   }
 
+  /// True once the user confirmed saving this wallet's recovery key (or restored
+  /// the wallet from one). Until then the app keeps reminding them.
+  Future<bool> isBackedUp() async {
+    final pk = await publicKey();
+    return pk != null && await _store.read(_backedUpKey) == pk;
+  }
+
+  Future<void> markBackedUp() async {
+    final pk = await publicKey();
+    if (pk == null) throw const StellarVaultException(StellarVaultErrorCode.noWallet, 'No wallet on this device.');
+    await _wrap(() => _store.write(_backedUpKey, pk));
+  }
+
   // ── lifecycle ──────────────────────────────────────────────────────────
 
   /// Generates a new keypair, encrypts it under [pin], and persists it.
@@ -122,7 +137,7 @@ class StellarKeyVault {
       _persist(KeyPair.random(), pin, allowOverwrite: false);
 
   /// Restores a wallet from a recovery key (S... secret seed).
-  Future<String> importWallet({required String secretSeed, required String pin}) {
+  Future<String> importWallet({required String secretSeed, required String pin}) async {
     final KeyPair keyPair;
     try {
       keyPair = KeyPair.fromSecretSeed(secretSeed.trim());
@@ -130,7 +145,10 @@ class StellarKeyVault {
       throw const StellarVaultException(
           StellarVaultErrorCode.signingFailed, 'That recovery key is not a valid Stellar secret key.');
     }
-    return _persist(keyPair, pin, allowOverwrite: false);
+    final account = await _persist(keyPair, pin, allowOverwrite: false);
+    // Restored from a recovery key: the user evidently has it saved.
+    await _wrap(() => _store.write(_backedUpKey, account));
+    return account;
   }
 
   /// Returns the recovery key after verifying [pin]. Only for the explicit
@@ -159,6 +177,7 @@ class StellarKeyVault {
     await _wrap(() async {
       await _store.delete(_blobKey);
       await _store.delete(_failuresKey);
+      await _store.delete(_backedUpKey);
     });
     _cachedPublicKey = null;
   }

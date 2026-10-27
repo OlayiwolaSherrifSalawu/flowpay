@@ -21,6 +21,22 @@ Future<void> enterField(WidgetTester tester, String label, String value) async {
   await tester.enterText(field, value);
 }
 
+/// Sign-up now asks new users to save their recovery key: reveal it, then
+/// confirm by typing its last four characters.
+Future<void> backUpRecoveryKey(WidgetTester tester) async {
+  expect(find.text('Save your recovery key'), findsOneWidget);
+  await tester.tap(find.byKey(const Key('recovery_key_reveal')));
+  await tester.pumpAndSettle();
+  final key = (tester.widget(find.byKey(const Key('recovery_key_text'))) as SelectableText).data!;
+  expect(key, startsWith('S'));
+  await tester.enterText(find.byKey(const Key('recovery_key_confirm_field')), key.substring(key.length - 4));
+  await tester.ensureVisible(find.byKey(const Key('recovery_key_done')));
+      await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('recovery_key_done')));
+  await tester.pumpAndSettle();
+  expect(await StellarKeyVault.instance.isBackedUp(), isTrue);
+}
+
 void main() {
   setUp(() {
     SecureStorageService.resetMemoryCacheForTesting();
@@ -147,6 +163,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await tester.pumpAndSettle();
+      await backUpRecoveryKey(tester);
 
       // Should now be in PersonalShell
       expect(find.text('Personal Account'), findsWidgets);
@@ -227,6 +244,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       await tester.pumpAndSettle();
+      await backUpRecoveryKey(tester);
 
       // Should now be in BusinessShell with Business navigation
       expect(find.text('Dashboard'), findsOneWidget);

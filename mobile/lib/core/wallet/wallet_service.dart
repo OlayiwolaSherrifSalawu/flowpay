@@ -106,6 +106,12 @@ abstract class WalletService {
 
   /// Reveal the recovery key for backup. Requires the PIN.
   Future<String> exportRecoveryKey({required String pin});
+
+  /// Whether the user confirmed saving the recovery key for this wallet.
+  Future<bool> isRecoveryKeyBackedUp();
+
+  /// Records that the user saved (and re-typed part of) the recovery key.
+  Future<void> markRecoveryKeyBackedUp();
 }
 
 /// Production implementation backed by [StellarKeyVault].
@@ -144,6 +150,12 @@ class StellarWalletService implements WalletService {
 
   @override
   Future<String> exportRecoveryKey({required String pin}) => _vault.exportRecoveryKey(pin: pin);
+
+  @override
+  Future<bool> isRecoveryKeyBackedUp() => _vault.isBackedUp();
+
+  @override
+  Future<void> markRecoveryKeyBackedUp() => _vault.markBackedUp();
 }
 
 /// StateNotifier coordinating on-device wallet lifecycle and UI states.

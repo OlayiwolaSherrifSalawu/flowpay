@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'recovery_key_backup_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/account_capabilities.dart';
 import '../../core/auth/auth_providers.dart';
@@ -103,6 +104,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
       // 1. Create the Stellar keypair on this device, encrypted under the PIN.
       //    If this device already holds a wallet, the PIN must unlock it.
       final walletService = ref.read(walletServiceProvider);
+      var createdNow = false;
       if (await walletService.hasWallet()) {
         if (!await walletService.matchPin(_initialPin)) {
           setState(() {
@@ -117,6 +119,7 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
         }
       } else {
         await walletService.createWallet(pin: _initialPin);
+        createdNow = true;
       }
       await ref.read(walletStateProvider.notifier).loadWalletState();
 
@@ -134,7 +137,17 @@ class _SetPinScreenState extends ConsumerState<SetPinScreen> {
         }
       }
 
-      // 3. Employee invite: once signed in, the app opens the accept sheet, which
+      // 3. A brand-new wallet: have the user save the recovery key now. It is the
+      //    only way back into the money if this phone is lost.
+      if (createdNow && mounted) {
+        final recoveryKey = await walletService.exportRecoveryKey(pin: _initialPin);
+        if (!mounted) return;
+        await Navigator.of(context).push<bool>(MaterialPageRoute(
+          builder: (_) => RecoveryKeyBackupScreen(recoveryKey: recoveryKey, walletService: walletService),
+        ));
+      }
+
+      // 4. Employee invite: once signed in, the app opens the accept sheet, which
       //    verifies the user's email and links this wallet to the payroll.
       if (widget.employeeInviteToken != null && widget.employeeInviteToken!.trim().isNotEmpty) {
         InviteLink.pendingToken = widget.employeeInviteToken!.trim();

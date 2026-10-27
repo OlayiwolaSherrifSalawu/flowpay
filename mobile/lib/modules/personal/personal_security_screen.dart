@@ -1,4 +1,5 @@
 import 'components/accept_invite_sheet.dart';
+import '../auth/recovery_key_backup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/auth/app_lock_service.dart';
@@ -36,6 +37,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
   bool _hasPin = false;
   bool _isSigningAvailable = false;
   bool _hasDeviceLock = false;
+  bool _isBackedUp = false;
   bool _isLoading = true;
 
   @override
@@ -51,6 +53,7 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
     // The PIN encrypts the wallet key, so a wallet on this device implies a PIN.
     final hasPin = hasWallet;
     final hasDeviceLock = await AppLockService().canAuthenticate();
+    final isBackedUp = hasWallet && await StellarKeyVault.instance.isBackedUp();
 
     if (mounted) {
       setState(() {
@@ -59,9 +62,15 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
         _hasPin = hasPin;
         _isSigningAvailable = _hasWallet;
         _hasDeviceLock = hasDeviceLock;
+        _isBackedUp = isBackedUp;
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _showRecoveryKey() async {
+    await RecoveryKeyBackupScreen.revealWithPin(context);
+    await _checkSecurityState();
   }
 
   void _copyToClipboard(String text, String label) {
@@ -431,6 +440,29 @@ class _PersonalSecurityScreenState extends State<PersonalSecurityScreen> {
                   ),
                 ],
               ),
+
+              if (_hasWallet) ...[
+                const Divider(height: 28),
+                _buildSecurityStatusRow(
+                  isDark,
+                  title: 'Recovery key',
+                  subtitle: _isBackedUp
+                      ? 'Saved. It restores your wallet on a new phone.'
+                      : 'Not saved yet. Without it, losing this phone means losing your money.',
+                  statusText: _isBackedUp ? 'SAVED' : 'NOT SAVED',
+                  isSuccess: _isBackedUp,
+                  icon: Icons.key_rounded,
+                ),
+                const SizedBox(height: 12),
+                FlowPayButton(
+                  key: const Key('security_show_recovery_key'),
+                  text: _isBackedUp ? 'Show recovery key' : 'Back up recovery key',
+                  icon: Icons.key_rounded,
+                  isFullWidth: true,
+                  variant: _isBackedUp ? FlowPayButtonVariant.secondary : FlowPayButtonVariant.primary,
+                  onPressed: _showRecoveryKey,
+                ),
+              ],
 
               const SizedBox(height: 18),
 

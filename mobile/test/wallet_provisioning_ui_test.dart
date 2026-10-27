@@ -7,6 +7,14 @@ import 'package:flowpay_mobile/modules/personal/wallet_provisioning_screen.dart'
 
 /// In-memory mock wallet service for UI widget tests.
 class _MockWalletService implements WalletService {
+  bool backedUp = false;
+
+  @override
+  Future<bool> isRecoveryKeyBackedUp() async => backedUp;
+
+  @override
+  Future<void> markRecoveryKeyBackedUp() async => backedUp = true;
+
   bool _hasWallet = false;
   String? _address;
   String? _pin;
