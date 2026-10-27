@@ -248,6 +248,21 @@ removed completely.
         white-on-white) — now theme-aware; dashboard balance stale after claiming — `GuaranteedPayCard.onClaimed` refreshes.
         Testnet-only "In 2 minutes (testnet)" payday choice for demos.
 
+* [x] **M13 — Passkey key vault (web)** (owner chose this over Soroban smart wallets: contract accounts can't use the
+        classic path payments / pools / claimable balances FlowPay is built on):
+  * `web/passkey.js` (WebAuthn bridge, PRF required at registration) + `core/stellar/passkey/` (`PasskeyAuthenticator`,
+        web impl via `dart:js_interop`, unsupported stub on native). Dart SDK minimum raised to 3.3.
+  * Vault blob v2 `kdf: webauthn-prf-hkdf` (PRF output → HKDF-SHA256 → AES-256-GCM); `enablePasskey` requires saved
+        recovery key + PIN and deletes the PIN-encrypted copy; `disablePasskey` → new PIN. Unlock/sign with the sentinel
+        `StellarKeyVault.passkey` as the `pin` argument (every existing call site works unchanged). Cancels never count as
+        failed attempts.
+  * UI: Security "Face ID / passkey" (only where supported), PIN sheet "Confirm with passkey", lock screen "Unlock with
+        passkey" (one prompt: sign-in both proves the user and renews the session; local check only if offline).
+  * Verified in real Chrome with CDP `WebAuthn.addVirtualAuthenticator({hasPrf:true})`: bridge (32-byte, salt-stable PRF),
+        enable → lock → unlock → $500 testnet payment confirmed by passkey (`1e0c35c4…`). Fixed along the way: FlowPayButton
+        labels overflowed at phone width (now ellipsize); PIN wording/badges/duplicate biometric button in passkey mode.
+  * Native apps still use PIN + OS keychain (PRF on native needs a platform plugin — follow-up).
+
 ## 🛠️ 6. Runbook & Verification
 
 ```bash
